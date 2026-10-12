@@ -38,5 +38,7 @@ class ModuleManifest:
     tools: list[Any] = field(default_factory=list)
     settings: list[Any] = field(default_factory=list)
     search_providers: list[Any] = field(default_factory=list)
+    #: demo fixture seeds (app.seed.context.SeedDef), run in order by ``lk seed demo``
+    seeds: list[Any] = field(default_factory=list)
     #: called once after all manifests are loaded (e.g. register hooks); keep side effects idempotent
     on_load: Callable[[], None] | None = None

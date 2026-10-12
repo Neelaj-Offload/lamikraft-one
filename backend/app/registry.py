@@ -81,6 +81,7 @@ class Registry:
     tools: list[Any] = field(default_factory=list)
     settings: list[Any] = field(default_factory=list)
     search_providers: list[Any] = field(default_factory=list)
+    seeds: list[Any] = field(default_factory=list)
 
     def routers(self) -> list[Any]:
         out: list[Any] = []
@@ -155,6 +156,7 @@ def build_registry(modules: tuple[str, ...] | None = None) -> Registry:
         reg.tools.extend(manifest.tools)
         reg.settings.extend(manifest.settings)
         reg.search_providers.extend(manifest.search_providers)
+        reg.seeds.extend(manifest.seeds)
 
     # ---- cross validation ------------------------------------------------------------------
     for template, grants in reg.template_grants.items():
@@ -178,6 +180,12 @@ def build_registry(modules: tuple[str, ...] | None = None) -> Registry:
                 key = policy.permission(action)
                 if key not in reg.permissions:
                     errors.append(f"policy {policy.resource_type} needs permission {key}")
+    tool_names = [t.name for t in reg.tools]
+    if len(tool_names) != len(set(tool_names)):
+        errors.append("duplicate agent tool names")
+    for tool in reg.tools:
+        if tool.permission and tool.permission not in reg.permissions:
+            errors.append(f"tool {tool.name} requires unknown permission {tool.permission}")
     if "event.handle" not in reg.jobs:
         errors.append("platform job kind event.handle must be registered")
     if errors:
