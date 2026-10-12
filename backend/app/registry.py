@@ -20,6 +20,7 @@ from app.platform.manifest import ModuleManifest
 from app.platform.numbering.defs import SequenceDef
 
 PLATFORM_MODULES: tuple[str, ...] = (
+    "app.platform.authz",
     "app.platform.org",
     "app.platform.identity",
     "app.platform.events",

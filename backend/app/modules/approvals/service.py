@@ -83,11 +83,9 @@ def submit(
     actor = uow.actor
     if actor.user_id is None:
         raise Forbidden("only a person can request an approval", code="requester_required")
+    superseded: list[Proposal] = []
     for target in targets:
-        for pending in _pending_for(uow, target.target_type, target.target_id):
-            pending.status = "superseded"
-            pending.invalidated_reason = "superseded_by_new_request"
-            uow.emit("approvals.proposal.superseded", aggregate_id=pending.id, aggregate_version=pending.version)
+        superseded.extend(_pending_for(uow, target.target_type, target.target_id))
     proposal = Proposal(
         kind=kind,
         status="pending",
@@ -113,11 +111,31 @@ def submit(
                 target_version=target.target_version,
             )
         )
+    for pending in {p.id: p for p in superseded}.values():
+        pending.status = "superseded"
+        pending.invalidated_reason = "superseded_by_new_request"
+        uow.emit(
+            "approvals.proposal.superseded",
+            aggregate_id=pending.id,
+            aggregate_version=pending.version,
+            payload={"proposal_id": str(pending.id), "superseded_by_proposal_id": str(proposal.id)},
+        )
     uow.emit(
         "approvals.proposal.submitted",
         aggregate_id=proposal.id,
         aggregate_version=proposal.version,
-        payload={"kind": kind, "targets": [{"type": t.target_type, "id": str(t.target_id)} for t in targets]},
+        payload={
+            "proposal_id": str(proposal.id),
+            "short_ref": str(proposal.id)[-6:].upper(),
+            "kind": kind,
+            "action_key": kind,
+            "version": proposal.version,
+            "targets": [{"type": t.target_type, "id": str(t.target_id), "version": t.target_version} for t in targets],
+            "initiator_user_id": str(actor.user_id),
+            "policy_key": proposal.policy_key,
+            "expires_at": proposal.expires_at.isoformat() if proposal.expires_at else None,
+            "tainted": False,
+        },
     )
     uow.audit("approvals.proposal.submitted", resource_type="approvals.proposal", resource_id=proposal.id, resource_label=title)
     return proposal
@@ -143,7 +161,17 @@ def invalidate_for_target(uow: UnitOfWork, target_type: str, target_id: uuid.UUI
     for proposal in _pending_for(uow, target_type, target_id):
         proposal.status = "invalidated"
         proposal.invalidated_reason = reason
-        uow.emit("approvals.proposal.invalidated", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"reason": reason})
+        uow.emit(
+            "approvals.proposal.invalidated",
+            aggregate_id=proposal.id,
+            aggregate_version=proposal.version,
+            payload={
+                "proposal_id": str(proposal.id),
+                "version": proposal.version,
+                "cause": reason,
+                "target": {"type": target_type, "id": str(target_id)},
+            },
+        )
         count += 1
     return count
 
@@ -179,6 +207,15 @@ def is_eligible(uow: UnitOfWork, proposal: Proposal) -> bool:
     return True
 
 
+def raise_if_not_decided(proposal: Proposal) -> Proposal:
+    """API helper: after the unit of work commits, report stale/expired outcomes as 409."""
+    if proposal.status == "invalidated":
+        raise Conflict("The document changed after this request; it needs a fresh review", code="proposal_stale")
+    if proposal.status == "expired":
+        raise Conflict("This request has expired", code="proposal_expired")
+    return proposal
+
+
 def decide(
     uow: UnitOfWork,
     proposal_id: uuid.UUID,
@@ -200,9 +237,10 @@ def decide(
     if proposal.status != "pending":
         raise Conflict(f"This request is {proposal.status}", code=f"proposal_{proposal.status}")
     if proposal.expires_at is not None and proposal.expires_at <= uow.now():
+        # committed outcome (not an exception) so the expiry persists; callers report 409 after commit
         proposal.status = "expired"
-        uow.emit("approvals.proposal.expired", aggregate_id=proposal.id, aggregate_version=proposal.version)
-        raise Conflict("This request has expired", code="proposal_expired")
+        uow.emit("approvals.proposal.expired", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"proposal_id": str(proposal.id), "version": proposal.version})
+        return proposal
     if content_hash_seen != proposal.content_hash:
         raise Conflict("The content you reviewed is not the current proposal", code="proposal_content_mismatch")
     if uow.actor.user_id == proposal.requested_by:
@@ -215,10 +253,20 @@ def decide(
         if current is None or (target.target_version is not None and current != target.target_version):
             proposal.status = "invalidated"
             proposal.invalidated_reason = "target_changed"
-            uow.emit("approvals.proposal.invalidated", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"reason": "target_changed"})
-            raise Conflict("The document changed after this request; it needs a fresh review", code="proposal_stale")
+            uow.emit(
+                "approvals.proposal.invalidated",
+                aggregate_id=proposal.id,
+                aggregate_version=proposal.version,
+                payload={
+                    "proposal_id": str(proposal.id),
+                    "version": proposal.version,
+                    "cause": "target_changed",
+                    "target": {"type": target.target_type, "id": str(target.target_id), "version": target.target_version},
+                },
+            )
+            return proposal
     now = uow.now()
-    uow.add(
+    decision_row = uow.add(
         ProposalDecision(
             proposal_id=proposal.id,
             proposal_version=proposal.version,
@@ -240,7 +288,15 @@ def decide(
     else:
         handler.on_rejected(uow, proposal)
     uow.flush()
-    uow.emit(f"approvals.proposal.{proposal.status}", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"kind": proposal.kind})
+    decided_payload = {
+        "proposal_id": str(proposal.id),
+        "version": proposal.version,
+        "decision_id": str(decision_row.id),
+        "approver_user_id": str(uow.actor.user_id),
+    }
+    if decision == "reject":
+        decided_payload["reason_code"] = "rejected_by_approver"
+    uow.emit(f"approvals.proposal.{proposal.status}", aggregate_id=proposal.id, aggregate_version=proposal.version, payload=decided_payload)
     uow.audit(f"approvals.proposal.{decision}", resource_type="approvals.proposal", resource_id=proposal.id, resource_label=proposal.title, reason=reason)
     return proposal
 
@@ -252,7 +308,7 @@ def withdraw(uow: UnitOfWork, proposal_id: uuid.UUID) -> Proposal:
     if proposal.status != "pending":
         raise Conflict(code=f"proposal_{proposal.status}")
     proposal.status = "withdrawn"
-    uow.emit("approvals.proposal.withdrawn", aggregate_id=proposal.id, aggregate_version=proposal.version)
+    uow.emit("approvals.proposal.cancelled", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"proposal_id": str(proposal.id), "reason_code": "withdrawn"})
     return proposal
 
 
@@ -272,5 +328,5 @@ def expire_due(uow: UnitOfWork) -> int:
     ).all()
     for proposal in rows:
         proposal.status = "expired"
-        uow.emit("approvals.proposal.expired", aggregate_id=proposal.id, aggregate_version=proposal.version)
+        uow.emit("approvals.proposal.expired", aggregate_id=proposal.id, aggregate_version=proposal.version, payload={"proposal_id": str(proposal.id), "version": proposal.version})
     return len(rows)

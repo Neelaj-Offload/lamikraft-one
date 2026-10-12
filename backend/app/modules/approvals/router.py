@@ -107,7 +107,9 @@ def decide_proposal(actor: Actor, proposal_id: uuid.UUID, body: DecideIn) -> Pro
             expected_version=body.expected_version,
             reason=body.reason,
         )
-        return _out(uow, proposal)
+        out = _out(uow, proposal)
+    service.raise_if_not_decided(proposal)
+    return out
 
 
 @router.post("/proposals/{proposal_id}/withdraw", openapi_extra=authenticated())

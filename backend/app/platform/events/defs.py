@@ -23,6 +23,8 @@ class EventDef:
     description: str
     payload: type[BaseModel] | None = None
     version: int = 1
+    #: allowed payload field names (catalogue); ``origin`` is always allowed
+    fields: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         if not _NAME.match(self.name):
@@ -41,6 +43,10 @@ class EventDef:
             data = dict(payload)
         if self.payload is not None:
             data = self.payload.model_validate(data).model_dump(mode="json")
+        if self.fields is not None:
+            unknown = sorted(set(data) - set(self.fields) - {"origin"})
+            if unknown:
+                raise ValueError(f"event {self.name} payload has undeclared fields {unknown}")
         return data
 
 

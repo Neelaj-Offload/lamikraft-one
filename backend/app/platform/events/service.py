@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.platform.events.models import DomainEvent, EventConsumption
 
+_ORIGIN = {"user": "user", "agent": "agent", "system": "system", "integration": "channel", "cli": "system"}
+
 if TYPE_CHECKING:
     from app.platform.uow import UnitOfWork
 
@@ -31,6 +33,8 @@ def emit(
     if definition is None:
         raise KeyError(f"event {event_name!r} is not registered")
     actor = uow.actor
+    data = definition.validate_payload(payload)
+    data.setdefault("origin", _ORIGIN.get(actor.actor_type, "system"))
     row = DomainEvent(
         id=uuid.uuid7(),
         company_id=actor.company_id,
@@ -39,7 +43,7 @@ def emit(
         aggregate_type=definition.aggregate_type,
         aggregate_id=aggregate_id,
         aggregate_version=aggregate_version,
-        payload=definition.validate_payload(payload),
+        payload=data,
         actor_user_id=actor.user_id,
         actor_type=actor.actor_type,
         on_behalf_of=actor.on_behalf_of_user_id,
