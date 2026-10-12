@@ -1,0 +1,61 @@
+[project]
+name = "lamikraft-one"
+version = "0.1.0"
+description = "Lamikraft One ERP backend (FastAPI modular monolith)"
+requires-python = "==3.14.*"
+dependencies = [
+  "fastapi==0.143.0",
+  "uvicorn==0.54.0",
+  "watchfiles",
+  "sqlalchemy==2.1.4",
+  "alembic==1.20.0",
+  "psycopg[binary]==3.3.6",
+  "pydantic==2.14.1",
+  "pydantic-settings==2.15.0",
+  "python-multipart==0.0.32",
+  "argon2-cffi==25.1.0",
+  "pyotp==2.10.0",
+  "segno",
+  "cryptography",
+  "structlog==26.1.0",
+  "tzdata",
+  "boto3==1.43.111",
+  "pillow",
+  "reportlab[shaping]==5.0.1",
+  "openpyxl==3.1.5",
+  "defusedxml",
+  "httpx==0.28.1",
+  "anthropic==1.13.0",
+  "google-genai==2.29.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "hypothesis==6.169.0",
+  "moto[s3]==5.2.4",
+  "pypdf",
+  "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+markers = [
+  "committed: test runs against a cloned committed database (RLS, concurrency, worker, backup)",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "T20"]
+ignore = ["S101", "B008", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "T20"]
+"migrations/**" = ["S"]

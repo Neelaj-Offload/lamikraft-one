@@ -1,0 +1,20 @@
+{
+  "name": "lamikraft-one",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Lamikraft One ERP monorepo (Next.js web + FastAPI backend)",
+  "workspaces": ["apps/web"],
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "setup": "node scripts/dev.mjs setup",
+    "dev": "node scripts/dev.mjs dev",
+    "check": "node scripts/dev.mjs check",
+    "test:api": "node scripts/dev.mjs test-api",
+    "test:e2e": "node scripts/dev.mjs test-e2e",
+    "api:generate": "node scripts/dev.mjs api-generate",
+    "api:check": "node scripts/dev.mjs api-check",
+    "db:up": "node scripts/dev.mjs db-up",
+    "db:migrate": "node scripts/dev.mjs db-migrate",
+    "seed:demo": "node scripts/dev.mjs seed-demo"
+  }
+}

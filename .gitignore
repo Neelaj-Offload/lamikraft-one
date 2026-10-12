@@ -1,0 +1,29 @@
+# env & secrets
+.env
+.env.*
+!.env.example
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+*.egg-info/
+# node
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
+# runtime data
+var/
+backups/
+*.log
+# os
+.DS_Store
+Thumbs.db
