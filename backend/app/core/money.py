@@ -27,9 +27,9 @@ _DECIMAL_PATTERN = r"^-?\d{1,14}(\.\d{1,6})?$"
 
 def _to_decimal(value: Any) -> Decimal:
     if isinstance(value, bool):
-        raise TypeError("booleans are not decimals")
+        raise ValueError("booleans are not decimals")
     if isinstance(value, float):
-        raise TypeError("floats are not accepted for money or quantities; send a decimal string")
+        raise ValueError("floats are not accepted for money or quantities; send a decimal string")
     if isinstance(value, Decimal):
         result = value
     elif isinstance(value, int):
@@ -43,7 +43,7 @@ def _to_decimal(value: Any) -> Decimal:
         except InvalidOperation as exc:
             raise ValueError(f"not a decimal: {value!r}") from exc
     else:
-        raise TypeError(f"unsupported decimal input type {type(value).__name__}")
+        raise ValueError(f"unsupported decimal input type {type(value).__name__}")
     if not result.is_finite():
         raise ValueError("decimal must be finite")
     return result
