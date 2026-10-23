@@ -38,6 +38,7 @@ const TEXT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["warning-text", "surface"],
   ["warning-text", "canvas"],
   ["danger", "danger-bg"],
+  ["on-danger", "danger"],
   ["danger", "surface"],
   ["danger", "canvas"],
   ["success", "success-bg"],

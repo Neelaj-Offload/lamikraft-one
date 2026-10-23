@@ -30,6 +30,7 @@
  *   forest / forest-tint           8.02     5.93
  *   warning-text / warning-bg      6.42     8.25
  *   danger / danger-bg             5.52     6.68
+ *   on-danger / danger             6.44     7.68
  *   success / success-bg           5.55     7.68
  *   info / info-bg                 5.95     7.56
  *   border-strong / surface (UI)   3.72     3.72
@@ -62,11 +63,13 @@
   --lk-warning-bg: #fbf1de;
   --lk-danger: #a63a2b;
   --lk-danger-bg: #fbeae6;
+  --lk-on-danger: #ffffff;
   --lk-success: #2d6a45;
   --lk-success-bg: #e5f1e8;
   --lk-info: #2c5d85;
   --lk-info-bg: #e6eef6;
   --lk-focus: #214c3c;
+  --lk-scrim: rgb(32 39 35 / 0.45);
   --lk-shadow-sm: 0 1px 2px rgb(32 39 35 / 0.06);
   --lk-shadow-md: 0 1px 2px rgb(32 39 35 / 0.05), 0 4px 12px rgb(32 39 35 / 0.06);
   --lk-shadow-lg: 0 2px 6px rgb(32 39 35 / 0.06), 0 16px 40px rgb(32 39 35 / 0.1);
@@ -93,11 +96,13 @@
   --lk-warning-bg: #2b2416;
   --lk-danger: #f08a7a;
   --lk-danger-bg: #2f1b18;
+  --lk-on-danger: #1c0f0c;
   --lk-success: #7cc59a;
   --lk-success-bg: #16271d;
   --lk-info: #8db8e0;
   --lk-info-bg: #162431;
   --lk-focus: #e3c48f;
+  --lk-scrim: rgb(0 0 0 / 0.6);
   --lk-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --lk-shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
   --lk-shadow-lg: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
@@ -124,11 +129,13 @@
     --lk-warning-bg: #2b2416;
     --lk-danger: #f08a7a;
     --lk-danger-bg: #2f1b18;
+    --lk-on-danger: #1c0f0c;
     --lk-success: #7cc59a;
     --lk-success-bg: #16271d;
     --lk-info: #8db8e0;
     --lk-info-bg: #162431;
     --lk-focus: #e3c48f;
+    --lk-scrim: rgb(0 0 0 / 0.6);
     --lk-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --lk-shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
     --lk-shadow-lg: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
@@ -155,11 +162,13 @@
   --color-warning-bg: var(--lk-warning-bg);
   --color-danger: var(--lk-danger);
   --color-danger-bg: var(--lk-danger-bg);
+  --color-on-danger: var(--lk-on-danger);
   --color-success: var(--lk-success);
   --color-success-bg: var(--lk-success-bg);
   --color-info: var(--lk-info);
   --color-info-bg: var(--lk-info-bg);
   --color-focus: var(--lk-focus);
+  --color-scrim: var(--lk-scrim);
 
   --font-*: initial;
   --font-sans:
@@ -188,6 +197,77 @@
   --ease-exit: cubic-bezier(0.3, 0, 1, 1);
   --default-transition-duration: 180ms;
   --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Overlay motion (docs/architecture/motion-system.md §2, "Drawers, sheets, dialogs, menus, rail"):
+ * 220 ms enter, 160 ms exit, transform and opacity only. React Aria sets data-entering /
+ * data-exiting and waits for these animations, so reduced motion (durations collapse below)
+ * makes them instant without breaking unmounting.
+ */
+@theme {
+  --animate-overlay-in: lk-fade-in 180ms cubic-bezier(0, 0, 0, 1);
+  --animate-overlay-out: lk-fade-out 150ms cubic-bezier(0.3, 0, 1, 1);
+  --animate-drawer-in: lk-slide-in-end 220ms cubic-bezier(0, 0, 0, 1);
+  --animate-drawer-out: lk-slide-out-end 160ms cubic-bezier(0.3, 0, 1, 1);
+  --animate-sheet-in: lk-slide-in-up 220ms cubic-bezier(0, 0, 0, 1);
+  --animate-sheet-out: lk-slide-out-down 160ms cubic-bezier(0.3, 0, 1, 1);
+  --animate-pop-in: lk-pop-in 150ms cubic-bezier(0, 0, 0, 1);
+  --animate-pop-out: lk-fade-out 150ms cubic-bezier(0.3, 0, 1, 1);
+  --animate-rise-in: lk-rise-in 200ms cubic-bezier(0, 0, 0, 1);
+  --animate-appear-late: lk-appear 1ms linear 150ms both;
+
+  @keyframes lk-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes lk-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes lk-slide-in-end {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes lk-slide-out-end {
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes lk-slide-in-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes lk-slide-out-down {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes lk-pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes lk-rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  /* Loading placeholders appear only after 150 ms, so fast answers never flash a skeleton. */
+  @keyframes lk-appear {
+    from {
+      visibility: hidden;
+    }
+    to {
+      visibility: visible;
+    }
+  }
 }
 
 @layer base {

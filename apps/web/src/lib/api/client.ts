@@ -7,9 +7,14 @@ export {
   NetworkError,
   NON_PROBLEM_CODE,
   ProblemError,
+  STALENESS_CONFLICT_CODES,
+  conflictFromError,
+  isEndpointUnavailable,
   isNetworkError,
   isProblemContentType,
   isProblemError,
+  isStalenessConflict,
+  type ConflictInfo,
   type KnownProblemCode,
   type ProblemDetails,
 } from "./errors";
@@ -17,6 +22,7 @@ export {
 export const CSRF_COOKIE = "lk_csrf";
 export const CSRF_HEADER = "X-CSRF-Token";
 export const IDEMPOTENCY_HEADER = "Idempotency-Key";
+export const BOOTSTRAP_PATH = "/api/v1/session/bootstrap";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -45,24 +51,43 @@ export function readCookie(name: string, cookieHeader?: string): string | null {
 // ---------------------------------------------------------------------------
 // Idempotency
 
+function randomBytes(length: number): Uint8Array {
+  return globalThis.crypto.getRandomValues(new Uint8Array(length));
+}
+
+/**
+ * RFC 9562 UUIDv7: 48-bit Unix milliseconds, version 7, 74 random bits. api-conventions §6
+ * recommends v7 for Idempotency-Key so keys sort by creation time in the server's table.
+ */
+export function uuidv7(now: number = Date.now(), random: Uint8Array = randomBytes(10)): string {
+  if (!Number.isSafeInteger(now) || now < 0) throw new RangeError("uuidv7 needs a non-negative millisecond timestamp");
+  if (random.length < 10) throw new RangeError("uuidv7 needs 10 random bytes");
+  const bytes = new Uint8Array(16);
+  let ms = now;
+  for (let index = 5; index >= 0; index -= 1) {
+    bytes[index] = ms % 256;
+    ms = Math.floor(ms / 256);
+  }
+  bytes[6] = 0x70 | (random[0]! & 0x0f);
+  bytes[7] = random[1]!;
+  bytes[8] = 0x80 | (random[2]! & 0x3f);
+  bytes.set(random.subarray(3, 10), 9);
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 /**
  * A key for one user-initiated command. Create it when the user acts and reuse
  * it for every retry of that same command.
  */
 export function createIdempotencyKey(): string {
-  const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi.randomUUID === "function") return cryptoApi.randomUUID();
-  // randomUUID needs a secure context; plain-HTTP LAN deployments still have getRandomValues.
-  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
-  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
-  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  return uuidv7();
 }
 
 /** Spread into an openapi-fetch call: `api.POST(path, { body, headers: idempotencyHeaders(key) })`. */
 export function idempotencyHeaders(key: string): { [IDEMPOTENCY_HEADER]: string } {
   if (!key.trim()) throw new Error("An Idempotency-Key must not be empty");
+  if (key.length > 128) throw new Error("An Idempotency-Key must be at most 128 characters");
   return { [IDEMPOTENCY_HEADER]: key };
 }
 
@@ -125,6 +150,59 @@ export function csrfMiddleware(getToken: () => string | null = () => readCookie(
   };
 }
 
+async function readProblemCode(response: Response): Promise<string | null> {
+  try {
+    const body: unknown = await response.clone().json();
+    if (body !== null && typeof body === "object" && typeof (body as { code?: unknown }).code === "string") {
+      return (body as { code: string }).code;
+    }
+  } catch {
+    // Not JSON: not a CSRF problem.
+  }
+  return null;
+}
+
+/**
+ * api-conventions §3: on 403 `csrf_token_invalid` the client refetches the session
+ * bootstrap (which rotates the `lk_csrf` cookie) and retries the command once with
+ * the fresh token. The original request, Idempotency-Key included, is replayed as is,
+ * so a retry can never create a second effect.
+ */
+export function csrfRetryMiddleware(
+  getToken: () => string | null = () => readCookie(CSRF_COOKIE),
+): Middleware {
+  const pending = new Map<string, Request>();
+  return {
+    onRequest({ request, id }) {
+      if (UNSAFE_METHODS.has(request.method.toUpperCase()) && isSameOrigin(request.url)) {
+        pending.set(id, request.clone());
+      }
+      return undefined;
+    },
+    async onResponse({ request, response, id, options }) {
+      const original = pending.get(id);
+      pending.delete(id);
+      if (!original || response.status !== 403) return undefined;
+      if ((await readProblemCode(response)) !== "csrf_token_invalid") return undefined;
+
+      const refresh = await options.fetch(
+        new Request(new URL(BOOTSTRAP_PATH, request.url), { method: "GET", credentials: "same-origin" }),
+      );
+      if (!refresh.ok) return undefined;
+      const token = getToken();
+      if (!token) return undefined;
+
+      const retry = new Request(original);
+      retry.headers.set(CSRF_HEADER, token);
+      return options.fetch(retry);
+    },
+    onError({ id }) {
+      pending.delete(id);
+      return undefined;
+    },
+  };
+}
+
 /** Normalises fetch failures (no HTTP response at all) into NetworkError. */
 export const networkErrorMiddleware: Middleware = {
   onError({ error }) {
@@ -154,6 +232,8 @@ export function unauthorizedMiddleware(
       const problem = ProblemError.fromResponse(response, body);
       // Step-up authentication is handled in place by a re-auth dialog, not by leaving the page.
       if (problem.code === "reauth_required") return undefined;
+      // A failed sign-in or demo link is answered on the sign-in page itself.
+      if (problem.code === "invalid_credentials" || problem.code === "link_invalid_or_used") return undefined;
       onUnauthorized({ request, problem });
       return undefined;
     },
@@ -177,10 +257,13 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     credentials: "same-origin",
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
+  // onRequest runs in this order and onResponse in reverse: the CSRF retry sees the
+  // response first, so the 401 handler only ever sees the final answer.
   client.use(
     csrfMiddleware(options.getCsrfToken),
     networkErrorMiddleware,
     unauthorizedMiddleware(options.onUnauthorized),
+    csrfRetryMiddleware(options.getCsrfToken),
   );
   return client;
 }
@@ -198,5 +281,45 @@ type SuccessData<R> = R extends { data: infer D; error?: never } ? D : never;
 export async function unwrap<R extends FetchResult>(pending: Promise<R>): Promise<SuccessData<R>> {
   const result = await pending;
   if (result.response.ok) return result.data as SuccessData<R>;
+  throw ProblemError.fromResponse(result.response, result.error);
+}
+
+// ---------------------------------------------------------------------------
+// Endpoints not yet in the generated schema
+
+export type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
+
+export interface UntypedInit {
+  params?: { query?: Record<string, string | number | boolean | undefined | null> };
+  body?: unknown;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+}
+
+type UntypedRequest = (method: string, url: string, init?: Record<string, unknown>) => Promise<FetchResult>;
+
+/**
+ * Calls an endpoint that another lane is building in the same wave and that is therefore
+ * not yet in `schema.d.ts`. The response type `T` comes from an interim hand-written type in
+ * `src/lib/session/**` or `src/features/<feature>/types.ts`. Replace each call with the typed
+ * `api.GET(...)` once the endpoint merges and the schema is regenerated.
+ */
+export async function requestUntyped<T>(
+  client: ApiClient,
+  method: HttpMethod,
+  path: `/api/v1/${string}`,
+  init: UntypedInit = {},
+): Promise<T> {
+  const query = init.params?.query
+    ? Object.fromEntries(Object.entries(init.params.query).filter(([, value]) => value !== undefined && value !== null))
+    : undefined;
+  const call = (client.request as unknown as UntypedRequest).bind(client);
+  const result = await call(method, path, {
+    ...(query ? { params: { query } } : {}),
+    ...(init.body !== undefined ? { body: init.body } : {}),
+    ...(init.headers ? { headers: init.headers } : {}),
+    ...(init.signal ? { signal: init.signal } : {}),
+  });
+  if (result.response.ok) return result.data as T;
   throw ProblemError.fromResponse(result.response, result.error);
 }
