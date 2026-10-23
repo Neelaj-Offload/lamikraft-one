@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import create_engine, select, text
+from sqlalchemy.exc import DBAPIError
 
 from app.core.config import get_settings
 from app.core.db.base import Base
@@ -16,8 +17,8 @@ from app.core.errors import IdempotencyKeyReused, VersionConflict
 from app.platform.authz.context import ActorContext
 from app.platform.events.defs import EventDef, Subscription
 from app.platform.events.models import DomainEvent
-from app.platform.identity.models import Membership
 from app.platform.idempotency.service import run_idempotent
+from app.platform.identity.models import Membership
 from app.platform.jobs.defs import JobDef
 from app.platform.jobs.models import Job
 from app.platform.numbering.models import DocumentSequence
@@ -45,7 +46,7 @@ def test_rls_fails_closed_without_tenant_guc(committed_db: str) -> None:
         conn.execute(text("SELECT set_config('app.company_id', :c, false)"), {"c": str(a)})
         rows = conn.execute(text("SELECT company_id FROM branch")).scalars().all()
         assert rows == [a]
-        with pytest.raises(Exception):  # WITH CHECK blocks writing another tenant's row
+        with pytest.raises(DBAPIError):  # WITH CHECK blocks writing another tenant's row
             conn.execute(
                 text("INSERT INTO branch (id, company_id, branch_code, name, is_head_office, created_at, updated_at) "
                      "VALUES (:i, :c, 'X', 'x', false, now(), now())"),

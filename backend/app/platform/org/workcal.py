@@ -13,7 +13,18 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Index, SmallInteger, String, Time, Uuid, select
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    Time,
+    Uuid,
+    select,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db.base import Base, IdMixin, TenantMixin, TimestampMixin, VersionMixin

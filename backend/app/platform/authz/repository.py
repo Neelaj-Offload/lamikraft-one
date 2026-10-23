@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 M = TypeVar("M")
 
 
-class ScopedRepository(Generic[M]):
+class ScopedRepository(Generic[M]):  # noqa: UP046
     def __init__(self, uow: UnitOfWork, policy: ResourcePolicy) -> None:
         self.uow = uow
         self.policy = policy

@@ -4,8 +4,6 @@ from app.platform.jobs.defs import JobDef, ScheduleDef
 from app.platform.manifest import ModuleManifest
 
 
-
-
 def _router():  # type: ignore[no-untyped-def]
     from app.modules.approvals.router import router
 

@@ -7,7 +7,7 @@ from datetime import timedelta
 
 import pytest
 
-from app.core.errors import Conflict, Forbidden
+from app.core.errors import Conflict, Forbidden, NotFound
 from app.modules.approvals import service as approvals
 from app.modules.approvals.service import ApprovalHandler, TargetRef
 from app.platform.authz.permissions import Scope
@@ -113,7 +113,7 @@ def test_person_without_approve_permission_is_not_eligible(world) -> None:  # ty
     company, req, _app, target = world
     outsider = actor(company, user_id=create_user(company, "Kabir"), permissions={})
     pid, digest, version = _submit(req, target)
-    with pytest.raises(Exception):
+    with pytest.raises(NotFound):  # not visible to a non-approver: 404, not 403
         with UnitOfWork(outsider) as uow:
             approvals.decide(uow, pid, decision="approve", content_hash_seen=digest, expected_version=version)
 

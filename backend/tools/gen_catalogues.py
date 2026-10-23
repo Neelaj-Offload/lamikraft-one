@@ -158,7 +158,7 @@ def main() -> int:
     events = parse_events((DOCS / "events.md").read_text(encoding="utf-8"))
     (BACKEND / "app/platform/authz/catalogue_data.py").write_text(render_permissions(perms), encoding="utf-8", newline="\n")
     (BACKEND / "app/platform/events/catalogue_data.py").write_text(render_events(events), encoding="utf-8", newline="\n")
-    print(f"permissions: {len(perms)}  events: {len(events)}")
+    print(f"permissions: {len(perms)}  events: {len(events)}")  # noqa: T201 - CLI output
     return 0
 
 

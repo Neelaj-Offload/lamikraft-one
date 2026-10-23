@@ -110,7 +110,11 @@ class Worker:
                     last_reap = now
                 relayed = _tx(relay_batch)
                 free = self.concurrency - self.running
-                jobs = _tx(lambda s: runtime.claim(s, self.worker_id, self.queues, limit=free)) if free > 0 else []
+                jobs = (
+                    _tx(lambda s, free=free: runtime.claim(s, self.worker_id, self.queues, limit=free))
+                    if free > 0
+                    else []
+                )
                 for job in jobs:
                     with self._lock:
                         self.running += 1

@@ -6,7 +6,18 @@ import uuid
 from datetime import datetime, time
 from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, SmallInteger, String, Time, Uuid, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Time,
+    Uuid,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 

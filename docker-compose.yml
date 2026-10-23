@@ -1,0 +1,74 @@
+# Local development services for Lamikraft One.
+#
+# One compose project ("lamikraft") is shared by every worktree on the machine: a single
+# PostgreSQL container holds one database pair per worktree slot (lk_wt<N>, lk_wt<N>_test).
+# Start it with `npm run db:up` (or `node scripts/dev.mjs db-up`), which also loads the shared
+# secrets from ~/.lamikraft-dev/dev-secrets.env. Plain `docker compose up -d postgres` from the
+# repository root works too, because `lk env init` copies those secrets into .env.
+# Ports bind to 127.0.0.1 only. Never use these services or credentials in production.
+
+name: lamikraft
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: lk-postgres
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=200"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      # Applied only when the lamikraft_pgdata volume is first initialised.
+      POSTGRES_PASSWORD: ${LK_PG_SUPERUSER_PASSWORD:?run lk env init}
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 256mb
+    healthcheck:
+      # Probe over TCP: during first-time initialisation the entrypoint runs a temporary
+      # socket-only server, which must not count as healthy.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+      start_interval: 1s
+
+  # Optional S3-compatible endpoint for a dev-only smoke test of the s3 storage adapter
+  # (`npm run db:up -- --s3`). The adapter's contract tests use moto and need no container.
+  # Upstream MinIO stopped publishing maintained free images in 2025, so this cached
+  # minio/minio:latest image is a local convenience only and is never a production dependency.
+  minio:
+    profiles: ["s3"]
+    image: minio/minio:latest
+    container_name: lk-minio
+    restart: "no"
+    environment:
+      # Optional variables (a required one would break `up postgres` when the profile is off);
+      # the entrypoint below refuses to start without them.
+      MINIO_ROOT_USER: ${LK_MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${LK_MINIO_ROOT_PASSWORD:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        if [ -z "$${MINIO_ROOT_USER}" ] || [ "$${#MINIO_ROOT_PASSWORD}" -lt 8 ]; then
+        echo 'LK_MINIO_ROOT_USER / LK_MINIO_ROOT_PASSWORD are not set: run lk env init' >&2; exit 64; fi;
+        exec /usr/bin/docker-entrypoint.sh minio server /data --address :9000 --console-address :9001
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  pgdata:
+    name: lamikraft_pgdata
+  miniodata:
+    name: lamikraft_miniodata

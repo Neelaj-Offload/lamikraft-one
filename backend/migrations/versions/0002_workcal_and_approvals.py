@@ -12,6 +12,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+
 from migrations import helpers  # noqa: F401  (RLS, append-only, enum checks)
 
 revision: str = '0002'

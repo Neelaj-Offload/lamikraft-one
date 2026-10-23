@@ -11,7 +11,7 @@ T = TypeVar("T")
 MAX_LIMIT = 200
 
 
-class Page(BaseModel, Generic[T]):
+class Page(BaseModel, Generic[T]):  # noqa: UP046 - pydantic generic model, kept explicit
     items: list[T]
     total: int
     limit: int

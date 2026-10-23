@@ -67,8 +67,9 @@ def has_reader(source_type: str) -> bool:
 
 def visible_ids(uow: UnitOfWork, source_type: str, action: str = "read") -> Select[Any]:
     """Ids of ``source_type`` records the unit of work's actor may see (via the ResourcePolicy)."""
-    from app.platform.authz.policy import get_policy, scope_clause
     from sqlalchemy import select
+
+    from app.platform.authz.policy import get_policy, scope_clause
 
     policy = get_policy(source_type)
     return select(policy.model.id).where(scope_clause(uow.actor, policy, action))  # type: ignore[attr-defined]

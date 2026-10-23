@@ -56,7 +56,7 @@ def redact(value: Any, ctx: ActorContext, *, for_model: bool = False) -> Any:
                 if nested is not current:
                     updates[name] = nested
         if "redacted_fields" in type(value).model_fields:
-            existing = list(getattr(value, "redacted_fields") or [])
+            existing = list(value.redacted_fields or [])
             updates["redacted_fields"] = sorted(set(existing) | set(redacted))
         return value.model_copy(update=updates) if updates else value
     if isinstance(value, list):

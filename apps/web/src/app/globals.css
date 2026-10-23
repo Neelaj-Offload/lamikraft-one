@@ -1,0 +1,265 @@
+@import "tailwindcss";
+@plugin "tailwindcss-react-aria-components";
+
+/*
+ * Lamikraft One design tokens.
+ *
+ * Raw values live in --lk-* custom properties per theme; Tailwind only sees the
+ * semantic names through `@theme inline`, and `--color-*: initial` removes the
+ * default palette so off-brand utilities (purple-500, etc.) do not exist.
+ *
+ * Theme resolution (no inline script, no flash):
+ *   <html data-theme="light|dark"> is rendered server-side from the lk_ui cookie.
+ *   Without an explicit theme, prefers-color-scheme decides.
+ *
+ * WCAG 2.2 AA contrast, verified by src/lib/design/tokens.contrast.test.ts
+ * (text >= 4.5:1, UI boundaries and focus >= 3:1):
+ *
+ *   pair                          light    dark
+ *   ink / canvas                  13.98    15.34
+ *   ink / surface                 15.26    13.92
+ *   ink / surface-sunken          13.00    16.06
+ *   ink / sage                    13.28    12.32
+ *   ink-muted / canvas             6.00     8.40
+ *   ink-muted / surface            6.55     7.62
+ *   ink-muted / surface-sunken     5.58     8.80
+ *   ink-muted / sage               5.70     6.75
+ *   on-forest / forest             9.71     8.02
+ *   on-forest / forest-strong     12.85    10.06
+ *   forest / surface (links)       9.71     7.29
+ *   forest / forest-tint           8.02     5.93
+ *   warning-text / warning-bg      6.42     8.25
+ *   danger / danger-bg             5.52     6.68
+ *   success / success-bg           5.55     7.68
+ *   info / info-bg                 5.95     7.56
+ *   border-strong / surface (UI)   3.72     3.72
+ *   border-strong / canvas (UI)    3.41     4.10
+ *   focus / canvas (UI)            8.89    10.94
+ *
+ * sand is decorative only (2.22:1 on the light canvas): never small text and
+ * never the sole state cue. border is a separator, not a control boundary;
+ * form controls use border-strong.
+ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --lk-canvas: #f6f5f0;
+  --lk-surface: #ffffff;
+  --lk-surface-sunken: #eeede6;
+  --lk-ink: #202723;
+  --lk-ink-muted: #55605a;
+  --lk-forest: #214c3c;
+  --lk-forest-strong: #173829;
+  --lk-forest-tint: #e2ece5;
+  --lk-on-forest: #ffffff;
+  --lk-sage: #eaf1ea;
+  --lk-sand: #c8a064;
+  --lk-sand-tint: #f6eedf;
+  --lk-border: #e0e4dc;
+  --lk-border-strong: #7d8780;
+  --lk-warning-text: #7a4e00;
+  --lk-warning-bg: #fbf1de;
+  --lk-danger: #a63a2b;
+  --lk-danger-bg: #fbeae6;
+  --lk-success: #2d6a45;
+  --lk-success-bg: #e5f1e8;
+  --lk-info: #2c5d85;
+  --lk-info-bg: #e6eef6;
+  --lk-focus: #214c3c;
+  --lk-shadow-sm: 0 1px 2px rgb(32 39 35 / 0.06);
+  --lk-shadow-md: 0 1px 2px rgb(32 39 35 / 0.05), 0 4px 12px rgb(32 39 35 / 0.06);
+  --lk-shadow-lg: 0 2px 6px rgb(32 39 35 / 0.06), 0 16px 40px rgb(32 39 35 / 0.1);
+}
+
+/* Keep the two dark blocks identical; the contrast test asserts they match. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --lk-canvas: #111613;
+  --lk-surface: #19201c;
+  --lk-surface-sunken: #0c100e;
+  --lk-ink: #e9ece6;
+  --lk-ink-muted: #a9b2ab;
+  --lk-forest: #7fb89a;
+  --lk-forest-strong: #9bcbb0;
+  --lk-forest-tint: #1d3328;
+  --lk-on-forest: #0e1712;
+  --lk-sage: #1f2b24;
+  --lk-sand: #d9b57a;
+  --lk-sand-tint: #2a2418;
+  --lk-border: #2c3530;
+  --lk-border-strong: #6f7a73;
+  --lk-warning-text: #e8b65a;
+  --lk-warning-bg: #2b2416;
+  --lk-danger: #f08a7a;
+  --lk-danger-bg: #2f1b18;
+  --lk-success: #7cc59a;
+  --lk-success-bg: #16271d;
+  --lk-info: #8db8e0;
+  --lk-info-bg: #162431;
+  --lk-focus: #e3c48f;
+  --lk-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --lk-shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
+  --lk-shadow-lg: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+    --lk-canvas: #111613;
+    --lk-surface: #19201c;
+    --lk-surface-sunken: #0c100e;
+    --lk-ink: #e9ece6;
+    --lk-ink-muted: #a9b2ab;
+    --lk-forest: #7fb89a;
+    --lk-forest-strong: #9bcbb0;
+    --lk-forest-tint: #1d3328;
+    --lk-on-forest: #0e1712;
+    --lk-sage: #1f2b24;
+    --lk-sand: #d9b57a;
+    --lk-sand-tint: #2a2418;
+    --lk-border: #2c3530;
+    --lk-border-strong: #6f7a73;
+    --lk-warning-text: #e8b65a;
+    --lk-warning-bg: #2b2416;
+    --lk-danger: #f08a7a;
+    --lk-danger-bg: #2f1b18;
+    --lk-success: #7cc59a;
+    --lk-success-bg: #16271d;
+    --lk-info: #8db8e0;
+    --lk-info-bg: #162431;
+    --lk-focus: #e3c48f;
+    --lk-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --lk-shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
+    --lk-shadow-lg: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
+  }
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-canvas: var(--lk-canvas);
+  --color-surface: var(--lk-surface);
+  --color-surface-sunken: var(--lk-surface-sunken);
+  --color-ink: var(--lk-ink);
+  --color-ink-muted: var(--lk-ink-muted);
+  --color-forest: var(--lk-forest);
+  --color-forest-strong: var(--lk-forest-strong);
+  --color-forest-tint: var(--lk-forest-tint);
+  --color-on-forest: var(--lk-on-forest);
+  --color-sage: var(--lk-sage);
+  --color-sand: var(--lk-sand);
+  --color-sand-tint: var(--lk-sand-tint);
+  --color-border: var(--lk-border);
+  --color-border-strong: var(--lk-border-strong);
+  --color-warning-text: var(--lk-warning-text);
+  --color-warning-bg: var(--lk-warning-bg);
+  --color-danger: var(--lk-danger);
+  --color-danger-bg: var(--lk-danger-bg);
+  --color-success: var(--lk-success);
+  --color-success-bg: var(--lk-success-bg);
+  --color-info: var(--lk-info);
+  --color-info-bg: var(--lk-info-bg);
+  --color-focus: var(--lk-focus);
+
+  --font-*: initial;
+  --font-sans:
+    "Manrope Variable", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --radius-*: initial;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-*: initial;
+  --shadow-sm: var(--lk-shadow-sm);
+  --shadow-md: var(--lk-shadow-md);
+  --shadow-lg: var(--lk-shadow-lg);
+
+  /* Mirrors src/lib/motion/tokens.ts (UI durations and easing). */
+  --ease-*: initial;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible,
+  [data-focus-visible] {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-forest-tint);
+    color: var(--color-ink);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility focus-ring {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Reduced motion: honoured from the OS setting and from the user's in-app
+ * preference (<html data-motion="reduced">). Durations collapse to near-zero
+ * rather than 0 so transitionend/animationend handlers still fire.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-motion="reduced"],
+[data-motion="reduced"] *,
+[data-motion="reduced"] ::before,
+[data-motion="reduced"] ::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
