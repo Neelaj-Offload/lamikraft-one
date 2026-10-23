@@ -272,3 +272,17 @@ def test_archiving_an_override_and_leaving_a_team_take_effect(tenant: Tenant) ->
             )
         ]
     assert events == [("sales.quote.read", "revoke", False), ("sales.quote.read", "revoke", True)]
+
+
+def test_building_an_actor_inside_a_unit_of_work_keeps_its_tenant(tenant: Tenant) -> None:
+    from tests.integration.identity.fixtures import make_tenant
+
+    other = make_tenant()
+    stranger = make_member(other, ["sales"])
+    make_member(tenant, ["sales"])
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        before = uow.session.scalars(select(Membership.id)).all()
+        built = actor_for(other.company_id, stranger.user_id, "test")  # e.g. a job building another member's context
+        after = uow.session.scalars(select(Membership.id)).all()
+    assert built is not None and built.company_id == other.company_id
+    assert before == after and len(before) == 1

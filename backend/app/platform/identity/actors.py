@@ -12,6 +12,8 @@ Zone resolution (conventions §7): user preference → user → membership → d
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -52,6 +54,25 @@ def bind_tenant(session: Session, company_id: uuid.UUID | None, user_id: uuid.UU
     session.execute(
         text("SELECT set_config('app.company_id', :c, true), set_config('app.user_id', :u, true)"),
         {"c": str(company_id) if company_id else "", "u": str(user_id) if user_id else ""},
+    )
+
+
+@contextmanager
+def tenant_scope(session: Session, company_id: uuid.UUID | None, user_id: uuid.UUID | None = None) -> Iterator[None]:
+    """Bind a tenant for a block and restore the previous GUC values afterwards.
+
+    ``set_config(..., true)`` lasts until the end of the *transaction*, so a helper transaction that joins an
+    outer one as a savepoint (test savepoint mode, or a caller's connection) must not leave its tenant behind.
+    On an exception the enclosing savepoint/transaction rolls back, which restores the values by itself.
+    """
+    previous = session.execute(
+        text("SELECT current_setting('app.company_id', true), current_setting('app.user_id', true)")
+    ).one()
+    bind_tenant(session, company_id, user_id)
+    yield
+    session.execute(
+        text("SELECT set_config('app.company_id', :c, true), set_config('app.user_id', :u, true)"),
+        {"c": previous[0] or "", "u": previous[1] or ""},
     )
 
 
@@ -192,8 +213,7 @@ def build_member_actor(
 
 def actor_for(company_id: uuid.UUID, user_id: uuid.UUID, channel: Channel = "job") -> ActorContext | None:
     """Standalone builder (own short transaction); registered as the member actor builder."""
-    with session_factory()() as session, session.begin():
-        bind_tenant(session, company_id, user_id)
+    with session_factory()() as session, session.begin(), tenant_scope(session, company_id, user_id):
         return build_member_actor(session, company_id, user_id, channel=channel, now=get_clock(company_id).now())
 
 

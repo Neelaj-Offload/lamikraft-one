@@ -93,3 +93,20 @@ def test_preferences_need_a_session(client: TestClient, world: SeedContext) -> N
 
     r = client.patch(PREFS, json={"ui": {"theme": "dark"}}, headers=origin_headers())
     assert r.status_code == 401
+
+
+def test_me_lists_every_membership_of_the_user(client: TestClient, world: SeedContext) -> None:
+    from app.platform.identity import provisioning
+    from tests.integration.identity.fixtures import make_tenant
+
+    second = make_tenant()
+    with UnitOfWork(system(second.company_id)) as uow:
+        provisioning.provision_membership(
+            uow, user_id=world.refs[keys.USERS.MEERA], status="active", role_keys=["sales"], default_branch_id=second.ho_branch_id
+        )
+    test_sign_in(client, keys.USERS.MEERA)
+    me = client.get("/api/v1/identity/me").json()
+    assert [(m["company"]["id"], m["is_current"]) for m in me["memberships"]] == [
+        (str(world.company_id), True),
+        (str(second.company_id), False),
+    ]

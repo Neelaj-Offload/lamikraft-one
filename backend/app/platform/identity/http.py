@@ -23,7 +23,7 @@ from app.core.db.engine import session_factory
 from app.core.errors import AppError
 from app.platform.authz.context import ActorContext, AuthStrength
 from app.platform.identity import sessions
-from app.platform.identity.actors import bind_tenant, build_member_actor
+from app.platform.identity.actors import build_member_actor, tenant_scope
 from app.platform.identity.auth_models import AuthMethod, AuthSession
 from app.platform.identity.errors import SessionExpired
 from app.platform.identity.preferences import UiPreferences, ui_cookie_value
@@ -87,21 +87,20 @@ def resolve_actor(request: Request) -> ActorContext | None:
         now = get_clock(row.company_id).now()
         if not sessions.is_live(row, now):
             raise SessionExpired()
-        bind_tenant(session, row.company_id, row.user_id)
-        actor = build_member_actor(
-            session,
-            row.company_id,
-            row.user_id,
-            channel="web",
-            now=now,
-            session_id=row.id,
-            auth_strength=_STRENGTH.get(row.auth_method, "password"),
-            recent_auth_at=row.recent_auth_at,
-        )
-        if actor is None or actor.membership_id != row.membership_id:
-            raise SessionExpired()
+        with tenant_scope(session, row.company_id, row.user_id):
+            actor = build_member_actor(
+                session,
+                row.company_id,
+                row.user_id,
+                channel="web",
+                now=now,
+                session_id=row.id,
+                auth_strength=_STRENGTH.get(row.auth_method, "password"),
+                recent_auth_at=row.recent_auth_at,
+            )
+            if actor is None or actor.membership_id != row.membership_id:
+                raise SessionExpired()
         sessions.touch(row, now)
-        bind_tenant(session, None)
     return actor
 
 

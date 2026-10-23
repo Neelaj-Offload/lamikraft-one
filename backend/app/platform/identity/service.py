@@ -21,7 +21,7 @@ from app.core.db.engine import session_factory
 from app.core.errors import Conflict, Forbidden, NotFound, Unauthenticated, ValidationFailed, VersionConflict
 from app.platform.authz.context import ActorContext
 from app.platform.identity import passwords, ratelimit, sessions
-from app.platform.identity.actors import bind_tenant, resolve_time_zone
+from app.platform.identity.actors import resolve_time_zone, tenant_scope
 from app.platform.identity.auth_models import (
     AttemptKind,
     AttemptOutcome,
@@ -51,6 +51,7 @@ from app.platform.identity.schemas import (
     BranchRef,
     CompanyRef,
     ManagerRef,
+    MembershipSummary,
     MembershipView,
     MeRead,
     PermissionGrant,
@@ -142,15 +143,14 @@ def _memberships_of(user_id: uuid.UUID) -> list[MemberRef]:
             companies.remove(last)
             companies.insert(0, last)
         for company_id in companies:
-            bind_tenant(s, company_id)
-            row = s.execute(
-                select(Membership.id, Membership.status).where(
-                    Membership.company_id == company_id, Membership.user_id == user_id
-                )
-            ).first()
+            with tenant_scope(s, company_id):
+                row = s.execute(
+                    select(Membership.id, Membership.status).where(
+                        Membership.company_id == company_id, Membership.user_id == user_id
+                    )
+                ).first()
             if row is not None:
                 out.append(MemberRef(company_id, row[0], row[1]))
-        bind_tenant(s, None)
     return out
 
 
@@ -380,12 +380,10 @@ def demo_sign_in(token: str, client: ClientInfo) -> SignedIn:
     if not demo_ok or company_id is None:
         raise LinkInvalidOrUsed()
 
-    with session_factory()() as s, s.begin():
-        bind_tenant(s, company_id)
+    with session_factory()() as s, s.begin(), tenant_scope(s, company_id):
         peek = s.execute(
             select(DemoSignInToken.user_id, DemoSignInToken.membership_id).where(DemoSignInToken.token_hash == sha256(token))
         ).first()
-        bind_tenant(s, None)
     signed: SignedIn | None = None
     if peek is not None:
         with UnitOfWork(_member_actor(company_id, peek[0], peek[1])) as uow:
@@ -492,17 +490,16 @@ def any_admin_membership() -> bool:
     with session_factory()() as s, s.begin():
         companies = list(s.scalars(select(Company.id)))
         for company_id in companies:
-            bind_tenant(s, company_id)
-            found = s.scalar(
-                select(Membership.id)
-                .join(MembershipRole, MembershipRole.membership_id == Membership.id)
-                .join(Role, Role.id == MembershipRole.role_id)
-                .where(Role.role_key == "admin", Membership.status.in_(("active", "invited")))
-                .limit(1)
-            )
+            with tenant_scope(s, company_id):
+                found = s.scalar(
+                    select(Membership.id)
+                    .join(MembershipRole, MembershipRole.membership_id == Membership.id)
+                    .join(Role, Role.id == MembershipRole.role_id)
+                    .where(Role.role_key == "admin", Membership.status.in_(("active", "invited")))
+                    .limit(1)
+                )
             if found is not None:
                 return True
-        bind_tenant(s, None)
     return False
 
 
@@ -640,11 +637,24 @@ def get_me(uow: UnitOfWork) -> MeRead:
             time_zone=user.time_zone,
         ),
         membership=_membership_view(uow, membership, company),
+        memberships=_membership_summaries(uow, user.id, membership.id),
         preferences=_preferences(uow, user.id),
         session=_session_view(uow),
         time_zone=uow.actor.time_zone,
         locale=uow.actor.locale,
     )
+
+
+def _membership_summaries(uow: UnitOfWork, user_id: uuid.UUID, current_id: uuid.UUID) -> list[MembershipSummary]:
+    refs = _memberships_of(user_id)
+    companies = {c.id: c for c in uow.session.scalars(select(Company).where(Company.id.in_([r.company_id for r in refs])))}
+    return [
+        MembershipSummary(
+            id=r.membership_id, status=r.status, company=_company_ref(companies[r.company_id]), is_current=r.membership_id == current_id
+        )
+        for r in sorted(refs, key=lambda r: (r.membership_id != current_id, companies[r.company_id].display_name))
+        if r.company_id in companies
+    ]
 
 
 @command()

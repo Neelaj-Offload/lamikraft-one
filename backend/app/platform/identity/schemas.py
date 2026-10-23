@@ -102,9 +102,19 @@ class ProfileView(BaseModel):
     time_zone: str | None
 
 
+class MembershipSummary(BaseModel):
+    id: uuid.UUID
+    status: str
+    company: CompanyRef
+    is_current: bool
+
+
 class MeRead(BaseModel):
     user: ProfileView
+    #: the membership of the signed-in session, in detail
     membership: MembershipView
+    #: every membership of this user in an active company (the current one included)
+    memberships: list[MembershipSummary]
     preferences: Preferences
     session: SessionView | None
     time_zone: str
