@@ -11,6 +11,7 @@ import {
   Separator,
   type MenuItemProps as RacMenuItemProps,
   type MenuProps as RacMenuProps,
+  type MenuSectionProps as RacMenuSectionProps,
   type PopoverProps as RacPopoverProps,
 } from "react-aria-components";
 import { cx } from "@/lib/cx";
@@ -68,9 +69,15 @@ export function MenuItem({ children, icon, detail, tone = "default", ...props }:
   );
 }
 
-export function MenuSection({ title, children }: { title?: string; children: ReactNode }) {
+export type MenuSectionProps<T extends object> = Pick<
+  RacMenuSectionProps<T>,
+  "id" | "selectionMode" | "selectedKeys" | "onSelectionChange" | "disallowEmptySelection"
+> & { title?: string; children: ReactNode };
+
+/** A group of items; with `selectionMode="single"` its items become menuitemradio choices. */
+export function MenuSection<T extends object>({ title, children, ...props }: MenuSectionProps<T>) {
   return (
-    <RacMenuSection>
+    <RacMenuSection {...props}>
       {title ? <Header className={cx(sectionLabelClasses, "px-3 pt-2 pb-1")}>{title}</Header> : null}
       {children}
     </RacMenuSection>

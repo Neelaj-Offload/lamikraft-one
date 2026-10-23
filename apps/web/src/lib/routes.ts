@@ -15,7 +15,9 @@ export type AreaId =
   | "products"
   | "operations"
   | "finance"
-  | "settings";
+  | "settings"
+  /** Phone hubs (/work, /more) that group areas; never a sidebar entry. */
+  | "hub";
 
 /** primary: sidebar / area entry points. context: an area's sub-navigation. null: never listed. */
 export type NavGroup = "primary" | "context";
@@ -139,6 +141,47 @@ export const routes = [
     label: "Settings",
     area: "settings",
     navGroup: "primary",
+    mobileTab: "more",
+    requiredPermission: null,
+    access: "session",
+  },
+  // --- web lane, Slice 1 wave 1: auth flows and phone hubs -------------------------------
+  {
+    id: "demo-sign-in",
+    path: "/demo-sign-in",
+    label: "Demo sign-in",
+    area: "auth",
+    navGroup: null,
+    mobileTab: null,
+    requiredPermission: null,
+    access: "public",
+  },
+  {
+    id: "sign-out",
+    path: "/sign-out",
+    label: "Sign out",
+    area: "auth",
+    navGroup: null,
+    mobileTab: null,
+    requiredPermission: null,
+    access: "public",
+  },
+  {
+    id: "work",
+    path: "/work",
+    label: "Work",
+    area: "hub",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "more",
+    path: "/more",
+    label: "More",
+    area: "hub",
+    navGroup: null,
     mobileTab: "more",
     requiredPermission: null,
     access: "session",

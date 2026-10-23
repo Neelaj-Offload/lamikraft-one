@@ -1,0 +1,43 @@
+/** Copy for the Inbox (briefing.md §16 "Tasks and Inbox"). */
+export const inboxMessages = {
+  title: "Inbox",
+  intro: "Tasks, approvals and exceptions assigned to you or waiting on your decision.",
+  tabsLabel: "Inbox views",
+  tabs: {
+    tasks: "Tasks",
+    approvals: "Approvals",
+    exceptions: "Exceptions",
+    snoozed: "Snoozed",
+    done: "Done",
+  },
+  caption: (tab: string) => `${tab} in your Inbox`,
+  columns: {
+    item: "Item",
+    status: "Status",
+    due: "Due",
+    source: "Record",
+    assignee: "Assigned to",
+    updated: "Updated",
+  },
+  state: {
+    open: "Open",
+    in_progress: "In progress",
+    done: "Done",
+    dismissed: "Dismissed",
+    cancelled: "Cancelled",
+    expired: "Expired",
+    overdue: "Overdue",
+    snoozed: "Snoozed",
+  },
+  noDue: "No deadline",
+  unassigned: "Unassigned",
+  forPerson: (name: string) => `for ${name}`,
+  empty: {
+    tasks: "No open tasks. New work assigned to you appears here.",
+    approvals: "No approvals are waiting on you.",
+    exceptions: "No exceptions need attention.",
+    snoozed: "Nothing is snoozed.",
+    done: "Nothing completed recently.",
+  },
+  emptyTitle: (tab: string) => `${tab}: nothing here`,
+} as const;
