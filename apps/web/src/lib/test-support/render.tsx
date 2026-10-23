@@ -32,6 +32,25 @@ export function textOf(html: string): string {
     .trim();
 }
 
+/**
+ * Interactive elements nested inside an <a> or <button> (invalid HTML that breaks hydration).
+ * Returns the offending opening tags; an empty list means the markup is valid in this respect.
+ */
+export function nestedInteractive(html: string): string[] {
+  const out: string[] = [];
+  const stack: string[] = [];
+  for (const match of html.matchAll(/<(\/?)(a|button)(\s[^>]*)?>/g)) {
+    const [, closing, tag] = match;
+    if (closing) {
+      stack.pop();
+      continue;
+    }
+    if (stack.length > 0) out.push(`<${tag}> inside <${stack[stack.length - 1]}>`);
+    stack.push(tag!);
+  }
+  return out;
+}
+
 /** Counts elements matching a tag name, optionally with an attribute fragment such as `type="submit"`. */
 export function countTags(html: string, tag: string, attributeFragment = ""): number {
   const pattern = new RegExp(`<${tag}(\\s[^>]*)?>`, "g");

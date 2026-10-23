@@ -42,7 +42,8 @@ export function CommandBar({ onSubmit, unavailableReason = m.command.unavailable
   };
 
   return (
-    <Form onSubmit={submit} className="flex flex-col gap-2 rounded-lg border bg-surface p-3 shadow-sm md:p-4">
+    // On phones the composer dock supplies the surface and border; the card chrome starts at md.
+    <Form onSubmit={submit} className="flex flex-col gap-2 md:rounded-lg md:border md:bg-surface md:p-4 md:shadow-sm">
       <div className="flex items-end gap-2">
         <TextArea
           label={m.command.label}
@@ -79,7 +80,7 @@ export function CommandBar({ onSubmit, unavailableReason = m.command.unavailable
         )}
       </div>
       {available ? null : (
-        <p id={hintId} className="text-sm text-ink-muted">
+        <p id={hintId} className="text-xs text-ink-muted md:text-sm">
           {unavailableReason}
         </p>
       )}

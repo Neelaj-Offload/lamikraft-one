@@ -46,6 +46,7 @@ export const shellMessages = {
     work: "Work",
     more: "More",
   },
+  offline: "You're offline. What you see may be out of date, and changes can't be sent until the connection is back.",
   inboxCount: (count: number) => (count === 1 ? "1 open item" : `${count} open items`),
   sessionUnavailable: {
     title: "Your workspace couldn't be opened",

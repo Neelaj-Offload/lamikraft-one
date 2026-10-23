@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { ComposerDock } from "@/components/shell/composer-dock";
 import { LinkButton } from "@/components/ui/link";
-import { EmptyState, ErrorState, Loading } from "@/components/ui/states";
+import { EmptyState, ErrorState, Loading, Stale } from "@/components/ui/states";
 import { toast } from "@/components/ui/toast";
 import { announce } from "@/lib/a11y/announcer";
 import { createIdempotencyKey } from "@/lib/api/client";
@@ -206,6 +206,17 @@ export function TodayView() {
           if (latest) setDisplayed(latest);
         }}
       />
+
+      {query.isError ? (
+        // A refresh failed: keep the last briefing on screen, say how old it is, offer Refresh.
+        <Stale
+          asOf={formatDayTime(displayed.data_as_of || displayed.generated_at, now, zone) ?? displayed.data_as_of}
+          onRefresh={() => {
+            setApplyNext(true);
+            void query.refetch();
+          }}
+        />
+      ) : null}
 
       {displayed.day_type !== "working" ? <p className="text-sm text-ink-muted">{m.nonWorkingDay}</p> : null}
       {displayed.partial_families.length > 0 ? (

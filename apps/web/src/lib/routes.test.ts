@@ -91,6 +91,21 @@ describe("route manifest integrity", () => {
       if (route.access === "session") expect(route.mobileTab, route.path).not.toBeNull();
     }
   });
+
+  it("keeps sign-in flows public and outside navigation", () => {
+    for (const id of ["login", "demo-sign-in", "sign-out"]) {
+      const route = (routes as readonly RouteDefinition[]).find((r) => r.id === id)!;
+      expect(route, id).toMatchObject({ access: "public", navGroup: null, mobileTab: null, area: "auth" });
+    }
+  });
+
+  it("registers the phone hubs as their own tabs, never as sidebar areas", () => {
+    expect(matchRoute("/work")).toMatchObject({ id: "work", mobileTab: "work", navGroup: null, access: "session" });
+    expect(matchRoute("/more")).toMatchObject({ id: "more", mobileTab: "more", navGroup: null, access: "session" });
+    // No primary area owns a hub, so no sidebar item is marked current there.
+    expect(areaRouteFor("/work")).toBeNull();
+    expect(areaRouteFor("/more")).toBeNull();
+  });
 });
 
 describe("matchRoute", () => {

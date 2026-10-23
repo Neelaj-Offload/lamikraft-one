@@ -40,6 +40,11 @@ export interface DataTableColumn<Row> {
   isRowHeader?: boolean;
   /** Role in the phone list; columns without one are omitted there. */
   mobile?: MobileRole;
+  /**
+   * Phone-list content when the whole row is a link (`rowHref`): must not contain links or
+   * buttons, since interactive content cannot nest inside the row's <a>. Defaults to `cell`.
+   */
+  mobileCell?: (row: Row) => ReactNode;
   className?: string;
 }
 
@@ -212,29 +217,31 @@ function MobileList<Row>({
     <ul aria-label={caption} className="flex flex-col divide-y rounded-lg border bg-surface md:hidden">
       {rows.map((row, index) => {
         const href = rowHref?.(row) ?? null;
+        // Inside a linked row, cells render their plain variant (no nested links).
+        const show = (column: DataTableColumn<Row>) => (href && column.mobileCell ? column.mobileCell(row) : column.cell(row));
         const body = (
           <>
             <span className="flex items-start justify-between gap-3">
-              <span className="min-w-0 font-semibold text-ink">{title ? title.cell(row) : null}</span>
+              <span className="min-w-0 font-semibold text-ink">{title ? show(title) : null}</span>
               {amounts.map((column) => (
                 <span key={column.id} className="shrink-0 tabular text-ink">
-                  {column.cell(row)}
+                  {show(column)}
                 </span>
               ))}
             </span>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
               {keys.map((column) => (
                 <span key={column.id} className="font-mono">
-                  {column.cell(row)}
+                  {show(column)}
                 </span>
               ))}
               {statuses.map((column) => (
-                <span key={column.id}>{column.cell(row)}</span>
+                <span key={column.id}>{show(column)}</span>
               ))}
               {metas.map((column) => (
                 <span key={column.id}>
                   <span className="sr-only">{column.header}: </span>
-                  {column.cell(row)}
+                  {show(column)}
                 </span>
               ))}
             </span>

@@ -1,24 +1,31 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { api } from "@/lib/api/client";
 import { isEndpointUnavailable } from "@/lib/api/errors";
-import { createEtagFetcher, UI_POLL_MS } from "@/lib/api/polling";
+import { createEtagFetcher, UI_POLL_MS, type EtagFetcher } from "@/lib/api/polling";
 import { queryKeys } from "@/lib/api/query-keys";
 import { parseUiPoll } from "./parse";
 import type { UiPollState } from "./types";
 
+// One fetcher per tab, so every screen that reads the poll shares one ETag validator.
+let fetcher: EtagFetcher<unknown> | null = null;
+
+function pollFetcher(): EtagFetcher<unknown> {
+  fetcher ??= createEtagFetcher<unknown>(api, "/api/v1/ui/poll");
+  return fetcher;
+}
+
 /**
  * Polls `GET /api/v1/ui/poll` every 60 s while the tab is visible (TanStack Query pauses
- * interval refetches in background tabs), revalidating with ETag. A server without the
- * endpoint answers 404 once and polling stops instead of retrying every minute.
+ * interval refetches in background tabs), revalidating with ETag. Every caller shares the
+ * same query, so the shell's Inbox badge and Today's update check cost one request a minute.
+ * A server without the endpoint answers 404 once and polling stops.
  */
 export function useUiPoll(enabled = true) {
-  const [fetcher] = useState(() => createEtagFetcher<unknown>(api, "/api/v1/ui/poll"));
   return useQuery<UiPollState>({
     queryKey: queryKeys.ui.poll(),
-    queryFn: async ({ signal }) => parseUiPoll(await fetcher(signal)),
+    queryFn: async ({ signal }) => parseUiPoll(await pollFetcher()(signal)),
     enabled,
     refetchInterval: (query) => (query.state.error && isEndpointUnavailable(query.state.error) ? false : UI_POLL_MS),
     refetchIntervalInBackground: false,

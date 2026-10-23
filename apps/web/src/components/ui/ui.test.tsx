@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProblemError, NetworkError } from "@/lib/api/errors";
-import { countTags, render, renderInSession, textOf } from "@/lib/test-support/render";
+import { countTags, nestedInteractive, render, renderInSession, textOf } from "@/lib/test-support/render";
 import { Badge, DemoBadge, NotConnectedBadge, StatusPill } from "./badge";
 import { Button, IconButton } from "./button";
 import { Checkbox, RadioGroup, Switch } from "./choice";
@@ -215,6 +215,26 @@ describe("DataTable", () => {
     );
     expect(html).toMatch(/<ul aria-label="Open quotes" class="[^"]*md:hidden/);
     expect(html).toContain('href="/sales/quotes/q1"');
+  });
+
+  it("uses plain mobile cells inside linked rows, so links never nest", () => {
+    const linked: DataTableColumn<Row>[] = [
+      {
+        id: "number",
+        header: "Quote",
+        isRowHeader: true,
+        mobile: "title",
+        cell: (r) => <Link href={`/sales/quotes/${r.id}`}>{r.number}</Link>,
+        mobileCell: (r) => r.number,
+      },
+    ];
+    const html = renderInSession(
+      <DataTable caption="Open quotes" columns={linked} rows={rows} rowId={(r) => r.id} rowHref={(r) => `/sales/quotes/${r.id}`} />,
+    );
+    expect(nestedInteractive(html)).toEqual([]);
+    // Without rowHref the phone list keeps the interactive cell.
+    const unlinked = renderInSession(<DataTable caption="Open quotes" columns={linked} rows={rows} rowId={(r) => r.id} />);
+    expect(countTags(unlinked, "a")).toBe(4);
   });
 
   it("labels selection checkboxes per row and for the page", () => {

@@ -8,7 +8,8 @@ import { Drawer } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { SearchDialog } from "@/features/search/search-dialog";
 import { cx } from "@/lib/cx";
-import { useMediaQuery } from "@/lib/hooks";
+import { OfflineIcon } from "@/components/ui/icons";
+import { useMediaQuery, useOnline } from "@/lib/hooks";
 import { useSession } from "@/lib/session/context";
 import { navRoutesFromBootstrap } from "@/lib/session/nav";
 import { applyThemeLocally, saveUiPreferences } from "@/lib/session/preferences";
@@ -31,12 +32,12 @@ const WIDE_QUERY = "(min-width: 1280px)";
 /** Moves focus to the new page's h1 after client-side navigation (frontend_verification §16). */
 function useFocusHeadingOnNavigate(): void {
   const pathname = usePathname();
-  const first = useRef(true);
+  // Compare with the last path (not a "first run" flag) so Strict Mode's repeated effects and
+  // the initial load never steal focus; only a real route change moves it.
+  const previous = useRef(pathname);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (previous.current === pathname) return;
+    previous.current = pathname;
     const heading = document.querySelector<HTMLElement>("#main h1");
     if (!heading) return;
     if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
@@ -70,6 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [railDrawerOpen, setRailDrawerOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const isWide = useMediaQuery(WIDE_QUERY, true);
+  const online = useOnline();
 
   const [railTarget, setRailTarget] = useState<HTMLElement | null>(null);
   const [railItems, setRailItems] = useState(0);
@@ -170,6 +172,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               onToggleRail={toggleRail}
               onSignOut={() => void requestSignOut()}
             />
+            {online ? null : (
+              <p role="status" className="flex items-center gap-2 border-b bg-warning-bg px-4 py-2 text-sm text-warning-text md:px-6">
+                <OfflineIcon size={18} className="shrink-0" />
+                {m.offline}
+              </p>
+            )}
             <main
               id="main"
               tabIndex={-1}

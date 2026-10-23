@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countTags, renderInSession, textOf } from "@/lib/test-support/render";
+import { countTags, nestedInteractive, renderInSession, textOf } from "@/lib/test-support/render";
 import { cursorFrom, inboxHref, inboxTabFrom, InboxShapeError, parseInboxPage } from "./api";
 import { InboxList, inboxStatus } from "./inbox-view";
 import type { InboxItem } from "./types";
@@ -77,6 +77,8 @@ describe("Inbox list", () => {
     expect(textOf(html)).not.toContain("First page");
     expect(textOf(html)).toContain("Overdue");
     expect(textOf(html)).toContain("Meera Iyer");
+    // Linked phone rows render plain cells: no <a> inside <a> (a hydration error otherwise).
+    expect(nestedInteractive(html)).toEqual([]);
   });
 
   it("offers the first page from later pages", () => {

@@ -5,11 +5,10 @@ import { Link as RacLink } from "react-aria-components";
 import { StatusPill, type Tone } from "@/components/ui/badge";
 import { DataTable, KeysetPagination, type DataTableColumn } from "@/components/ui/data-table";
 import { LocalDateTime, RelativeTime } from "@/components/ui/format";
-import { EmptyState, ErrorState, Loading } from "@/components/ui/states";
+import { EmptyState, ErrorState, Loading, Stale } from "@/components/ui/states";
 import { linkClasses } from "@/components/ui/styles";
 import { NavTabs } from "@/components/ui/tabs";
 import { queryKeys } from "@/lib/api/query-keys";
-import { cx } from "@/lib/cx";
 import { formatDayTime, type ZoneOptions } from "@/lib/format/time";
 import { useNow, useSession } from "@/lib/session/context";
 import { useUiPoll } from "@/lib/session/use-ui-poll";
@@ -41,10 +40,16 @@ export function inboxColumns(now: Date | null, zone: ZoneOptions): DataTableColu
       header: m.columns.item,
       isRowHeader: true,
       mobile: "title",
+      mobileCell: (item) => (
+        <span className="flex flex-col gap-0.5">
+          <span>{item.title}</span>
+          {item.summary ? <span className="font-normal text-ink-muted">{item.summary}</span> : null}
+        </span>
+      ),
       cell: (item) => (
         <span className="flex flex-col gap-0.5">
           {item.href ? (
-            <RacLink href={item.href} className={cx(linkClasses, "max-md:no-underline max-md:text-ink")}>
+            <RacLink href={item.href} className={linkClasses}>
               {item.title}
             </RacLink>
           ) : (
@@ -74,6 +79,7 @@ export function inboxColumns(now: Date | null, zone: ZoneOptions): DataTableColu
       id: "source",
       header: m.columns.source,
       mobile: "key",
+      mobileCell: (item) => item.source?.label ?? null,
       cell: (item) =>
         item.source ? (
           item.source.href ? (
@@ -130,6 +136,7 @@ export function InboxList({ tab, page, cursor }: { tab: InboxTab; page: InboxPag
 
 export function InboxView({ tab, cursor }: { tab: InboxTab; cursor: string | null }) {
   const { bootstrap, zone } = useSession();
+  const now = useNow();
   const query = useQuery({
     queryKey: queryKeys.tasks.inbox({ tab, cursor }),
     queryFn: ({ signal }) => fetchInbox(tab, cursor, signal),
@@ -160,10 +167,19 @@ export function InboxView({ tab, cursor }: { tab: InboxTab; cursor: string | nul
       />
       {query.isPending ? (
         <Loading label={`${m.tabs[tab].toLowerCase()} in your Inbox`} />
-      ) : query.isError ? (
-        <ErrorState error={query.error} what="the Inbox" onRetry={() => void query.refetch()} />
+      ) : query.data ? (
+        <>
+          {query.isError ? (
+            // A background refresh failed; the rows shown are from the last successful load.
+            <Stale
+              asOf={formatDayTime(new Date(query.dataUpdatedAt).toISOString().replace(/\.\d{3}Z$/, "Z"), now ?? new Date(), zone) ?? ""}
+              onRefresh={() => void query.refetch()}
+            />
+          ) : null}
+          <InboxList tab={tab} page={query.data} cursor={cursor} />
+        </>
       ) : (
-        <InboxList tab={tab} page={query.data} cursor={cursor} />
+        <ErrorState error={query.error} what="the Inbox" onRetry={() => void query.refetch()} />
       )}
     </div>
   );

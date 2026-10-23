@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { meeraBriefing, testItem } from "@/lib/test-support/briefing";
-import { countTags, render, renderInSession, textOf } from "@/lib/test-support/render";
+import { countTags, nestedInteractive, render, renderInSession, textOf } from "@/lib/test-support/render";
 import { createApiClient } from "@/lib/api/client";
 import { snoozeItem, runItemAction, snoozeUntil } from "./api";
 import { BriefingHeader } from "./briefing-header";
@@ -214,6 +214,7 @@ describe("Today components", () => {
     expect(countTags(html, "a", "bg-forest")).toBe(1);
     expect(html).toContain('aria-label="More actions for Berg &amp; Co AB quote expires today"');
     expect(text).toContain("Why is this here?");
+    expect(nestedInteractive(html)).toEqual([]);
   });
 
   it("BriefingItemRow: no controls when the server allows none, or read-only", () => {
