@@ -58,6 +58,7 @@ def sync_permission_catalogue(uow: UnitOfWork) -> int:
     from app.registry import get_registry
 
     registry = get_registry()
+    uow.advisory_xact_lock("identity.permission_catalogue", "sync")
     now = uow.now()
     rows = []
     for perm in registry.permissions.values():

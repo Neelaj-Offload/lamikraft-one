@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.platform.identity.auth_models import RateLimitCounter
@@ -126,12 +126,3 @@ def clear_failures(session: Session, email_key: str) -> None:
 def purge_expired(session: Session, *, now: datetime) -> int:
     result = session.execute(delete(RateLimitCounter).where(RateLimitCounter.expires_at < now))
     return int(result.rowcount or 0)  # type: ignore[attr-defined]
-
-
-def current_count(session: Session, bucket: str, *, now: datetime) -> int:
-    value = session.scalar(
-        select(RateLimitCounter.count).where(
-            RateLimitCounter.bucket_key == bucket, RateLimitCounter.window_start == _window_start(now)
-        )
-    )
-    return int(value or 0)

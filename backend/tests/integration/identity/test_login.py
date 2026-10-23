@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -164,3 +165,26 @@ def test_validation_errors_never_echo_the_password(client: TestClient, tenant: T
     )
     assert r.status_code == 422
     assert "x" * 50 not in r.text
+
+
+def test_forwarded_client_addresses_are_trusted_only_from_the_local_proxy(db: None, api_app, tenant: Tenant) -> None:  # type: ignore[no-untyped-def]
+    from tests.integration.identity.fixtures import origin_headers
+
+    payload = {"email": "nobody@example.test", "password": "wrong-password-123"}
+
+    def attempt(client: TestClient, forwarded: str) -> int:
+        return client.post(
+            "/api/v1/identity/session",
+            json={**payload, "email": f"{uuid.uuid4().hex}@example.test"},
+            headers={**origin_headers(), "X-Forwarded-For": forwarded},
+        ).status_code
+
+    behind_proxy = TestClient(api_app, base_url="http://testserver", client=("127.0.0.1", 50000))
+    # the last X-Forwarded-For entry is the address the proxy saw; an earlier, client-supplied entry is ignored
+    assert all(attempt(behind_proxy, f"203.0.113.{i}, 198.51.100.7") == 401 for i in range(30))
+    assert attempt(behind_proxy, "203.0.113.99, 198.51.100.7") == 429
+    assert attempt(behind_proxy, "198.51.100.8") == 401  # another browser behind the same proxy is not throttled
+
+    direct = TestClient(api_app, base_url="http://testserver", client=("192.0.2.10", 50000))
+    assert all(attempt(direct, f"198.51.100.{i}") == 401 for i in range(30))
+    assert attempt(direct, "198.51.100.200") == 429  # a non-proxy peer cannot choose its own bucket

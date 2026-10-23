@@ -14,8 +14,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from sqlalchemy import delete, or_, select, update
+from sqlalchemy.exc import IntegrityError
 
-from app.core.clock import get_clock
 from app.core.config import get_settings
 from app.core.db.engine import session_factory
 from app.core.errors import Conflict, Forbidden, NotFound, Unauthenticated, ValidationFailed, VersionConflict
@@ -71,6 +71,7 @@ from app.platform.service import command, query
 from app.platform.uow import UnitOfWork
 
 DEMO_LINK_LIFETIME = timedelta(minutes=15)
+_NO_USER = uuid.UUID(int=0)
 
 
 def _member_actor(company_id: uuid.UUID, user_id: uuid.UUID, membership_id: uuid.UUID | None, name: str = "") -> ActorContext:
@@ -186,7 +187,8 @@ def login(email: str, password: str, client: ClientInfo) -> SignedIn:
         user_active = bool(user and user.status == "active")
         display_name = user.display_name if user else ""
     ok = passwords.verify_password(stored_hash, password)
-    memberships = _memberships_of(user_id) if user_id else []
+    # the same lookups run for unknown emails so the response time does not reveal whether an account exists
+    memberships = _memberships_of(user_id or _NO_USER)
     target = next((m for m in memberships if m.status == "active"), None) if ok and user_active else None
     rehash = passwords.hash_password(password) if target and stored_hash and passwords.needs_rehash(stored_hash) else None
 
@@ -660,12 +662,16 @@ def update_preferences(uow: UnitOfWork, patch: PreferencesPatch) -> PreferencesU
     sections, changed = apply_patch(stored, patch)
     if changed:
         if row is None:
-            row = UserPreference(user_id=user.id, **sections)
-            uow.add(row)
+            # first write: a concurrent first write for the same user loses with a 409 (the client re-reads)
+            try:
+                with uow.session.begin_nested():
+                    uow.session.add(UserPreference(user_id=user.id, **sections))
+            except IntegrityError:
+                raise VersionConflict(current_version=1) from None
         else:
             for name, value in sections.items():
                 setattr(row, name, value)
-        uow.flush()
+            uow.flush()
         uow.audit("identity.preferences.updated", resource_type="identity.user", resource_id=user.id, details={"changed_fields": changed})
     return PreferencesUpdated(preferences=_preferences(uow, user.id), changed_fields=changed)
 
@@ -722,27 +728,3 @@ def purge_auth_state(uow: UnitOfWork) -> dict[str, int]:
         uow.session.execute(update(AuthSession).where(AuthSession.rotated_from_id.in_(stale)).values(rotated_from_id=None))
         sessions_deleted = uow.session.execute(delete(AuthSession).where(AuthSession.id.in_(stale))).rowcount  # type: ignore[attr-defined]
     return {"counters": counters, "attempts": int(attempts or 0), "sessions": int(sessions_deleted or 0)}
-
-
-def clock_now(company_id: uuid.UUID | None = None) -> datetime:
-    return get_clock(company_id).now()
-
-__all__ = [
-    "CompanySpec",
-    "DemoLink",
-    "FirstAdmin",
-    "SignedIn",
-    "any_admin_membership",
-    "create_first_admin",
-    "demo_sign_in",
-    "find_member_by_email",
-    "get_me",
-    "issue_demo_link",
-    "login",
-    "logout",
-    "purge_auth_state",
-    "rotate_csrf",
-    "session_profile",
-    "test_sign_in",
-    "update_preferences",
-]

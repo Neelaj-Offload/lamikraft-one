@@ -10,6 +10,7 @@ Registered in the identity manifest ``on_load``:
 
 from __future__ import annotations
 
+import ipaddress
 from typing import TYPE_CHECKING
 
 from fastapi import Request, Response
@@ -40,9 +41,33 @@ _STRENGTH: dict[str, AuthStrength] = {
 UI_COOKIE_MAX_AGE = 400 * 24 * 3600
 
 
+def client_ip(request: Request) -> str | None:
+    """The caller's address for rate limits and audit.
+
+    The browser reaches FastAPI through the same-origin Next.js rewrite (a local proxy), so the socket peer is
+    a loopback address for everyone. Only when the peer is loopback is ``X-Forwarded-For`` trusted, and then
+    only its last entry — the address our own proxy appended — never a client-supplied earlier entry.
+    """
+    peer = request.client.host if request.client else None
+    if peer is None:
+        return None
+    try:
+        loopback = ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        return peer
+    forwarded = request.headers.get("x-forwarded-for")
+    if loopback and forwarded:
+        last = forwarded.split(",")[-1].strip()
+        try:
+            return str(ipaddress.ip_address(last))
+        except ValueError:
+            return peer
+    return peer
+
+
 def client_info(request: Request) -> ClientInfo:
     return ClientInfo(
-        ip=request.client.host if request.client else None,
+        ip=client_ip(request),
         user_agent=(request.headers.get("user-agent") or "")[:512] or None,
         session_token=request.cookies.get(sessions.session_cookie_name()),
     )

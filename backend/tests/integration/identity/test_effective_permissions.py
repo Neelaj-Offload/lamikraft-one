@@ -241,3 +241,34 @@ def test_cache_follows_the_epoch(tenant: Tenant) -> None:
     assert after is not None
     assert after.authz_epoch == before.authz_epoch + 1
     assert "finance.invoice.read" in after.permissions and "sales.quote.create" not in after.permissions
+
+
+def test_archiving_an_override_and_leaving_a_team_take_effect(tenant: Tenant) -> None:
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        team = provisioning.ensure_team(uow, team_key="T-TWO", name="Team two")
+    member = make_member(tenant, ["sales"], teams=[TeamSeat(team)])
+    peer = make_member(tenant, ["sales"], teams=[TeamSeat(team)])
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        override_id = provisioning.set_permission_override(
+            uow, member.membership_id, permission_key="sales.quote.read", effect="revoke", reason="temporary"
+        )
+    revoked = actor_for(tenant.company_id, member.user_id, "test")
+    assert revoked is not None and "sales.quote.read" not in revoked.permissions
+    assert revoked.team_peer_user_ids == {peer.user_id}
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        assert provisioning.archive_permission_override(uow, override_id)
+        assert not provisioning.archive_permission_override(uow, override_id)  # already archived
+        assert provisioning.remove_team_member(uow, team, peer.membership_id)
+    restored = actor_for(tenant.company_id, member.user_id, "test")
+    assert restored is not None and restored.permissions["sales.quote.read"] == Scope.OWN
+    assert restored.team_peer_user_ids == frozenset()
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        events = [
+            (e.payload["permission_key"], e.payload["effect"], e.payload["archived"])
+            for e in uow.session.scalars(
+                select(DomainEvent)
+                .where(DomainEvent.event_type == "identity.permission_override.changed")
+                .order_by(DomainEvent.seq)
+            )
+        ]
+    assert events == [("sales.quote.read", "revoke", False), ("sales.quote.read", "revoke", True)]

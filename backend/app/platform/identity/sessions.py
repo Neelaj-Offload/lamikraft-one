@@ -161,15 +161,6 @@ def revoke(session: Session, session_id: uuid.UUID, *, now: datetime, reason: st
     return bool(result.rowcount)  # type: ignore[attr-defined]
 
 
-def revoke_all_for_user(session: Session, user_id: uuid.UUID, *, now: datetime, reason: str) -> int:
-    result = session.execute(
-        update(AuthSession)
-        .where(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
-        .values(revoked_at=now, revoked_reason=reason[:40])
-    )
-    return int(result.rowcount or 0)  # type: ignore[attr-defined]
-
-
 def rotate_csrf(session: Session, session_id: uuid.UUID) -> str:
     """Issue a fresh CSRF secret for a live session (the previous value stops working)."""
     csrf = new_token()

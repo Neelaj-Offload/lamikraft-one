@@ -118,9 +118,3 @@ def last_world() -> dict[str, Any] | None:
         except (OSError, ValueError):
             return None
     return None
-
-
-def forget_world() -> None:
-    global _last_world
-    with _lock:
-        _last_world = None

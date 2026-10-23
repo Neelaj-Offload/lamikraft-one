@@ -1,8 +1,8 @@
 """Password hashing (argon2id) and the password policy.
 
 argon2-cffi's ``PasswordHasher`` defaults (argon2id, RFC 9106 low-memory profile) cost about 64 MiB per
-hash, so hashing and verification run in a dedicated pool of four threads: at most four run at once,
-however many requests arrive (api-conventions §7). Verification against a fixed dummy hash keeps the
+hash, so hashing and verification run in a dedicated pool of four threads behind a semaphore of four: at most
+four run at once, however many requests arrive (api-conventions §7). Verification against a fixed dummy hash keeps the
 timing of unknown, locked or password-less accounts identical to a real check.
 
 Policy: 12–256 characters, no composition rules, not in the bundled common-password list, and not
@@ -24,6 +24,7 @@ HASH_CONCURRENCY = 4
 
 _hasher = PasswordHasher()
 _pool = ThreadPoolExecutor(max_workers=HASH_CONCURRENCY, thread_name_prefix="lk-argon2")
+_slots = threading.BoundedSemaphore(HASH_CONCURRENCY)
 _dummy_lock = threading.Lock()
 _dummy_hash: str | None = None
 
@@ -74,15 +75,21 @@ def check_policy(password: str, *, email: str | None = None, company_names: tupl
     return None
 
 
+def _hash(password: str) -> str:
+    with _slots:
+        return _hasher.hash(password)
+
+
 def hash_password(password: str) -> str:
-    return _pool.submit(_hasher.hash, password).result()
+    return _pool.submit(_hash, password).result()
 
 
 def _verify(stored_hash: str, password: str) -> bool:
-    try:
-        return _hasher.verify(stored_hash, password)
-    except (VerifyMismatchError, VerificationError, InvalidHashError):
-        return False
+    with _slots:
+        try:
+            return _hasher.verify(stored_hash, password)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            return False
 
 
 def _dummy() -> str:

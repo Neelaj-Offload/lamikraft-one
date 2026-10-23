@@ -410,16 +410,6 @@ def _not_self(uow: UnitOfWork, membership: Membership) -> None:
         raise Forbidden("You cannot change your own access", code="self_access_change")
 
 
-def membership_role_keys(uow: UnitOfWork, membership_id: uuid.UUID) -> list[str]:
-    return sorted(
-        uow.session.scalars(
-            select(Role.role_key).join(MembershipRole, MembershipRole.role_id == Role.id).where(
-                MembershipRole.membership_id == membership_id
-            )
-        )
-    )
-
-
 def assign_roles(uow: UnitOfWork, membership_id: uuid.UUID, role_keys: Sequence[str], *, origin: str | None = None) -> bool:
     """Replace a membership's roles (at least one). Returns True when the set changed."""
     _require(uow, "identity.role.manage")

@@ -26,9 +26,9 @@ EXPECTED = {
     ("PATCH", "/api/v1/identity/me/preferences"): ("identity_update_preferences", "authenticated"),
     ("GET", "/api/v1/session/bootstrap"): ("ui_get_session_bootstrap", "authenticated"),
     ("GET", "/api/v1/ui/poll"): ("ui_poll_sections", "authenticated"),
-    ("POST", "/api/v1/_test/sign-in"): ("testsupport_create_session", "test_support"),
-    ("GET", "/api/v1/_test/fixtures"): ("testsupport_get_fixtures", "test_support"),
-    ("POST", "/api/v1/_test/clock"): ("testsupport_set_clock", "test_support"),
+    ("POST", "/api/v1/_test/sign-in"): ("identity_create_test_session", "test_support"),
+    ("GET", "/api/v1/_test/fixtures"): ("identity_get_test_fixtures", "test_support"),
+    ("POST", "/api/v1/_test/clock"): ("identity_update_test_clock", "test_support"),
 }
 
 

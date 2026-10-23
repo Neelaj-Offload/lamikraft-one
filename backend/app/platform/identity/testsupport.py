@@ -23,7 +23,7 @@ from app.platform.identity import service
 from app.platform.identity.http import client_info, set_session_cookies, set_ui_cookie
 from app.platform.identity.schemas import SessionInfo
 
-router = APIRouter(prefix="/_test", tags=["testsupport"])
+router = APIRouter(prefix="/_test", tags=["identity"])
 
 
 def _guard() -> None:
@@ -64,7 +64,7 @@ class ClockState(BaseModel):
 @router.post(
     "/sign-in",
     openapi_extra=test_support(),
-    operation_id="testsupport_create_session",
+    operation_id="identity_create_test_session",
     response_model=SessionInfo,
 )
 def sign_in(body: TestSignInRequest, request: Request) -> JSONResponse:
@@ -86,7 +86,7 @@ def sign_in(body: TestSignInRequest, request: Request) -> JSONResponse:
     return response
 
 
-@router.get("/fixtures", openapi_extra=test_support(), operation_id="testsupport_get_fixtures")
+@router.get("/fixtures", openapi_extra=test_support(), operation_id="identity_get_test_fixtures")
 def fixtures() -> dict[str, Any]:
     _guard()
     from app.seed.runner import last_world
@@ -97,7 +97,7 @@ def fixtures() -> dict[str, Any]:
     return world
 
 
-@router.post("/clock", openapi_extra=test_support(), operation_id="testsupport_set_clock", response_model=ClockState)
+@router.post("/clock", openapi_extra=test_support(), operation_id="identity_update_test_clock", response_model=ClockState)
 def set_clock(body: ClockRequest) -> ClockState:
     _guard()
     if body.at.tzinfo is None:
