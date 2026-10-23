@@ -532,3 +532,23 @@ class ProductFilters(BaseModel):
 
 
 ProductSort = Literal["relevance", "product_key", "product_name", "-updated_at"]
+
+
+class ProductCandidate(BaseModel):
+    product_id: uuid.UUID
+    product_key: str
+    display_sku: str
+    product_name: str
+    unit_of_sale: str | None
+    decor_no: str | None
+    status: ProductStatus
+    match: Literal["product_key", "display_sku", "exact_name", "tokens"]
+
+
+class ProductResolution(BaseModel):
+    """``unique``: one product matched; ``ambiguous``: several (ask the user, never pick); ``not_found``."""
+
+    status: Literal["unique", "ambiguous", "not_found"]
+    query: str
+    candidates: list[ProductCandidate]
+    total_matches: int

@@ -148,3 +148,22 @@ def test_source_reader_and_search_provider(world: World) -> None:
         assert provider.search(uow, "o", 10) == []
     with UnitOfWork(actor(world.company_id)) as uow:
         assert sources.read(uow, "catalogue.product", world.ref("OAK_TRAY")) is None
+
+
+def test_resolve_product_unique_ambiguous_and_not_found(world: World) -> None:
+    meera = world.actor(keys.USERS.MEERA)
+    by_key = catalogue.resolve_product(meera, keys.PRODUCTS.OAK_TRAY.lower())
+    assert by_key.status == "unique" and by_key.candidates[0].match == "product_key"
+    assert by_key.candidates[0].product_id == world.ref("OAK_TRAY")
+    tokens = catalogue.resolve_product(meera, "oak tray")
+    assert tokens.status == "unique" and tokens.candidates[0].product_key == keys.PRODUCTS.OAK_TRAY
+    make_product(world, "LK-OT-0300", name="Oak serving tray 300")  # a Slice-2 variant, test-local here
+    ambiguous = catalogue.resolve_product(meera, "oak tray")
+    assert ambiguous.status == "ambiguous" and ambiguous.total_matches == 2
+    exact = catalogue.resolve_product(meera, "Oak serving tray 450")
+    assert exact.status == "unique" and exact.candidates[0].match == "exact_name"
+    make_product(world, "TST-SKU-A", display_sku="DUP-SKU")
+    make_product(world, "TST-SKU-B", display_sku="DUP-SKU")
+    assert catalogue.resolve_product(meera, "dup-sku").status == "ambiguous"  # display SKUs are non-unique
+    assert catalogue.resolve_product(meera, "mahogany").status == "not_found"
+    assert catalogue.resolve_product(meera, "%").status == "not_found"

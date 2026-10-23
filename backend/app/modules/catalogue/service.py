@@ -59,10 +59,12 @@ from app.modules.catalogue.schemas import (
     PackagingIn,
     PackagingRead,
     ParseStatus,
+    ProductCandidate,
     ProductCreate,
     ProductDetail,
     ProductFacets,
     ProductFilters,
+    ProductResolution,
     ProductSize,
     ProductSort,
     ProductStats,
@@ -1314,6 +1316,66 @@ def find_product_id(uow: UnitOfWork, product_key: str) -> uuid.UUID | None:
     """The id of a visible product with this key (None when absent or not visible)."""
     return uow.session.scalar(
         select(P.id).where(uow.repo(Product).clause("read"), P.product_key == product_key.strip())
+    )
+
+
+def _candidate(product: Product, match: str) -> ProductCandidate:
+    return ProductCandidate(
+        product_id=product.id,
+        product_key=product.product_key,
+        display_sku=product.display_sku,
+        product_name=product.product_name,
+        unit_of_sale=product.unit_of_sale,
+        decor_no=product.decor_no,
+        status=ProductStatus(product.status),
+        match=match,  # type: ignore[arg-type]
+    )
+
+
+@query(READ)
+def resolve_product(uow: UnitOfWork, text: str, *, limit: int = 10) -> ProductResolution:
+    """Resolve a typed or spoken product reference among live (non-archived) products.
+
+    An exact ``product_key`` wins; an exact ``display_sku`` is unique only when one product carries it (the SKU is
+    non-unique); otherwise every token must match (key, SKU, name, decor, finish, family, taxonomy). Several matches
+    are ``ambiguous`` unless exactly one product name equals the query; the caller asks, it never picks.
+    """
+    q = " ".join(text.split())
+    limit = max(1, min(limit, 25))
+    live = and_(uow.repo(Product).clause("read"), P.archived_at.is_(None))
+    if not q:
+        return ProductResolution(status="not_found", query=q, candidates=[], total_matches=0)
+    by_key = uow.session.scalars(select(P).where(live, func.lower(P.product_key) == q.lower())).first()
+    if by_key is not None:
+        return ProductResolution(status="unique", query=q, candidates=[_candidate(by_key, "product_key")], total_matches=1)
+    by_sku = list(
+        uow.session.scalars(select(P).where(live, func.lower(P.display_sku) == q.lower()).order_by(P.product_key).limit(limit))
+    )
+    if by_sku:
+        return ProductResolution(
+            status="unique" if len(by_sku) == 1 else "ambiguous",
+            query=q,
+            candidates=[_candidate(p, "display_sku") for p in by_sku],
+            total_matches=len(by_sku),
+        )
+    parts = tokens(q)
+    if not parts:
+        return ProductResolution(status="not_found", query=q, candidates=[], total_matches=0)
+    cond = and_(live, *[P.search_text.ilike(contains_pattern(t), escape=LIKE_ESCAPE) for t in parts])
+    total = int(uow.session.scalar(select(func.count(P.id)).where(cond)) or 0)
+    rows = list(uow.session.scalars(select(P).where(cond).order_by(P.product_key, P.id).limit(limit)))
+    exact = [p for p in rows if name_key(p.product_name) == name_key(q)]
+    if total == 0:
+        return ProductResolution(status="not_found", query=q, candidates=[], total_matches=0)
+    if total == 1 or len(exact) == 1:
+        chosen = rows[0] if total == 1 else exact[0]
+        match = "exact_name" if chosen in exact else "tokens"
+        return ProductResolution(status="unique", query=q, candidates=[_candidate(chosen, match)], total_matches=total)
+    return ProductResolution(
+        status="ambiguous",
+        query=q,
+        candidates=[_candidate(p, "exact_name" if p in exact else "tokens") for p in rows],
+        total_matches=total,
     )
 
 
