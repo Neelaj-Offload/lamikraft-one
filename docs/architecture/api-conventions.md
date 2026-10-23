@@ -152,6 +152,18 @@ schema) and listed in `redacted_fields`; the client never masks data itself.
 - No bootstrap admin: `lk admin create-first` creates the first admin once (refuses when one exists). Demo users
   sign in only through one-time links in the `is_demo` company.
 
+### 7.1 Authentication endpoints (frozen 2026-10-23 for Slice 1)
+
+| Method and path | Kind | Body / result |
+|---|---|---|
+| `POST /api/v1/identity/session` | public (Origin + Sec-Fetch-Site checked, rate-limited) | `{email, password}` → 200 `SessionInfo` and cookies `lk_session` + `lk_csrf`; 401 `invalid_credentials` (generic) or 429 `rate_limited`/`account_locked` |
+| `DELETE /api/v1/identity/session` | authenticated | revokes the current session, clears cookies, 204 |
+| `POST /api/v1/identity/demo-sign-in` | public (demo company only) | `{token}` from the `#t=` fragment → 200 `SessionInfo` + cookies; 401 `link_invalid_or_used` |
+| `GET /api/v1/session/bootstrap` | authenticated (401 when signed out) | §8 payload; rotates `lk_csrf` |
+| `GET /api/v1/identity/me` | authenticated | profile, memberships, preferences |
+| `PATCH /api/v1/identity/me/preferences` | authenticated | typed preference sections (ui, locale, briefing, voice, assistant) |
+| `POST /api/v1/_test/sign-in` | test support (`LK_ENV=test` only) | `{user_key}` (fixture key) → session cookies |
+
 ## 8. Session bootstrap
 
 `GET /api/v1/session/bootstrap` (kind `authenticated`, also answers 401 cleanly for the login redirect) returns:
