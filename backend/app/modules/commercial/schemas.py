@@ -52,6 +52,23 @@ class RuleSetRead(BaseModel):
     version: int
 
 
+class Capability(BaseModel):
+    allowed: bool
+    reason_code: str | None = None
+
+
+class TransitionRead(BaseModel):
+    action: str
+    to_status: str
+    requires_reason: bool
+
+
+class RuleSetDetail(RuleSetRead):
+    #: rule sets are immutable once created; the only action is activating a draft (``commercial.rule_set.manage``)
+    capabilities: dict[str, Capability]
+    allowed_transitions: list[TransitionRead] = Field(default_factory=list)
+
+
 # ---- calculation result (mirrors engine.CalculationResult.as_dict) -------------------------------
 class RecommendationOut(BaseModel):
     status: Literal["AVAILABLE", "UNAVAILABLE", "NOT_EVALUATED", "NOT_APPLICABLE"]

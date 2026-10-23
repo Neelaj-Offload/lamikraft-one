@@ -394,6 +394,17 @@ class SectionRead(BaseModel):
     path: str
 
 
+class Capability(BaseModel):
+    allowed: bool
+    reason_code: str | None = None
+
+
+class TransitionRead(BaseModel):
+    action: str
+    to_status: str
+    requires_reason: bool
+
+
 class ProductDetail(BaseModel):
     id: uuid.UUID
     product_key: str
@@ -424,6 +435,10 @@ class ProductDetail(BaseModel):
     updated_at: datetime
     archived_at: datetime | None
     path: str
+    #: server-computed from the product policy (``catalogue.product.update`` at company scope)
+    capabilities: dict[str, Capability]
+    #: product status is a master field changed through ``update``; the catalogue has no workflow transitions
+    allowed_transitions: list[TransitionRead] = Field(default_factory=list)
 
 
 class ProductWriteResult(BaseModel):

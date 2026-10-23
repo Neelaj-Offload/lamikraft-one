@@ -53,6 +53,14 @@ def test_detail_has_every_field_group_and_deep_linkable_sections(world: World) -
     assert by_key.id == detail.id
 
 
+def test_detail_capabilities_come_from_the_product_policy(world: World) -> None:
+    meera = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))  # sales: read only
+    assert meera.capabilities["update"].model_dump() == {"allowed": False, "reason_code": "permission_denied"}
+    assert meera.allowed_transitions == []
+    priya = catalogue.get_product(world.actor(keys.USERS.PRIYA), world.ref("OAK_TRAY"))
+    assert priya.capabilities["update"].model_dump() == {"allowed": True, "reason_code": None}
+
+
 def test_completeness_is_computed_from_actual_fields(world: World) -> None:
     meera = world.actor(keys.USERS.MEERA)
     oak = catalogue.get_product(meera, world.ref("OAK_TRAY"))

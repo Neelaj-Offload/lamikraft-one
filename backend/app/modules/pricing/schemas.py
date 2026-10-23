@@ -179,6 +179,17 @@ class PriceListSummary(BaseModel):
     path: str
 
 
+class Capability(BaseModel):
+    allowed: bool
+    reason_code: str | None = None
+
+
+class TransitionRead(BaseModel):
+    action: str
+    to_status: str
+    requires_reason: bool
+
+
 class PriceListDetail(PriceListSummary):
     price_basis: Annotated[str | None, PRICE_LIST_GUARD] = None
     notes: str | None
@@ -187,6 +198,10 @@ class PriceListDetail(PriceListSummary):
     activated_at: datetime | None
     retired_at: datetime | None
     version: int
+    #: ``add_item`` (draft lists only) and ``supersede_item`` (effective-dated change), both ``pricing.price_list.manage``
+    capabilities: dict[str, Capability] = Field(default_factory=dict)
+    #: ``activate`` (draft -> active) when the actor manages price lists
+    allowed_transitions: list[TransitionRead] = Field(default_factory=list)
     redacted_fields: list[str] = Field(default_factory=list)
 
 

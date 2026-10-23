@@ -23,9 +23,12 @@ from app.modules.commercial.schemas import (
     CalculateQuoteInput,
     CalculateQuoteOutput,
     CalculationResultOut,
+    Capability,
     QuoteCommercialRulesV1,
+    RuleSetDetail,
     RuleSetRead,
     RuleSetStatus,
+    TransitionRead,
 )
 from app.modules.pricing import service as pricing
 from app.platform.service import query
@@ -144,8 +147,23 @@ def list_rule_sets(uow: UnitOfWork, *, code: str | None = None) -> list[RuleSetR
 
 
 @query(READ)
-def get_rule_set(uow: UnitOfWork, rule_set_id: uuid.UUID) -> RuleSetRead:
-    return _read(uow.repo(RuleSet).get(rule_set_id))
+def get_rule_set(uow: UnitOfWork, rule_set_id: uuid.UUID) -> RuleSetDetail:
+    row = uow.repo(RuleSet).get(rule_set_id)
+    can_manage = uow.actor.can(MANAGE)
+    is_draft = row.status == RuleSetStatus.DRAFT.value
+    if not can_manage:
+        activate = Capability(allowed=False, reason_code="permission_denied")
+    else:
+        activate = Capability(allowed=is_draft, reason_code=None if is_draft else "rule_set_not_draft")
+    return RuleSetDetail(
+        **_read(row).model_dump(),
+        capabilities={"activate": activate},
+        allowed_transitions=(
+            [TransitionRead(action="activate", to_status=RuleSetStatus.ACTIVE.value, requires_reason=False)]
+            if can_manage and is_draft
+            else []
+        ),
+    )
 
 
 @query("pricing.price.read")

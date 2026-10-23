@@ -58,9 +58,17 @@ def test_activating_a_new_version_retires_the_previous_one(world: World) -> None
         "applicable_line_types": ["catalog", "custom"],
     })
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
-        v2 = commercial.create_rule_set(uow, code=keys.COMMERCIAL.RULE_SET, version_no=2, params=v2_params,
-                                        effective_from=date(2027, 1, 1))
-        commercial.activate_rule_set(uow, v2.id)
+        v2_id = commercial.create_rule_set(uow, code=keys.COMMERCIAL.RULE_SET, version_no=2, params=v2_params,
+                                           effective_from=date(2027, 1, 1)).id
+    draft = commercial.get_rule_set(world.actor(keys.USERS.PRIYA), v2_id)
+    assert draft.capabilities["activate"].allowed is True
+    assert [(t.action, t.to_status) for t in draft.allowed_transitions] == [("activate", "active")]
+    read_only = commercial.get_rule_set(world.actor(keys.USERS.SAHIL), v2_id)
+    assert read_only.capabilities["activate"].reason_code == "permission_denied" and read_only.allowed_transitions == []
+    with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
+        commercial.activate_rule_set(uow, v2_id)
+    active = commercial.get_rule_set(world.actor(keys.USERS.PRIYA), v2_id)
+    assert active.capabilities["activate"].reason_code == "rule_set_not_draft" and active.allowed_transitions == []
     statuses = {r.version_no: r.status.value for r in commercial.list_rule_sets(world.actor(keys.USERS.SAHIL))}
     assert statuses == {1: "retired", 2: "active"}
     with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:

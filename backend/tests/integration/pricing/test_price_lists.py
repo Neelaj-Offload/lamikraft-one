@@ -65,6 +65,28 @@ def test_lists_items_and_product_prices(world: World) -> None:
     assert prices.on_date == date(2026, 10, 12)
 
 
+def test_price_list_capabilities_follow_permission_and_state(world: World) -> None:
+    eur = world.ref("PL_EXP_EUR")
+    meera = pricing.get_price_list(world.actor(keys.USERS.MEERA), eur)
+    assert {k: (c.allowed, c.reason_code) for k, c in meera.capabilities.items()} == {
+        "add_item": (False, "permission_denied"), "supersede_item": (False, "permission_denied"),
+    }
+    assert meera.allowed_transitions == []
+    priya = world.actor(keys.USERS.PRIYA)
+    active = pricing.get_price_list(priya, eur)
+    assert {k: (c.allowed, c.reason_code) for k, c in active.capabilities.items()} == {
+        "add_item": (False, "price_list_not_draft"), "supersede_item": (True, None),
+    }
+    assert active.allowed_transitions == []
+    with UnitOfWork(priya) as uow:
+        draft_id = pricing.create_price_list(uow, PriceListCreate.model_validate({
+            "code": "DRAFT-CAPS", "name": "Draft", "price_type": "export", "currency": "EUR", "valid_from": "2026-01-01",
+        })).id
+    draft = pricing.get_price_list(priya, draft_id)
+    assert draft.capabilities["add_item"].allowed is True
+    assert [(t.action, t.to_status, t.requires_reason) for t in draft.allowed_transitions] == [("activate", "active", False)]
+
+
 def test_breakdown_fields_need_price_list_read(world: World) -> None:
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         pl = pricing.create_price_list(uow, PriceListCreate.model_validate({

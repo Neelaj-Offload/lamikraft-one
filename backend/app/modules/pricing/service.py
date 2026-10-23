@@ -28,6 +28,7 @@ from app.modules.pricing import events as ev
 from app.modules.pricing.models import PriceList, PriceListItem, PriceListItemHistory, ProductCost
 from app.modules.pricing.schemas import (
     TIERS,
+    Capability,
     PartyMini,
     PriceCandidate,
     PricedItem,
@@ -49,6 +50,7 @@ from app.modules.pricing.schemas import (
     SupersedeItem,
     Tier,
     TierCheck,
+    TransitionRead,
 )
 from app.platform.service import query
 from app.platform.uow import UnitOfWork
@@ -590,11 +592,30 @@ def _locked_list(uow: UnitOfWork, price_list_id: uuid.UUID) -> PriceList:
     return _visible_list(uow, price_list_id, for_update=True)
 
 
+def _list_capabilities(uow: UnitOfWork, pl: PriceList) -> tuple[dict[str, Capability], list[TransitionRead]]:
+    """Mirrors the guards of ``add_item``, ``supersede_item`` and ``activate_price_list``."""
+    if not uow.actor.can(MANAGE):
+        denied = Capability(allowed=False, reason_code="permission_denied")
+        return {"add_item": denied, "supersede_item": denied}, []
+    is_draft = pl.status == PriceListStatus.DRAFT.value
+    capabilities = {
+        "add_item": Capability(allowed=is_draft, reason_code=None if is_draft else "price_list_not_draft"),
+        "supersede_item": Capability(allowed=True),
+    }
+    transitions = (
+        [TransitionRead(action="activate", to_status=PriceListStatus.ACTIVE.value, requires_reason=False)]
+        if is_draft
+        else []
+    )
+    return capabilities, transitions
+
+
 @query(READ)
 def get_price_list(uow: UnitOfWork, price_list_id: uuid.UUID) -> PriceListDetail:
     pl = _visible_list(uow, price_list_id)
     minis = _party_minis(uow, [pl.party_id])
     counts = _item_counts(uow, [pl.id])
+    capabilities, transitions = _list_capabilities(uow, pl)
     return PriceListDetail(
         **_list_summary_fields(pl, minis, int(counts.get(pl.id, 0))),
         price_basis=pl.price_basis,
@@ -604,6 +625,8 @@ def get_price_list(uow: UnitOfWork, price_list_id: uuid.UUID) -> PriceListDetail
         activated_at=pl.activated_at,
         retired_at=pl.retired_at,
         version=pl.version,
+        capabilities=capabilities,
+        allowed_transitions=transitions,
     )
 
 

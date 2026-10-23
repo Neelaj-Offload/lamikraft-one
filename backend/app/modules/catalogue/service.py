@@ -43,6 +43,7 @@ from app.modules.catalogue.normalise import (
 )
 from app.modules.catalogue.schemas import (
     SPEC_DIMENSION_FIELDS,
+    Capability,
     CategoryCount,
     CategoryCreate,
     CategoryRead,
@@ -1299,6 +1300,10 @@ def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
         updated_at=product.updated_at,
         archived_at=product.archived_at,
         path=product_path(product.id),
+        capabilities={
+            action: Capability(**decision)
+            for action, decision in uow.repo(Product).capabilities(product, ["update"]).items()
+        },
     )
 
 
