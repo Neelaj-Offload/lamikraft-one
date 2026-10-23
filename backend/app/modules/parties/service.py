@@ -638,6 +638,17 @@ def get_party_ref(uow: UnitOfWork, party_id: uuid.UUID) -> PartyRef:
     )
 
 
+def party_labels(uow: UnitOfWork, party_ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, tuple[str, str]]:
+    """(party_number, display_name) of the given parties the actor may read; invisible ids are simply absent."""
+    wanted = {i for i in party_ids if i is not None}
+    if not wanted:
+        return {}
+    rows = uow.session.execute(
+        select(Party.id, Party.party_number, Party.display_name).where(Party.id.in_(wanted), uow.repo(Party).clause("read"))
+    ).all()
+    return {r[0]: (r[1], r[2]) for r in rows}
+
+
 def visible_party_ids(uow: UnitOfWork) -> Select[Any]:
     """Ids of the parties the actor may read (subquery for other modules' scoped filters)."""
     return uow.repo(Party).visible_ids("read")

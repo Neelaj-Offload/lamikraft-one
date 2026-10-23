@@ -24,7 +24,6 @@ from app.core.money import quantize_unit_price
 from app.core.text import LIKE_ESCAPE, contains_pattern, tokens
 from app.modules.catalogue import service as catalogue
 from app.modules.parties import service as parties
-from app.modules.parties.models import Party
 from app.modules.pricing import events as ev
 from app.modules.pricing.models import PriceList, PriceListItem, PriceListItemHistory, ProductCost
 from app.modules.pricing.schemas import (
@@ -452,11 +451,8 @@ def record_product_cost(
 # read models
 # =====================================================================================================
 def _party_minis(uow: UnitOfWork, ids: Iterable[uuid.UUID | None]) -> dict[uuid.UUID, PartyMini]:
-    wanted = {i for i in ids if i is not None}
-    if not wanted:
-        return {}
-    rows = uow.session.execute(select(Party.id, Party.party_number, Party.display_name).where(Party.id.in_(wanted))).all()
-    return {r[0]: PartyMini(id=r[0], party_number=r[1], display_name=r[2]) for r in rows}
+    labels = parties.party_labels(uow, list(ids))
+    return {pid: PartyMini(id=pid, party_number=number, display_name=name) for pid, (number, name) in labels.items()}
 
 
 def _item_read(item: PriceListItem, pl: PriceList) -> PriceListItemRead:
