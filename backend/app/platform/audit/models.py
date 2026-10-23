@@ -42,4 +42,5 @@ class AuditLog(IdMixin, TenantMixin, Base):
         Index("ix_audit_resource", "company_id", "resource_type", "resource_id", "occurred_at"),
         Index("ix_audit_actor", "company_id", "actor_user_id", "occurred_at"),
         Index("ix_audit_action", "company_id", "action", "occurred_at"),
+        Index("ix_audit_log_keyset", "company_id", "occurred_at", "id"),
     )
