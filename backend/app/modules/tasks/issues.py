@@ -253,7 +253,7 @@ def close_task(
     task.state = closure.state
     task.closed_at = now
     task.closed_by = closure.closed_by
-    task.completion_evidence = dict(closure.evidence) if closure.evidence or closure.state == TaskState.DONE.value else None
+    task.completion_evidence = dict(closure.evidence) or None
     if closure.state == TaskState.DONE.value:
         task.completion_evidence = dict(closure.evidence) or {"reason": "completed"}
         task.completed_by = closure.closed_by
@@ -498,14 +498,18 @@ def apply_outcome(uow: UnitOfWork, outcome: IssueOutcome, event: DomainEvent | N
         if t.state not in OPEN_STATES:
             terminal_by_key[t.dedup_key] = t  # ordered by created_at: the latest wins
     wanted_tasks = {spec.dedup_key: spec for spec in outcome.tasks}
+    cause_persists = False
     for key, spec in wanted_tasks.items():
         task = open_by_key.get(key)
         if task is not None:
             update_task(uow, task, spec, event_id=event_id)
             continue
         previous = terminal_by_key.get(key)
-        if previous is not None and previous.state == TaskState.DISMISSED.value:
-            continue  # an authorised dismissal stands while the same cause persists
+        if previous is not None and previous.state in (TaskState.DISMISSED.value, TaskState.EXPIRED.value):
+            # an authorised dismissal (or a lapse) stands while the same cause persists: no new row,
+            # and the issue stays open
+            cause_persists = True
+            continue
         new_task(uow, issue, spec, family=outcome.family, origin=TaskOrigin.RULE.value, event_id=event_id)
     queues = {spec.queue_code for spec in outcome.tasks if spec.queue_code}
     for key, task in open_by_key.items():
@@ -523,7 +527,8 @@ def apply_outcome(uow: UnitOfWork, outcome: IssueOutcome, event: DomainEvent | N
             write_change(uow, issue, change, event)
 
     settle_issue(
-        uow, issue, created=created, info=outcome.info, resolution=outcome.resolution, cause_event_id=event_id
+        uow, issue, created=created, info=outcome.info, resolution=None if cause_persists else outcome.resolution,
+        cause_event_id=event_id,
     )
     if outcome.family != QUEUE_FAMILY:
         for queue_code in sorted(queues):

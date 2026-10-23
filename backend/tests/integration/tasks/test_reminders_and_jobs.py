@@ -40,6 +40,36 @@ def test_reminders_are_private_and_never_counted(world: FakeWorld) -> None:
         assert tasks.cancel_reminder(uow, created.id).state == "cancelled"
 
 
+def test_own_reminder_changes_refresh_the_current_briefing(world: FakeWorld) -> None:
+    """A reminder added or cancelled during the day shows up in a new version (the catalogue has no event for
+    reminder edits); the version on screen is never re-sorted and a no-op change writes no version."""
+    with world.uow(keys.USERS.MEERA) as uow:
+        v1 = briefings.get_today(uow)
+    with world.uow(keys.USERS.MEERA) as uow:
+        created = tasks.create_reminder(uow, ReminderCreate(text="Book the Lyon visit", remind_at=ist(2026, 10, 13, 12, 0)))
+    world.drain()
+    reminder_issue = issue_keys.issue_id(world.company_id, issue_keys.reminder_key(created.id), 1)
+    with world.uow(keys.USERS.MEERA) as uow:
+        shown = briefings.get_today(uow, version=v1.version)
+        latest = briefings.get_today(uow)
+    assert shown.updates_available == 1 and [i.issue_id for i in shown.items] == [i.issue_id for i in v1.items]
+    added = next(i for i in latest.items if i.issue_id == reminder_issue)
+    assert latest.version == v1.version + 1 and added.is_reminder and added.section == "coming_next"
+    with world.uow(keys.USERS.MEERA) as uow:
+        tasks.cancel_reminder(uow, created.id)
+    world.drain()
+    with world.uow(keys.USERS.MEERA) as uow:
+        after = briefings.get_today(uow)
+    assert after.version == v1.version + 2 and reminder_issue not in {i.issue_id for i in after.items}
+    with world.uow(keys.USERS.MEERA) as uow:
+        tasks.cancel_reminder(uow, created.id)  # already cancelled: nothing changes
+    world.drain()
+    with world.uow(keys.USERS.MEERA) as uow:
+        assert briefings.get_today(uow).version == after.version
+    with world.uow(keys.USERS.NEHA) as uow:  # nobody else's briefing moves
+        assert all(not i.is_reminder for i in briefings.get_today(uow).items)
+
+
 def test_reminder_dispatch_fires_once(world: FakeWorld) -> None:
     world.at(ist(2026, 10, 13, 10, 1))
     with world.uow() as uow:

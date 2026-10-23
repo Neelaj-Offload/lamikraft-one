@@ -361,7 +361,8 @@ def derive_quote_expiry(
     tasks: list[TaskSpec] = []
     named = responsibility.resolve(uow, "sales.quote_expiry", [q.owner_user_id])
     number = q.facts.get("quote_number") or q.label
-    if q.status in OPEN_QUOTE_FOR_EXPIRY and due is not None and not q.is_closed:
+    lapsed = due is not None and due <= uow.now()
+    if q.status in OPEN_QUOTE_FOR_EXPIRY and due is not None and not q.is_closed and not lapsed:
         tasks.append(
             TaskSpec(
                 dedup_key=f"expiry:{quote_id}:{valid_until}",
@@ -376,9 +377,17 @@ def derive_quote_expiry(
                 scope_owner_id=q.owner_user_id, scope_branch_id=q.branch_id, branch_id=q.branch_id,
             )
         )
+    resolution = IssueResolution.COMPLETED.value
     if q.status in QUOTE_CLOSED_STATUSES or q.is_closed:
-        state = TaskState.CANCELLED.value if q.status in ("cancelled", "deleted") else TaskState.DONE.value
+        withdrawn = q.status in ("cancelled", "deleted")
+        state = TaskState.CANCELLED.value if withdrawn else TaskState.DONE.value
         closure = Closure(state, {"reason": f"quote_{q.status}", "status": q.status}, _closer(event))
+        if withdrawn:
+            resolution = IssueResolution.SOURCE_CLOSED.value
+    elif lapsed:
+        # the validity ran out with the quote still open: the same resolution the overdue sweep records
+        closure = Closure(TaskState.EXPIRED.value, {"reason": "quote_lapsed"})
+        resolution = IssueResolution.SOURCE_CLOSED.value
     else:
         closure = Closure(TaskState.DONE.value, {"reason": "validity_extended", "valid_until": valid_until}, _closer(event))
     from app.modules.tasks.issues import live_issue
@@ -397,7 +406,7 @@ def derive_quote_expiry(
         members=[_quote_member(q, MemberRole.ROOT.value)],
         tasks=tasks,
         closure=closure,
-        resolution=IssueResolution.COMPLETED.value,
+        resolution=resolution,
         first_seen_at=existing.first_seen_at if existing else (_dt(q.facts.get("sent_at")) or (event.occurred_at if event else uow.now())),
         root_version=q.version,
     )

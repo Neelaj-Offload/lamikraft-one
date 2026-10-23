@@ -886,6 +886,17 @@ def _reminder_out(r: Reminder) -> ReminderOut:
                        linked_ref_id=r.linked_ref_id, state=r.state, version=r.version, created_at=r.created_at)
 
 
+def _reminder_changed(uow: UnitOfWork, row: Reminder) -> ReminderOut:
+    """Own reminders have no catalogue event for edits, so the owner's current briefing is refreshed
+    directly (one job per reminder version; a version is still written only if the visible set changed).
+    The briefings public service is imported lazily because briefings builds on tasks."""
+    from app.modules.briefings import service as briefings
+
+    uow.flush()
+    briefings.request_refresh(uow, row.user_id, dedupe_key=f"brf:reminder:{row.id}:v{row.version}")
+    return _reminder_out(row)
+
+
 def create_reminder(uow: UnitOfWork, body: ReminderCreate) -> ReminderOut:
     user_id = _require_user(uow)
     if body.remind_at.tzinfo is None:
@@ -900,8 +911,7 @@ def create_reminder(uow: UnitOfWork, body: ReminderCreate) -> ReminderOut:
         linked_ref_type=body.linked_ref_type, linked_ref_id=body.linked_ref_id, state=ReminderState.PENDING.value,
     )
     uow.add(row)
-    uow.flush()
-    return _reminder_out(row)
+    return _reminder_changed(uow, row)
 
 
 def list_reminders(uow: UnitOfWork, *, include_closed: bool = False) -> ReminderList:
@@ -934,8 +944,7 @@ def update_reminder(uow: UnitOfWork, reminder_id: uuid.UUID, body: ReminderUpdat
     if body.state is not None and body.state != row.state:
         row.state = body.state
         row.done_at = now if body.state in ("done", "cancelled") else None
-    uow.flush()
-    return _reminder_out(row)
+    return _reminder_changed(uow, row)
 
 
 def cancel_reminder(uow: UnitOfWork, reminder_id: uuid.UUID) -> ReminderOut:
@@ -943,8 +952,7 @@ def cancel_reminder(uow: UnitOfWork, reminder_id: uuid.UUID) -> ReminderOut:
     if row.state not in ("done", "cancelled"):
         row.state = ReminderState.CANCELLED.value
         row.done_at = uow.now()
-    uow.flush()
-    return _reminder_out(row)
+    return _reminder_changed(uow, row)
 
 
 def complete_reminder(uow: UnitOfWork, reminder_id: uuid.UUID) -> ReminderOut:
@@ -952,8 +960,7 @@ def complete_reminder(uow: UnitOfWork, reminder_id: uuid.UUID) -> ReminderOut:
     if row.state in ("pending", "fired"):
         row.state = ReminderState.DONE.value
         row.done_at = uow.now()
-    uow.flush()
-    return _reminder_out(row)
+    return _reminder_changed(uow, row)
 
 
 def reminder_for_issue_id(uow: UnitOfWork, user_id: uuid.UUID, issue_id: uuid.UUID) -> ReminderInfo | None:

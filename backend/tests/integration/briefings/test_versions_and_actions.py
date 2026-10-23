@@ -424,3 +424,46 @@ def test_agent_draft_creates_a_review_task_for_the_owner_only(world: FakeWorld) 
     assert item.recommendation is not None and set(item.recommendation.alternatives) <= {a.action for a in item.allowed_actions}
     assert current_version(world, neha.briefing_id) == neha.version  # type: ignore[arg-type]
     assert current_version(world, kabir.briefing_id) == kabir.version  # type: ignore[arg-type]
+
+
+def test_issue_ids_are_stable_across_regenerations(world: FakeWorld) -> None:
+    v1 = today(world, keys.USERS.MEERA)
+    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None}  # forces a permission_change version
+    v2 = today(world, keys.USERS.MEERA)
+    assert v2.version == 2 and [i.issue_id for i in v2.items] == [i.issue_id for i in v1.items]
+    assert v1.items[0].issue_id == issue_keys.issue_id(world.company_id, issue_keys.message_key(world.refs[keys.MESSAGES.BERG]), 1)
+
+
+def test_night_shift_work_date_and_precompute(world: FakeWorld) -> None:
+    """B-11 with a test-local NGT shift (22:00-06:00, rollover 08:00) for Ravi."""
+    from app.modules.briefings.jobs import precompute_company
+    from app.platform.org.workcal import WorkAssignment, WorkCalendar, WorkShift
+
+    with world.uow() as uow:
+        cal = uow.session.scalars(select(WorkCalendar).where(WorkCalendar.company_id == world.company_id)).one()
+        shift = WorkShift(calendar_id=cal.id, code="NGT", name="Night", start_local=datetime.strptime("22:00", "%H:%M").time(),
+                          end_local=datetime.strptime("06:00", "%H:%M").time(),
+                          rollover_local=datetime.strptime("08:00", "%H:%M").time())
+        uow.add(shift)
+        uow.flush()
+        uow.add(WorkAssignment(user_id=world.refs[keys.USERS.RAVI], calendar_id=cal.id, shift_id=shift.id, effective_from=date(2026, 1, 1)))
+    world.at(ist(2026, 10, 12, 21, 35))
+    with world.uow() as uow:
+        precompute_company(uow)
+        night = uow.session.scalars(select(Briefing).where(Briefing.user_id == world.refs[keys.USERS.RAVI])).one()
+    assert (night.work_date, night.trigger) == (date(2026, 10, 12), "precompute")
+    world.at(ist(2026, 10, 13, 2, 0))
+    assert today(world, keys.USERS.RAVI).briefing_id == night.id
+    world.at(ist(2026, 10, 13, 8, 0))
+    assert today(world, keys.USERS.RAVI).work_date == date(2026, 10, 13)
+
+
+def test_seeds_are_idempotent(world: FakeWorld) -> None:
+    from app.modules.tasks.models import Reminder
+
+    with world.uow() as uow:
+        before = (uow.session.scalar(select(func.count()).select_from(Task)), uow.session.scalar(select(func.count()).select_from(Reminder)))
+    world.run_seeds()
+    with world.uow() as uow:
+        after = (uow.session.scalar(select(func.count()).select_from(Task)), uow.session.scalar(select(func.count()).select_from(Reminder)))
+    assert after == before

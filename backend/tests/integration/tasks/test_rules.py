@@ -254,3 +254,45 @@ def test_access_change_rechecks_approval_eligibility(world: FakeWorld) -> None:
             select(briefings.BriefingVersion).where(briefings.BriefingVersion.briefing_id == before.briefing_id)
             .order_by(briefings.BriefingVersion.version.desc())).first()
     assert version is not None and version.version == 2 and version.cause == "permission_change"
+
+
+def test_dismissed_reply_keeps_the_issue_open_across_rederivation(world: FakeWorld) -> None:
+    from app.modules.tasks import service as tasks
+
+    key = issue_keys.message_key(world.refs[keys.MESSAGES.BERG])
+    (reply,) = tasks_of(world, issue_of(world, key).id)
+    with world.uow(keys.USERS.MEERA) as uow:
+        tasks.transition_task(uow, reply.id, action="dismiss", reason_code="handled_outside_system")
+    world.at(d0(9, 40))
+    world.change_quote("Q_BERG_EXPIRING", revision_no=2)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", "Q_BERG_EXPIRING", revision_no=2)  # re-derives msg:M2
+    world.drain()
+    issue = issue_of(world, key)
+    assert issue.state == "open" and [t.state for t in tasks_of(world, issue.id)] == ["dismissed"]
+
+
+def test_lapsed_quote_is_not_reopened_by_later_events(world: FakeWorld) -> None:
+    from app.modules.tasks import service as tasks
+
+    world.at(ist(2026, 10, 13, 0, 5))
+    with world.uow() as uow:
+        tasks.sweep_overdue(uow)
+    world.change_quote("Q_BERG_EXPIRING")
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING", version=world.quotes["Q_BERG_EXPIRING"].version,
+                     changed_fields=["notes"], line_change_kinds=[])
+    world.drain()
+    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]), 1))
+    assert expiry.state == "resolved" and [t.state for t in tasks_of(world, expiry.id)] == ["expired"]
+
+
+def test_event_after_lapse_expires_the_obligation_before_the_sweep_runs(world: FakeWorld) -> None:
+    """The rule re-reads the quote: an event arriving after validity ended lapses the task, never re-arms it."""
+    world.at(ist(2026, 10, 13, 0, 5))  # the sweep has not run yet
+    world.change_quote("Q_BERG_EXPIRING")
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING", version=world.quotes["Q_BERG_EXPIRING"].version,
+                     changed_fields=["notes"], line_change_kinds=[])
+    world.drain()
+    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]), 1))
+    assert (expiry.state, expiry.resolution) == ("resolved", "source_closed")
+    (task,) = tasks_of(world, expiry.id)
+    assert task.state == "expired" and task.completion_evidence == {"reason": "quote_lapsed"}

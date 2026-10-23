@@ -1031,6 +1031,22 @@ def users_showing_issue(uow: UnitOfWork, issue_id: uuid.UUID) -> set[uuid.UUID]:
     return set(rows)
 
 
+def request_refresh(uow: UnitOfWork, user_id: uuid.UUID, *, dedupe_key: str) -> bool:
+    """Refresh the member's current briefing after a change of their own that has no domain event in the
+    catalogue (personal reminders). Members without a briefing around today compute it fresh on first open;
+    the refresh still writes a version only when the visible item set changed."""
+    if not users_with_current_briefing(uow, {user_id}):
+        return False
+    uow.enqueue(
+        "briefings.refresh_user",
+        {"user_id": str(user_id), "cause": VersionCause.EVENT_UPDATE.value},
+        dedupe_key=dedupe_key,
+        resource_type="identity.user",
+        resource_id=user_id,
+    )
+    return True
+
+
 def users_with_current_briefing(uow: UnitOfWork, user_ids: set[uuid.UUID]) -> set[uuid.UUID]:
     """Members (of ``user_ids``) holding a briefing for a work date around today (zones differ by a day
     at most); the refresh job re-checks the member's own current work date."""
