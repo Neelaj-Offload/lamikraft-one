@@ -161,3 +161,13 @@ def _recent_record(uow: UnitOfWork, task: Task) -> CompletionResult:
 @register("recent_search_exists")
 def _recent_search(uow: UnitOfWork, task: Task) -> CompletionResult:
     return _user_fact(uow, "search.recent", task, lambda f: int(f.get("count", 0)) > 0, "use_global_search")
+
+
+@register("queue_empty")
+def _queue_empty(uow: UnitOfWork, task: Task) -> CompletionResult:
+    from app.modules.tasks.issues import queued_count
+
+    remaining = queued_count(uow, str((task.facts or {}).get("queue")))
+    if remaining == 0:
+        return CompletionResult(True, {"reason": "queue_empty"})
+    return CompletionResult(False, remaining=[f"assign_{remaining}_queued_items"])

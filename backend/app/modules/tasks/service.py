@@ -215,7 +215,7 @@ def issue_states(uow: UnitOfWork, issue_ids: Iterable[uuid.UUID]) -> dict[uuid.U
     ids = sorted(set(issue_ids))
     if not ids:
         return {}
-    return dict(uow.session.execute(select(Issue.id, Issue.state).where(Issue.id.in_(ids))).tuples().all())
+    return {row[0]: row[1] for row in uow.session.execute(select(Issue.id, Issue.state).where(Issue.id.in_(ids)))}
 
 
 def open_tasks_in(uow: UnitOfWork, issue_ids: Iterable[uuid.UUID]) -> list[TaskInfo]:
@@ -428,21 +428,21 @@ def inbox(uow: UnitOfWork, *, tab: str = "tasks", scope: str = "mine", cursor: s
     cache = SourceCache()
     snoozes = snoozes_for(uow, uow.actor.user_id)  # type: ignore[arg-type]
     items: list[Task] = []
-    last: Task | None = None
-    batch_offset = 0
-    exhausted = False
-    while len(items) < limit and not exhausted:
-        batch = list(uow.session.scalars(ordered.offset(batch_offset).limit(limit * 2)))
-        batch_offset += len(batch)
-        exhausted = len(batch) < limit * 2
-        for task in batch:
-            last = task
+    more = False
+    offset = 0
+    batch_size = limit * 2
+    while True:
+        batch = list(uow.session.scalars(ordered.offset(offset).limit(batch_size)))
+        for index, task in enumerate(batch):
             if _sources_visible(uow, task, cache):  # second pass: the source itself must be visible
                 items.append(task)
-                if len(items) == limit:
-                    break
+            if len(items) == limit:
+                more = index < len(batch) - 1 or len(batch) == batch_size
+                break
+        if len(items) == limit or len(batch) < batch_size:
+            break
+        offset += len(batch)
     blocked = _blocked_ids(uow, [t.id for t in items])
-    more = len(items) == limit and not (exhausted and last is not None and last.id == items[-1].id)
     next_cursor = _encode_cursor(items[-1].due_at, items[-1].id) if items and more else None
     return InboxPage(items=[_inbox_item(uow, t, snoozes, blocked, cache) for t in items], next_cursor=next_cursor, limit=limit)
 
@@ -594,10 +594,15 @@ def assign_task(uow: UnitOfWork, task_id: uuid.UUID, *, assignee_user_id: uuid.U
     if task.assignee_user_id == assignee_user_id:
         return _detail(uow, task)
     previous = task.assignee_user_id
+    queue_code = task.queue_code
     task.assignee_user_id = assignee_user_id
     task.assigned_by = uow.actor.user_id
     task.queue_code = None
     uow.flush()
+    if queue_code:
+        from app.modules.tasks.issues import sync_queue
+
+        sync_queue(uow, queue_code)
     record_history(uow, task, "assigned", from_state=task.state, to_state=task.state,
                    details={"from": str(previous) if previous else None, "to": str(assignee_user_id)})
     emit_task_event(uow, "tasks.task.assigned", task, from_state=task.state)

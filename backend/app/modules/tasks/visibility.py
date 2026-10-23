@@ -26,7 +26,7 @@ from app.platform.sources import SourceFacts
 from app.platform.uow import UnitOfWork
 
 #: internal reference types that are not business records read through a SourceReader
-INTERNAL_REF_TYPES = frozenset({"tasks.task", "identity.user"})
+INTERNAL_REF_TYPES = frozenset({"tasks.task", "identity.user", "tasks.queue"})
 TASK_READ = "tasks.task.read"
 
 
@@ -106,6 +106,8 @@ def _can_view(uow: UnitOfWork, source_type: str, source_id: uuid.UUID, cache: So
         return actor.user_id == source_id or actor.can("org.directory.read")
     if source_type == "tasks.task":
         return task_visible(uow, source_id)
+    if source_type == "tasks.queue":
+        return actor.can("tasks.queue.manage")
     if source_type == "approvals.proposal":
         from app.modules.approvals import service as approvals
 

@@ -80,6 +80,8 @@ class Collector:
             return True  # onboarding refers to people in the directory (org.directory.read for every member)
         if ref_type == "tasks.task":
             return True  # the task row itself passed the task visibility clause
+        if ref_type == "tasks.queue":
+            return self.uow.actor.can("tasks.queue.manage")
         return can_view_source(self.uow, ref_type, ref_id, cache=self.cache)
 
     def proposal(self, proposal_id: uuid.UUID) -> Any | None:
@@ -166,6 +168,11 @@ class Collector:
             if self.task_visible(t, issues.get(t.issue_id)):
                 by_issue[t.issue_id].append(t)
 
+        # precedence per issue: open obligation > handled for you > change since the last visit
+        handled_by_issue: dict[uuid.UUID, list[TaskInfo]] = defaultdict(list)
+        for h in closed:
+            if h.issue_id not in by_issue and self.visible(h.primary_ref_type, h.primary_ref_id):
+                handled_by_issue[h.issue_id].append(h)
         changes_by_issue: dict[uuid.UUID, list[ChangeInfo]] = defaultdict(list)
         for c in changes:
             if self.visible(c.ref_type, c.ref_id):
@@ -179,24 +186,17 @@ class Collector:
             if issue is None:
                 continue
             candidates.append(self._obligation(issue, issue_tasks, issues, blocker_tasks, bool(changes_by_issue.get(issue_id)), names))
+        for issue_id, rows in handled_by_issue.items():
+            issue = issues.get(issue_id)
+            if issue is not None:
+                candidates.append(self._handled(issue, rows, names))
         for issue_id, rows in changes_by_issue.items():
-            if issue_id in by_issue:
+            if issue_id in by_issue or issue_id in handled_by_issue:
                 continue
             issue = issues.get(issue_id)
             if issue is None or not self.visible(issue.root_ref_type, issue.root_ref_id):
                 continue
             candidates.append(self._change(issue, rows, names))
-        handled_by_issue: dict[uuid.UUID, list[TaskInfo]] = defaultdict(list)
-        for h in closed:
-            if h.issue_id in by_issue or h.issue_id in changes_by_issue:
-                continue
-            if self.visible(h.primary_ref_type, h.primary_ref_id):
-                handled_by_issue[h.issue_id].append(h)
-        for issue_id, rows in handled_by_issue.items():
-            issue = issues.get(issue_id)
-            if issue is None:
-                continue
-            candidates.append(self._handled(issue, rows, names))
         for reminder in tasks.reminders_for(uow, self.user_id, as_of=now):
             candidate = self._reminder(reminder)
             if candidate is not None:

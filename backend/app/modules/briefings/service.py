@@ -477,7 +477,11 @@ def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, w
         blocked_now = any(ov.issue_states.get(uuid.UUID(b["issue_id"])) == "open" for b in row.blocked_by)
     money = [Money(amount=m["amount"], currency=m["currency"]) for m in (row.facts or {}).get("_money", [])]
     facts = {k: v for k, v in (row.facts or {}).items() if k != "_money"}
-    rec = row.recommendation
+    actions = _allowed_actions(uow, row, ov)
+    rec = dict(row.recommendation) if row.recommendation else None
+    if rec is not None:  # permitted alternatives only: filtered by what this member may do now
+        names = {a.action for a in actions}
+        rec["alternatives"] = [a for a in rec.get("alternatives", []) if a in names]
     return ItemView(
         issue_id=row.issue_id, ordinal=row.display_ordinal, section=row.section, band=row.band, score=row.score,
         reason_codes=list(row.reason_codes), reasons=[REASON_TEXT.get(r, r) for r in row.reason_codes], kind=row.kind,
@@ -488,7 +492,7 @@ def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, w
         due_label=due_label(row.due_at, zone=zone, work_date=work_date, kind=row.kind, overdue=overdue),
         due_kind=row.due_kind, overdue=overdue,
         recommendation=RecommendationView(**rec) if rec else None,
-        uncertainty_flags=list(row.uncertainty_flags), allowed_actions=_allowed_actions(uow, row, ov),
+        uncertainty_flags=list(row.uncertainty_flags), allowed_actions=actions,
         proposal_ref=row.proposal_ref, member_count=row.member_count, members=list(row.members or []),
         fingerprint=row.fingerprint, change_kind=row.change_kind, changed_since_last_visit=row.changed_since_last_visit,
         is_reminder=row.is_reminder, blocked=bool(row.blocked_by), blocked_by=list(row.blocked_by or []),

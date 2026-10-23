@@ -507,9 +507,12 @@ def apply_outcome(uow: UnitOfWork, outcome: IssueOutcome, event: DomainEvent | N
         if previous is not None and previous.state == TaskState.DISMISSED.value:
             continue  # an authorised dismissal stands while the same cause persists
         new_task(uow, issue, spec, family=outcome.family, origin=TaskOrigin.RULE.value, event_id=event_id)
+    queues = {spec.queue_code for spec in outcome.tasks if spec.queue_code}
     for key, task in open_by_key.items():
         if key in wanted_tasks or task.origin != TaskOrigin.RULE.value:
             continue
+        if task.queue_code:
+            queues.add(task.queue_code)
         close_task(uow, task, outcome.closures.get(key, outcome.closure), event_id=event_id)
 
     if event is not None:
@@ -522,7 +525,83 @@ def apply_outcome(uow: UnitOfWork, outcome: IssueOutcome, event: DomainEvent | N
     settle_issue(
         uow, issue, created=created, info=outcome.info, resolution=outcome.resolution, cause_event_id=event_id
     )
+    if outcome.family != QUEUE_FAMILY:
+        for queue_code in sorted(queues):
+            sync_queue(uow, queue_code, event)
     return issue
+
+
+# ---- queues: work is never silently dropped ---------------------------------------------------------------
+QUEUE_FAMILY = "admin.responsibility"
+
+
+def queued_count(uow: UnitOfWork, queue_code: str) -> int:
+    """Open obligations waiting in a queue with nobody responsible (no owner, assignee or candidate)."""
+    from sqlalchemy import exists
+
+    return int(
+        uow.session.scalar(
+            select(func.count()).select_from(Task).where(
+                Task.company_id == uow.actor.company_id,
+                Task.queue_code == queue_code,
+                Task.state.in_(OPEN_STATES),
+                Task.owner_user_id.is_(None),
+                Task.assignee_user_id.is_(None),
+                Task.kind != "queue_triage",
+                ~exists().where(TaskCandidate.task_id == Task.id),
+            )
+        )
+        or 0
+    )
+
+
+def sync_queue(uow: UnitOfWork, queue_code: str, event: DomainEvent | None = None) -> None:
+    """Keep one ``responsibility:{queue}`` issue open (a triage task for queue managers) while work waits."""
+    from app.modules.tasks import responsibility
+    from app.modules.tasks.issue_keys import responsibility_key
+    from app.modules.tasks.models import DueKind, IssueResolution
+
+    company_id = uow.actor.company_id
+    assert company_id is not None
+    key = responsibility_key(queue_code)
+    count = queued_count(uow, queue_code)
+    existing = live_issue(uow, key, for_update=False)
+    tasks: list[TaskSpec] = []
+    if count:
+        managers = []
+        for user_id in responsibility.active_member_ids(uow):
+            actor = responsibility.member_actor(uow, user_id)
+            if actor is not None and actor.can("tasks.queue.manage"):
+                managers.append(user_id)
+        due = None
+        if existing is not None:
+            due = uow.session.scalar(
+                select(Task.due_at).where(Task.issue_id == existing.id, Task.dedup_key == key, Task.state.in_(OPEN_STATES))
+            )
+        if due is None:
+            due = responsibility.company_calendar(uow).end_of_day_due(responsibility.company_calendar(uow).work_date(uow.now()))
+        title = f"Assign {count} unassigned {queue_code} item{'s' if count != 1 else ''}"
+        tasks.append(
+            TaskSpec(
+                dedup_key=key, kind="queue_triage", title=title, completion_check="queue_empty",
+                required_permission="tasks.queue.manage", facts={"queue": queue_code, "count": count},
+                primary_ref_type="tasks.queue", primary_ref_id=issue_id(company_id, f"queue:{queue_code}", 1),
+                due_kind=DueKind.SOFT.value, due_at=due, candidates=tuple(managers),
+            )
+        )
+    elif existing is None:
+        return
+    apply_outcome(
+        uow,
+        IssueOutcome(
+            issue_key=key, family=QUEUE_FAMILY, root_ref_type="tasks.queue",
+            root_ref_id=issue_id(company_id, f"queue:{queue_code}", 1),
+            title=tasks[0].title if tasks else f"Unassigned {queue_code} work", title_facts={"queue": queue_code, "count": count},
+            required_permission="tasks.queue.manage", tasks=tasks,
+            closure=Closure(TaskState.DONE.value, {"reason": "queue_empty"}), resolution=IssueResolution.COMPLETED.value,
+        ),
+        event,
+    )
 
 
 def _generic_change(material: list[tuple[Any, dict[str, Any], dict[str, Any]]], event: DomainEvent) -> ChangeSpec:
