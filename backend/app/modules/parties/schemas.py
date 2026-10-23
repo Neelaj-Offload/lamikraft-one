@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator
 
 from app.core.money import CurrencyCode
 
@@ -48,7 +48,11 @@ class TaxScheme(StrEnum):
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Short = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
-Country = Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True, pattern=r"^[A-Z]{2}$")]
+Country = Annotated[
+    str,
+    BeforeValidator(lambda v: v.strip().upper() if isinstance(v, str) else v),
+    StringConstraints(pattern=r"^[A-Z]{2}$"),
+]
 
 
 class ContactIn(BaseModel):

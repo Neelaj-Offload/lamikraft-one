@@ -9,7 +9,6 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import (
-    ARRAY,
     CHAR,
     Boolean,
     CheckConstraint,
@@ -20,6 +19,7 @@ from sqlalchemy import (
     Text,
     Uuid,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db.base import ArchivableMixin, Base, BranchMixin, TenantEntity, VersionMixin

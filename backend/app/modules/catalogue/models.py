@@ -12,7 +12,6 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
-    ARRAY,
     Boolean,
     CheckConstraint,
     ForeignKey,
@@ -25,7 +24,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db.base import (

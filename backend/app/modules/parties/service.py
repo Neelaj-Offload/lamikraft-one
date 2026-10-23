@@ -277,13 +277,12 @@ def create_party(uow: UnitOfWork, data: PartyCreate, *, origin: str | None = Non
         resource_type="parties.party",
         resource_id=party.id,
     )
+    party.search_text = _search_text(party, [c.name for c in data.contacts])  # before the INSERT: version 1
     uow.add(party)
     uow.flush()
     _sync_children(uow, PartyContact, party.id, data.contacts, _CONTACT_FIELDS, errors, "contacts")
     _sync_children(uow, PartyAddress, party.id, data.addresses, _ADDRESS_FIELDS, errors, "addresses")
     _sync_children(uow, PartyTaxIdentifier, party.id, data.tax_identifiers, _TAX_FIELDS, errors, "tax_identifiers")
-    party.search_text = _search_text(party, [c.name for c in data.contacts])
-    uow.flush()
     uow.emit(
         ev.PARTY_CREATED,
         aggregate_id=party.id,
@@ -317,16 +316,7 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
             errors.add([required], "required", f"{required} cannot be cleared")
     errors.raise_if_any()
     changed: set[str] = set()
-    for name, value in fields.items():
-        if name == "roles":
-            value = sorted({PartyRole(r).value for r in value})
-        elif hasattr(value, "value"):
-            value = value.value
-        if getattr(party, name) != value:
-            setattr(party, name, value)
-            changed.add(name)
-    if "display_name" in changed:
-        party.name_key = name_key(party.display_name)
+    # child rows first: their flushes must not carry a dirty party row (one version bump per update)
     if data.contacts is not None and _sync_children(
         uow, PartyContact, party.id, data.contacts, _CONTACT_FIELDS, errors, "contacts"
     ):
@@ -338,6 +328,16 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
         uow, PartyTaxIdentifier, party.id, data.tax_identifiers, _TAX_FIELDS, errors, "tax_identifiers"
     ):
         changed.add("tax_identifiers")
+    for name, value in fields.items():
+        if name == "roles":
+            value = sorted({PartyRole(r).value for r in value})
+        elif hasattr(value, "value"):
+            value = value.value
+        if getattr(party, name) != value:
+            setattr(party, name, value)
+            changed.add(name)
+    if "display_name" in changed:
+        party.name_key = name_key(party.display_name)
     if not changed:
         return _detail(uow, party)
     party.search_text = _search_text(party, [c.name for c in _live_contacts(uow, party.id)])
@@ -596,7 +596,8 @@ def resolve_party(
     if total == 0:
         return PartyResolution(status="not_found", query=q, candidates=[], total_matches=0)
     if total == 1:
-        return PartyResolution(status="unique", query=q, candidates=[_candidate(rows[0], "name_tokens")], total_matches=1)
+        match = "exact_name" if rows[0] in exact else "name_tokens"
+        return PartyResolution(status="unique", query=q, candidates=[_candidate(rows[0], match)], total_matches=1)
     if len(exact) == 1:
         return PartyResolution(status="unique", query=q, candidates=[_candidate(exact[0], "exact_name")], total_matches=int(total))
     return PartyResolution(

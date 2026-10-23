@@ -13,7 +13,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.modules.catalogue import service as catalogue
-from app.modules.catalogue.schemas import CategoryCreate, PackagingIn, ProductCreate, SpecificationIn, TaxonomyOrigin
+from app.modules.catalogue.schemas import (
+    CategoryCreate,
+    PackagingIn,
+    ProductCreate,
+    SpecificationIn,
+    TaxonomyOrigin,
+)
 from app.seed.context import SeedContext
 from app.seed.world import keys
 from app.seed.world.parties import CREATOR, as_member, at_ist

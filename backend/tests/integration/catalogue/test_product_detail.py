@@ -1,0 +1,150 @@
+"""Product detail, completeness from actual fields, writes and their guards, isolation, source reader and search."""
+
+from __future__ import annotations
+
+import pytest
+from sqlalchemy import select, update
+from sqlalchemy.exc import DBAPIError
+
+from app.core.errors import Conflict, Forbidden, NotFound, ValidationFailed, VersionConflict
+from app.modules.catalogue import service as catalogue
+from app.modules.catalogue.models import Product
+from app.modules.catalogue.schemas import (
+    CompletenessRule,
+    PackagingIn,
+    ProductFilters,
+    ProductUpdate,
+    SpecificationIn,
+)
+from app.platform import sources
+from app.platform.events.models import DomainEvent
+from app.platform.uow import UnitOfWork
+from app.registry import get_registry
+from app.seed.world import keys
+from tests.integration.catalogue.test_product_list import make_product
+from tests.integration.catalogue.world import World, build_personas
+from tests.support import actor
+
+pytestmark = pytest.mark.db
+
+
+def _missing(detail: object) -> set[str]:
+    return {m.code.value for m in detail.completeness.missing}  # type: ignore[attr-defined]
+
+
+def test_detail_has_every_field_group_and_deep_linkable_sections(world: World) -> None:
+    detail = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))
+    assert detail.category.name == "Serveware" and detail.subcategory and detail.subcategory.name == "Trays"
+    assert detail.brand == "Lamikraft" and detail.shape == "Rectangular" and detail.finish == "Matte lacquer"
+    assert detail.specification is not None and detail.specification.material_type == "Oak veneer"
+    assert detail.specification.length_mm_source == "450" and detail.specification.thickness_mm_source == "12"
+    assert [(d.kind.value, d.source_text, d.parse_status.value) for d in detail.dimensions] == [
+        ("master_size", "450 x 300", "parsed")
+    ]
+    assert detail.provenance.origin.value == "seed" and detail.version == 1
+    base = f"/products/{detail.id}"
+    assert [(s.key, s.path) for s in detail.sections] == [
+        ("overview", base), ("specifications", f"{base}/specifications"), ("packaging", f"{base}/packaging"),
+        ("pricing", f"{base}/pricing"),
+    ]
+    kabir = catalogue.get_product(world.actor(keys.USERS.KABIR), world.ref("OAK_TRAY"))  # warehouse: no prices
+    assert [s.key for s in kabir.sections] == ["overview", "specifications", "packaging"]
+    by_key = catalogue.get_product_by_key(world.actor(keys.USERS.MEERA), f"  {keys.PRODUCTS.OAK_TRAY} ")
+    assert by_key.id == detail.id
+
+
+def test_completeness_is_computed_from_actual_fields(world: World) -> None:
+    meera = world.actor(keys.USERS.MEERA)
+    oak = catalogue.get_product(meera, world.ref("OAK_TRAY"))
+    assert _missing(oak) == {"no_hsn_sac"} and oak.completeness.score_pct == 100  # hsn_sac awaits the owner (info)
+    walnut = catalogue.get_product(meera, world.ref("WALNUT_BOARD"))
+    assert _missing(walnut) == {"no_hsn_sac", "no_carton_qty", "no_unit_weight"}  # palletised, no carton data
+    assert walnut.completeness.checks_passed == walnut.completeness.checks_evaluated - 2
+    bare_id, _ = make_product(world, "TST-BARE", spec=False)
+    bare = catalogue.get_product(meera, bare_id)
+    assert {"no_specification", "no_thickness", "no_packaging", "no_carton_qty", "no_size", "no_decor"} <= _missing(bare)
+    assert [n.code for n in bare.completeness.not_evaluated] == ["no_primary_image"]  # media arrive in Slice 2
+
+    summary = catalogue.completeness_summary(meera)
+    counts = {r.code.value: r.count for r in summary.rules}
+    assert summary.total_products == 5 and summary.complete_products == 3
+    assert counts["no_carton_qty"] == 2 and counts["no_specification"] == 1 and counts["no_hsn_sac"] == 5
+    filtered = catalogue.list_products(meera, ProductFilters(issue=CompletenessRule.NO_CARTON_QTY))
+    assert sorted(p.product_key for p in filtered.items) == sorted([keys.PRODUCTS.WALNUT_BOARD, "TST-BARE"])
+
+
+def test_update_replaces_sections_bumps_version_and_emits_changed_groups(world: World) -> None:
+    priya = world.actor(keys.USERS.PRIYA)
+    product_id = world.ref("MAPLE_TRIVET")
+    with UnitOfWork(priya) as uow:
+        result = catalogue.update_product(
+            uow, product_id,
+            ProductUpdate(
+                expected_version=1, finish="Oiled", hsn_sac="44191900",
+                packaging=PackagingIn(master_carton_qty="48", unit_weight_kg="0.28", packing_type="Shrink wrap"),
+            ),
+        )
+    product = result.product
+    assert product.version == 2 and product.finish == "Oiled" and product.stock_attributes.hsn_sac == "44191900"
+    assert product.packaging is not None and product.packaging.carton_qty == 48
+    assert str(product.packaging.unit_weight_g) == "280"
+    assert product.packaging.alias_provenance == {
+        "carton_qty": {"master_carton_qty": "48"}, "unit_weight_g": {"unit_weight_kg": "0.28"},
+    }
+    with UnitOfWork(priya) as uow:
+        event = uow.session.scalars(
+            select(DomainEvent).where(DomainEvent.event_type == "catalogue.product.updated",
+                                      DomainEvent.aggregate_id == product_id)
+        ).one()
+    assert event.payload["changed_groups"] == ["master", "packaging", "stock_attributes"]
+    assert event.payload["changed_fields"] == ["finish", "hsn_sac", "packaging"]
+    assert event.aggregate_version == 2
+    with pytest.raises(VersionConflict), UnitOfWork(priya) as uow:
+        catalogue.update_product(uow, product_id, ProductUpdate(expected_version=1, finish="Waxed"))
+    with pytest.raises(ValidationFailed) as conflict, UnitOfWork(priya) as uow:
+        catalogue.update_product(
+            uow, product_id,
+            ProductUpdate(expected_version=2, packaging=PackagingIn(carton_qty=24, master_carton_qty=12)),
+        )
+    assert conflict.value.extra["errors"][0]["code"] == "alias_conflict"
+
+
+def test_writes_need_catalogue_keys_and_product_key_is_immutable(world: World) -> None:
+    with pytest.raises(Forbidden), UnitOfWork(world.actor(keys.USERS.SAHIL)) as uow:  # management: no catalogue writes
+        catalogue.update_product(uow, world.ref("OAK_TRAY"), ProductUpdate(expected_version=1, finish="x"))
+    with pytest.raises(Conflict):
+        make_product(world, keys.PRODUCTS.OAK_TRAY)  # product_key is unique per company
+    with pytest.raises(DBAPIError, match="immutable"), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
+        uow.session.execute(update(Product).where(Product.id == world.ref("OAK_TRAY")).values(product_key="LK-OT-9999"))
+    with pytest.raises(ValidationFailed), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
+        catalogue.update_product(
+            uow, world.ref("OAK_TRAY"),
+            ProductUpdate(expected_version=1, specification=SpecificationIn(thickness_mm="-2")),
+        )
+
+
+def test_reads_need_product_read_and_other_companies_are_not_found(world: World) -> None:
+    with pytest.raises(Forbidden):
+        catalogue.get_product(actor(world.company_id), world.ref("OAK_TRAY"))
+    other = build_personas()
+    with pytest.raises(NotFound):
+        catalogue.get_product(other.actor(keys.USERS.SAHIL), world.ref("OAK_TRAY"))
+    assert catalogue.list_products(other.actor(keys.USERS.SAHIL), ProductFilters()).total == 0
+    assert catalogue.product_stats(other.actor(keys.USERS.SAHIL)).total == 0
+
+
+def test_source_reader_and_search_provider(world: World) -> None:
+    meera = world.actor(keys.USERS.MEERA)
+    with UnitOfWork(meera) as uow:
+        facts = sources.read(uow, "catalogue.product", world.ref("OAK_TRAY"))
+        assert facts is not None and facts.label == f"{keys.PRODUCTS.OAK_TRAY} · Oak serving tray 450"
+        assert facts.facts["carton_qty"] == "24" and facts.facts["thickness_mm"] == "12"
+        assert facts.facts["decor_no"] == "0120" and facts.required_permission == "catalogue.product.read"
+        assert facts.canonical_path == f"/products/{world.ref('OAK_TRAY')}" and facts.money == []
+        provider = next(p for p in get_registry().search_providers if p.resource_type == "catalogue.product")
+        hits = provider.search(uow, "oak tray", 10)
+        assert [h.resource_id for h in hits] == [world.ref("OAK_TRAY")]
+        assert provider.search(uow, keys.PRODUCTS.ASH_BOARD, 10)[0].rank == 100
+        assert provider.search(uow, "o", 10) == []
+    with UnitOfWork(actor(world.company_id)) as uow:
+        assert sources.read(uow, "catalogue.product", world.ref("OAK_TRAY")) is None

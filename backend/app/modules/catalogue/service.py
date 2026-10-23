@@ -389,36 +389,83 @@ def _replace_dimensions(
     return changed
 
 
-def _recompute_effective_size(uow: UnitOfWork, product: Product) -> None:
-    dims = {d.kind: d for d in uow.session.scalars(select(D).where(D.product_id == product.id))}
-    spec = uow.session.get(S, product.id)
-    chosen: tuple[Any, ...] = (None, None, None, None, None)
-    for kind, basis in ((DimensionKind.MASTER_SIZE, SizeBasis.MASTER_SIZE), (DimensionKind.SPEC_SIZE, SizeBasis.SPEC_SIZE)):
-        d = dims.get(kind.value)
-        if d is not None and d.parse_status == ParseStatus.PARSED.value:
-            chosen = (d.length_mm, d.width_mm, d.height_mm, d.diameter_mm, basis.value)
-            break
-    else:
-        if spec is not None and spec.length_mm is not None and spec.width_mm is not None:
-            chosen = (spec.length_mm, spec.width_mm, spec.height_mm, None, SizeBasis.SPEC_LENGTH_WIDTH.value)
+_SizeTuple = tuple[Any, Any, Any, Any, Any]  # length, width, height, diameter, basis
+_NO_SIZE: _SizeTuple = (None, None, None, None, None)
+
+
+def _choose_size(
+    master: tuple[Any, Any, Any, Any] | None,
+    spec_size: tuple[Any, Any, Any, Any] | None,
+    spec_length_width: tuple[Any, Any, Any] | None,
+) -> _SizeTuple:
+    """Effective size: parsed master size, else parsed spec size, else spec length x width (design §4.2)."""
+    if master is not None:
+        return (*master, SizeBasis.MASTER_SIZE.value)
+    if spec_size is not None:
+        return (*spec_size, SizeBasis.SPEC_SIZE.value)
+    if spec_length_width is not None and spec_length_width[0] is not None and spec_length_width[1] is not None:
+        return (*spec_length_width, None, SizeBasis.SPEC_LENGTH_WIDTH.value)
+    return _NO_SIZE
+
+
+def _parsed_size(text: str | None) -> tuple[Any, Any, Any, Any] | None:
+    parsed = parse_dimension(text) if text else None
+    if parsed is None or parsed.status != ParseStatus.PARSED.value:
+        return None
+    return (parsed.length_mm, parsed.width_mm, parsed.height_mm, parsed.diameter_mm)
+
+
+def _set_size(product: Product, size: _SizeTuple) -> None:
     (
         product.size_length_mm,
         product.size_width_mm,
         product.size_height_mm,
         product.size_diameter_mm,
         product.size_basis,
-    ) = chosen
+    ) = size
+
+
+def _recompute_effective_size(uow: UnitOfWork, product: Product) -> None:
+    dims = {d.kind: d for d in uow.session.scalars(select(D).where(D.product_id == product.id))}
+
+    def parsed(kind: DimensionKind) -> tuple[Any, Any, Any, Any] | None:
+        d = dims.get(kind.value)
+        if d is None or d.parse_status != ParseStatus.PARSED.value:
+            return None
+        return (d.length_mm, d.width_mm, d.height_mm, d.diameter_mm)
+
+    spec = uow.session.get(S, product.id)
+    spec_lw = (spec.length_mm, spec.width_mm, spec.height_mm) if spec is not None else None
+    _set_size(product, _choose_size(parsed(DimensionKind.MASTER_SIZE), parsed(DimensionKind.SPEC_SIZE), spec_lw))
+
+
+def _search_text(product: Product, category_name: str | None, subcategory_name: str | None) -> str:
+    parts = [
+        product.product_key, product.display_sku, product.product_name, product.decor_no, product.decor_name,
+        product.decor_primary, product.finish, product.variant_group, product.product_type, product.brand,
+        category_name, subcategory_name,
+    ]
+    return normalize_search_text(" ".join(p for p in parts if p))
 
 
 def _recompute_search_text(uow: UnitOfWork, product: Product) -> None:
     cat = uow.session.get(C, product.category_id)
     sub = uow.session.get(SC, product.subcategory_id) if product.subcategory_id else None
-    parts = [
-        product.product_key, product.display_sku, product.product_name, product.decor_no, product.decor_name,
-        product.decor_primary, product.finish, product.variant_group, product.product_type, product.brand,
-        cat.name if cat else None, sub.name if sub else None,
-    ]
-    product.search_text = normalize_search_text(" ".join(p for p in parts if p))
+    product.search_text = _search_text(product, cat.name if cat else None, sub.name if sub else None)
+
+
+def _spec_length_width(spec_in: SpecificationIn | None) -> tuple[Any, Any, Any] | None:
+    """Spec length/width/height in canonical mm, for the effective size of a new product (invalid -> None;
+    the specification section reports the error itself)."""
+    if spec_in is None:
+        return None
+    out: list[Any] = []
+    for raw in (spec_in.length_mm, spec_in.width_mm, spec_in.height_mm):
+        try:
+            out.append(parse_length(raw)[0] if raw and raw.strip() else None)
+        except (TypeError, ValueError):
+            out.append(None)
+    return (out[0], out[1], out[2])
 
 
 def _apply_specification(
@@ -535,7 +582,7 @@ def create_product(uow: UnitOfWork, data: ProductCreate) -> ProductWriteResult:
     )
     if exists_already:
         raise Conflict("A product with this product_key already exists", code="product_key_exists")
-    _taxonomy_check(uow, data.category_id, data.subcategory_id, errors)
+    category, subcategory = _taxonomy_check(uow, data.category_id, data.subcategory_id, errors)
     fields = data.model_dump(exclude_unset=False)
     product = Product(
         id=new_id(),
@@ -559,6 +606,15 @@ def create_product(uow: UnitOfWork, data: ProductCreate) -> ProductWriteResult:
         setattr(product, name, fields[name])
     _set_decor(product, fields, warnings, set())
     errors.raise_if_any()
+    # derived columns are set before the single INSERT, so a new product starts at version 1
+    spec_size = data.specification.size_mm if data.specification is not None else None
+    _set_size(
+        product,
+        _choose_size(_parsed_size(data.size_mm), _parsed_size(spec_size), _spec_length_width(data.specification)),
+    )
+    product.search_text = _search_text(
+        product, category.name if category else None, subcategory.name if subcategory else None
+    )
     uow.add(product)
     uow.flush()
     if data.size_mm:
@@ -571,9 +627,6 @@ def create_product(uow: UnitOfWork, data: ProductCreate) -> ProductWriteResult:
     if data.packaging is not None:
         _apply_packaging(uow, product, data.packaging, errors, warnings)
     errors.raise_if_any()
-    uow.flush()
-    _recompute_effective_size(uow, product)
-    _recompute_search_text(uow, product)
     uow.flush()
     uow.emit(
         ev.PRODUCT_CREATED,
@@ -605,6 +658,17 @@ def update_product(uow: UnitOfWork, product_id: uuid.UUID, data: ProductUpdate) 
     fields = data.model_dump(exclude_unset=True, exclude={"expected_version", "specification", "packaging"})
     changed: set[str] = set()
     groups: set[str] = set()
+    # child sections first: their flushes must not carry a dirty product row (one version bump per update)
+    if "size_mm" in fields:
+        if _replace_dimensions(uow, product.id, {DimensionKind.MASTER_SIZE: ("size_mm", fields["size_mm"])}):
+            changed.add("size_mm")
+            groups.add(ev.GROUP_DIMENSIONS)
+    if data.specification is not None and _apply_specification(uow, product, data.specification, errors, warnings):
+        changed.add("specification")
+        groups.update({ev.GROUP_SPECIFICATION, ev.GROUP_DIMENSIONS})
+    if data.packaging is not None and _apply_packaging(uow, product, data.packaging, errors, warnings):
+        changed.add("packaging")
+        groups.add(ev.GROUP_PACKAGING)
     if "category_id" in fields or "subcategory_id" in fields:
         cat_id = fields.get("category_id") or product.category_id
         sub_id = fields["subcategory_id"] if "subcategory_id" in fields else product.subcategory_id
@@ -645,20 +709,10 @@ def update_product(uow: UnitOfWork, product_id: uuid.UUID, data: ProductUpdate) 
         changed |= decor_changed
         groups.add(ev.GROUP_MASTER)
     errors.raise_if_any()
-    if "size_mm" in fields:
-        if _replace_dimensions(uow, product.id, {DimensionKind.MASTER_SIZE: ("size_mm", fields["size_mm"])}):
-            changed.add("size_mm")
-            groups.add(ev.GROUP_DIMENSIONS)
-    if data.specification is not None and _apply_specification(uow, product, data.specification, errors, warnings):
-        changed.add("specification")
-        groups.update({ev.GROUP_SPECIFICATION, ev.GROUP_DIMENSIONS})
-    if data.packaging is not None and _apply_packaging(uow, product, data.packaging, errors, warnings):
-        changed.add("packaging")
-        groups.add(ev.GROUP_PACKAGING)
-    errors.raise_if_any()
     if not changed:
         return ProductWriteResult(product=_detail(uow, product), warnings=warnings)
-    uow.flush()
+    # dimension and specification rows are already flushed (autoflush is off), so the derived columns, the
+    # master fields and updated_at reach the database in one UPDATE: exactly one version bump
     _recompute_effective_size(uow, product)
     _recompute_search_text(uow, product)
     product.updated_at = uow.now()  # bumps the optimistic version even when only a child section changed
