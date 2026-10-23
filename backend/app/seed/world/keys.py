@@ -25,6 +25,11 @@ BRANDS = SimpleNamespace(LK="LK", CR="CR")
 BRANCHES = SimpleNamespace(HO="HO", FAC="FAC")
 TEAMS = SimpleNamespace(EXP_SALES="EXP-SALES", OPS_HO="OPS-HO")
 CALENDARS = SimpleNamespace(HO_GEN="HO-GEN")
+SHIFTS = SimpleNamespace(GEN="GEN", NGT="NGT")
+#: (start, end, rollover, precompute minutes before shift start) for HO-GEN / shift GEN
+CALENDAR_HO_GEN_WINDOW = ("09:30", "18:30", "04:00", 30)
+#: (name, offset in days from D0)
+HOLIDAYS = SimpleNamespace(DEMO=("Demo holiday", 10))
 CURRENCIES = ("INR", "EUR", "USD", "GBP")
 EMAIL_DOMAIN = "demo.lamikraft.test"
 

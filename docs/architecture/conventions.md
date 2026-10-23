@@ -124,7 +124,8 @@ and `apps/web/src/features/<feature>/**`.
 - RLS-exempt tables (exhaustive list, extended only by integrator PR): `company`, `app_user`, `permission`,
   `user_preference`, `auth_session`, `auth_attempt`, `rate_limit_counter`, `password_reset`, `mfa_factor`,
   `mfa_recovery_code`, `domain_event`, `event_consumption`, `job`, `job_schedule`, `worker_heartbeat`,
-  `currency`, `backup_run`, `channels_webhook_inbox`, `channels_webhook_rejection`. Exempt tables are touched
+  `currency`, `backup_run`, `channels_webhook_inbox`, `channels_webhook_rejection`, `legacy_permission_alias`
+  (global reference data, added 2026-10-23). Exempt tables are touched
   only by platform code (or the channels webhook route) with explicit filters.
 
 ## 4. Identifiers

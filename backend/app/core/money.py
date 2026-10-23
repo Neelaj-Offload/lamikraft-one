@@ -62,6 +62,27 @@ DecimalStr = Annotated[
 ]
 
 
+_RATIO_PATTERN = r"^\d{1,10}(\.\d{1,10})?$"
+
+
+def _to_ratio(value: Any) -> Decimal:
+    result = _to_decimal(value)
+    if result <= 0:
+        raise ValueError("ratios (conversion factors, FX rates) must be positive")
+    if result.as_tuple().exponent < -10:  # type: ignore[operator]
+        raise ValueError("ratios carry at most 10 decimal places")
+    return result
+
+
+#: Positive conversion factors and FX rates (NUMERIC(20,10)); DecimalStr stops at 6 dp.
+RatioStr = Annotated[
+    Decimal,
+    BeforeValidator(_to_ratio),
+    PlainSerializer(lambda v: format(v.normalize(), "f"), return_type=str, when_used="always"),
+    WithJsonSchema({"type": "string", "pattern": _RATIO_PATTERN, "examples": ["1.0850000000", "0.09290304"]}),
+]
+
+
 def quantize_money(amount: Decimal, currency: str, rounding: str = ROUND_HALF_UP) -> Decimal:
     """Round to the currency's minor unit (HALF_UP, the commercial convention)."""
     exponent = CURRENCY_EXPONENT[currency]

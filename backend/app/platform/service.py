@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, get_type_hints
 
 from pydantic import BaseModel
 
@@ -24,6 +24,15 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 _SERVICES: dict[str, dict[str, Any]] = {}
+
+
+def _return_model(fn: Callable[..., Any]) -> type[BaseModel] | None:
+    """The function's return type when it is a pydantic model (annotations may be postponed strings)."""
+    try:
+        hint = get_type_hints(fn).get("return")
+    except Exception:  # unresolvable forward refs: fall back to the raw stored value
+        return None
+    return hint if isinstance(hint, type) and issubclass(hint, BaseModel) else None
 
 
 def _body_of(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
@@ -52,8 +61,7 @@ def _wrap(kind: str, permission: str | None, at_least: Scope, idempotent: bool) 
                     uow, key=uow.actor.idempotency_key, operation=name, body=_body_of(args, kwargs), fn=call
                 )
                 value = body.get("__value__")
-                hints = fn.__annotations__.get("return")
-                ret_type = hints if isinstance(hints, type) else None
+                ret_type = _return_model(fn)
                 if ret_type is not None and issubclass(ret_type, BaseModel) and isinstance(value, dict):
                     return redact(ret_type.model_validate(value), uow.actor)  # type: ignore[return-value]
                 return value  # type: ignore[return-value]

@@ -12,6 +12,7 @@ from collections.abc import Callable
 from urllib.parse import urlsplit
 
 import structlog
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -57,9 +58,12 @@ class RequestContextMiddleware:
                     (b"x-request-id", request_id.encode()),
                     (b"x-content-type-options", b"nosniff"),
                     (b"referrer-policy", b"no-referrer"),
-                    (b"cache-control", b"no-store"),
                 ]
-                message["headers"] = list(message.get("headers", [])) + extra
+                headers = list(message.get("headers", []))
+                # Default to no-store; responses that set their own policy (file downloads with ETag) keep it.
+                if not any(k.lower() == b"cache-control" for k, _ in headers):
+                    extra.append((b"cache-control", b"no-store"))
+                message["headers"] = headers + extra
             await send(message)
 
         try:
@@ -89,7 +93,8 @@ class CsrfOriginMiddleware:
             problem = "cross_site_request"
         elif origin is None or origin != self.public_origin:
             problem = "origin_mismatch"
-        elif _csrf_verifier is not None and not _csrf_verifier(request):
+        elif _csrf_verifier is not None and not await run_in_threadpool(_csrf_verifier, request):
+            # the verifier reads the session row; keep blocking DB I/O off the event loop
             problem = "csrf_token_invalid"
         if problem:
             body = {

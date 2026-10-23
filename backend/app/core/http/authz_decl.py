@@ -8,10 +8,11 @@ route was added without thinking about access. Enforcement itself happens in ser
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 
 KINDS = {"public", "authenticated", "permission", "webhook", "test_support"}
 
@@ -44,23 +45,35 @@ def route_kind(route: APIRoute) -> str | None:
     return decl.get("kind") if isinstance(decl, dict) else None
 
 
+def api_routes(app: FastAPI) -> Iterator[tuple[str, APIRoute]]:
+    """(effective path, route) for every mounted APIRoute.
+
+    FastAPI 0.143 wraps included routers in ``_IncludedRouter``; ``app.routes`` alone hides them, so the
+    effective paths come from ``iter_route_contexts``.
+    """
+    for ctx in iter_route_contexts(app.routes):
+        route = ctx.original_route
+        if isinstance(route, APIRoute) and ctx.path:
+            yield ctx.path, route
+
+
 def validate_routes(app: FastAPI, known_permissions: set[str]) -> None:
     problems: list[str] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith("/api/"):
+    for path, route in api_routes(app):
+        if not path.startswith("/api/"):
             continue
         extra = route.openapi_extra or {}
         decl = extra.get("x-authz")
         if not isinstance(decl, dict) or decl.get("kind") not in KINDS:
-            problems.append(f"{sorted(route.methods)} {route.path}: missing x-authz declaration")
+            problems.append(f"{sorted(route.methods)} {path}: missing x-authz declaration")
             continue
         if decl["kind"] == "permission":
             for key in decl.get("permissions", []):
                 if key not in known_permissions:
-                    problems.append(f"{route.path}: unknown permission {key}")
+                    problems.append(f"{path}: unknown permission {key}")
     if problems:
         raise RuntimeError("route authorization declarations invalid:\n  - " + "\n  - ".join(problems))
 
 
 def webhook_paths(app: FastAPI) -> set[str]:
-    return {r.path for r in app.routes if isinstance(r, APIRoute) and route_kind(r) == "webhook"}
+    return {path for path, route in api_routes(app) if route_kind(route) == "webhook"}
