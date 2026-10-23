@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -205,7 +206,7 @@ def test_recent_searches_are_kept_per_user_newest_first(api: ApiClient, director
     assert again.json()["id"] == first.json()["id"]
     recent = api.get("/api/v1/search/recent").json()
     assert [r["query"] for r in recent] == ["oak TRAY", "Nordhaus"]
-    assert recent[0]["searched_at"] == "2026-10-12T03:25:10Z"
+    assert recent[0]["searched_at"] == (keys.CLOCK_D0 + timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     # another user's history is separate
     api.as_(people["NEHA"].actor())
     assert api.get("/api/v1/search/recent").json() == []

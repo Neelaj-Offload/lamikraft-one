@@ -231,8 +231,8 @@ def test_access_is_decided_by_the_attaching_parent(api: ApiClient, people, compa
 def test_exports_are_creator_only_and_restricted_ones_are_never_cached(api: ApiClient, people, company) -> None:  # type: ignore[no-untyped-def]
     company_id, _ = company
     meera = people["meera"].actor()
-    export = files.store_generated(meera, b"quote_number,total\nLK-QT-2026-0008,5760.00\n", filename="quotes.csv",
-                                   restricted=True)
+    rows = f"quote_number,total\n{keys.QUOTES.NORDHAUS_DRAFT},{keys.EXPECTED.SCENARIO_C_TOTAL}\n".encode()
+    export = files.store_generated(meera, rows, filename="quotes.csv", restricted=True)
     assert export.purpose == "export" and export.restricted is True
     r = api.as_(meera).get(export.content_url)
     assert r.status_code == 200

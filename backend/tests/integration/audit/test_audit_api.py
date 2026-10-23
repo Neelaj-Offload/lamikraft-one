@@ -102,7 +102,7 @@ def test_invalid_inputs_are_422(api: ApiClient, log) -> None:  # type: ignore[no
     api.as_(log["priya"].actor())
     r = api.get(URL, params={"cursor": "not-a-cursor"})
     assert r.status_code == 422 and problem(r)["errors"][0]["code"] == "invalid_cursor"
-    r = api.get(URL, params={"occurred_from": "2026-10-12T08:00:00"})
+    r = api.get(URL, params={"occurred_from": keys.CLOCK_D0.replace(tzinfo=None).isoformat()})
     assert r.status_code == 422 and problem(r)["errors"][0]["code"] == "naive_datetime"
     assert api.get(URL, params={"outcome": "maybe"}).status_code == 422
     assert api.get(URL, params={"limit": 201}).status_code == 422

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -20,7 +20,14 @@ from app.platform.uow import UnitOfWork
 from app.registry import get_registry
 from app.seed.context import SeedContext
 from app.seed.world import keys
-from app.seed.world.org import DEMO_TERMS, HOLIDAY_NAME, seed_org
+from app.seed.world.org import (
+    DEMO_TERMS,
+    GEN_SHIFT,
+    HOLIDAY_NAME,
+    HOLIDAY_OFFSET_DAYS,
+    PRECOMPUTE_MINUTES,
+    seed_org,
+)
 from tests.integration.org.platform_lane import ApiClient, member, problem
 
 pytestmark = pytest.mark.db
@@ -41,8 +48,21 @@ def meera(seeded):  # type: ignore[no-untyped-def]
     return member(seeded.company_id, keys.PEOPLE["MEERA"].name, "sales")
 
 
-def _ist(y: int, m: int, d: int, hh: int, mm: int) -> datetime:
-    return datetime(y, m, d, hh, mm, tzinfo=IST)
+#: D0 (Monday) as a local date; every date below is an offset from the fixture clock, never a literal
+D0_DATE = keys.CLOCK_D0.astimezone(IST).date()
+GEN_CODE, GEN_NAME, GEN_START, GEN_END = GEN_SHIFT
+
+
+def _day(offset: int) -> date:
+    return D0_DATE + timedelta(days=offset)
+
+
+def _at(offset: int, hh: int, mm: int) -> datetime:
+    return datetime.combine(_day(offset), time(hh, mm), tzinfo=IST)
+
+
+def _z(at: datetime) -> str:
+    return at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def test_my_calendar_at_d0(api: ApiClient, meera) -> None:  # type: ignore[no-untyped-def]
@@ -52,40 +72,42 @@ def test_my_calendar_at_d0(api: ApiClient, meera) -> None:  # type: ignore[no-un
     assert cal["source"] == "company_default"
     assert cal["calendar_code"] == keys.CALENDARS.HO_GEN
     assert cal["time_zone"] == keys.ZONE
-    assert cal["server_now"] == "2026-10-12T03:25:00Z"
-    assert cal["work_date"] == "2026-10-12"
+    assert cal["server_now"] == _z(keys.CLOCK_D0)
+    assert cal["work_date"] == D0_DATE.isoformat()
     assert cal["day_type"] == "working" and cal["is_working_day"] is True
     assert cal["rollover_local"] == "04:00:00"
     assert cal["workweek"] == [1, 2, 3, 4, 5, 6]
+    shift_start = datetime.combine(D0_DATE, GEN_START, tzinfo=IST)
     assert cal["shift"] == {
-        "code": "GEN",
-        "name": "General shift",
+        "code": GEN_CODE,
+        "name": GEN_NAME,
         "start_local": "09:30:00",
         "end_local": "18:30:00",
-        "starts_at": "2026-10-12T04:00:00Z",
-        "ends_at": "2026-10-12T13:00:00Z",
+        "starts_at": _z(shift_start),
+        "ends_at": _z(datetime.combine(D0_DATE, GEN_END, tzinfo=IST)),
     }
-    assert cal["precompute_at"] == "2026-10-12T03:30:00Z"  # 30 minutes before the shift
-    assert cal["next_working_day"] == "2026-10-13"
-    assert cal["upcoming_holidays"] == [{"date": "2026-10-22", "name": HOLIDAY_NAME, "kind": "full"}]
+    assert cal["precompute_at"] == _z(shift_start - timedelta(minutes=PRECOMPUTE_MINUTES))
+    assert cal["next_working_day"] == _day(1).isoformat()
+    holiday = _day(HOLIDAY_OFFSET_DAYS).isoformat()
+    assert cal["upcoming_holidays"] == [{"date": holiday, "name": HOLIDAY_NAME, "kind": "full"}]
 
 
 def test_just_after_midnight_still_belongs_to_the_previous_work_date(meera, frozen_clock) -> None:  # type: ignore[no-untyped-def]
-    frozen_clock.set(_ist(2026, 10, 13, 0, 10))
+    frozen_clock.set(_at(1, 0, 10))  # Tuesday 00:10, before the 04:00 rollover
     cal = calendar_service.my_calendar(meera.actor())
-    assert cal.work_date == date(2026, 10, 12)
-    frozen_clock.set(_ist(2026, 10, 13, 4, 0))
-    assert calendar_service.my_calendar(meera.actor()).work_date == date(2026, 10, 13)
+    assert cal.work_date == D0_DATE
+    frozen_clock.set(_at(1, 4, 0))
+    assert calendar_service.my_calendar(meera.actor()).work_date == _day(1)
 
 
 def test_sunday_and_the_demo_holiday_are_not_working_days(meera, frozen_clock) -> None:  # type: ignore[no-untyped-def]
-    frozen_clock.set(_ist(2026, 10, 18, 10, 0))
+    frozen_clock.set(_at(6, 10, 0))  # D0 is a Monday: +6 is Sunday
     sunday = calendar_service.my_calendar(meera.actor())
-    assert sunday.day_type == "non_working" and sunday.next_working_day == date(2026, 10, 19)
-    frozen_clock.set(_ist(2026, 10, 22, 10, 0))
+    assert sunday.day_type == "non_working" and sunday.next_working_day == _day(7)
+    frozen_clock.set(_at(HOLIDAY_OFFSET_DAYS, 10, 0))
     holiday = calendar_service.my_calendar(meera.actor())
     assert holiday.day_type == "holiday" and holiday.is_working_day is False
-    assert holiday.next_working_day == date(2026, 10, 23)
+    assert holiday.next_working_day == _day(HOLIDAY_OFFSET_DAYS + 1)
 
 
 def test_built_in_default_without_any_calendar(api: ApiClient, company) -> None:  # type: ignore[no-untyped-def]
@@ -107,14 +129,14 @@ def test_assignment_with_a_night_shift_and_its_own_rollover(seeded, meera, froze
             rollover_local=time(8, 0),
         )
         uow.add(WorkAssignment(user_id=meera.user_id, calendar_id=cal_id, shift_id=shift_id,
-                               effective_from=date(2026, 10, 1)))
-    frozen_clock.set(_ist(2026, 10, 13, 7, 0))  # Tuesday 07:00, before the 08:00 rollover
+                               effective_from=_day(-11)))
+    frozen_clock.set(_at(1, 7, 0))  # Tuesday 07:00, before the 08:00 rollover
     cal = calendar_service.my_calendar(meera.actor())
     assert cal.source == "assignment" and cal.calendar_code == "NIGHT"
-    assert cal.work_date == date(2026, 10, 12)
+    assert cal.work_date == D0_DATE
     assert cal.shift.code == "NGT"
-    assert cal.shift.starts_at == datetime(2026, 10, 12, 16, 30, tzinfo=UTC)
-    assert cal.shift.ends_at == datetime(2026, 10, 13, 0, 30, tzinfo=UTC)  # ends the next morning
+    assert cal.shift.starts_at == _at(0, 22, 0)
+    assert cal.shift.ends_at == _at(1, 6, 0)  # ends the next morning
 
 
 def test_calendar_needs_the_read_permission(api: ApiClient, company) -> None:  # type: ignore[no-untyped-def]
@@ -151,7 +173,7 @@ def test_org_seed_creates_the_fixture_world_and_is_idempotent(seeded, frozen_clo
             ("GEN", time(9, 30), time(18, 30), 30)
         ]
         holidays = list(uow.session.scalars(select(WorkHoliday)))
-        assert [(h.holiday_date, h.name) for h in holidays] == [(date(2026, 10, 22), HOLIDAY_NAME)]
+        assert [(h.holiday_date, h.name) for h in holidays] == [(_day(HOLIDAY_OFFSET_DAYS), HOLIDAY_NAME)]
         assert uow.session.scalar(select(func.count()).select_from(Uom)) == len(DEFAULT_UOMS)
         terms = settings_service.get_setting(uow, "document_terms")
     assert terms.version == 1 and terms.value["quote"] == DEMO_TERMS["quote"]
@@ -166,7 +188,7 @@ def test_org_seed_creates_the_fixture_world_and_is_idempotent(seeded, frozen_clo
 
 def test_seed_holiday_follows_the_anchor(company, frozen_clock) -> None:  # type: ignore[no-untyped-def]
     company_id, _ = company
-    ctx = SeedContext(company_id=company_id, clock=frozen_clock, facts={"anchor_d0": _ist(2026, 11, 2, 8, 55)})
+    ctx = SeedContext(company_id=company_id, clock=frozen_clock, facts={"anchor_d0": keys.CLOCK_D0 + timedelta(days=21)})
     seed_org(ctx)
     with UnitOfWork(ActorContext.system(company_id)) as uow:
-        assert list(uow.session.scalars(select(WorkHoliday.holiday_date))) == [date(2026, 11, 12)]
+        assert list(uow.session.scalars(select(WorkHoliday.holiday_date))) == [_day(21 + HOLIDAY_OFFSET_DAYS)]

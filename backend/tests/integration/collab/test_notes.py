@@ -66,7 +66,7 @@ def test_owner_reads_an_empty_note_then_saves_it(api: ApiClient, world) -> None:
     assert note["version"] == 1 and note["body"] == "Call Maison about finish preferences"
     assert note["updated_by"] == str(world["meera"].user_id)
     assert note["updated_by_name"] == keys.PEOPLE["MEERA"].name
-    assert note["updated_at"] == "2026-10-12T03:25:00Z"
+    assert note["updated_at"] == keys.CLOCK_D0.strftime("%Y-%m-%dT%H:%M:%SZ")
     emitted = events(world["company_id"], "collab.note.updated")
     assert [e.payload for e in emitted] == [
         {
