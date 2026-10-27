@@ -29,6 +29,9 @@ PLATFORM_MODULES: tuple[str, ...] = (
     "app.platform.idempotency",
     "app.platform.audit",
     "app.platform.system",
+    "app.platform.files",
+    "app.platform.collab",
+    "app.platform.search",
 )
 
 

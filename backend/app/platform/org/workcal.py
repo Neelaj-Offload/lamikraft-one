@@ -161,13 +161,24 @@ class CalendarView:
         return self.shift_bounds(d)[1]
 
 
-def resolve_view(uow, user_id: uuid.UUID | None, on: date | None = None) -> CalendarView:  # type: ignore[no-untyped-def]
+@dataclass(frozen=True)
+class ResolvedCalendar:
+    """The rows behind a user's calendar view (None rows mean the built-in default)."""
+
+    view: CalendarView
+    calendar: WorkCalendar | None
+    shift: WorkShift | None
+    source: str  # assignment | company_default | built_in
+
+
+def resolve_calendar(uow, user_id: uuid.UUID | None, on: date | None = None) -> ResolvedCalendar:  # type: ignore[no-untyped-def]
     """The calendar a user works to: assignment -> company default calendar -> built-in default."""
     session = uow.session
     company_id = uow.actor.company_id
     calendar: WorkCalendar | None = None
     shift: WorkShift | None = None
     tz_override: str | None = None
+    source = "built_in"
     if user_id is not None:
         q = select(WorkAssignment).where(WorkAssignment.company_id == company_id, WorkAssignment.user_id == user_id)
         if on is not None:
@@ -179,12 +190,14 @@ def resolve_view(uow, user_id: uuid.UUID | None, on: date | None = None) -> Cale
             calendar = session.get(WorkCalendar, assignment.calendar_id)
             shift = session.get(WorkShift, assignment.shift_id) if assignment.shift_id else None
             tz_override = assignment.time_zone_override
+            source = "assignment"
     if calendar is None:
         calendar = session.scalars(
             select(WorkCalendar).where(WorkCalendar.company_id == company_id, WorkCalendar.is_default.is_(True))
         ).first()
+        source = "company_default" if calendar is not None else "built_in"
     if calendar is None:
-        return CalendarView()
+        return ResolvedCalendar(view=CalendarView(), calendar=None, shift=None, source=source)
     if shift is None:
         shift = session.scalars(
             select(WorkShift).where(WorkShift.calendar_id == calendar.id, WorkShift.active.is_(True)).order_by(WorkShift.code)
@@ -194,7 +207,7 @@ def resolve_view(uow, user_id: uuid.UUID | None, on: date | None = None) -> Cale
             select(WorkHoliday.holiday_date).where(WorkHoliday.calendar_id == calendar.id, WorkHoliday.kind == "full")
         )
     )
-    return CalendarView(
+    view = CalendarView(
         time_zone=tz_override or calendar.time_zone,
         workweek_mask=calendar.workweek_mask,
         rollover=(shift.rollover_local if shift and shift.rollover_local else calendar.day_rollover_local),
@@ -203,6 +216,12 @@ def resolve_view(uow, user_id: uuid.UUID | None, on: date | None = None) -> Cale
         precompute_offset_min=shift.precompute_offset_min if shift else 30,
         holidays=holidays,
     )
+    return ResolvedCalendar(view=view, calendar=calendar, shift=shift, source=source)
+
+
+def resolve_view(uow, user_id: uuid.UUID | None, on: date | None = None) -> CalendarView:  # type: ignore[no-untyped-def]
+    """The calendar a user works to: assignment -> company default calendar -> built-in default."""
+    return resolve_calendar(uow, user_id, on).view
 
 
 def ensure_default_calendar(uow) -> WorkCalendar:  # type: ignore[no-untyped-def]
