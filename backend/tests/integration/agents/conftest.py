@@ -25,7 +25,7 @@ API = "/api/v1"
 
 
 @pytest.fixture
-def sales_tools(world: World) -> Iterator[fake_sales.FakeSalesStore]:
+def sales_tools(world: World) -> Iterator[fake_sales.FakeSalesStore]:  # noqa: F811
     """Register the fake sales tools and readers and seed the prior won quote (LK-QT-2026-0003)."""
     fake_sales.register()
     try:
@@ -47,7 +47,7 @@ def app() -> FastAPI:
 
 
 @pytest.fixture
-def client(app: FastAPI, world: World) -> Iterator[TestClient]:
+def client(app: FastAPI, world: World) -> Iterator[TestClient]:  # noqa: F811
     def resolve(request: Request) -> ActorContext:
         persona = request.headers.get("x-test-persona", keys.USERS.MEERA)
         return world.actor(persona).with_(idempotency_key=request.headers.get("idempotency-key"), channel="web")

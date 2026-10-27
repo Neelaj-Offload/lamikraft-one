@@ -23,7 +23,7 @@ pytestmark = [pytest.mark.db, pytest.mark.committed]
 
 
 @pytest.fixture
-def committed_world(committed_db: str, member_actors: None) -> Iterator[World]:
+def committed_world(committed_db: str, member_actors: None) -> Iterator[World]:  # noqa: F811
     yield build_personas()
 
 
