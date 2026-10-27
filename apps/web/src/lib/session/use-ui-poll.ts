@@ -17,6 +17,14 @@ function pollFetcher(): EtagFetcher<unknown> {
 }
 
 /**
+ * The poll's refetch interval: every 60 s, and never again once the server answered that the
+ * endpoint does not exist (404/405/501), so a server without the ui module costs one request.
+ */
+export function uiPollInterval(error: unknown): number | false {
+  return error && isEndpointUnavailable(error) ? false : UI_POLL_MS;
+}
+
+/**
  * Polls `GET /api/v1/ui/poll` every 60 s while the tab is visible (TanStack Query pauses
  * interval refetches in background tabs), revalidating with ETag. Every caller shares the
  * same query, so the shell's Inbox badge and Today's update check cost one request a minute.
@@ -27,7 +35,7 @@ export function useUiPoll(enabled = true) {
     queryKey: queryKeys.ui.poll(),
     queryFn: async ({ signal }) => parseUiPoll(await pollFetcher()(signal)),
     enabled,
-    refetchInterval: (query) => (query.state.error && isEndpointUnavailable(query.state.error) ? false : UI_POLL_MS),
+    refetchInterval: (query) => uiPollInterval(query.state.error),
     refetchIntervalInBackground: false,
     staleTime: UI_POLL_MS,
   });

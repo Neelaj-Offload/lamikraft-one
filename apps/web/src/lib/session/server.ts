@@ -19,6 +19,8 @@ async function requestOptions(): Promise<ServerFetchOptions> {
     baseUrl: apiInternalUrl(),
     cookieHeader: incoming.get("cookie"),
     requestId: incoming.get("x-request-id"),
+    // Next fills this with the socket's remote address when no proxy in front of it set one.
+    forwardedFor: incoming.get("x-forwarded-for"),
   };
 }
 

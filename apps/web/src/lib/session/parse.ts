@@ -10,7 +10,7 @@ import { DEFAULT_UI_PREFERENCES, MOTION_PREFERENCES, THEMES } from "@/lib/ui-pre
 import type {
   BriefingState,
   EffectivePermission,
-  FeatureFlags,
+  FeatureReadiness,
   InboxCounts,
   IntegrationMode,
   IntegrationStatus,
@@ -18,6 +18,7 @@ import type {
   PermissionScope,
   SectionValue,
   SessionBootstrap,
+  SessionCapabilities,
   UiPollState,
   UiPreferencesState,
 } from "./types";
@@ -120,9 +121,15 @@ function parseNav(raw: unknown): NavEntry[] {
   return out;
 }
 
-function parseFeatures(raw: unknown): FeatureFlags {
+function parseFeatures(raw: unknown): FeatureReadiness {
   const features = isObject(raw) ? raw : {};
-  return { assistant: bool(features.assistant), voice: bool(features.voice) };
+  return Object.fromEntries(Object.entries(features).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"));
+}
+
+/** INTERIM: `capabilities{assistant,voice}`, else the same keys in `features`; false when absent. */
+function parseCapabilities(raw: Json): SessionCapabilities {
+  const source = isObject(raw.capabilities) ? raw.capabilities : isObject(raw.features) ? raw.features : {};
+  return { assistant: bool(source.assistant), voice: bool(source.voice) };
 }
 
 export function parseBootstrap(raw: unknown): SessionBootstrap {
@@ -187,6 +194,7 @@ export function parseBootstrap(raw: unknown): SessionBootstrap {
     ui: parseUi(raw.ui_preferences ?? (isObject(raw.preferences) ? raw.preferences.ui : undefined)),
     nav: parseNav(raw.nav),
     features: parseFeatures(raw.features),
+    capabilities: parseCapabilities(raw),
     integrations: readSection(raw, "integrations", parseIntegrations),
     inbox_counts: readSection(raw, "inbox_counts", parseInboxCounts),
     briefing: readSection(raw, "briefing", parseBriefingState),

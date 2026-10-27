@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { NetworkError, NON_PROBLEM_CODE, ProblemError } from "@/lib/api/errors";
 import { rawBootstrap, testBootstrap } from "@/lib/test-support/session";
 import { fetchBootstrap, serverGet } from "./fetch-bootstrap";
 import { navRoutesFromBootstrap, routesForMobileTab } from "./nav";
 import { BootstrapShapeError, parseBootstrap, parseUiPoll } from "./parse";
+import { uiPollInterval } from "./use-ui-poll";
 
 describe("parseBootstrap", () => {
   it("reads the §8 payload", () => {
@@ -53,8 +55,17 @@ describe("parseBootstrap", () => {
 
   it("defaults unknown flags to off and preferences to the documented defaults", () => {
     const session = testBootstrap({ features: undefined, ui_preferences: { theme: "neon", shortcuts_enabled: "yes" } });
-    expect(session.features).toEqual({ assistant: false, voice: false });
+    expect(session.features).toEqual({});
+    expect(session.capabilities).toEqual({ assistant: false, voice: false });
     expect(session.ui).toMatchObject({ theme: "system", motion: "full", shortcuts_enabled: true, context_rail_open: false });
+  });
+
+  it("keeps §8 readiness flags apart from the interim assistant and voice capabilities", () => {
+    const fromFeatures = testBootstrap({ features: { sales: true, finance: false, voice: true, note: "x" } });
+    expect(fromFeatures.features).toEqual({ sales: true, finance: false, voice: true });
+    expect(fromFeatures.capabilities).toEqual({ assistant: false, voice: true });
+    const explicit = testBootstrap({ features: { voice: true }, capabilities: { assistant: true, voice: false } });
+    expect(explicit.capabilities).toEqual({ assistant: true, voice: false });
   });
 
   it("parses nav entries as keys or objects, dropping disabled and duplicate ones", () => {
@@ -92,9 +103,14 @@ describe("navigation from the bootstrap", () => {
 });
 
 describe("server bootstrap fetch", () => {
-  const base = { baseUrl: "http://127.0.0.1:8050/", cookieHeader: "lk_session=abc; lk_csrf=def", requestId: "req-1" };
+  const base = {
+    baseUrl: "http://127.0.0.1:8050/",
+    cookieHeader: "lk_session=abc; lk_csrf=def",
+    requestId: "req-1",
+    forwardedFor: "203.0.113.7",
+  };
 
-  it("forwards the browser's cookies and request id, uncached", async () => {
+  it("forwards the browser's cookies, request id and X-Forwarded-For, uncached", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => Response.json(rawBootstrap()));
     const result = await fetchBootstrap({ ...base, fetchImpl });
     expect(result.status).toBe("ok");
@@ -103,6 +119,7 @@ describe("server bootstrap fetch", () => {
     const headers = new Headers(init?.headers);
     expect(headers.get("cookie")).toBe("lk_session=abc; lk_csrf=def");
     expect(headers.get("x-request-id")).toBe("req-1");
+    expect(headers.get("x-forwarded-for")).toBe("203.0.113.7");
     expect(init?.cache).toBe("no-store");
   });
 
@@ -146,5 +163,14 @@ describe("server bootstrap fetch", () => {
       ok: true,
       data: { version: 2 },
     });
+  });
+});
+
+describe("UI poll interval", () => {
+  it("polls every 60 s, and stops for good once the endpoint is reported missing", () => {
+    expect(uiPollInterval(null)).toBe(60_000);
+    expect(uiPollInterval(new NetworkError(new TypeError("offline")))).toBe(60_000);
+    const missing = new ProblemError({ code: NON_PROBLEM_CODE, title: "Not Found", status: 404, detail: null, request_id: null });
+    expect(uiPollInterval(missing)).toBe(false);
   });
 });

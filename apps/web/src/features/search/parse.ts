@@ -1,3 +1,4 @@
+import { safeAppPath } from "@/lib/safe-path";
 import type { SearchGroup, SearchHit, SearchResponse } from "./types";
 
 /** Narrows an unknown payload to SearchResponse, dropping malformed entries. */
@@ -12,13 +13,14 @@ export function parseSearchResponse(raw: unknown, q: string): SearchResponse {
       if (hit === null || typeof hit !== "object") continue;
       const h = hit as Record<string, unknown>;
       // Only same-origin, absolute app paths are navigable; anything else is dropped.
-      if (typeof h.title !== "string" || typeof h.path !== "string" || !h.path.startsWith("/") || h.path.startsWith("//")) continue;
+      const path = safeAppPath(h.path);
+      if (typeof h.title !== "string" || path === null) continue;
       items.push({
         resource_type: typeof h.resource_type === "string" ? h.resource_type : String(group.resource_type ?? ""),
-        resource_id: typeof h.resource_id === "string" ? h.resource_id : h.path,
+        resource_id: typeof h.resource_id === "string" ? h.resource_id : path,
         title: h.title,
         subtitle: typeof h.subtitle === "string" ? h.subtitle : null,
-        path: h.path,
+        path,
       });
     }
     if (items.length === 0 || typeof group.group !== "string") continue;

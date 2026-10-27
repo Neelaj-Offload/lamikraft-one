@@ -19,6 +19,12 @@ export interface ServerFetchOptions {
   /** The incoming request's Cookie header, forwarded verbatim. */
   cookieHeader: string | null;
   requestId?: string | null;
+  /**
+   * The incoming X-Forwarded-For (frontend_verification §3). The Next server sets it to the
+   * browser's address when no proxy in front of it did, so FastAPI's rate limits and audit
+   * see the client rather than the Next server.
+   */
+  forwardedFor?: string | null;
   fetchImpl?: typeof fetch;
 }
 
@@ -37,6 +43,7 @@ export function forwardedHeaders(options: ServerFetchOptions): Headers {
   const headers = new Headers({ accept: "application/json" });
   if (options.cookieHeader) headers.set("cookie", options.cookieHeader);
   if (options.requestId) headers.set("x-request-id", options.requestId);
+  if (options.forwardedFor) headers.set("x-forwarded-for", options.forwardedFor);
   return headers;
 }
 

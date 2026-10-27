@@ -6,6 +6,7 @@ import {
   ProblemError,
   createApiClient,
   createIdempotencyKey,
+  currentCsrfToken,
   idempotencyHeaders,
   isProblemContentType,
   loginUrl,
@@ -13,6 +14,7 @@ import {
   redirectToLogin,
   requestUntyped,
   safeNextPath,
+  seedCsrfToken,
   unwrap,
   uuidv7,
   type ApiClient,
@@ -327,6 +329,85 @@ describe("CSRF retry", () => {
     expect(result.response.status).toBe(403);
     // the original command and the bootstrap refresh; no second command
     expect(calls).toBe(2);
+  });
+
+  it("shares one bootstrap refresh between commands rejected at the same time (single flight)", async () => {
+    let token = "stale";
+    let bootstraps = 0;
+    const seen: string[] = [];
+    let releaseBootstrap: () => void = () => {};
+    const bootstrapGate = new Promise<void>((resolve) => (releaseBootstrap = resolve));
+    const client = createApiClient({
+      baseUrl: BASE,
+      getCsrfToken: () => token,
+      onUnauthorized: vi.fn(),
+      fetch: async (request) => {
+        if (request.url.endsWith("/api/v1/session/bootstrap")) {
+          bootstraps += 1;
+          await bootstrapGate;
+          token = `fresh-${bootstraps}`;
+          return Response.json({ ok: true });
+        }
+        seen.push(`${new URL(request.url).pathname} ${request.headers.get(CSRF_HEADER)}`);
+        if (request.headers.get(CSRF_HEADER) === "stale") {
+          return problem(403, { title: "Session check failed", status: 403, code: "csrf_token_invalid" });
+        }
+        return Response.json({ ok: true });
+      },
+    });
+    const call = (client.request as unknown as UntypedRequest).bind(client);
+    const first = call("post", "/api/v1/a");
+    const second = call("patch", "/api/v1/b");
+    await vi.waitFor(() => expect(bootstraps).toBe(1));
+    // Let both 403s arrive before the one refresh resolves.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    releaseBootstrap();
+    const [a, b] = await Promise.all([first, second]);
+    expect(a.response.status).toBe(200);
+    expect(b.response.status).toBe(200);
+    expect(bootstraps).toBe(1);
+    expect(seen.filter((line) => line.endsWith("fresh-1")).sort()).toEqual(["/api/v1/a fresh-1", "/api/v1/b fresh-1"]);
+  });
+
+  it("retries without another rotation when the token already changed since the command was sent", async () => {
+    let token = "stale";
+    let bootstraps = 0;
+    const client = createApiClient({
+      baseUrl: BASE,
+      getCsrfToken: () => token,
+      onUnauthorized: vi.fn(),
+      fetch: async (request) => {
+        if (request.url.endsWith("/api/v1/session/bootstrap")) {
+          bootstraps += 1;
+          return Response.json({ ok: true });
+        }
+        if (request.headers.get(CSRF_HEADER) === "stale") {
+          token = "fresh"; // another request refreshed meanwhile
+          return problem(403, { title: "Session check failed", status: 403, code: "csrf_token_invalid" });
+        }
+        return Response.json({ ok: true });
+      },
+    });
+    const call = (client.request as unknown as UntypedRequest).bind(client);
+    const result = await call("post", "/api/v1/things");
+    expect(result.response.status).toBe(200);
+    expect(bootstraps).toBe(0);
+  });
+
+  it("sends the bootstrap body's token while the browser cookie is still the stale one", () => {
+    vi.stubGlobal("document", { cookie: "lk_csrf=old" });
+    try {
+      seedCsrfToken("from-bootstrap");
+      expect(currentCsrfToken()).toBe("from-bootstrap");
+      // A sign-in or browser-side bootstrap set a newer cookie: the cookie wins from then on.
+      (globalThis.document as { cookie: string }).cookie = "lk_csrf=newer";
+      expect(currentCsrfToken()).toBe("newer");
+      (globalThis.document as { cookie: string }).cookie = "lk_csrf=old";
+      expect(currentCsrfToken()).toBe("old");
+    } finally {
+      seedCsrfToken(null);
+      vi.unstubAllGlobals();
+    }
   });
 
   it("leaves other 403s and safe methods alone", async () => {

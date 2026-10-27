@@ -1,5 +1,6 @@
 import createClient, { type Client, type Middleware } from "openapi-fetch";
 import { matchRoute } from "@/lib/routes";
+import { safeAppPath, safeNextPath } from "@/lib/safe-path";
 import { NetworkError, ProblemError } from "./errors";
 import type { paths } from "./schema";
 
@@ -94,25 +95,7 @@ export function idempotencyHeaders(key: string): { [IDEMPOTENCY_HEADER]: string 
 // ---------------------------------------------------------------------------
 // Login redirect
 
-/**
- * Accepts only same-origin relative paths for the `next` login parameter, so a
- * crafted link cannot bounce the user to another site after sign-in.
- */
-export function safeNextPath(raw: string | null | undefined): string | null {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return null;
-  if (/[\u0000-\u001f\u007f]/.test(raw)) return null;
-  const base = "http://lamikraft.invalid";
-  let url: URL;
-  try {
-    url = new URL(raw, base);
-  } catch {
-    return null;
-  }
-  if (url.origin !== base) return null;
-  const path = `${url.pathname}${url.search}${url.hash}`;
-  if (url.pathname === "/login" || url.pathname.startsWith("/login/")) return null;
-  return path;
-}
+export { safeAppPath, safeNextPath };
 
 export function loginUrl(nextPath?: string | null): string {
   const next = safeNextPath(nextPath);
@@ -138,7 +121,35 @@ function isSameOrigin(url: string): boolean {
   return new URL(url, window.location.href).origin === window.location.origin;
 }
 
-export function csrfMiddleware(getToken: () => string | null = () => readCookie(CSRF_COOKIE)): Middleware {
+// ---------------------------------------------------------------------------
+// CSRF token
+
+let csrfSeed: { token: string; staleCookie: string | null } | null = null;
+
+/**
+ * api-conventions §7.1: every bootstrap rotates the CSRF secret. The (app) layout calls the
+ * bootstrap on the server, so the rotated `lk_csrf` cookie never reaches the browser, whose
+ * cookie is stale from then on; the bootstrap body carries the new value. The SessionProvider
+ * seeds it here, and unsafe requests send it until the browser's cookie changes (a sign-in or a
+ * browser-side bootstrap sets a newer one). Without the seed, the first command after every
+ * full page load would be answered 403 `csrf_token_invalid` and retried.
+ */
+export function seedCsrfToken(token: string | null): void {
+  if (typeof document === "undefined") return;
+  csrfSeed = token ? { token, staleCookie: readCookie(CSRF_COOKIE) } : null;
+}
+
+/** The value for X-CSRF-Token: the seeded bootstrap value while the cookie is unchanged, else the cookie. */
+export function currentCsrfToken(): string | null {
+  const cookie = readCookie(CSRF_COOKIE);
+  if (csrfSeed) {
+    if (cookie === csrfSeed.staleCookie) return csrfSeed.token;
+    csrfSeed = null;
+  }
+  return cookie;
+}
+
+export function csrfMiddleware(getToken: () => string | null = currentCsrfToken): Middleware {
   return {
     onRequest({ request }) {
       if (!UNSAFE_METHODS.has(request.method.toUpperCase())) return undefined;
@@ -167,11 +178,28 @@ async function readProblemCode(response: Response): Promise<string | null> {
  * bootstrap (which rotates the `lk_csrf` cookie) and retries the command once with
  * the fresh token. The original request, Idempotency-Key included, is replayed as is,
  * so a retry can never create a second effect.
+ *
+ * Every bootstrap rotates the secret, so refreshes are single-flight: commands rejected at
+ * the same time share one refresh, and a command whose token is already older than the
+ * current one (another request refreshed it meanwhile) retries without rotating again,
+ * which would invalidate the token the other retry carries.
  */
-export function csrfRetryMiddleware(
-  getToken: () => string | null = () => readCookie(CSRF_COOKIE),
-): Middleware {
+export function csrfRetryMiddleware(getToken: () => string | null = currentCsrfToken): Middleware {
   const pending = new Map<string, Request>();
+  let refreshing: Promise<boolean> | null = null;
+
+  const refresh = (fetchImpl: (request: Request) => Promise<Response>, url: string): Promise<boolean> => {
+    refreshing ??= fetchImpl(new Request(new URL(BOOTSTRAP_PATH, url), { method: "GET", credentials: "same-origin" }))
+      .then(
+        (response) => response.ok,
+        () => false,
+      )
+      .finally(() => {
+        refreshing = null;
+      });
+    return refreshing;
+  };
+
   return {
     onRequest({ request, id }) {
       if (UNSAFE_METHODS.has(request.method.toUpperCase()) && isSameOrigin(request.url)) {
@@ -185,12 +213,14 @@ export function csrfRetryMiddleware(
       if (!original || response.status !== 403) return undefined;
       if ((await readProblemCode(response)) !== "csrf_token_invalid") return undefined;
 
-      const refresh = await options.fetch(
-        new Request(new URL(BOOTSTRAP_PATH, request.url), { method: "GET", credentials: "same-origin" }),
-      );
-      if (!refresh.ok) return undefined;
-      const token = getToken();
-      if (!token) return undefined;
+      const sent = original.headers.get(CSRF_HEADER);
+      let token = getToken();
+      if (!token || token === sent) {
+        if (!(await refresh(options.fetch, request.url))) return undefined;
+        token = getToken();
+      }
+      // No newer token to offer: a retry would be rejected the same way.
+      if (!token || token === sent) return undefined;
 
       const retry = new Request(original);
       retry.headers.set(CSRF_HEADER, token);

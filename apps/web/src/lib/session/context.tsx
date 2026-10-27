@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { I18nProvider } from "react-aria-components";
+import { seedCsrfToken } from "@/lib/api/client";
 import { DEFAULT_LOCALE } from "@/lib/format/money";
 import { DEFAULT_TIME_ZONE, type ZoneOptions } from "@/lib/format/time";
 import type { SessionBootstrap } from "./types";
@@ -32,6 +33,11 @@ export function SessionProvider({ bootstrap, children }: { bootstrap: SessionBoo
     [bootstrap],
   );
   const [now, setNow] = useState(() => new Date(bootstrap.server_now));
+
+  // The server-side bootstrap rotated the CSRF secret; its new value is only in the body.
+  useEffect(() => {
+    seedCsrfToken(bootstrap.csrf_token);
+  }, [bootstrap.csrf_token]);
 
   useEffect(() => {
     const tick = () => setNow(new Date());

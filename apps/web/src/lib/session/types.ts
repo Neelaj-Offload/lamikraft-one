@@ -87,11 +87,21 @@ export interface NavEntry {
   key: string;
 }
 
-/** Feature readiness for controls that depend on capabilities shipped in later slices. */
-export interface FeatureFlags {
-  /** The text assistant (agent runtime) can accept commands from the Today command bar. */
+/**
+ * api-conventions §8 "feature readiness flags for nav": feature or area key → whether it is
+ * implemented and switched on for this workspace. Only boolean entries are kept.
+ */
+export type FeatureReadiness = Readonly<Record<string, boolean>>;
+
+/**
+ * INTERIM(api-generate): capability flags for controls that depend on later slices. §8 does not
+ * name them yet (lane contract question), so the parser reads `capabilities` and falls back to
+ * the same keys inside `features`; both default to false (the control is not rendered).
+ */
+export interface SessionCapabilities {
+  /** The text assistant (agent runtime) accepts commands from the Today command bar. */
   assistant: boolean;
-  /** Push-to-talk voice capture is available for this user. */
+  /** Push-to-talk voice capture is available for this user (Slice 3). */
   voice: boolean;
 }
 
@@ -110,7 +120,8 @@ export interface SessionBootstrap {
   permissions: EffectivePermission[];
   ui: UiPreferencesState;
   nav: NavEntry[];
-  features: FeatureFlags;
+  features: FeatureReadiness;
+  capabilities: SessionCapabilities;
   integrations: SectionValue<IntegrationStatus[]>;
   inbox_counts: SectionValue<InboxCounts>;
   briefing: SectionValue<BriefingState>;
