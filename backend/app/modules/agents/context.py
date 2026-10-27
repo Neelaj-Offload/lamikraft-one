@@ -134,12 +134,20 @@ class OrdinalResolution:
     size: int = 0
 
 
+def optional_module(path: str) -> Any | None:
+    """Import a module of another lane when it is installed (``None`` when the package does not exist)."""
+    try:
+        if importlib.util.find_spec(path) is None:
+            return None
+    except ModuleNotFoundError:
+        return None
+    return importlib.import_module(path)
+
+
 def _briefing_pin_resolver() -> Any | None:
     """Seam: ``briefings.service.resolve_pin(uow, pin_id, ordinal)`` when the briefings module is installed."""
-    if importlib.util.find_spec(BRIEFINGS_SERVICE) is None:
-        return None
-    module = importlib.import_module(BRIEFINGS_SERVICE)
-    return getattr(module, "resolve_pin", None)
+    module = optional_module(BRIEFINGS_SERVICE)
+    return getattr(module, "resolve_pin", None) if module is not None else None
 
 
 def resolve_ordinal(

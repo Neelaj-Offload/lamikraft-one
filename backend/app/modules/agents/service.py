@@ -183,6 +183,7 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
     )
     turn.run_id = run.id
     uow.add(turn)
+    uow.flush()  # the run's FK points at the turn (no relationship() declared, so flush order is explicit)
     uow.add(run)
     uow.flush()
     run.job_id = uow.enqueue(JOB_KIND, {"run_id": str(run.id)}, resource_type="agents.run", resource_id=run.id)

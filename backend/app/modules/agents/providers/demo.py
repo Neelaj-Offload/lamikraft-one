@@ -207,6 +207,19 @@ def _final(text: str) -> _Step:
     return _Step(text=text)
 
 
+def _qty(value: Any) -> Decimal:
+    """A quantity from a plain decimal or a ``{value, uom}`` Quantity."""
+    inner = value.get("value") if isinstance(value, Mapping) else value
+    return Decimal(str(inner))
+
+
+def _uom(line: Mapping[str, Any]) -> str:
+    quantity = line.get("quantity")
+    if isinstance(quantity, Mapping) and quantity.get("uom"):
+        return str(quantity["uom"])
+    return str(line.get("uom") or "pcs")
+
+
 def _line_matches(line: Mapping[str, Any], words: str | None) -> bool:
     if not words:
         return True
@@ -275,13 +288,13 @@ def _plan_usual_quote(intent: RequestIntent, results: Results, context: Mapping[
         if intent.product_words and results.last("resolve_product") is None and "resolve_product" in tools:
             return _tool("resolve_product", {"query": intent.product_words})
         return _clarify("line", f"Which line of {usual.get('quote_number')} should I repeat?")
-    quantity = intent.quantity if intent.quantity is not None else Decimal(str(line["quantity"]))
+    quantity = intent.quantity if intent.quantity is not None else _qty(line["quantity"])
     quantity_source = "user_turn" if intent.quantity is not None else "record"
     currency = currency or usual.get("currency") or "EUR"
     price = results.last_ok("resolve_price")
     if price is None:
         return _tool("resolve_price", {
-            "product_id": str(line["product_id"]), "party_id": party_id, "currency": currency, "uom": line.get("uom") or "pcs",
+            "product_id": str(line["product_id"]), "party_id": party_id, "currency": currency, "uom": _uom(line),
         })
     if price.get("status") != "found":
         return _final("Demo: no usable price was found for that line; the details are on the card.")
@@ -299,7 +312,7 @@ def _plan_usual_quote(intent: RequestIntent, results: Results, context: Mapping[
             "party_id": party_id,
             "currency": currency,
             "lines": [{"product_id": str(line["product_id"]), "quantity": str(quantity), "quantity_source": quantity_source,
-                       "uom": line.get("uom") or "pcs"}],
+                       "uom": _uom(line)}],
         })
     return _final(f"Demo: draft {draft.get('quote_number')} for {party_label} is ready to review; the figures are on the card.")
 

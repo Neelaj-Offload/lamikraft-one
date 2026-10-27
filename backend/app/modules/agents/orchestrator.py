@@ -9,8 +9,6 @@ touches the provider, so it keeps working when the provider raises.
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -335,10 +333,8 @@ def state_now(state: RunState) -> Any:
 
 def _apply_line_update(state: RunState, base: QuoteDraftCard, calc_input: Mapping[str, Any]) -> Card | None:
     """Seam: apply the recalculated quantity to the draft through ``sales.service.update_line`` when installed."""
-    if importlib.util.find_spec(SALES_SERVICE) is None:
-        return None
-    sales = importlib.import_module(SALES_SERVICE)
-    update_line = getattr(sales, "update_line", None)
+    sales = ctx_mod.optional_module(SALES_SERVICE)
+    update_line = getattr(sales, "update_line", None) if sales is not None else None
     if update_line is None or not base.quote_id or not base.lines:
         return None
     line = (calc_input.get("lines") or [{}])[0]
@@ -394,9 +390,8 @@ def _finish_from_state(state: RunState) -> str:
 
 # ---- deterministic commands (grammar) -----------------------------------------------------------------------------
 def _briefings(attr: str) -> Any | None:
-    if importlib.util.find_spec(BRIEFINGS_SERVICE) is None:
-        return None
-    return getattr(importlib.import_module(BRIEFINGS_SERVICE), attr, None)
+    module = ctx_mod.optional_module(BRIEFINGS_SERVICE)
+    return getattr(module, attr, None) if module is not None else None
 
 
 def _run_command(state: RunState, command: Command) -> str:

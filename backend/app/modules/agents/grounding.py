@@ -23,8 +23,10 @@ _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 _DECIMAL = re.compile(r"^-?\d{1,14}(\.\d{1,6})?$")
 #: input field names that carry quantities (provenance required)
 _QUANTITY_NAMES = re.compile(r"^(quantity|qty|.*_quantity|.*_qty)$")
-#: input field names that would carry a price or amount (never a model input)
-_PRICE_NAMES = re.compile(r"^(.*price.*|.*amount.*|.*total.*|.*rate|.*subtotal.*|.*surcharge_amount.*)$")
+#: input field names that would carry a price or amount (never a model input); identifiers, codes, types,
+#: statuses and flags that merely mention "price" (``price_list_item_id``, ``price_type``) are not prices
+_PRICE_NAMES = re.compile(r"^(?!.*(?:_id|_code|_type|_key|_status|_source|_requested|_list|_basis)$)(?!price_list)"
+                          r"(.*price.*|.*amount.*|.*total.*|rate|.*_rate|.*subtotal.*|surcharge)$")
 PRICE_OVERRIDE_FIELD = "price_override"
 SEE_CARD = "see card"
 

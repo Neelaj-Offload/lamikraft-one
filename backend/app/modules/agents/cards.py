@@ -11,6 +11,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
@@ -146,7 +147,24 @@ def _uuid(value: Any) -> uuid.UUID | None:
 
 
 def _dec(value: Any) -> str | None:
-    return None if value is None else str(value)
+    """A decimal string from a plain value, a ``Money`` ({amount, currency}) or a ``Quantity`` ({value, uom})."""
+    if value is None:
+        return None
+    if isinstance(value, Mapping):
+        inner = value.get("amount", value.get("value"))
+        return None if inner is None else str(inner)
+    return str(value)
+
+
+def _int(value: Any) -> int | None:
+    text = _dec(value)
+    return None if text is None else int(Decimal(text))
+
+
+def _uom(value: Any, default: Any = None) -> str | None:
+    if isinstance(value, Mapping) and value.get("uom"):
+        return str(value["uom"])
+    return None if default is None else str(default)
 
 
 def _totals_from_calculation(calc: Mapping[str, Any]) -> QuoteTotalsCard:
@@ -157,7 +175,7 @@ def _totals_from_calculation(calc: Mapping[str, Any]) -> QuoteTotalsCard:
     for line in calc.get("lines") or []:
         rec = (line.get("recommendation") or {}).get("quantity")
         if rec is not None:
-            recommended = int(rec)
+            recommended = _int(rec)
             break
     notes = list(calc.get("warnings") or [])
     if minimum.get("status") == "BELOW":
@@ -192,7 +210,7 @@ def _totals_from_persisted(totals: Mapping[str, Any], currency: str) -> QuoteTot
         surcharge_applied=bool(totals.get("surcharge_applied") or (isinstance(totals.get("surcharge"), Mapping) and totals["surcharge"].get("applied"))),
         grand_total=_dec(totals.get("grand_total")),
         minimum_status=(totals.get("minimum") or {}).get("status") if isinstance(totals.get("minimum"), Mapping) else totals.get("minimum_status"),
-        recommended_quantity=int(recommended) if recommended is not None else None,
+        recommended_quantity=_int(recommended),
         notes=list(totals.get("notes") or totals.get("warnings") or []),
     )
 
@@ -206,7 +224,7 @@ def _line(raw: Mapping[str, Any]) -> QuoteLineCard:
         product_key=raw.get("product_key") or product.get("product_key"),
         product_name=raw.get("product_name") or product.get("product_name") or product.get("name"),
         quantity=_dec(raw.get("quantity")),
-        uom=raw.get("uom") or raw.get("unit_code"),
+        uom=_uom(raw.get("quantity"), raw.get("uom") or raw.get("unit_code")),
         unit_price=_dec(raw.get("unit_price")),
         line_total=_dec(raw.get("line_total") or raw.get("net")),
         price_list_item_id=_uuid(raw.get("price_list_item_id") or raw.get("item_id")),
@@ -265,7 +283,7 @@ def quote_preview_card(
             product_id=_uuid(ref.get("product_id")),
             product_key=ref.get("product_key"),
             quantity=_dec(result.get("quantity")),
-            uom=ref.get("unit_code"),
+            uom=_uom(result.get("quantity"), ref.get("unit_code")),
             unit_price=_dec(result.get("unit_price")),
             line_total=_dec(result.get("net")),
             price_list_item_id=_uuid(ref.get("price_list_item_id")),
