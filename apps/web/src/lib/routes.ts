@@ -217,6 +217,28 @@ export const routes = [
     requiredPermission: null,
     access: "session",
   },
+  // --- web lane, Slice 1 wave 2: review page and sales area (the snoozed/done Inbox tabs were
+  // removed: the tasks API has no such tabs; snoozed items keep their tab with a Snoozed status) -
+  {
+    id: "inbox-approval-review",
+    path: "/inbox/approvals/[proposalId]",
+    label: "Review request",
+    area: "inbox",
+    navGroup: null,
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "approval-alias",
+    path: "/approvals/[proposalId]",
+    label: "Review request",
+    area: "inbox",
+    navGroup: null,
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];
