@@ -32,6 +32,16 @@ export interface BriefingItemRowProps {
   pendingAction?: string | null;
   /** Read-only rendering (fallback "last briefing"): no controls. */
   readOnly?: boolean;
+  /**
+   * Why commands cannot be sent right now (offline, briefing.md §11). Command controls are then
+   * disabled with this reason; links to records and Explain stay available.
+   */
+  commandsDisabledReason?: string | null;
+}
+
+/** Commands POST to the server; navigation and Explain only read. */
+export function isCommandAction(action: BriefingAction): boolean {
+  return !isNavigationAction(action) && action.action !== "explain";
 }
 
 /**
@@ -39,7 +49,15 @@ export interface BriefingItemRowProps {
  * primary control; secondary actions are only those the server allowed (briefing.md §9).
  * Rows are separated by rules, not cards.
  */
-export function BriefingItemRow({ item, now, zone, onCommand, pendingAction = null, readOnly = false }: BriefingItemRowProps) {
+export function BriefingItemRow({
+  item,
+  now,
+  zone,
+  onCommand,
+  pendingAction = null,
+  readOnly = false,
+  commandsDisabledReason = null,
+}: BriefingItemRowProps) {
   const titleId = useId();
   const status = itemStatus(item);
   const due = dueLabel(item, now, zone);
@@ -70,7 +88,15 @@ export function BriefingItemRow({ item, now, zone, onCommand, pendingAction = nu
         </div>
         {primary || secondary.length > 0 ? (
           <div className="flex shrink-0 items-center gap-1">
-            {primary ? <PrimaryControl item={item} action={primary} onCommand={onCommand} pending={pendingAction === primary.action} /> : null}
+            {primary ? (
+              <PrimaryControl
+                item={item}
+                action={primary}
+                onCommand={onCommand}
+                pending={pendingAction === primary.action}
+                disabledReason={commandsDisabledReason}
+              />
+            ) : null}
             {secondary.length > 0 ? (
               <MenuTrigger>
                 <RacButton aria-label={m.item.moreActions(item.title)} className={iconButtonClasses("quiet")} isDisabled={pendingAction !== null}>
@@ -78,6 +104,7 @@ export function BriefingItemRow({ item, now, zone, onCommand, pendingAction = nu
                 </RacButton>
                 <Menu
                   aria-label={m.item.moreActions(item.title)}
+                  disabledKeys={commandsDisabledReason ? secondary.filter(isCommandAction).map((action) => action.action) : []}
                   onAction={(key) => {
                     const action = secondary.find((candidate) => candidate.action === key);
                     if (action && !isNavigationAction(action)) onCommand(item, action);
@@ -167,11 +194,13 @@ function PrimaryControl({
   action,
   onCommand,
   pending,
+  disabledReason,
 }: {
   item: BriefingItem;
   action: BriefingAction;
   onCommand: BriefingItemRowProps["onCommand"];
   pending: boolean;
+  disabledReason: string | null;
 }) {
   const label = actionLabel(action);
   if (isNavigationAction(action) && action.href) {
@@ -179,6 +208,13 @@ function PrimaryControl({
       <LinkButton href={action.href} variant="primary">
         {label}
       </LinkButton>
+    );
+  }
+  if (disabledReason && isCommandAction(action)) {
+    return (
+      <Button variant="primary" onPress={() => onCommand(item, action)} isDisabled disabledReason={disabledReason}>
+        {label}
+      </Button>
     );
   }
   return (

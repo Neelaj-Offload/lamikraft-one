@@ -1,20 +1,16 @@
 /**
  * Pure view-model for Today: which items show, in which sections, which controls an item
- * offers and how many updates a newer version brings. Order always comes from the server
- * (`display_ordinal`, `initial_item_ids`); nothing here ranks or re-sorts.
+ * offers and what a newer briefing brings. Order always comes from the server (section order,
+ * `display_ordinal`, `initial_item_ids`); nothing here ranks or re-sorts.
  */
 
+import { formatBusinessDate } from "@/lib/format/time";
 import { briefingMessages as m } from "@/messages/briefing";
+import { SECTION_CODES } from "./parse";
 import type { BriefingAction, BriefingItem, BriefingView, PriorityBand, SectionCode } from "./types";
 
-export const SECTION_ORDER: readonly SectionCode[] = [
-  "needs_you_now",
-  "plan_for_today",
-  "recommendations",
-  "changes_since_last_visit",
-  "handled_for_you",
-  "coming_next",
-];
+/** The six section codes (briefing.md §5); templates may order them differently (§15). */
+export const SECTION_ORDER: readonly SectionCode[] = SECTION_CODES;
 
 /** Two columns from wide screens up: work to do on the left, context on the right. */
 export const MAIN_SECTIONS: ReadonlySet<SectionCode> = new Set(["needs_you_now", "plan_for_today", "recommendations"]);
@@ -32,17 +28,20 @@ export interface SectionModel {
 }
 
 /**
- * Sections in canonical order, empty ones omitted (briefing.md §3.4). In the initial view only
- * `initial_item_ids` (at most five) render; other non-empty sections render as a count.
+ * Sections in the order the server sent them (a template may set `section_order`, briefing.md
+ * §15), empty ones omitted (§3.4); unknown codes and repeats are skipped. In the initial view
+ * only `initial_item_ids` (at most five) render; other non-empty sections render as a count.
  */
 export function sectionModels(view: Pick<BriefingView, "sections" | "items" | "initial_item_ids">, showAll: boolean): SectionModel[] {
   const byId = new Map(view.items.map((item) => [item.id, item]));
   const initial = new Set(view.initial_item_ids);
-  const byCode = new Map(view.sections.map((section) => [section.code, section]));
+  const seen = new Set<SectionCode>();
   const out: SectionModel[] = [];
-  for (const code of SECTION_ORDER) {
-    const section = byCode.get(code);
-    if (!section || section.total === 0) continue;
+  for (const section of view.sections) {
+    const code = section.code;
+    if (!SECTION_ORDER.includes(code) || seen.has(code)) continue;
+    seen.add(code);
+    if (section.total === 0) continue;
     const listed = section.item_ids.map((id) => byId.get(id)).filter((item): item is BriefingItem => Boolean(item));
     const items = showAll ? listed : listed.filter((item) => initial.has(item.id));
     out.push({
@@ -66,18 +65,90 @@ export function totalItems(view: Pick<BriefingView, "sections">): number {
   return view.sections.reduce((sum, section) => sum + section.total, 0);
 }
 
+type BriefingIdentity = Pick<BriefingView, "briefing_id" | "work_date">;
+export type BriefingSnapshot = Pick<BriefingView, "briefing_id" | "work_date" | "version" | "status" | "items">;
+
 /**
- * Updates between the version on screen and a newer one: issues added, removed or whose
- * fingerprint changed. The list on screen is not touched until the person presses Show.
+ * Whether two views belong to the same briefing. A briefing is per (user, work_date) and its
+ * version numbers restart every day (briefing.md §2), so a version is only comparable within
+ * one briefing: after the daily rollover "version 1" is newer than yesterday’s "version 5".
  */
-export function countBriefingUpdates(displayed: Pick<BriefingView, "version" | "items">, latest: Pick<BriefingView, "version" | "items">): number {
-  if (latest.version === displayed.version) return 0;
-  const before = new Map(displayed.items.map((item) => [item.issue_id, item.fingerprint]));
-  const after = new Map(latest.items.map((item) => [item.issue_id, item.fingerprint]));
+export function isSameBriefing(a: BriefingIdentity, b: BriefingIdentity): boolean {
+  if (a.work_date && b.work_date && a.work_date !== b.work_date) return false;
+  if (a.briefing_id && b.briefing_id && a.briefing_id !== b.briefing_id) return false;
+  return true;
+}
+
+/**
+ * What a newly fetched briefing means for the one on screen (briefing.md §7: the list never
+ * re-sorts until the person applies it):
+ * - `none`: nothing to show (same version, or a failed regeneration while a briefing is shown);
+ * - `in_place`: a newer version of the same briefing that moves no item (reworded text),
+ *   or a refreshed fallback: applied without asking;
+ * - `updates`: issues added, removed or changed: "N updates · Show";
+ * - `new_briefing`: another day’s briefing (rollover), or the real briefing replacing the
+ *   fallback: "Your briefing for … is ready · Show".
+ */
+export type BriefingChange =
+  | { kind: "none" }
+  | { kind: "in_place" }
+  | { kind: "updates"; count: number }
+  | { kind: "new_briefing"; workDate: string };
+
+export function briefingChange(displayed: BriefingSnapshot, latest: BriefingSnapshot): BriefingChange {
+  if (displayed === latest) return { kind: "none" };
+  if (!isSameBriefing(displayed, latest)) return { kind: "new_briefing", workDate: latest.work_date };
+  if (latest.status === "fallback") return displayed.status === "fallback" ? { kind: "in_place" } : { kind: "none" };
+  if (displayed.status === "fallback") return { kind: "new_briefing", workDate: latest.work_date };
+  if (latest.version === displayed.version) return { kind: "none" };
+  const count = countChangedIssues(displayed.items, latest.items);
+  return count === 0 ? { kind: "in_place" } : { kind: "updates", count };
+}
+
+/** Issues added, removed or whose fingerprint changed between two versions. */
+export function countChangedIssues(before: readonly Pick<BriefingItem, "issue_id" | "fingerprint">[], after: readonly Pick<BriefingItem, "issue_id" | "fingerprint">[]): number {
+  const was = new Map(before.map((item) => [item.issue_id, item.fingerprint]));
+  const now = new Map(after.map((item) => [item.issue_id, item.fingerprint]));
   let count = 0;
-  for (const [issue, fingerprint] of after) if (before.get(issue) !== fingerprint) count += 1;
-  for (const issue of before.keys()) if (!after.has(issue)) count += 1;
+  for (const [issue, fingerprint] of now) if (was.get(issue) !== fingerprint) count += 1;
+  for (const issue of was.keys()) if (!now.has(issue)) count += 1;
   return count;
+}
+
+/**
+ * The view to show after a background fetch: the first view as soon as one exists, an
+ * `in_place` change applied at once, anything else left for the person to apply.
+ */
+export function reconcileDisplayed<T extends BriefingSnapshot>(displayed: T | null, latest: T | null): T | null {
+  if (latest === null) return displayed;
+  if (displayed === null) return latest;
+  return briefingChange(displayed, latest).kind === "in_place" ? latest : displayed;
+}
+
+/** What the "… · Show" pill offers: N updates to the briefing on screen, or another briefing. */
+export type PendingUpdate = { kind: "updates"; count: number } | { kind: "new_briefing"; day: string | null };
+
+/** The pill for a fetched briefing, or null when there is nothing for the person to apply. */
+export function pendingUpdateFor(displayed: BriefingSnapshot, latest: BriefingSnapshot, locale: string): PendingUpdate | null {
+  const change = briefingChange(displayed, latest);
+  if (change.kind === "updates") return { kind: "updates", count: change.count };
+  if (change.kind === "new_briefing") {
+    return { kind: "new_briefing", day: change.workDate ? formatBusinessDate(change.workDate, locale, "long") : null };
+  }
+  return null;
+}
+
+/**
+ * Whether the UI poll reports a briefing the cached one is older than: another work date
+ * (rollover), a higher version of the same day, or a version where only a fallback exists.
+ */
+export function pollShowsNewerBriefing(
+  polled: { version: number | null; work_date: string | null },
+  cached: Pick<BriefingView, "version" | "work_date">,
+): boolean {
+  if (polled.work_date && cached.work_date && polled.work_date !== cached.work_date) return true;
+  if (polled.version === null) return false;
+  return cached.version === null || polled.version > cached.version;
 }
 
 /** Actions the web can carry out today. Others the server offers are not shown (no dead controls). */

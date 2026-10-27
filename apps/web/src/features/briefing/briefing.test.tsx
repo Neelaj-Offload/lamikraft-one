@@ -8,7 +8,7 @@ import { BriefingItemRow, dueLabel } from "./briefing-item-row";
 import { BriefingSection, FallbackView, FullListToggle, UpdatesBanner } from "./briefing-sections";
 import { CommandBar } from "./command-bar";
 import {
-  countBriefingUpdates,
+  briefingChange,
   hasMoreThanInitial,
   itemStatus,
   primaryAction,
@@ -60,9 +60,10 @@ describe("Today view-model", () => {
       ],
     };
     // i2 changed, i3 removed, i7 added
-    expect(countBriefingUpdates(displayed, latest)).toBe(3);
-    expect(countBriefingUpdates(displayed, displayed)).toBe(0);
-    expect(countBriefingUpdates(displayed, { ...displayed, version: 2 })).toBe(0);
+    expect(briefingChange(displayed, latest)).toEqual({ kind: "updates", count: 3 });
+    expect(briefingChange(displayed, displayed)).toEqual({ kind: "none" });
+    // A newer version that moves nothing is applied in place, without a pill.
+    expect(briefingChange(displayed, { ...displayed, version: 2 })).toEqual({ kind: "in_place" });
   });
 
   it("picks one primary control and offers only supported server actions", () => {
@@ -126,16 +127,35 @@ describe("parseBriefingView", () => {
     const raw = JSON.parse(JSON.stringify(meeraBriefing()));
     raw.items[0].source_refs[0].href = "https://evil.example/q";
     raw.items[0].allowed_actions[0].href = "//evil.example";
+    raw.items[1].source_refs = [{ type: "x", id: "b", label: "Backslash", href: "/\\evil.example/phish" }];
+    raw.items[1].allowed_actions = [{ action: "open", primary: true, href: "/\t/evil.example" }];
     raw.initial_item_ids = ["i1", "i2", "i3", "i4", "i5", "i6"];
     const view = parseBriefingView(raw);
     expect(view.items[0]!.source_refs[0]!.href).toBeNull();
     expect(view.items[0]!.allowed_actions[0]!.href).toBeNull();
+    expect(view.items[1]!.source_refs[0]!.href).toBeNull();
+    expect(view.items[1]!.allowed_actions[0]!.href).toBeNull();
     expect(view.initial_item_ids).toHaveLength(5);
   });
 
   it("requires the fallback block when the status is fallback", () => {
     const raw = { ...JSON.parse(JSON.stringify(meeraBriefing())), status: "fallback", fallback: null };
     expect(() => parseBriefingView(raw)).toThrow(BriefingShapeError);
+  });
+
+  it("reads an engine-failure fallback without a version or overview (briefing.md §11)", () => {
+    const view = parseBriefingView({
+      status: "fallback",
+      version: null,
+      overview: null,
+      sections: [],
+      items: [],
+      fallback: { error_at: "2026-10-12T03:32:00Z", tasks: [{ id: "t1", title: "Reply to Nordhaus" }], last_successful: null },
+    });
+    expect(view).toMatchObject({ status: "fallback", version: null, overview: null });
+    expect(view.fallback?.tasks.map((task) => task.title)).toEqual(["Reply to Nordhaus"]);
+    // A ready briefing still needs both.
+    expect(() => parseBriefingView({ ...JSON.parse(JSON.stringify(meeraBriefing())), version: null })).toThrow(BriefingShapeError);
   });
 });
 
@@ -233,9 +253,9 @@ describe("Today components", () => {
     expect(textOf(html)).toContain("1 more item in the full list");
   });
 
-  it("UpdatesBanner is a polite live region that is empty until there are updates", () => {
-    expect(render(<UpdatesBanner count={0} onShow={noop} />)).toBe('<div aria-live="polite" aria-atomic="true"></div>');
-    const html = render(<UpdatesBanner count={3} onShow={noop} />);
+  it("UpdatesBanner renders nothing until there are updates", () => {
+    expect(render(<UpdatesBanner update={{ kind: "updates", count: 0 }} onShow={noop} />)).toBe("");
+    const html = render(<UpdatesBanner update={{ kind: "updates", count: 3 }} onShow={noop} />);
     expect(textOf(html)).toBe("3 updates Show");
   });
 

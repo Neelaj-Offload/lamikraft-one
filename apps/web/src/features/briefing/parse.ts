@@ -2,13 +2,17 @@
  * Runtime check of `GET /api/v1/briefings/today` against the interim BriefingView type. The
  * endpoint is written by another lane in parallel; a payload that misses required fields is
  * reported as an error (with the field names) instead of rendering a half-empty briefing.
- * Optional collections default to empty, never to invented content.
+ * Optional collections default to empty, never to invented content. Every server-supplied
+ * link goes through `safeAppPath`: anything that would leave the app is dropped.
  */
 
+import { safeAppPath } from "@/lib/safe-path";
 import type {
   BriefingAction,
+  BriefingExplanation,
   BriefingFallback,
   BriefingItem,
+  BriefingOverview,
   BriefingSection,
   BriefingView,
   DueKind,
@@ -30,7 +34,7 @@ const isObject = (value: unknown): value is Json => value !== null && typeof val
 const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
-const SECTIONS: readonly SectionCode[] = [
+export const SECTION_CODES: readonly SectionCode[] = [
   "needs_you_now",
   "plan_for_today",
   "recommendations",
@@ -46,13 +50,11 @@ function sourceRef(value: unknown): SourceRef | null {
   const id = str(value.id);
   const label = str(value.label);
   if (!id || !label) return null;
-  const href = str(value.href);
   return {
     type: str(value.type) ?? "",
     id,
     label,
-    // Only in-app absolute paths are linked.
-    href: href && href.startsWith("/") && !href.startsWith("//") ? href : null,
+    href: safeAppPath(value.href),
     updated_at: str(value.updated_at),
   };
 }
@@ -61,16 +63,26 @@ function action(value: unknown): BriefingAction | null {
   if (!isObject(value)) return null;
   const code = str(value.action);
   if (!code) return null;
-  const href = str(value.href);
   return {
     action: code,
     label: str(value.label),
     primary: value.primary === true,
-    href: href && href.startsWith("/") && !href.startsWith("//") ? href : null,
+    href: safeAppPath(value.href),
     requires_reason: value.requires_reason === true,
     reasons: arr(value.reasons).flatMap((reason) =>
       isObject(reason) && str(reason.code) && str(reason.label) ? [{ code: str(reason.code)!, label: str(reason.label)! }] : [],
     ),
+  };
+}
+
+function overviewFrom(value: unknown, requireGreeting = true): BriefingOverview | null {
+  if (!isObject(value) || typeof value.text !== "string") return null;
+  if (requireGreeting && !str(value.greeting)) return null;
+  return {
+    greeting: str(value.greeting) ?? "",
+    text: value.text,
+    text_source: value.text_source === "llm" ? "llm" : "template",
+    facts: isObject(value.facts) ? value.facts : {},
   };
 }
 
@@ -82,7 +94,7 @@ function item(value: unknown, problems: string[], path: string): BriefingItem | 
   const id = str(value.id);
   const issueId = str(value.issue_id);
   const title = str(value.title);
-  const section = SECTIONS.find((code) => code === value.section);
+  const section = SECTION_CODES.find((code) => code === value.section);
   // Actions are bound to the fingerprint the person saw, so it is required, never synthesised.
   const fingerprint = str(value.fingerprint);
   if (!id || !issueId || !title || !section || !fingerprint) {
@@ -161,15 +173,8 @@ function fallback(value: unknown, problems: string[]): BriefingFallback | null {
             version: last.version,
             generated_at: str(last.generated_at)!,
             data_as_of: str(last.data_as_of) ?? str(last.generated_at)!,
-            overview:
-              isObject(last.overview) && str(last.overview.text)
-                ? {
-                    greeting: str(last.overview.greeting) ?? "",
-                    text: str(last.overview.text)!,
-                    text_source: last.overview.text_source === "llm" ? "llm" : "template",
-                    facts: isObject(last.overview.facts) ? last.overview.facts : {},
-                  }
-                : null,
+            // briefing.md §11: omitted when permissions changed since it was generated.
+            overview: isObject(last.overview) && str(last.overview.text) ? overviewFrom(last.overview, false) : null,
             items: arr(last.items).flatMap((entry, index) => {
               const parsed = item(entry, problems, `fallback.last_successful.items[${index}]`);
               return parsed ? [parsed] : [];
@@ -182,24 +187,30 @@ function fallback(value: unknown, problems: string[]): BriefingFallback | null {
 export function parseBriefingView(raw: unknown): BriefingView {
   const problems: string[] = [];
   if (!isObject(raw)) throw new BriefingShapeError(["<body>"]);
-  const overview = isObject(raw.overview) ? raw.overview : null;
-  if (typeof raw.version !== "number") problems.push("version");
-  if (!overview || !str(overview.greeting) || typeof overview.text !== "string") problems.push("overview");
-  if (!Array.isArray(raw.sections)) problems.push("sections");
-  if (!Array.isArray(raw.items)) problems.push("items");
+  const status = raw.status === "fallback" ? "fallback" : "ready";
+  const overview = overviewFrom(raw.overview);
+  // briefing.md §11: an engine failure answers 200 with status=fallback and writes no version,
+  // so version and overview are required only for a ready briefing.
+  if (status === "ready") {
+    if (typeof raw.version !== "number") problems.push("version");
+    if (!overview) problems.push("overview");
+  }
+  if (!Array.isArray(raw.sections) && status === "ready") problems.push("sections");
+  if (!Array.isArray(raw.items) && status === "ready") problems.push("items");
 
   const items = arr(raw.items).flatMap((entry, index) => {
     const parsed = item(entry, problems, `items[${index}]`);
     return parsed ? [parsed] : [];
   });
+  const seen = new Set<SectionCode>();
   const sections: BriefingSection[] = arr(raw.sections).flatMap((entry) => {
     if (!isObject(entry)) return [];
-    const code = SECTIONS.find((candidate) => candidate === entry.code);
-    if (!code) return [];
+    const code = SECTION_CODES.find((candidate) => candidate === entry.code);
+    if (!code || seen.has(code)) return [];
+    seen.add(code);
     const ids = arr(entry.item_ids).filter((id): id is string => typeof id === "string");
     return [{ code, total: typeof entry.total === "number" ? entry.total : ids.length, item_ids: ids }];
   });
-  const status = raw.status === "fallback" ? "fallback" : "ready";
   const parsedFallback = fallback(raw.fallback, problems);
   if (status === "fallback" && !parsedFallback) problems.push("fallback");
   if (problems.length > 0) throw new BriefingShapeError(problems);
@@ -209,17 +220,12 @@ export function parseBriefingView(raw: unknown): BriefingView {
     briefing_id: str(raw.briefing_id) ?? "",
     work_date: str(raw.work_date) ?? "",
     day_type: raw.day_type === "non_working" || raw.day_type === "holiday" || raw.day_type === "leave" ? raw.day_type : "working",
-    version: raw.version as number,
+    version: typeof raw.version === "number" ? raw.version : null,
     status,
     generated_at: str(raw.generated_at) ?? "",
     data_as_of: str(raw.data_as_of) ?? str(raw.generated_at) ?? "",
     ai_status: raw.ai_status === "unavailable" || raw.ai_status === "demo" ? raw.ai_status : "ok",
-    overview: {
-      greeting: str(overview!.greeting)!,
-      text: overview!.text as string,
-      text_source: overview!.text_source === "llm" ? "llm" : "template",
-      facts: isObject(overview!.facts) ? overview!.facts : {},
-    },
+    overview,
     sections,
     items,
     initial_item_ids: arr(raw.initial_item_ids).filter((id): id is string => typeof id === "string").slice(0, 5),
@@ -240,5 +246,34 @@ export function parseBriefingView(raw: unknown): BriefingView {
           : [],
     ),
     fallback: parsedFallback,
+  };
+}
+
+/** A reason as text: plain strings, or `{text|label|reason_text|code}` objects (the work lane's dicts). */
+function reasonText(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() || null;
+  if (!isObject(value)) return null;
+  for (const key of ["text", "label", "reason_text", "code"] as const) {
+    const text = str(value[key])?.trim();
+    if (text) return text;
+  }
+  return null;
+}
+
+/**
+ * `GET briefings/items/{issue_id}/explain`. The text is required; reasons are coerced to text
+ * (strings or objects), sources keep only in-app links, and anything else is dropped, so an
+ * unexpected shape shows the dialog's error state instead of breaking the page.
+ */
+export function parseExplanation(raw: unknown): BriefingExplanation {
+  if (!isObject(raw)) throw new BriefingShapeError(["<body>"]);
+  const text = str(raw.text)?.trim();
+  if (!text) throw new BriefingShapeError(["text"]);
+  const reasons = [...new Set(arr(raw.reasons).map(reasonText).filter((reason): reason is string => reason !== null))];
+  return {
+    text,
+    reasons,
+    sources: arr(raw.sources).map(sourceRef).filter((ref): ref is SourceRef => ref !== null),
+    rule_version: str(raw.rule_version),
   };
 }

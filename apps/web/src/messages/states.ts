@@ -11,11 +11,18 @@ export const stateMessages = {
     rateLimited: "Too many requests in a short time. Wait a moment, then try again.",
     generic: "Something went wrong while loading this. Try again.",
   },
+  pageError: {
+    title: "Something went wrong",
+    body: "Lamikraft One ran into a problem showing this page. Nothing was changed. Try again, or go back to Today.",
+  },
   notYetAvailable: {
     title: (what: string) => `${capitalise(what)} isn't available yet`,
     body: "This part of Lamikraft One hasn't been switched on for your workspace. Everything else keeps working.",
   },
   offline: {
+    /** briefing.md §11: the cached version, labelled with its age. */
+    asOfTitle: (asOf: string) => `Offline · as of ${asOf}`,
+    asOfBody: "Lamikraft One can't reach the server. This is the last version loaded, and actions are disabled until the connection is back.",
     title: "You're offline",
     body: "Lamikraft One can't reach the server. What's on screen may be out of date, and changes can't be sent until the connection is back.",
   },

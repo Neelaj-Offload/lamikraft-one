@@ -9,7 +9,7 @@ import { cx } from "@/lib/cx";
 import { formatDayTime, type ZoneOptions } from "@/lib/format/time";
 import { briefingMessages as m } from "@/messages/briefing";
 import { BriefingItemRow, dueLabel, type BriefingItemRowProps } from "./briefing-item-row";
-import type { SectionModel } from "./model";
+import type { PendingUpdate, SectionModel } from "./model";
 import type { BriefingFallback, BriefingItem } from "./types";
 
 export interface BriefingSectionProps {
@@ -19,10 +19,12 @@ export interface BriefingSectionProps {
   onCommand: BriefingItemRowProps["onCommand"];
   pending: { issueId: string; action: string } | null;
   onShowAll: () => void;
+  /** Set while commands cannot be sent (offline); see BriefingItemRow. */
+  commandsDisabledReason?: string | null;
 }
 
 /** A labelled group of items (Needs you now, Plan for today, …); "Handled for you" is a sage box. */
-export function BriefingSection({ section, now, zone, onCommand, pending, onShowAll }: BriefingSectionProps) {
+export function BriefingSection({ section, now, zone, onCommand, pending, onShowAll, commandsDisabledReason = null }: BriefingSectionProps) {
   const headingId = useId();
   const handled = section.code === "handled_for_you";
   return (
@@ -40,6 +42,7 @@ export function BriefingSection({ section, now, zone, onCommand, pending, onShow
                 zone={zone}
                 onCommand={onCommand}
                 pendingAction={pending?.issueId === item.issue_id ? pending.action : null}
+                commandsDisabledReason={commandsDisabledReason}
               />
             </li>
           ))}
@@ -58,22 +61,25 @@ export function BriefingSection({ section, now, zone, onCommand, pending, onShow
 }
 
 /**
- * "N updates · Show": appears when a newer briefing version exists. The list on screen never
- * re-sorts by itself; the live region announces the pill as text.
+ * "N updates · Show" (or "Your briefing for Tuesday, 13 October is ready · Show"): appears when
+ * a newer briefing exists. The list on screen never re-sorts by itself. The page announces the
+ * change once through the shared live announcer, so this pill is not a live region itself.
  */
-export function UpdatesBanner({ count, onShow }: { count: number; onShow: () => void }) {
+export function UpdatesBanner({ update, onShow }: { update: PendingUpdate | null; onShow: () => void }) {
+  if (!update || (update.kind === "updates" && update.count <= 0)) return null;
   return (
-    <div aria-live="polite" aria-atomic="true">
-      {count > 0 ? (
-        <div className="flex w-fit items-center gap-3 rounded-md border bg-surface py-1.5 ps-3 pe-1.5 shadow-sm animate-rise-in">
-          <span className="font-semibold text-ink">{m.updates.pill(count)}</span>
-          <Button size="sm" variant="primary" onPress={onShow}>
-            {m.updates.show}
-          </Button>
-        </div>
-      ) : null}
+    <div className="flex w-fit items-center gap-3 rounded-md border bg-surface py-1.5 ps-3 pe-1.5 shadow-sm animate-rise-in">
+      <span className="font-semibold text-ink">{update.kind === "updates" ? m.updates.pill(update.count) : m.updates.newBriefing(update.day)}</span>
+      <Button size="sm" variant="primary" onPress={onShow}>
+        {m.updates.show}
+      </Button>
     </div>
   );
+}
+
+/** The sentence the live announcer reads when an update becomes available. */
+export function updateAnnouncement(update: PendingUpdate): string {
+  return update.kind === "updates" ? m.updates.announce(update.count) : m.updates.newBriefingAnnounce(update.day);
 }
 
 /** The full-list toggle: from the top five to every item, without leaving the page. */

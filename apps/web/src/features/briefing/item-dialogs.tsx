@@ -12,11 +12,38 @@ import { TextArea } from "@/components/ui/text-field";
 import { queryKeys } from "@/lib/api/query-keys";
 import { formatDayTime, type ZoneOptions } from "@/lib/format/time";
 import { briefingMessages as m } from "@/messages/briefing";
-import { fetchExplanation, snoozeUntil } from "./api";
+import { fetchExplanation } from "./api";
 import { actionLabel } from "./model";
-import type { BriefingAction, BriefingItem } from "./types";
+import type { BriefingAction, BriefingItem, ReasonOption } from "./types";
 
-type SnoozeChoice = "1h" | "3h" | "24h";
+export type SnoozeChoice = "1h" | "3h" | "24h";
+
+/**
+ * Which item and action a dialog is open for, or null while it is closed. The dialogs stay
+ * mounted (for their exit animation), so their form state is reset whenever this changes.
+ */
+export function dialogIdentity(isOpen: boolean, item: Pick<BriefingItem, "issue_id"> | null, action: Pick<BriefingAction, "action"> | null): string | null {
+  return isOpen && item ? `${item.issue_id}:${action?.action ?? ""}` : null;
+}
+
+/** Calls `reset` during render when the dialog opens or switches to another item or action. */
+function useResetOnOpen(identity: string | null, reset: () => void): void {
+  const [seen, setSeen] = useState(identity);
+  if (identity !== seen) {
+    setSeen(identity);
+    if (identity !== null) reset();
+  }
+}
+
+/** The chosen reason, if it is one this action offers; anything else is never sent. */
+export function reasonToSubmit(reason: string | null, reasons: readonly ReasonOption[]): string | null {
+  return reason !== null && reasons.some((option) => option.code === reason) ? reason : null;
+}
+
+/** A disabled Confirm (offline) says why; otherwise Confirm is enabled. */
+function confirmAvailability(disabledReason: string | null | undefined) {
+  return disabledReason ? ({ isDisabled: true, disabledReason } as const) : ({} as const);
+}
 
 export function SnoozeDialog({
   item,
@@ -24,6 +51,7 @@ export function SnoozeDialog({
   zone,
   isOpen,
   isPending,
+  disabledReason,
   onOpenChange,
   onConfirm,
 }: {
@@ -32,10 +60,13 @@ export function SnoozeDialog({
   zone: ZoneOptions;
   isOpen: boolean;
   isPending: boolean;
+  /** Set while commands cannot be sent (offline). */
+  disabledReason?: string | null;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (until: string) => void;
+  onConfirm: (choice: SnoozeChoice) => void;
 }) {
   const [choice, setChoice] = useState<SnoozeChoice>("1h");
+  useResetOnOpen(dialogIdentity(isOpen, item, { action: "snooze" }), () => setChoice("1h"));
   const deadline = item?.due_at && item.due_kind === "hard" ? formatDayTime(item.due_at, now, zone) : null;
   return (
     <Dialog
@@ -49,7 +80,7 @@ export function SnoozeDialog({
           <Button variant="quiet" onPress={close}>
             {m.reason.cancel}
           </Button>
-          <Button variant="primary" isPending={isPending} onPress={() => onConfirm(snoozeUntil(choice, new Date()))}>
+          <Button variant="primary" isPending={isPending} onPress={() => onConfirm(choice)} {...confirmAvailability(disabledReason)}>
             {m.snooze.confirm}
           </Button>
         </>
@@ -68,6 +99,7 @@ export function SnoozeDialog({
           ]}
         />
         {deadline ? <p className="text-sm font-semibold text-ink">{m.snooze.deadline(deadline)}</p> : null}
+        {disabledReason ? <p className="text-sm text-warning-text">{disabledReason}</p> : null}
       </div>
     </Dialog>
   );
@@ -79,6 +111,7 @@ export function ReasonDialog({
   action,
   isOpen,
   isPending,
+  disabledReason,
   onOpenChange,
   onConfirm,
 }: {
@@ -86,16 +119,25 @@ export function ReasonDialog({
   action: BriefingAction | null;
   isOpen: boolean;
   isPending: boolean;
+  /** Set while commands cannot be sent (offline). */
+  disabledReason?: string | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: (reasonCode: string | null, note: string) => void;
 }) {
   const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  // Every opening starts empty: a reason or note typed for one item never reaches another.
+  useResetOnOpen(dialogIdentity(isOpen, item, action), () => {
+    setReason(null);
+    setNote("");
+    setSubmitted(false);
+  });
   const reasons = action?.reasons ?? [];
   const needsReason = reasons.length > 0;
   const needsNote = Boolean(action?.requires_reason) && !needsReason;
-  const reasonError = submitted && needsReason && !reason ? m.reason.reasonRequired : undefined;
+  const chosen = reasonToSubmit(reason, reasons);
+  const reasonError = submitted && needsReason && !chosen ? m.reason.reasonRequired : undefined;
   const noteError = submitted && needsNote && !note.trim() ? m.reason.noteRequired : undefined;
   const label = action ? actionLabel(action) : "";
 
@@ -104,14 +146,7 @@ export function ReasonDialog({
       title={m.reason.title(label)}
       description={item?.title}
       isOpen={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          setReason(null);
-          setNote("");
-          setSubmitted(false);
-        }
-        onOpenChange(open);
-      }}
+      onOpenChange={onOpenChange}
       size="sm"
       role="alertdialog"
       footer={(close) => (
@@ -124,9 +159,10 @@ export function ReasonDialog({
             isPending={isPending}
             onPress={() => {
               setSubmitted(true);
-              if ((needsReason && !reason) || (needsNote && !note.trim())) return;
-              onConfirm(reason, note.trim());
+              if ((needsReason && !chosen) || (needsNote && !note.trim())) return;
+              onConfirm(needsReason ? chosen : null, note.trim());
             }}
+            {...confirmAvailability(disabledReason)}
           >
             {m.reason.confirm(label)}
           </Button>
@@ -138,7 +174,7 @@ export function ReasonDialog({
           <Select
             label={m.reason.reasonLabel}
             options={reasons.map((option) => ({ id: option.code, label: option.label }))}
-            value={reason}
+            value={chosen}
             onChange={setReason}
             isRequired
             errorMessage={reasonError}
@@ -152,6 +188,7 @@ export function ReasonDialog({
           isInvalid={Boolean(noteError)}
           errorMessage={noteError}
         />
+        {disabledReason ? <p className="text-sm text-warning-text">{disabledReason}</p> : null}
       </div>
     </Dialog>
   );
@@ -171,7 +208,7 @@ export function ExplainDialog({ item, isOpen, onOpenChange }: { item: BriefingIt
       {query.isPending ? (
         <Loading label={m.explain.loading} variant="detail" />
       ) : query.isError ? (
-        <ErrorState error={query.error} what="the explanation" onRetry={() => void query.refetch()} compact headingLevel={3} />
+        <ErrorState error={query.error} what="the explanation" onRetry={() => void query.refetch()} compact headingLevel={3} backToToday={false} />
       ) : (
         <div className="flex flex-col gap-3 text-[15px]">
           <p className="text-ink">{query.data.text}</p>

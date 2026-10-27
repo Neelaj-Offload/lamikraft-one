@@ -153,6 +153,7 @@ export function ErrorState({
   error,
   what,
   onRetry,
+  backToToday = true,
   headingLevel,
   compact,
   className,
@@ -161,12 +162,27 @@ export function ErrorState({
   /** Lower-case noun phrase: "your briefing", "the Inbox". */
   what: string;
   onRetry?: () => void;
+  /**
+   * Offer "Back to Today" when the endpoint is not available yet. Pass false on Today itself
+   * (and inside dialogs), where the link would lead to the page already shown.
+   */
+  backToToday?: boolean;
   headingLevel?: HeadingLevel;
   compact?: boolean;
   className?: string;
 }) {
   if (isNetworkError(error)) return <Offline onRetry={onRetry} headingLevel={headingLevel} compact={compact} className={className} />;
   if (isEndpointUnavailable(error)) {
+    const actions = (
+      <>
+        {onRetry ? (
+          <Button onPress={onRetry} icon={<RefreshIcon size={18} />}>
+            {m.retry}
+          </Button>
+        ) : null}
+        {backToToday ? <LinkButton href="/today">{m.backToToday}</LinkButton> : null}
+      </>
+    );
     return (
       <StateView
         icon={<InfoIcon />}
@@ -174,7 +190,7 @@ export function ErrorState({
         headingLevel={headingLevel}
         compact={compact}
         className={className}
-        actions={<LinkButton href="/today">{m.backToToday}</LinkButton>}
+        actions={onRetry || backToToday ? actions : null}
       >
         {m.notYetAvailable.body}
       </StateView>
@@ -208,13 +224,20 @@ export function ErrorState({
   );
 }
 
+/**
+ * No connection to the server. With `asOf` (already formatted in the user's zone) it labels
+ * cached content that stays on screen: "Offline · as of 09:02", actions disabled
+ * (briefing.md §11).
+ */
 export function Offline({
   onRetry,
+  asOf,
   headingLevel,
   compact,
   className,
 }: {
   onRetry?: () => void;
+  asOf?: string | null;
   headingLevel?: HeadingLevel;
   compact?: boolean;
   className?: string;
@@ -222,7 +245,7 @@ export function Offline({
   return (
     <StateView
       icon={<OfflineIcon />}
-      title={m.offline.title}
+      title={asOf ? m.offline.asOfTitle(asOf) : m.offline.title}
       tone="warning"
       role="status"
       headingLevel={headingLevel}
@@ -230,7 +253,7 @@ export function Offline({
       className={className}
       actions={onRetry ? <Button onPress={onRetry}>{m.retry}</Button> : null}
     >
-      {m.offline.body}
+      {asOf ? m.offline.asOfBody : m.offline.body}
     </StateView>
   );
 }

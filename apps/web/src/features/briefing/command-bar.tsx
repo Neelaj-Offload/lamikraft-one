@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MicIcon, SendIcon } from "@/components/ui/icons";
 import { TextArea } from "@/components/ui/text-field";
 import { cx } from "@/lib/cx";
+import type { SessionCapabilities } from "@/lib/session/types";
 import { briefingMessages as m } from "@/messages/briefing";
 
 export interface VoiceControl {
@@ -25,6 +26,23 @@ export interface CommandBarProps {
    */
   voice?: VoiceControl | null;
   isPending?: boolean;
+}
+
+/**
+ * Maps the session's capability flags to the bar (frontend_verification §8, §10): push-to-talk
+ * only when the voice capability is on and a recorder is wired, typed commands only when the
+ * assistant capability is on and a sender is wired. Otherwise the bar stays visible but
+ * disabled, and says why; no control is ever rendered dead.
+ */
+export function commandBarProps(
+  capabilities: SessionCapabilities,
+  wiring: { recorder: VoiceControl | null; submit: CommandBarProps["onSubmit"] | null },
+): Pick<CommandBarProps, "voice" | "onSubmit" | "unavailableReason"> {
+  return {
+    voice: capabilities.voice ? wiring.recorder : null,
+    onSubmit: capabilities.assistant && wiring.submit ? wiring.submit : undefined,
+    unavailableReason: capabilities.assistant ? m.command.notConnected : m.command.unavailable,
+  };
 }
 
 /** Compact text (and, when enabled, voice) command bar under the greeting. */
@@ -62,7 +80,7 @@ export function CommandBar({ onSubmit, unavailableReason = m.command.unavailable
             onPressStart={voice.onPressStart}
             onPressEnd={voice.onPressEnd}
             className={cx(
-              "flex size-11 shrink-0 items-center justify-center rounded-md bg-forest text-on-forest outline-none hover:bg-forest-strong",
+              "flex size-11 shrink-0 items-center justify-center rounded-md bg-forest text-on-forest outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring hover:bg-forest-strong",
               voice.isRecording && "bg-forest-strong",
             )}
           >

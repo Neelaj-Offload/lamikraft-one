@@ -182,12 +182,17 @@ export interface BriefingView {
   briefing_id: string;
   work_date: string;
   day_type: DayType;
-  version: number;
+  /**
+   * Null only when `status` is `fallback`: generation failed and no version was written
+   * (briefing.md §11); the page then works from `fallback` alone.
+   */
+  version: number | null;
   status: BriefingStatus;
   generated_at: string;
   data_as_of: string;
   ai_status: AiStatus;
-  overview: BriefingOverview;
+  /** Null only when `status` is `fallback` (no overview was generated). */
+  overview: BriefingOverview | null;
   sections: BriefingSection[];
   items: BriefingItem[];
   /** At most five, in display order. */
@@ -198,7 +203,11 @@ export interface BriefingView {
   fallback: BriefingFallback | null;
 }
 
-/** `GET /api/v1/briefings/items/{issue_id}/explain` */
+/**
+ * `GET /api/v1/briefings/items/{issue_id}/explain` (briefing.md §9 "Explain": reason codes as
+ * deterministic text, the rule version, the recommendation reason and the sources). The shape
+ * is not fixed by §16 yet, so `parseExplanation` reads it defensively.
+ */
 export interface BriefingExplanation {
   text: string;
   reasons: string[];

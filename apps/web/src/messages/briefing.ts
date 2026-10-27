@@ -24,7 +24,11 @@ export const briefingMessages = {
     pill: (count: number) => (count === 1 ? "1 update" : `${count} updates`),
     show: "Show",
     announce: (count: number) => (count === 1 ? "1 update to your briefing is ready. Press Show to see it." : `${count} updates to your briefing are ready. Press Show to see them.`),
+    newBriefing: (day: string | null) => (day ? `Your briefing for ${day} is ready` : "Your new briefing is ready"),
+    newBriefingAnnounce: (day: string | null) =>
+      day ? `Your briefing for ${day} is ready. Press Show to see it.` : "Your new briefing is ready. Press Show to see it.",
   },
+  offlineActions: "You're offline. Actions are disabled until the connection is back.",
   fallback: {
     title: "Today's briefing couldn't be prepared",
     body: (failedAt: string, lastAt: string | null) =>
@@ -127,6 +131,7 @@ export const briefingMessages = {
     placeholder: "For example: what is due before noon?",
     send: "Send",
     unavailable: "The assistant isn't switched on for this workspace yet. Use the actions on each item, or search with /.",
+    notConnected: "Typed requests can't be sent from Today yet. Use the actions on each item, or search with /.",
     pushToTalk: "Hold to talk",
   },
 } as const;

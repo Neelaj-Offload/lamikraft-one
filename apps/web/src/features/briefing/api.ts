@@ -6,7 +6,8 @@
  */
 
 import { api, idempotencyHeaders, requestUntyped, type ApiClient } from "@/lib/api/client";
-import { parseBriefingView } from "./parse";
+import { safeAppPath } from "@/lib/safe-path";
+import { parseBriefingView, parseExplanation } from "./parse";
 import type { BriefingExplanation, BriefingItem, BriefingView } from "./types";
 
 export const TODAY_PATH = "/api/v1/briefings/today";
@@ -51,8 +52,13 @@ export function snoozeItem(command: ItemCommand & { until: string }, client: Api
   });
 }
 
-export function fetchExplanation(issueId: string, signal?: AbortSignal, client: ApiClient = api): Promise<BriefingExplanation> {
-  return requestUntyped<BriefingExplanation>(client, "get", itemPath(issueId, "explain"), { signal });
+export async function fetchExplanation(issueId: string, signal?: AbortSignal, client: ApiClient = api): Promise<BriefingExplanation> {
+  return parseExplanation(await requestUntyped<unknown>(client, "get", itemPath(issueId, "explain"), { signal }));
+}
+
+/** A receipt link from an action response (`{href}`), only when it stays in the app. */
+export function receiptHref(result: unknown): string | null {
+  return result !== null && typeof result === "object" ? safeAppPath((result as { href?: unknown }).href) : null;
 }
 
 /** Snooze choices as instants (UTC); the server enforces deadline and policy bounds. */
