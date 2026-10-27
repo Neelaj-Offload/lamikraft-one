@@ -236,12 +236,12 @@ Gate (`npm run check -- --keep-going`):
 
 | Method and path | operationId | Permission |
 |---|---|---|
-| GET `/api/v1/catalogue/products` | `catalogue_list_products` | catalogue.product.read |
+| GET `/api/v1/catalogue/products?price_currency=&price_type=` | `catalogue_list_products` | catalogue.product.read (`prices` column guarded by pricing.price.read) |
 | GET `/api/v1/catalogue/products/facets` | `catalogue_get_product_facets` | catalogue.product.read |
 | GET `/api/v1/catalogue/products/stats` | `catalogue_get_product_stats` | catalogue.product.read |
 | GET `/api/v1/catalogue/products/completeness` | `catalogue_get_product_completeness` | catalogue.product.read |
-| GET `/api/v1/catalogue/products/lookup?product_key=` | `catalogue_get_product_by_key` | catalogue.product.read |
-| GET `/api/v1/catalogue/products/{product_id}` | `catalogue_get_product` | catalogue.product.read |
+| GET `/api/v1/catalogue/products/lookup?key=` | `catalogue_get_product_by_key` | catalogue.product.read |
+| GET `/api/v1/catalogue/products/{product_id}` | `catalogue_get_product` | catalogue.product.read (overview `prices` guarded by pricing.price.read; `pricing` section needs pricing.price_list.read) |
 | GET `/api/v1/catalogue/categories` | `catalogue_list_categories` | catalogue.product.read |
 | GET `/api/v1/parties/parties` | `parties_list_parties` | parties.party.read |
 | POST `/api/v1/parties/parties` | `parties_create_party` | parties.party.create (optional Idempotency-Key) |
@@ -252,9 +252,9 @@ Gate (`npm run check -- --keep-going`):
 | GET `/api/v1/pricing/price-lists/{price_list_id}` | `pricing_get_price_list` | pricing.price.read |
 | GET `/api/v1/pricing/price-lists/{price_list_id}/items` | `pricing_list_price_list_items` | pricing.price.read (breakdown guarded by pricing.price_list.read) |
 | GET `/api/v1/pricing/products/{product_id}/prices` | `pricing_list_product_prices` | pricing.price.read (cost guarded by pricing.cost.read) |
-| GET `/api/v1/pricing/products/{product_id}/costs` | `pricing_list_product_costs` | pricing.cost.read |
-| GET `/api/v1/pricing/resolve` | `pricing_resolve_price` | pricing.price.read |
-| GET `/api/v1/commercial/rule-sets` | `commercial_list_rule_sets` | commercial.rule_set.read |
+| GET `/api/v1/pricing/products/{product_id}/costs` | `pricing_list_product_costs` | pricing.cost.read (Page; every read returning rows is audited) |
+| GET `/api/v1/pricing/prices/resolve` | `pricing_resolve_price` | pricing.price.read |
+| GET `/api/v1/commercial/rule-sets` | `commercial_list_rule_sets` | commercial.rule_set.read (Page) |
 | GET `/api/v1/commercial/rule-sets/{rule_set_id}` | `commercial_get_rule_set` | commercial.rule_set.read (returns `RuleSetDetail`) |
 
 ## 4. Events, permissions, contributions
@@ -274,7 +274,8 @@ Gate (`npm run check -- --keep-going`):
     `pricing.cost.read` (field guard), `pricing.cost.update`;
   - commercial: `commercial.rule_set.read`, `commercial.rule_set.manage`.
 - **Sequence:** `parties.party` `P-{seq:05}`, never reset.
-- **Seeds:** `parties.world` (20), `catalogue.world` (30), `pricing.world` (40), `commercial.world` (40).
+- **Seeds:** `parties.world` (20), `catalogue.world` (30), `pricing.world` (40), `commercial.world` (40),
+  `parties.world.changes` (55, Maison's D-1 shipping change).
 - **Agent tools:** `resolve_party`, `resolve_price`, `calculate_quote` (all `effect="read"`).
 - **Search providers:** `catalogue.product`, `parties.party`.
 - **Source readers:** `catalogue.product`, `parties.party`.
@@ -317,7 +318,9 @@ None.
 5. **Seed event origin.** Persona actions record origin `user`. Products created by the seed carry provenance
    `origin=seed`, and so does their `catalogue.product.created` event. Please confirm.
 6. **Slice-2 events emitted early.** `catalogue.category.created` and `catalogue.subcategory.created` are marked
-   Slice 2 in events.md but are emitted now, when the seed creates taxonomy rows.
+   Slice 2 in events.md but are emitted now, when the seed creates taxonomy rows. The same holds for
+   `pricing.price_list.created` (every `create_price_list`, seed included) and `pricing.product_cost.recorded`
+   (`record_product_cost`). Please confirm early emission or ask the lane to hold them until Slice 2.
 7. **Party roles.** Roles are limited to customer, vendor, fabricator and job_worker, as briefed. Challan destinations
    include Transporter, so Slice 2 may want a `transporter` role.
 8. **`resolve_product`.** It is a catalogue service. No ToolDef is registered, to avoid a duplicate tool name if the
@@ -351,14 +354,106 @@ None.
   - **Lookup reference.** `lookup_reference` has a table only. The browser, export and import are Slice 2
     (`catalogue.lookup.read` is a Slice-2 key).
 - **Owned by other lanes:**
-  - **Price enrichment in catalogue reads.** List rows lack the EUR price and order-value recommendation (LM-11), and
-    stats lack "without pricing". The catalogue cannot import pricing (pricing depends on catalogue). A composition
-    endpoint, in sales or pricing, or a client join is needed.
+  - **Price enrichment in catalogue reads.** Done in the fix pass: list rows and the overview carry `prices`
+    (pricing.display_prices plus the engine recommendation) through a contribution the commercial manifest registers
+    (`catalogue.register_price_columns`), so the catalogue still never imports pricing. Stats still lack "without
+    pricing" (Slice 2 dashboard).
   - **Identity in tests.** Tests register a stand-in member-actor builder (template grants from the frozen catalogue)
     and override the session dependency for HTTP tests, because identity and the test-support sign-in are another
     lane.
 - **Accepted for now:**
-  - **Active-list price immutability.** It is enforced in the service only: `add_item` accepts draft lists only, and
-    changes go through supersede. There is no DB trigger yet, because no helper exists (see question 2).
+  - **Active-list price immutability.** Enforced in the service and, since the fix pass, by the raw-SQL trigger
+    `trg_pricing_price_list_item_immutable` in 0005 (move it to the helper of question 2 when it exists).
   - **Supersede versions.** A superseded item's version moves by two: it is shortened, then linked. This is required
     by the non-deferrable exclusion constraint.
+
+## Fix pass (2026-10-27)
+
+Two adversarial reviews (correctness-security, spec-conformance; 2026-10-23) produced 27 findings. A first fix pass
+was interrupted with uncommitted work; this pass reconciled it against every finding, finished it, added the missing
+regression tests and committed everything. Commits: `c3442c6` (pricing), `1a4d312` (commercial), `31d543f`
+(catalogue), `3e43745` (parties seed and tests), `5b07f7d` (test name), and this report.
+
+### Correctness-security lens
+
+| finding | severity | status |
+|---|---|---|
+| CS-1 calculate_quote prices lines from draft, retired or expired lists | major | fixed in `c3442c6` + `1a4d312`: PricedItem carries list status and validity; a line whose list is not active or whose list or item is not effective on the business date is a 422 `price_not_current` (test `test_draft_retired_or_expired_prices_are_never_totalled`) |
+| CS-2 activation overlap guard is racy | minor | fixed in `c3442c6`: advisory xact lock per overlap target before the check (`test_activation_takes_the_target_lock`) |
+| CS-3 unbounded quantity crashes with InvalidOperation | minor | fixed in `1a4d312`: `le=99999999999999`, `decimal_places=6`; engine ValueError/ArithmeticError become ValidationFailed (`test_out_of_range_quantities_are_a_422_never_an_arithmetic_error`, `test_largest_wire_quantity_is_calculated`) |
+| CS-4 size facet counts disagree with the size filter | minor | fixed in `31d543f`: facet groups on least/greatest (`test_size_facet_counts_match_the_orientation_insensitive_filter`) |
+| CS-5 sub-scale values hit a DB CHECK (500) | minor | fixed in `31d543f`: below_precision / too_large field errors for lengths, thickness and packaging (`test_positive_values_below_the_column_scale_are_rejected_not_zeroed`, `test_values_outside_the_column_scale_are_a_422_not_a_db_error`) |
+| CS-6 mixed-unit dimension text parsed silently | minor | fixed in `31d543f`: status ambiguous + MIXED_UNITS (`test_mixed_units_are_ambiguous_never_guessed`) |
+| CS-7 numeric 120.0 identifiers normalised without warning | minor | fixed in `31d543f` (`tests/unit/catalogue/test_normalise_identifier.py`) |
+| CS-8 fractional quantities for integer units | minor | fixed in `1a4d312`: conventions §6 entry rule per item unit, 422 `uom_integer_only` / `uom_max_decimals` (`test_quantities_follow_the_unit_entry_rule`) |
+| CS-9 sensitive cost reads not audited | minor | fixed in `c3442c6`: `pricing.product_cost.read` audit with field names and versions only (`test_cost_reads_are_audited_without_values`) |
+| CS-10 CalculationResult inputs mutable through as_dict | minor | fixed in `1a4d312`: inputs deeply frozen, as_dict returns a copy (`test_result_is_frozen_and_carries_its_inputs`) |
+| CS-11 rule-set effective_from ignored | minor | fixed in `1a4d312`: activation before effective_from is a 409 `rule_set_not_yet_effective`, capability mirrors it (`test_future_rule_set_is_not_activated_before_its_effective_date`) |
+| CS-12 N+1 in _activation_conflicts | minor | fixed in `c3442c6`: one set-based join (covered by `test_overlapping_list_activation_is_rejected`, `test_unique_explicit_priority_resolves_the_overlap`) |
+| CS-13 supersede allowed on draft and retired lists | minor | fixed in `c3442c6`: 409 `price_list_not_active`, capability reason (`test_supersede_only_on_active_lists`) |
+| CS-14 active item immutability only in the service | minor | fixed in `c3442c6`: BEFORE UPDATE trigger in 0005 (`test_active_item_prices_are_immutable_in_the_database`) |
+
+### Spec-conformance lens
+
+| finding | severity | status |
+|---|---|---|
+| SC-1 money and quantities not {amount,currency} / {value,uom} | major | fixed in `c3442c6` + `1a4d312` + `31d543f`: price-list items, candidates, resolutions, costs, MOQ, calculation subtotals, adjustments, surcharge, grand total, line and recommended quantities (engine and HTTP tests assert the wire shape) |
+| SC-2 UI-35 / LM-11 price and recommendation columns missing | major | fixed in `c3442c6` + `1a4d312` + `31d543f`: `pricing.display_prices` batch read plus engine recommendation, registered into catalogue reads (`test_price_columns_require_pricing_price_read`, `test_overview_prices_only_from_real_lists`, `test_rows_enriched_without_n_plus_one`) |
+| SC-3 taxonomy rules untested | major | fixed in `31d543f`: `tests/integration/catalogue/test_taxonomy.py` (`test_created_category_active_by_default`, `test_composite_fk_rejects_foreign_subcategory`, duplicates, inactive parent, display order) |
+| SC-4 pricing tab gated on pricing.price.read | major | fixed in `31d543f`: gated on pricing.price_list.read (`test_detail_returns_all_field_groups_with_section_guards`) |
+| SC-5 DB trigger for active-list prices | minor | fixed in `c3442c6` (same as CS-14) |
+| SC-6 verifying tests not under matrix names | minor | fixed in `31d543f`, `1a4d312`, `5b07f7d` for LM-10/API-10, BUG-05/FG-PRD-09, SCN-D1/D2/D4, BR-01..04, FG-PRD-01, UI-35, UI-39, UI-40, FG-TAX, BUG-07, BUG-10; GAP-01 is mapped below (row is 1→2) |
+| SC-7 seed history not chronological | minor | fixed in `3e43745`: `parties.world.changes` SeedDef at order 55 (`test_seed_history_is_chronological`) |
+| SC-8 packaging summary separator | minor | fixed in `31d543f`: "450g · 24/ctn · Poly bag" (`test_oak_tray_fixture_fields`) |
+| SC-9 bare-array lists, action route, lookup parameter | minor | fixed in `c3442c6` + `1a4d312` + `31d543f`: Page for rule sets and costs, `GET /pricing/prices/resolve`, `lookup?key=` (`test_lane_api.py`, `test_lookup_by_key_with_special_characters`) |
+| SC-10 Slice-2 pricing events not disclosed | minor | fixed in this report (contract question 6) |
+| SC-11 fractional quantities for integer units | minor | duplicate of CS-8, fixed in `1a4d312` |
+| SC-12 tests assert literal fixture values | minor | fixed in `31d543f` + `3e43745`: party number from the sequence definition, taxonomy and product names from the seed modules |
+| SC-13 customer types as enum CHECKs; no import_job_id | minor | partly fixed in `c3442c6` (nullable `import_job_id` on items; FK when imports land). Customer-type reference table deferred: customer types become manageable in Slice 2 (`parties.customer_type.manage`); the migration to a `parties_customer_type` table with FKs from `parties_party` and `pricing_price_list` belongs with that work |
+
+No finding contradicted a contract document.
+
+### PARITY_MATRIX row-to-test mapping (Slice-1 rows of this lane)
+
+- LM-10 / API-10: `tests/integration/catalogue/test_product_list.py::test_search_and_filters_apply_before_pagination`
+- UI-35 / LM-11: `test_product_list.py::test_price_columns_require_pricing_price_read`, `::test_rows_enriched_without_n_plus_one`
+- UI-39: `test_product_detail.py::test_overview_prices_only_from_real_lists`
+- UI-40: `test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards`
+- API-13: `test_product_detail.py::test_lookup_by_key_with_special_characters`
+- FG-PRD-01: `tests/integration/catalogue/test_product_crud.py::test_product_key_immutable_api_and_db_trigger`
+- FG-PRD-05 / FG-REL-01: `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory`
+- FG-TAX-01..06: `test_taxonomy.py` (`test_duplicate_name_keys_conflict`, `test_inactive_parent_hides_its_children`, `test_tree_follows_display_order`); reorder and activation endpoints are Slice 2
+- BUG-07: `test_taxonomy.py::test_created_category_active_by_default`
+- BUG-05 / FG-PRD-09: `tests/unit/catalogue/test_normalise_identifier.py::test_normalise_identifier`, `::test_120_0_becomes_120_and_0120_stays_distinct`
+- FG-PKG-11: `tests/integration/catalogue/test_seed_world.py::test_oak_tray_fixture_fields`
+- SCN-D1 / LM-61 / BR-03: `tests/unit/commercial/test_engine.py::test_recommended_quantity`
+- BR-02 / SCN-D2: `test_engine.py::test_surcharge_table`
+- BR-01: `test_engine.py::test_minimum_order_meets_below_not_evaluated`
+- SCN-D4: `test_engine.py::test_missing_zero_price_and_non_eur`
+- FG-PRC-10: `test_engine.py::test_product_moq_distinct_from_recommendation`
+- BR-04 / BUG-10: `tests/integration/pricing/test_price_resolution.py::test_legacy_multi_eur_rows_resolved_by_price_type`
+- FG-PRC-02/03/11/13: `tests/integration/pricing/test_price_lists.py` (`test_lists_items_and_product_prices`, `test_breakdown_fields_need_price_list_read`, `test_product_cost_is_restricted_everywhere`, `test_items_never_overlap_for_the_same_list_product_and_unit`) and `test_price_resolution.py`
+- GAP-01 (1→2): `tests/integration/parties/test_parties.py` (`test_create_allocates_the_next_number_and_emits_created`, `test_update_reports_changed_field_names_and_checks_versions`, `test_sales_users_see_only_their_own_parties`, `test_company_scope_and_visible_but_forbidden`); the matrix name `test_party_contacts_addresses_roles_scope` can point there
+
+### Gate output
+
+- `npm run test:api`: `274 passed in 140.55s (0:02:20)`
+- `npm run check -- --keep-going`: ruff check PASS; pytest unit + contract PASS (157 passed); alembic heads == 1 PASS;
+  api:check FAIL (expected: "backend/openapi.json is out of date", routes and schemas changed); web lint PASS; web
+  typecheck PASS; web vitest PASS (134 passed)
+
+### Requests for the integrator
+
+1. Regenerate `backend/openapi.json` and the web client types (routes and DTOs changed: money and quantity objects,
+   `/pricing/prices/resolve`, `lookup?key=`, Page for rule sets and costs, `prices` on catalogue rows and detail).
+2. Cross-lane contract change for the sales lane: `engine.LineInput` now needs `uom`; `CalculationResult.as_dict()`
+   and `CalculationResultOut` carry money as `{amount, currency}` and quantities as `{value, uom}` (the recommended
+   quantity is a Quantity, not an int); `PriceResolution.unit_price` and `product_moq` are Money and Quantity
+   (`moq_unit_code` is gone); `PriceListItemRead` has no `currency` (it is inside `unit_price`); `list_rule_sets`
+   returns a Page. calculate_quote rejects non-current prices and quantities that break the unit entry rule.
+3. Seed order: `parties.world.changes` is order 55, chosen to run after the sales history seed (expected around 50)
+   and before tasks (80). Please confirm the slot when the sales seed lands.
+4. Migration 0005 was edited in place (trigger and `import_job_id`); databases already at 0005 need a downgrade to
+   0002 and upgrade (done for `lk_wt3` and `lk_wt3_test`).
+5. Unchanged earlier requests: immutability helper (question 2, now also for `trg_pricing_price_list_item_immutable`),
+   keys.py taxonomy and product constants (question 3), shared Capability type (question 10).
