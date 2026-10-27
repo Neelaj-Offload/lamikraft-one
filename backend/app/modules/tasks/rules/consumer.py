@@ -119,6 +119,46 @@ def _on_activated(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> It
     )
 
 
+def _on_deactivated(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
+    """Offboarding (events.md §3.1): cancel private reminders, cancel onboarding about the member,
+    re-resolve every rule issue they were responsible for (named person → manager → queue), then
+    "Reassign N open tasks" for what remains."""
+    from app.modules.tasks import responsibility
+    from app.modules.tasks.rules import admin
+
+    payload = event.payload or {}
+    user_id = _uuid(payload.get("user_id"))
+    if user_id is None:
+        user_id = responsibility.membership_user(uow, _uuid(payload.get("membership_id")) or event.aggregate_id)
+    if user_id is None or responsibility.is_active(uow, user_id):
+        return  # nothing to do, or reactivated before this event was processed
+    admin.cancel_member_reminders(uow, user_id)
+    for key in admin.member_onboarding_keys(uow, user_id):
+        yield admin.close_onboarding(uow, key, event)
+    derivers = derivers_for(uow)
+    for family, root_id in admin.member_rule_issues(uow, user_id, tuple(derivers)):
+        yield derivers[family](root_id, cache)
+    yield admin.derive_offboarding(
+        uow, user_id, reassign_to_user_id=responsibility.membership_user(uow, _uuid(payload.get("reassign_to_membership_id"))),
+        event=event,
+    )
+
+
+def _on_dead_lettered(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
+    from app.modules.tasks.rules import admin
+
+    handler = str((event.payload or {}).get("handler_key") or "")
+    prefix, _, source_event = handler.partition(":")
+    families = EVENT_FAMILIES.get(source_event, ()) if prefix == CONSUMER else ()
+    yield admin.derive_failed_job(uow, event, families)
+
+
+def _on_generation_failed(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
+    from app.modules.tasks.rules import admin
+
+    yield admin.derive_briefing_failures(uow, event)
+
+
 QUOTE_EVENTS = (
     "sales.quote.created",
     "sales.quote.updated",
@@ -157,6 +197,23 @@ TRIGGERS: dict[str, Trigger] = {
     "sales.enquiry.closed": _on_enquiry,
     "parties.party.updated": _on_party_updated,
     "identity.membership.activated": _on_activated,
+    "identity.membership.deactivated": _on_deactivated,
+    "system.job.dead_lettered": _on_dead_lettered,
+    "briefings.briefing.generation_failed": _on_generation_failed,
+}
+
+_REPLY_FAMILIES = ("sales.quote_review", "sales.quote_expiry", "sales.customer_replies")
+#: rule families each trigger feeds (a dead-lettered delivery marks these partial in briefings)
+EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
+    **dict.fromkeys(QUOTE_EVENTS, _REPLY_FAMILIES),
+    **dict.fromkeys(PROPOSAL_EVENTS, ("common.approvals", "sales.customer_replies")),
+    "sales.customer_message.received": ("sales.customer_replies",),
+    "sales.customer_message.replied": ("sales.customer_replies",),
+    **dict.fromkeys(("sales.enquiry.received", "sales.enquiry.assigned", "sales.enquiry.quoted", "sales.enquiry.closed"),
+                    ("sales.enquiries",)),
+    "parties.party.updated": ("sales.customer_changes",),
+    "identity.membership.activated": ("common.onboarding",),
+    "identity.membership.deactivated": ("common.offboarding",),
 }
 
 #: event aggregate type -> issue-member ref type compared for staleness
@@ -200,15 +257,21 @@ def handle(uow: UnitOfWork, event: DomainEvent) -> int:
     return count
 
 
-def rederive_open(uow: UnitOfWork, *, families_only: tuple[str, ...] | None = None) -> int:
-    """Re-derive every live issue of the derivable families (visibility consistency, after access changes)."""
-    derive_by_family: dict[str, Callable[[uuid.UUID, SourceCache], IssueOutcome | None]] = {
+def derivers_for(uow: UnitOfWork) -> dict[str, Callable[[uuid.UUID, SourceCache], IssueOutcome | None]]:
+    """Families whose issues can be re-derived from the root record alone (current source state)."""
+    return {
         "common.approvals": lambda rid, c: families.derive_approval(uow, rid, cache=c),
         "sales.customer_replies": lambda rid, c: families.derive_message(uow, rid, cache=c),
         "sales.quote_review": lambda rid, c: families.derive_quote_review(uow, rid, cache=c),
         "sales.quote_expiry": lambda rid, c: families.derive_quote_expiry(uow, rid, cache=c),
         "sales.enquiries": lambda rid, c: families.derive_enquiry(uow, rid, cache=c),
     }
+
+
+def rederive_open(uow: UnitOfWork, *, families_only: tuple[str, ...] | None = None) -> int:
+    """Re-derive every live issue of the derivable families (visibility consistency, after access changes).
+    Manual (re)assignments survive it (``issues.assignment_holds``)."""
+    derive_by_family = derivers_for(uow)
     wanted = families_only or tuple(derive_by_family)
     rows = uow.session.execute(
         select(Issue.family, Issue.root_ref_id)

@@ -25,8 +25,10 @@ from app.platform.authz.policy import get_policy, scope_clause
 from app.platform.sources import SourceFacts
 from app.platform.uow import UnitOfWork
 
+#: administrative references (queues, dead-lettered jobs, failing briefings): queue managers only
+ADMIN_REF_TYPES = frozenset({"tasks.queue", "system.job", "briefings.briefing"})
 #: internal reference types that are not business records read through a SourceReader
-INTERNAL_REF_TYPES = frozenset({"tasks.task", "identity.user", "tasks.queue"})
+INTERNAL_REF_TYPES = frozenset({"tasks.task", "identity.user"}) | ADMIN_REF_TYPES
 TASK_READ = "tasks.task.read"
 
 
@@ -106,7 +108,7 @@ def _can_view(uow: UnitOfWork, source_type: str, source_id: uuid.UUID, cache: So
         return actor.user_id == source_id or actor.can("org.directory.read")
     if source_type == "tasks.task":
         return task_visible(uow, source_id)
-    if source_type == "tasks.queue":
+    if source_type in ADMIN_REF_TYPES:
         return actor.can("tasks.queue.manage")
     if source_type == "approvals.proposal":
         from app.modules.approvals import service as approvals
@@ -133,6 +135,39 @@ def _can_view(uow: UnitOfWork, source_type: str, source_id: uuid.UUID, cache: So
     return scope_allows(
         actor, facts.required_permission, owner_ids=(facts.owner_user_id,), branch_id=facts.branch_id
     )
+
+
+#: reference types decided by dedicated rules above (never by a bulk policy query)
+_SPECIAL_TYPES = frozenset({"identity.user", "tasks.task", "approvals.proposal"}) | ADMIN_REF_TYPES
+
+
+def prime_visibility(uow: UnitOfWork, refs: Iterable[tuple[str | None, uuid.UUID | None]], cache: SourceCache) -> None:
+    """Decide many references at once where a ResourcePolicy exists: one query per source type instead
+    of one per record (lists, counts and briefing builds). Other types are left to ``can_view_source``."""
+    actor = uow.actor
+    if actor.is_system:
+        return
+    by_type: dict[str, set[uuid.UUID]] = {}
+    for source_type, source_id in refs:
+        if source_type is None or source_id is None or source_type in _SPECIAL_TYPES:
+            continue
+        if (source_type, source_id) not in cache.visible:
+            by_type.setdefault(source_type, set()).add(source_id)
+    for source_type, ids in sorted(by_type.items()):
+        try:
+            policy = get_policy(source_type)
+        except KeyError:
+            continue
+        if policy is None:
+            continue
+        model = policy.model
+        seen = set(
+            uow.session.scalars(
+                select(model.id).where(model.id.in_(sorted(ids)), scope_clause(actor, policy, "read"))  # type: ignore[attr-defined]
+            )
+        )
+        for source_id in ids:
+            cache.visible[(source_type, source_id)] = source_id in seen
 
 
 # ---- tasks ---------------------------------------------------------------------------------------

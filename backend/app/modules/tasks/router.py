@@ -32,6 +32,7 @@ from app.modules.tasks.schemas import (
     TaskDetail,
     TaskTransition,
 )
+from app.modules.tasks.txn import retry_transient
 from app.platform.authz.context import ActorContext
 from app.platform.idempotency.service import run_idempotent
 from app.platform.uow import UnitOfWork
@@ -42,12 +43,17 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 def run_command(
     actor: ActorContext, response: Response, operation: str, body: Any, fn: Callable[[UnitOfWork], BaseModel]
 ) -> dict[str, Any]:
-    """One unit of work; idempotent when the client sent an ``Idempotency-Key``."""
-    with UnitOfWork(actor) as uow:
-        result, replayed = run_idempotent(
-            uow, key=actor.idempotency_key, operation=operation, body=body,
-            fn=lambda: fn(uow).model_dump(mode="json"),
-        )
+    """One unit of work; idempotent when the client sent an ``Idempotency-Key``; a deadlock or
+    serialisation failure re-runs the whole command in a fresh unit of work (up to three attempts)."""
+
+    def attempt() -> tuple[dict[str, Any], bool]:
+        with UnitOfWork(actor) as uow:
+            return run_idempotent(  # type: ignore[no-any-return]
+                uow, key=actor.idempotency_key, operation=operation, body=body,
+                fn=lambda: fn(uow).model_dump(mode="json"),
+            )
+
+    result, replayed = retry_transient(attempt)
     if replayed:
         response.headers["Idempotent-Replayed"] = "true"
     return result
@@ -120,9 +126,14 @@ def delete_task_snooze(actor: Actor, task_id: uuid.UUID) -> SnoozeOut:
 
 # ---- personal reminders (self-service; others' reminders return 404) ------------------------------
 @router.get("/reminders", openapi_extra=authenticated())
-def list_reminders(actor: Actor, include_closed: bool = False) -> ReminderList:
+def list_reminders(
+    actor: Actor,
+    include_closed: bool = False,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> ReminderList:
     with UnitOfWork(actor) as uow:
-        return service.list_reminders(uow, include_closed=include_closed)
+        return service.list_reminders(uow, include_closed=include_closed, limit=limit, offset=offset)
 
 
 @router.post("/reminders", status_code=201, openapi_extra=authenticated())

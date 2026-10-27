@@ -111,12 +111,33 @@ def resolve(uow: UnitOfWork, family: str, named: Sequence[uuid.UUID | None]) -> 
     return Responsible(owner_user_id=None, assignee_user_id=None, queue_code=QUEUE_BY_FAMILY_PREFIX.get(prefix, "admin"))
 
 
+_ACTOR_CACHE = "tasks.member_actors"
+
+
 def member_actor(uow: UnitOfWork, user_id: uuid.UUID) -> ActorContext | None:
-    """The member's effective context (None when the membership is inactive)."""
-    try:
-        return actor_for_member(uow.actor.company_id, user_id, channel="job")  # type: ignore[arg-type]
-    except NotFound:
-        return None
+    """The member's effective context (None when the membership is inactive).
+
+    Cached per transaction (the session's info): reconciliation evaluates every active member for
+    queue managers and approval eligibility, and a membership's grants do not change mid-transaction.
+    """
+    cache: dict[tuple[uuid.UUID | None, uuid.UUID], ActorContext | None] = uow.session.info.setdefault(_ACTOR_CACHE, {})
+    key = (uow.actor.company_id, user_id)
+    if key not in cache:
+        try:
+            cache[key] = actor_for_member(uow.actor.company_id, user_id, channel="job")  # type: ignore[arg-type]
+        except NotFound:
+            cache[key] = None
+    return cache[key]
+
+
+def queue_managers(uow: UnitOfWork) -> list[uuid.UUID]:
+    """Active members holding ``tasks.queue.manage`` (they triage queues and administrative issues)."""
+    out: list[uuid.UUID] = []
+    for user_id in active_member_ids(uow):
+        actor = member_actor(uow, user_id)
+        if actor is not None and actor.can("tasks.queue.manage"):
+            out.append(user_id)
+    return out
 
 
 def eligible_approvers(uow: UnitOfWork, proposal: object) -> list[uuid.UUID]:

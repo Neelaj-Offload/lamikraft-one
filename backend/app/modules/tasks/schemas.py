@@ -5,11 +5,22 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from app.modules.tasks.models import DismissalReason
+
+
+def non_blank(value: str) -> str:
+    """Free text is stored stripped and must keep at least one visible character (422 otherwise)."""
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError("must contain a non-space character")
+    return stripped
+
+
+NonBlankStr = Annotated[str, AfterValidator(non_blank)]
 
 InboxTab = Literal["tasks", "approvals", "conversations", "exceptions"]
 InboxScope = Literal["mine", "team", "branch", "company"]
@@ -215,7 +226,7 @@ class TaskDetail(InboxItem):
 class TaskCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    title: str = Field(min_length=1, max_length=300)
+    title: NonBlankStr = Field(min_length=1, max_length=300)
     assignee_user_id: uuid.UUID | None = None
     owner_user_id: uuid.UUID | None = None
     due_at: datetime | None = None
@@ -226,10 +237,12 @@ class TaskCreate(BaseModel):
 
 
 class TaskTransition(BaseModel):
+    """``expected_version`` is the task version the client acted on (api-conventions §6: 409 on mismatch)."""
+
     model_config = ConfigDict(extra="forbid")
 
     action: TaskAction
-    expected_version: int | None = None
+    expected_version: int = Field(ge=1)
     reason_code: DismissalReasonCode | None = None
     note: str | None = Field(default=None, max_length=500)
 
@@ -238,7 +251,7 @@ class TaskAssignment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     assignee_user_id: uuid.UUID
-    expected_version: int | None = None
+    expected_version: int = Field(ge=1)
 
 
 class SnoozeRequest(BaseModel):
@@ -256,7 +269,7 @@ class SnoozeOut(BaseModel):
 class ReminderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    text: str = Field(min_length=1, max_length=280)
+    text: NonBlankStr = Field(min_length=1, max_length=280)
     remind_at: datetime
     linked_ref_type: str | None = Field(default=None, max_length=80)
     linked_ref_id: uuid.UUID | None = None
@@ -266,7 +279,7 @@ class ReminderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     expected_version: int
-    text: str | None = Field(default=None, min_length=1, max_length=280)
+    text: NonBlankStr | None = Field(default=None, min_length=1, max_length=280)
     remind_at: datetime | None = None
     state: Literal["pending", "done", "cancelled"] | None = None
 
@@ -284,4 +297,9 @@ class ReminderOut(BaseModel):
 
 
 class ReminderList(BaseModel):
+    """Offset page of the caller's reminders (api-conventions §9: ``Page{items, total, limit, offset}``)."""
+
     items: list[ReminderOut]
+    total: int
+    limit: int
+    offset: int

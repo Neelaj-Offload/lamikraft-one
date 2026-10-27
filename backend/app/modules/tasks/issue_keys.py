@@ -64,6 +64,18 @@ def responsibility_key(queue_code: str) -> str:
     return f"responsibility:{queue_code}"
 
 
+def offboarding_key(user_id: uuid.UUID) -> str:
+    return f"offboarding:{user_id}:reassign"
+
+
+def failed_job_key(job_id: uuid.UUID) -> str:
+    return f"failed_job:{job_id}"
+
+
+def briefing_failure_key(briefing_id: uuid.UUID) -> str:
+    return f"briefing_failed:{briefing_id}"
+
+
 # ---- fingerprints ---------------------------------------------------------------------------------
 def canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)

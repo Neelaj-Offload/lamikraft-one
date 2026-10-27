@@ -9,7 +9,7 @@ be read (reader not installed), the check reports ``cannot_verify`` instead of g
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -55,6 +55,27 @@ def known_checks() -> frozenset[str]:
     return frozenset(_CHECKS)
 
 
+#: the SourceReader each source-verified check needs; without it the check can only say cannot_verify
+CHECK_SOURCES: dict[str, str] = {
+    "reply_sent": "sales.customer_message",
+    "quote_left_draft": "sales.quote",
+    "quote_expiry_resolved": "sales.quote",
+    "enquiry_answered": "sales.enquiry",
+    "pref_briefing_saved": "identity.user_preference",
+    "recent_record_exists": "ui.recent_record",
+    "recent_search_exists": "search.recent",
+}
+
+
+def verifiable(completion_check: str) -> bool:
+    """Whether "mark handled" can ever succeed for this check right now: approvals are decided through
+    the approvals engine, and a source-verified check needs its reader installed (no dead controls)."""
+    if completion_check not in _CHECKS or completion_check == "approval_decided":
+        return False
+    source_type = CHECK_SOURCES.get(completion_check)
+    return source_type is None or sources.has_reader(source_type)
+
+
 def as_uuid(value: Any) -> uuid.UUID:
     return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
 
@@ -67,8 +88,17 @@ def _parse_dt(value: Any) -> datetime | None:
     return datetime.fromisoformat(str(value))
 
 
-def reply_state(uow: UnitOfWork, message_id: Any, read: Callable[[str, Any], Any] | None = None) -> CompletionResult:
-    """A reply obligation ends when the message is replied or a linked quote was sent after it arrived."""
+def reply_state(
+    uow: UnitOfWork,
+    message_id: Any,
+    read: Callable[[str, Any], Any] | None = None,
+    *,
+    quote_ids: Iterable[Any] = (),
+) -> CompletionResult:
+    """A reply obligation ends when the message is replied or a linked quote was sent after it arrived.
+
+    Linked quotes are the message's ``linked_quote_ids`` plus ``quote_ids`` the caller knows are linked
+    (quotes whose ``origin_message_id`` is the message, and quote members of the message's issue)."""
     reader = read or (lambda t, i: sources.read(uow, t, i))
     message = reader("sales.customer_message", message_id)
     if message is None:
@@ -77,8 +107,9 @@ def reply_state(uow: UnitOfWork, message_id: Any, read: Callable[[str, Any], Any
     if message.status == "replied" or replied_at:
         return CompletionResult(True, {"reason": "message_replied", "replied_at": replied_at})
     received_at = _parse_dt(message.facts.get("received_at"))
-    for quote_id in message.facts.get("linked_quote_ids", []) or []:
-        quote = reader("sales.quote", as_uuid(quote_id))
+    linked = [as_uuid(q) for q in (message.facts.get("linked_quote_ids") or [])] + [as_uuid(q) for q in quote_ids]
+    for quote_id in dict.fromkeys(linked):
+        quote = reader("sales.quote", quote_id)
         if quote is None:
             continue
         sent_at = _parse_dt(quote.facts.get("sent_at"))
@@ -89,9 +120,24 @@ def reply_state(uow: UnitOfWork, message_id: Any, read: Callable[[str, Any], Any
     return CompletionResult(False, remaining=["reply_to_customer"])
 
 
+def issue_quote_ids(uow: UnitOfWork, issue_id: uuid.UUID) -> list[uuid.UUID]:
+    """Quotes grouped under a message's issue (linked by the message or by their ``origin_message_id``)."""
+    from sqlalchemy import select
+
+    from app.modules.tasks.models import IssueMember
+
+    return list(
+        uow.session.scalars(
+            select(IssueMember.ref_id)
+            .where(IssueMember.issue_id == issue_id, IssueMember.ref_type == "sales.quote", IssueMember.active.is_(True))
+            .order_by(IssueMember.ref_id)
+        )
+    )
+
+
 @register("reply_sent")
 def _reply_sent(uow: UnitOfWork, task: Task) -> CompletionResult:
-    return reply_state(uow, task.primary_ref_id)
+    return reply_state(uow, task.primary_ref_id, quote_ids=issue_quote_ids(uow, task.issue_id))
 
 
 @register("quote_left_draft")
@@ -171,3 +217,44 @@ def _queue_empty(uow: UnitOfWork, task: Task) -> CompletionResult:
     if remaining == 0:
         return CompletionResult(True, {"reason": "queue_empty"})
     return CompletionResult(False, remaining=[f"assign_{remaining}_queued_items"])
+
+
+@register("member_work_reassigned")
+def _member_work_reassigned(uow: UnitOfWork, task: Task) -> CompletionResult:
+    """Offboarding: done when no open obligation is still owned or done by the departed member."""
+    from sqlalchemy import func, or_, select
+
+    from app.modules.tasks.models import OPEN_STATES
+    from app.modules.tasks.models import Task as TaskModel
+
+    member = (task.facts or {}).get("member_user_id")
+    if not member:
+        return CompletionResult(False, remaining=["cannot_verify:member"])
+    member_id = as_uuid(member)
+    left = int(
+        uow.session.scalar(
+            select(func.count()).select_from(TaskModel).where(
+                TaskModel.company_id == task.company_id, TaskModel.state.in_(OPEN_STATES), TaskModel.id != task.id,
+                or_(TaskModel.owner_user_id == member_id, TaskModel.assignee_user_id == member_id),
+            )
+        )
+        or 0
+    )
+    if left == 0:
+        return CompletionResult(True, {"reason": "work_reassigned"})
+    return CompletionResult(False, remaining=[f"reassign_{left}_open_tasks"])
+
+
+@register("briefing_recovered")
+def _briefing_recovered(uow: UnitOfWork, task: Task) -> CompletionResult:
+    """Repeated generation failures: done once the member's briefing generates again."""
+    from app.modules.briefings import service as briefings  # briefings builds on tasks: imported lazily
+
+    if task.primary_ref_id is None:
+        return CompletionResult(False, remaining=["cannot_verify:briefings.briefing"])
+    info = briefings.failure_info(uow, task.primary_ref_id)
+    if info is None:
+        return CompletionResult(False, remaining=["cannot_verify:briefings.briefing"])
+    if info.failures == 0:
+        return CompletionResult(True, {"reason": "briefing_generated"})
+    return CompletionResult(False, remaining=["briefing_still_failing"])

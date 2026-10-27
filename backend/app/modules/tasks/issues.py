@@ -341,8 +341,31 @@ def new_task(uow: UnitOfWork, issue: Issue, spec: TaskSpec, *, family: str, orig
     return task
 
 
+def assignment_holds(uow: UnitOfWork, task: Task, spec: TaskSpec) -> bool:
+    """A person's (re)assignment (``assigned_by`` set) is an override of the rule's choice. It stands while
+    the assignee is an active member who can see tasks and open the task's source record."""
+    if task.assigned_by is None or task.assignee_user_id is None:
+        return False
+    from app.modules.tasks import responsibility
+    from app.modules.tasks.visibility import INTERNAL_REF_TYPES, can_view_source, view_as
+
+    member = responsibility.member_actor(uow, task.assignee_user_id)
+    if member is None or not member.can("tasks.task.read"):
+        return False
+    ref_type, ref_id = spec.primary_ref_type, spec.primary_ref_id
+    if ref_type and ref_id and ref_type not in INTERNAL_REF_TYPES:
+        return can_view_source(view_as(uow, member), ref_type, ref_id)
+    return True
+
+
 def update_task(uow: UnitOfWork, task: Task, spec: TaskSpec, *, event_id: uuid.UUID | None) -> None:
-    reassigned = (task.owner_user_id, task.assignee_user_id) != (spec.owner_user_id, spec.assignee_user_id)
+    override = assignment_holds(uow, task, spec)
+    owner = spec.owner_user_id
+    assignee = task.assignee_user_id if override else spec.assignee_user_id
+    queue_code = None if override else spec.queue_code
+    if task.assigned_by is not None and not override:
+        task.assigned_by = None  # the assignee left or lost access: the rule's responsibility applies again
+    reassigned = (task.owner_user_id, task.assignee_user_id) != (owner, assignee)
     new_due_kind = spec.due_kind if spec.due_at is not None else "none"
     due_changed = (task.due_at, task.due_kind) != (spec.due_at, new_due_kind)
     task.title = spec.title[:300]
@@ -350,10 +373,10 @@ def update_task(uow: UnitOfWork, task: Task, spec: TaskSpec, *, event_id: uuid.U
     task.primary_ref_type = spec.primary_ref_type
     task.primary_ref_id = spec.primary_ref_id
     task.primary_ref_version = spec.primary_ref_version
-    task.owner_user_id = spec.owner_user_id
-    task.assignee_user_id = spec.assignee_user_id
+    task.owner_user_id = owner
+    task.assignee_user_id = assignee
     task.initiator_user_id = spec.initiator_user_id
-    task.queue_code = spec.queue_code
+    task.queue_code = queue_code
     if due_changed:
         task.due_at = spec.due_at
         task.due_kind = new_due_kind
@@ -573,11 +596,7 @@ def sync_queue(uow: UnitOfWork, queue_code: str, event: DomainEvent | None = Non
     existing = live_issue(uow, key, for_update=False)
     tasks: list[TaskSpec] = []
     if count:
-        managers = []
-        for user_id in responsibility.active_member_ids(uow):
-            actor = responsibility.member_actor(uow, user_id)
-            if actor is not None and actor.can("tasks.queue.manage"):
-                managers.append(user_id)
+        managers = responsibility.queue_managers(uow)
         due = None
         if existing is not None:
             due = uow.session.scalar(

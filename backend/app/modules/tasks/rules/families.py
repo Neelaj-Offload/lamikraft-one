@@ -3,7 +3,8 @@
 
 Families: common.approvals, sales.customer_replies (with draft-quote review grouped under the
 originating message), sales.quote_review, sales.quote_expiry, sales.enquiries, sales.customer_changes,
-common.onboarding. Business deadlines use the company calendar; display happens in each viewer's zone.
+common.onboarding (administrative families live in ``rules.admin``). Business deadlines use the company
+calendar; display happens in each viewer's zone.
 """
 
 from __future__ import annotations
@@ -259,7 +260,8 @@ def derive_message(
         for approval in open_approval_keys_for(uow, QUOTE, qid):
             depends.append((approval, "approval_decided"))
 
-    state = reply_state(uow, message_id, read=lambda t, i: cache.read(uow, t, i))
+    # quotes linked by the message, by their origin_message_id (extra_quote_ids) or already grouped here
+    state = reply_state(uow, message_id, read=lambda t, i: cache.read(uow, t, i), quote_ids=quote_ids)
     if not state.complete:
         tasks.insert(
             0,
@@ -596,12 +598,27 @@ def humanize_changed_fields(fields: list[str]) -> str:
     return ", ".join(labels[:-1]) + " and " + labels[-1]
 
 
+#: party fields whose change is worth telling the account owner about (B-02: anything else, such as
+#: notes or tags, creates no change row and no briefing version)
+MATERIAL_PARTY_FIELDS = ("addresses", "contacts", "name", "owner_user_id", "payment_terms", "currency")
+
+
+def material_party_fields(changed: list[str]) -> list[str]:
+    return [f for f in changed if any(f == m or f.startswith(m + ".") for m in MATERIAL_PARTY_FIELDS)]
+
+
 def derive_party_change(uow: UnitOfWork, party_id: uuid.UUID, event: DomainEvent, *, cache: SourceCache | None = None) -> IssueOutcome | None:
+    """FYI for the party owner. The payload only says which fields changed; the party itself is re-read
+    (it must exist and be at least as new as the event) and immaterial changes produce nothing."""
     cache = cache or SourceCache()
     party = cache.read(uow, PARTY, party_id)
     if party is None:
         return None
-    changed = [str(f) for f in (event.payload.get("changed_fields") or [])]
+    if event.aggregate_version is not None and party.version is not None and party.version < event.aggregate_version:
+        return None  # the reader has not caught up with the event: nothing verifiable yet
+    changed = material_party_fields([str(f) for f in (event.payload.get("changed_fields") or [])])
+    if not changed:
+        return None
     name = party.facts.get("name") or party.label
     what = humanize_changed_fields(changed)
     return IssueOutcome(
@@ -610,8 +627,7 @@ def derive_party_change(uow: UnitOfWork, party_id: uuid.UUID, event: DomainEvent
         root_ref_type=PARTY,
         root_ref_id=party_id,
         title=f"{name} {what} updated",
-        title_facts={"party_name": name, "last_change": {"event_id": str(event.id), "changed_fields": changed,
-                                                          "at": event.occurred_at.isoformat()}},
+        title_facts={"party_name": name, "last_change": {"changed_fields": changed, "at": event.occurred_at.isoformat()}},
         required_permission=party.required_permission or "parties.party.read",
         scope_owner_id=party.owner_user_id,
         scope_branch_id=party.branch_id,
@@ -636,13 +652,38 @@ def derive_party_change(uow: UnitOfWork, party_id: uuid.UUID, event: DomainEvent
 
 
 # ---- common.onboarding (onboarding:{user}:{step}) ---------------------------------------------------------
-def onboarding_template_for(uow: UnitOfWork, membership_id: uuid.UUID | None, cache: SourceCache) -> OnboardingTemplate | None:
-    role_keys: list[str] = []
+def member_role_keys(uow: UnitOfWork, user_id: uuid.UUID | None, membership_id: uuid.UUID | None, cache: SourceCache) -> list[str]:
+    """The member's role templates, most specific first.
+
+    1. the ``identity.membership`` reader's ``role_templates`` when identity registers one;
+    2. otherwise the frozen role templates (``authz.catalogue.template_grants``) whose grants the member's
+       effective context fully holds, largest grant set first (a sales member holds the whole sales
+       template, which is larger than employee);
+    3. ``employee`` last.
+    """
     if membership_id is not None:
         membership = cache.read(uow, "identity.membership", membership_id)
-        if membership is not None:
-            role_keys = [str(r) for r in (membership.facts.get("role_templates") or [])]
-    role_keys.append("employee")
+        if membership is not None and membership.facts.get("role_templates"):
+            return [str(r) for r in membership.facts["role_templates"]] + ["employee"]
+    actor = responsibility.member_actor(uow, user_id) if user_id is not None else None
+    if actor is None:
+        return ["employee"]
+    from app.platform.authz.catalogue import template_grants
+
+    grants = template_grants()
+    held = actor.permissions
+    matching = [
+        template for template, wanted in grants.items()
+        if wanted and all(held.get(key) is not None and held[key] >= scope for key, scope in wanted.items())
+    ]
+    matching.sort(key=lambda t: (-len(grants[t]), t))
+    return [t for t in matching if t != "employee"] + ["employee"]
+
+
+def onboarding_template_for(
+    uow: UnitOfWork, membership_id: uuid.UUID | None, cache: SourceCache, user_id: uuid.UUID | None = None
+) -> OnboardingTemplate | None:
+    role_keys = member_role_keys(uow, user_id, membership_id, cache)
     rows = uow.session.scalars(
         select(OnboardingTemplate)
         .where(OnboardingTemplate.company_id == uow.actor.company_id, OnboardingTemplate.active.is_(True))
@@ -670,7 +711,7 @@ def derive_onboarding(
     cal = responsibility.company_calendar(uow)
     work_date = cal.work_date(activated_at)
     steps_due = cal.end_of_day_due(work_date)
-    template = onboarding_template_for(uow, membership_id, cache)
+    template = onboarding_template_for(uow, membership_id, cache, user_id)
     names = responsibility.display_names(uow, [user_id])
     first = responsibility.first_name(names.get(user_id))
     branch_id = responsibility.default_branch_of(uow, user_id)
