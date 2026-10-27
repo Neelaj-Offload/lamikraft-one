@@ -144,3 +144,62 @@ None. Pillow, python-multipart, openpyxl and hypothesis are already locked.
   design. `get_storage()` answers 409 `not_configured` for `LK_STORAGE_BACKEND=s3`.
 - **Authentication**: identity's session resolver and CSRF verifier are not in this worktree. HTTP tests inject a
   server-built `ActorContext`, and the Origin check stays active.
+
+## Fix pass (2026-10-27)
+
+Two adversarial reviews (correctness-security "CS", spec-conformance "SC", 2026-10-23) were reconciled against the
+branch. Code fixes: `2a17058` (files) and `db7ec8b` (org settings and reference data, seed, search, system). This
+section supersedes §8 questions 7 and 8 and the §9 gaps "Upload rate limiting" and "Deduplicated uploads from a
+second user". No `main` merge was made on this branch (lane rules), so the kernel fixes on `main` since `c518507`
+(middleware Cache-Control, `money.RatioStr`, `keys.SHIFTS`/`CALENDAR_HO_GEN_WINDOW`/`HOLIDAYS`) are not here yet;
+the items that depend on them are marked for the merge.
+
+| finding | severity | status |
+|---|---|---|
+| CS1 / SC6: brands and quote_defaults write skew | major | fixed in `db7ec8b`: writes whose definition has a `validate` hook take a per-company lock (`org.setting.validated`) before the per-key lock and validate only once it is held. Committed race test `test_coupled_brand_and_quote_default_writes_are_serialised` |
+| CS2 / SC1: dedupe hands a second user a file they cannot read | major | fixed in `2a17058`: `file_object.claims` records each (user, purpose, name); the creator-only fallbacks authorise every claimant; each caller sees their own name and purpose; `restricted` only tightens. Tests: second exporter, second uploader (incl. logo use), restricted tightening, concurrent claims |
+| SC2: people hits link to `/people/{id}`, which does not exist | major | fixed in `db7ec8b`: hits open the planned S1 search page `/search?q=<name>&types=org.person` (frontend_verification §6, §12). Test checks every hit path against `routes.ts` plus the planned S1 routes |
+| CS3: blob orphaned when the unit of work rolls back after `_store` | minor | fixed in `2a17058`: the blob is deleted when the root transaction ends without commit (savepoints ignored). Test composes `store_generated` in a failing UoW |
+| CS4: download test pinned only the first Cache-Control value | minor | fixed in `2a17058`: `test_download_cache_policy_is_exactly_private_with_etag` asserts the whole header; `xfail` (non-strict) until the middleware fix from `main` is merged, then remove the marker |
+| CS5: `define_conversion` allows a contradictory reverse row | minor | fixed in `db7ec8b`: defining b->a replaces an existing a->b row (locked); unique index on the unordered pair in migration 0004. Tests for both |
+| CS6: alias of an inactive unit gives a 500 | minor | fixed in `db7ec8b`: aliases resolve only for active units; `validate_quantity` answers 422 `uom_unknown`. Test |
+| CS7 / SC12: anyone with manage can record a made-up "connected"; double emit | minor | fixed in `db7ec8b`: `_record_verification` is private, `run_verification` (registered routine) is the only writer; previous state is read under a per-integration advisory lock and row lock. Tests: no public writer; committed race emits one `status_changed` |
+| CS8: bomb guard relies on thread-unsafe warning filters | minor | fixed in `2a17058`: explicit `width * height > MAX_IMAGE_PIXELS` check. Test with filters set to ignore |
+| CS9: markup scan only in the first 4 KiB | minor | fixed in `2a17058`: whole-file scan with a 256-byte overlap between reads. Tests: after the head, straddling a read boundary, deep in the file |
+| CS10 / SC10: upload endpoint not rate-limited | minor | fixed in `2a17058`: `check_upload_rate` before the body is read, 429 `rate_limited` with `Retry-After`; per-process sliding window (60 per 10 min per user) until identity's `rate_limit_counter` replaces it via `set_upload_limiter` (integrator request 1). Unit and HTTP tests |
+| SC3: people ranked after the LIMIT | minor | fixed in `db7ec8b`: rank computed in SQL (exact, prefix, word prefix) before LIMIT. Test with seven earlier partial matches |
+| SC4: no group totals, no paging within a group | minor | fixed in `db7ec8b`: `total` (permission-filtered count) and `offset` per group; `offset` needs exactly one `types` value (422 `offset_needs_one_type`), max 200. Tests |
+| SC5: restricted bank account number not registered for log redaction | minor | fixed in `db7ec8b`: every `SettingDef` registers its `Restricted(log="drop")` field names with `register_restricted_log_fields`. Canary test through the structlog processor |
+| SC7: local `RatioStr` duplicates the kernel type and imports a private helper | minor | partly fixed in `db7ec8b`: the private `_to_decimal` import is gone and the local type enforces the kernel's rules (positive, at most 10 dp; test). Deferred: swap to `app.core.money.RatioStr` at merge, because the kernel type is only on `main` (integrator request 2) |
+| SC8: seed and tests use literal fixture values | minor | partly fixed in `db7ec8b`: the seed reads `keys.SHIFTS.GEN`, `keys.CALENDAR_HO_GEN_WINDOW` and `keys.HOLIDAYS.DEMO` when `keys.py` has them (identical fallbacks until the merge); tests read the seed's values and the `SettingDef` defaults instead of literals. Deferred: delete the fallbacks after the merge; brand names and quote defaults are not in `keys.py` (integrator request 3) |
+| SC9: demo terms state ex-works next to the FOB default | minor | fixed in `db7ec8b`: neutral "Demo terms. Replace this text..." wording. Test |
+| SC11: people provider bypasses `ScopedRepository` | minor | fixed in `db7ec8b`: the provider filters with `ScopedRepository(..., DIRECTORY_POLICY).clause("read")` over `membership` (policy kept local and unregistered, since identity owns the table). Test: an own-scope grant finds only the searcher |
+
+Contract notes: no finding contradicted a contract document. The SC2 fix uses the route plan's `/search` page
+because frontend_verification §6 has no person page.
+
+### Gate output (at `db7ec8b`)
+
+- `npm run test:api`: `343 passed, 1 xfailed, 1 warning in 63.53s` (the xfail is CS4, see above).
+- `npm run check -- --keep-going`: ruff PASS; pytest unit + contract PASS (`174 passed`); alembic heads == 1 PASS;
+  `api:check` FAIL `backend/openapi.json is out of date` (expected: routes changed); web lint PASS; web typecheck
+  PASS; web vitest PASS (`134 passed`).
+
+### Requests for the integrator
+
+1. When identity's `rate_limit_counter` lands, install it with `app.platform.files.limits.set_upload_limiter(...)`
+   (one call, for example at app startup). The built-in limiter counts per process only.
+2. At merge, replace `RatioStr` in `backend/app/platform/org/schemas.py` with `app.core.money.RatioStr` (same rules
+   and wire format) and remove the local `_to_ratio`.
+3. At merge, delete the `getattr` fallbacks in `backend/app/seed/world/org.py` (read `keys.SHIFTS.GEN`,
+   `keys.CALENDAR_HO_GEN_WINDOW` and `keys.HOLIDAYS.DEMO` directly). Please consider adding brand names
+   (LK Lamikraft, CR Crown) and the quote defaults to `keys.py`; tests currently compare them with the
+   `SettingDef` defaults.
+4. After merging `main` (middleware Cache-Control fix), remove the `xfail` marker from
+   `test_download_cache_policy_is_exactly_private_with_etag` in `backend/tests/integration/files/test_files.py`.
+5. Web lane: people search hits now link to `/search?q=<name>&types=org.person`; the S1 `/search` page should
+   honour `types` and `offset` (each group returns `total`, `offset` and `has_more`). Regenerate `openapi.json` and
+   `schema.d.ts` (new `offset` query parameter, `total`/`offset` on groups, 429 on upload).
+6. Migration `0004_platform_slice1.py` changed in place (new `file_object.claims` column and check;
+   `uq_uom_conversion_pair` now on `LEAST/GREATEST`). Any database already at `0004` from this branch needs a
+   downgrade and re-upgrade.
