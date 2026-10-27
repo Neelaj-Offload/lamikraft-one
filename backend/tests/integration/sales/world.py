@@ -62,10 +62,16 @@ class SalesWorld(World):
 
 
 def seed_sales_world(world: World) -> SalesWorld:
+    """Seeds in registry order: parties 20, catalogue 30, pricing/commercial 40, sales 50, party changes 55."""
+    from app.seed.world.catalogue import seed_catalogue
+    from app.seed.world.commercial import seed_commercial
+    from app.seed.world.parties import seed_parties, seed_party_changes
+    from app.seed.world.pricing import seed_pricing
     from app.seed.world.sales import seed_sales
 
     sw = SalesWorld(world.company_id, world.branch_id, world.ctx, world.actors)
-    seed_sales(sw.ctx)
+    for seed in (seed_parties, seed_catalogue, seed_pricing, seed_commercial, seed_sales, seed_party_changes):
+        seed(sw.ctx)
     sw.at(D0)
     return sw
 
@@ -80,5 +86,4 @@ def world(personas: World) -> SalesWorld:
 @pytest.fixture
 def sales_world(personas: World) -> SalesWorld:
     """The full Slice-1 world at D0 (fixtures.md §7)."""
-    seed_world(personas)
     return seed_sales_world(personas)

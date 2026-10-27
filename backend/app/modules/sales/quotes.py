@@ -26,7 +26,7 @@ from app.core.text import LIKE_ESCAPE, contains_pattern, tokens
 from app.modules.approvals import service as approvals
 from app.modules.catalogue import service as catalogue
 from app.modules.catalogue.normalise import plain_decimal
-from app.modules.catalogue.schemas import ProductDetail
+from app.modules.catalogue.schemas import ProductDetail, quantity_entry_problem
 from app.modules.commercial import engine
 from app.modules.commercial import service as commercial
 from app.modules.commercial.schemas import CalculationResultOut
@@ -100,8 +100,6 @@ from app.platform.uow import UnitOfWork
 READ = "sales.quote.read"
 PRICE_CHANGED = "PRICE_CHANGED_SINCE_SNAPSHOT"
 OPEN_STATUSES = frozenset({QuoteStatus.DRAFT.value, QuoteStatus.INTERNAL_REVIEW.value})
-#: units that only accept whole quantities (conventions.md §6; ``uom.is_integer`` once the org master merges)
-INTEGER_UOMS = frozenset({"pcs", "nos", "sheets", "box", "set", "roll", "bundle", "carton"})
 DEFAULT_UNIT = "pcs"
 TERMS_PLACEHOLDER = "Demo terms: prices exclude taxes; payment and delivery terms as agreed in writing."
 
@@ -208,11 +206,11 @@ def commercial_snapshot(resolution: PriceResolution, unit_code: str) -> Commerci
         price_list_code=resolution.price_list_code,
         item_id=resolution.item_id,
         tier=resolution.tier,
-        unit_price=resolution.unit_price,
+        unit_price=resolution.unit_price.amount if resolution.unit_price is not None else None,
         currency=resolution.currency or resolution.requested_currency,
         unit_code=unit_code,
-        product_moq=resolution.product_moq,
-        moq_unit_code=resolution.moq_unit_code,
+        product_moq=resolution.product_moq.value if resolution.product_moq is not None else None,
+        moq_unit_code=resolution.product_moq.uom if resolution.product_moq is not None else None,
         resolved_on=resolution.on_date,
         reason_code=resolution.reason_code,
     )
@@ -238,6 +236,7 @@ def _line_input(line: QuoteLine) -> engine.LineInput:
         line_type=line.line_type,  # type: ignore[arg-type]
         quantity=Decimal(line.quantity),
         unit_price=Decimal(line.unit_price) if line.unit_price is not None else None,
+        uom=line.unit_code,
         discount_pct=Decimal(line.discount_pct) if line.discount_pct is not None else None,
         carton_qty=int(carton) if carton is not None and line.unit_code == (line.product_snapshot or {}).get("unit_of_sale", line.unit_code) else None,
         product_moq=Decimal(moq) if moq is not None and moq_unit in (None, line.unit_code) else None,
@@ -370,10 +369,8 @@ def _check_quantity(quantity: Decimal, unit_code: str, errors: Errors, loc: str 
     q = quantize_quantity(Decimal(quantity))
     if q <= 0:
         errors.add([loc], "not_positive", "quantity must be positive")
-    elif unit_code in INTEGER_UOMS and q != q.to_integral_value():
-        errors.add([loc], "not_integer", f"{unit_code} quantities must be whole numbers")
-    elif q != q.quantize(Decimal("0.0001")):
-        errors.add([loc], "too_many_decimals", "quantities accept at most 4 decimal places")
+    elif (problem := quantity_entry_problem(q, unit_code)) is not None:
+        errors.add([loc], problem[0], problem[1])
     return q
 
 
@@ -538,7 +535,7 @@ def _catalog_line(uow: UnitOfWork, quote: Quote, data: QuoteLineCreate, errors: 
     if resolution.status == "ambiguous":
         raise Conflict(resolution.explanation, code="price_ambiguous",
                        candidates=[c.model_dump(mode="json") for c in resolution.candidates])
-    default = resolution.unit_price if resolution.status == "found" else None
+    default = resolution.unit_price.amount if resolution.status == "found" and resolution.unit_price is not None else None
     if default is None and data.unit_price is None:
         raise Conflict(resolution.explanation, code="price_unavailable", reason_code=resolution.reason_code, hints=resolution.hints)
     line = QuoteLine(
@@ -712,7 +709,7 @@ def refresh_snapshots(uow: UnitOfWork, quote_id: uuid.UUID, data: RefreshSnapsho
         )
         if resolution.status == "ambiguous":
             raise Conflict(resolution.explanation, code="price_ambiguous")
-        new_default = quantize_unit_price(resolution.unit_price) if resolution.status == "found" and resolution.unit_price is not None else None
+        new_default = quantize_unit_price(resolution.unit_price.amount) if resolution.status == "found" and resolution.unit_price is not None else None
         was_overridden = line.override_reason is not None or (
             line.unit_price is not None and line.default_unit_price is not None and line.unit_price != line.default_unit_price
         )
@@ -769,14 +766,24 @@ def _minor(amount: Decimal | None, currency: str) -> Decimal | None:
     return None if amount is None else quantize_money(Decimal(amount), currency)
 
 
+def _amount(value: Any) -> Decimal | None:
+    """The amount of a persisted ``{amount, currency}`` (or a bare decimal string from older rows)."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        value = value.get("amount")
+    return None if value is None else Decimal(str(value))
+
+
 def totals_of(quote: Quote) -> QuoteTotals:
     calc = quote.calculation or {}
     minimum = calc.get("minimum") or {}
     surcharge = calc.get("surcharge") or {}
     note = None
-    if quote.minimum_status == "BELOW" and minimum.get("minimum_order_value"):
+    minimum_value = _amount(minimum.get("minimum_order_value"))
+    if quote.minimum_status == "BELOW" and minimum_value is not None:
         note = (
-            f"Minimum invoice value: {quote.currency} {Decimal(minimum['minimum_order_value']):,.2f}. "
+            f"Minimum invoice value: {quote.currency} {minimum_value:,.2f}. "
             f"This quotation is below the minimum order value"
             + (f"; a {surcharge.get('label', 'surcharge').lower()} of {quote.currency} {Decimal(quote.surcharge_amount):,.2f} applies." if quote.surcharge_applied else ".")
         )
@@ -795,8 +802,8 @@ def totals_of(quote: Quote) -> QuoteTotals:
         line_count=quote.line_count,
         minimum=MinimumRead(
             status=quote.minimum_status,
-            minimum_order_value=minimum.get("minimum_order_value"),
-            shortfall=minimum.get("shortfall"),
+            minimum_order_value=minimum_value,
+            shortfall=_amount(minimum.get("shortfall")),
             reason_code=minimum.get("reason_code"),
         ),
         tax_status=str(calc.get("tax_status") or "not_calculated"),
@@ -823,7 +830,7 @@ def _current_prices(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine]) -
             )
         except AppError:
             continue
-        out[line.id] = quantize_unit_price(resolution.unit_price) if resolution.status == "found" and resolution.unit_price is not None else None
+        out[line.id] = quantize_unit_price(resolution.unit_price.amount) if resolution.status == "found" and resolution.unit_price is not None else None
     return out
 
 
@@ -867,7 +874,13 @@ def line_reads(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine], *, wit
                 packaging_snapshot=PackagingSnapshot.model_validate(line.packaging_snapshot) if line.packaging_snapshot else None,
                 media_snapshot=MediaSnapshot.model_validate(line.media_snapshot) if line.media_snapshot else None,
                 commercial_snapshot=CommercialSnapshot.model_validate(line.commercial_snapshot) if line.commercial_snapshot else None,
-                recommendation=RecommendationRead(**{k: rec[k] for k in ("status", "quantity", "carton_qty", "explanation", "label")}) if rec else None,
+                recommendation=RecommendationRead(
+                    status=rec["status"],
+                    quantity=int(Decimal(rec["quantity"]["value"])) if isinstance(rec.get("quantity"), dict) else rec.get("quantity"),
+                    carton_qty=rec.get("carton_qty"),
+                    explanation=rec["explanation"],
+                    label=rec["label"],
+                ) if rec else None,
                 advisories=advisories,
                 current_unit_price=current_price,
             )
@@ -1161,15 +1174,15 @@ def calculate_preview(uow: UnitOfWork, data: QuotePreviewIn) -> QuotePreviewOut:
             )
             if resolution.status == "ambiguous":
                 raise Conflict(resolution.explanation, code="price_ambiguous")
-            default = quantize_unit_price(resolution.unit_price) if resolution.status == "found" and resolution.unit_price is not None else None
+            default = quantize_unit_price(resolution.unit_price.amount) if resolution.status == "found" and resolution.unit_price is not None else None
             price = quantize_unit_price(line.unit_price) if line.unit_price is not None else default
             if resolution.reason_code:
                 warnings.append(f"line:{key}:{resolution.reason_code}")
             inputs.append(engine.LineInput(
                 line_key=key, line_type="catalog", quantity=_check_quantity(line.quantity, unit_code, errors, f"lines.{i}.quantity"),
-                unit_price=price, discount_pct=line.discount_pct,
+                unit_price=price, uom=unit_code, discount_pct=line.discount_pct,
                 carton_qty=packaging.carton_qty if unit_code == (product.unit_of_sale or unit_code) else None,
-                product_moq=resolution.product_moq if resolution.moq_unit_code in (None, unit_code) else None,
+                product_moq=resolution.product_moq.value if resolution.product_moq is not None and resolution.product_moq.uom == unit_code else None,
             ))
             refs.append(PreviewLineOut(
                 line_key=key, line_type="catalog", product_id=product.product_id, product_key=product.product_key, unit_code=unit_code,
@@ -1181,7 +1194,7 @@ def calculate_preview(uow: UnitOfWork, data: QuotePreviewIn) -> QuotePreviewOut:
             price = quantize_unit_price(line.unit_price) if line.unit_price is not None else None
             inputs.append(engine.LineInput(
                 line_key=key, line_type="manual", quantity=_check_quantity(line.quantity, unit_code, errors, f"lines.{i}.quantity"),
-                unit_price=price, discount_pct=line.discount_pct,
+                unit_price=price, uom=unit_code, discount_pct=line.discount_pct,
             ))
             refs.append(PreviewLineOut(
                 line_key=key, line_type="manual", product_id=None, product_key=None, unit_code=unit_code,

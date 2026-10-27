@@ -245,9 +245,12 @@ def _totals_rows(snapshot: dict[str, Any]) -> tuple[list[tuple[str, str]], str |
     rows.append((f"Grand total ({(t.get('tax_label') or 'Excludes taxes').lower()})", format_money(Decimal(grand), currency) if grand else "—"))
     note = None
     minimum = t.get("minimum") or {}
-    if minimum.get("status") == "BELOW" and minimum.get("minimum_order_value"):
+    minimum_value = minimum.get("minimum_order_value")
+    if isinstance(minimum_value, dict):
+        minimum_value = minimum_value.get("amount")
+    if minimum.get("status") == "BELOW" and minimum_value:
         note = (
-            f"Minimum invoice value: {format_money(Decimal(minimum['minimum_order_value']), currency)}. "
+            f"Minimum invoice value: {format_money(Decimal(minimum_value), currency)}. "
             f"This quotation is below the minimum order value"
             + (f"; the {(t.get('surcharge_label') or 'surcharge').lower()} shown above applies." if t["surcharge_applied"] else ".")
         )
