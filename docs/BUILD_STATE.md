@@ -136,3 +136,41 @@ runs `python -m uvicorn`. Docker Desktop 4.82 can fail to start on stale AF_UNIX
 `%LOCALAPPDATA%\Dockerun` and `%LOCALAPPDATA%\docker-secrets-engine`; moving those folders aside fixes it
 (runbook). `next dev` 16.4.0 prints a security-advisory nudge and exits once; a retry continues. The advisory is
 tracked for the Slice-6 `npm audit` pass.
+
+---
+
+## 9. Interim checkpoint — Slice 1 wave 1 merged (2026-10-27, session cut by usage limit)
+
+**On `main` (commit `33ba1ac`):** the five wave-1 lanes (identity `lane/s1w1-identity`, platform `lane/s1w1-platform`,
+catalogue `lane/s1w1-catalogue`, work `lane/s1w1-work`, web `lane/s1w1-web` at its fix-pass state) are merged after
+each lane's adversarial review and a completed fix pass (117 findings; every blocker and major fixed with regression
+tests; deferred minors are listed in each `docs/lanes/<lane>.md` "Fix pass (2026-10-27)" section). Migrations are one
+chain 0001 → 0002 → 0003 identity → 0004 platform → 0005 catalogue → 0006 work (`alembic heads` = 1). `openapi.json`
+and `schema.d.ts` regenerated (62 paths, 180 schemas).
+
+**Verification on `main` after the merge:** `npm run test:api` → **708 passed, 1 failed, 1 xpassed**. The failure is
+`tests/integration/identity/test_seed.py::test_people_roles_managers_and_refs` (a `KeyError` on a membership id once
+the org and catalogue seeds run alongside the identity seed: integration drift, not a lane defect). `npm run check` and
+`lk seed demo` have not been run on the merged tree yet.
+
+**Still running when the session stopped (work lands on their own branches; nothing is merged yet):**
+- sales lane `lane/s1w2-sales` (`D:\lk-wt\sales`, slot 6): quotes, enquiries, customer messages, approvals handler,
+  PDF, tools, seeds — brief in the session scratchpad `s1w1/sales-brief.md`.
+- agents-demo lane `lane/s1w2-agents` (`D:\lk-wt\agents`, slot 7): Demo orchestrator, `agent.run` job, polling API,
+  cards, grounding — brief `s1w1/agents-brief.md`.
+- web wave 2 on `lane/s1w1-web` (`D:\lk-wt\web`, slot 5): Today/Inbox bound to real APIs, quote list and workspace,
+  review page, enquiries, assistant composer, Playwright specs — brief `s1w1/web2-brief.md`.
+Both backend lanes were told to merge `lane/s1w1-catalogue` into their branches (wire-shape changes) and to reset
+their slot databases because migration 0005 was edited in place.
+
+**Next executable step:** (1) fix the one failing seed test on `main`; run `npm run check` and `npm run test:api` to
+green; (2) when the three lanes report, review their reports, merge in the order sales → agents → web, reparent
+`0007_sales` onto 0006 and `0008_agents` onto 0007, regenerate types, switch the work lane's fake sales readers/handler
+and the agents lane's fake sales tools to the real modules; (3) integrator backlog from the lane reports
+("Requests for the integrator" in each `docs/lanes/*.md`): uvicorn `--no-proxy-headers` and `LK_TRUSTED_PROXY_HOPS`
+in core settings; kernel `build_sections` per-section savepoint; platform's post-merge swaps (core `RatioStr`,
+`keys.py` fallbacks, download Cache-Control xfail, upload limiter); keys.py constants requested by catalogue and work;
+SourceReaders `identity.membership`, `identity.user_preference`, `ui.recent_record`, `search.recent`; PARITY_MATRIX
+test pointers; (4) `lk seed demo`, `npm run dev`, Playwright for scenario C at desktop and phone, axe in both themes,
+screenshots to `docs/evidence/slice-1/`; (5) update sections 1–4 and 7 of this file, PARITY_MATRIX statuses, and make
+the Slice-1 commit.
