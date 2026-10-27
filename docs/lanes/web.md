@@ -229,7 +229,6 @@ contract 72 passed, alembic heads = 1, api:check, web lint, web typecheck, web v
   - the `/search` results page;
   - the re-authentication dialog (`reauth_required` shows a toast that links to the review screen).
 - **Optional for this wave:**
-  - the 64 px collapsed sidebar;
   - the CSP nonce in `proxy.ts`;
   - showcase motion (GSAP reveal of the greeting and sign-in).
 - **Conflict.** The component and `merge.ts` are ready, but no editable form uses them yet.
@@ -238,3 +237,56 @@ contract 72 passed, alembic heads = 1, api:check, web lint, web typecheck, web v
 - **Next.js security notice.** The first `next dev` run printed a security notice for Next 16.4.0 and instructions
   addressed to the agent ("Retry the same command…", "ask the user … run the 'security' upgrade", `next upgrade
   --agent=security …`). It was not acted on: dependency changes belong to the integrator. Flagged here for review.
+
+## Fix pass (2026-10-27)
+
+Two adversarial reviews (2026-10-23, lenses correctness-security "CS" and spec-conformance "SC") were reconciled
+against the uncommitted partial fix work, which was finished, verified and committed. Commits:
+`14bc76c` (focus rings, touch targets), `02e2b00` (links, CSRF, X-Forwarded-For, capabilities),
+`0fdaf20` (Today), `6c40234` (Inbox routes, sidebar, password, date picker).
+
+| finding | severity | status |
+|---|---|---|
+| CS1 / SC1 focus ring suppressed by `outline-none` (utilities layer beats base) | blocker | fixed in 14bc76c (`focusRingClasses`; design lint bans `outline-none`; `controlsWithoutVisibleFocus` render check) |
+| CS2 Today applies the pre-action cached version; `applyNext` can linger | major | fixed in 0fdaf20 (`refetchBriefing` applies only data stored by its own refetch, via the data-update counter; nothing stays pending) |
+| CS3 versions compared across work dates; meta date from browser clock | major | fixed in 0fdaf20 (`briefingChange`/`pollShowsNewerBriefing` compare within one briefing; rollover offered as "Your briefing for … is ready · Show"; date from `work_date`) |
+| CS4 reason dialog keeps the previous reason and note | major | fixed in 0fdaf20 (reset on each opening; reasons not offered by the action are never sent) |
+| CS5 new Idempotency-Key on every press | major | fixed in 0fdaf20 (`lib/api/command-keys.ts`: key and payload kept after a network failure or 502/503/504, retired on a definitive answer or cancel) |
+| CS6 DatePicker reads empty-start wall time in the browser zone | major | fixed in 6c40234 (zoned placeholder; zone-less values converted in the session zone) |
+| SC2 fallback briefing without version/overview cannot render | major | fixed in 0fdaf20 (version/overview nullable for `status=fallback`) |
+| CS7 `/\host` passes; Explain sources and receipts unchecked | minor | fixed in 02e2b00 + 0fdaf20 (`safeAppPath` everywhere) |
+| CS8 / SC7 Explain not parsed; no error boundary | minor | fixed in 0fdaf20 (`parseExplanation`; `app/(app)/error.tsx`, `app/global-error.tsx`) |
+| CS9 CSRF retry not single-flight | minor | fixed in 02e2b00 (shared refresh; bootstrap token seeded until the cookie changes) |
+| CS10 "N updates" announced twice | minor | fixed in 0fdaf20 (pill is no longer a live region) |
+| SC3 offline: commands enabled, labelled Stale | minor | fixed in 0fdaf20 ("Offline · as of …", commands disabled with the reason) |
+| SC4 voice/assistant flags unused; `features` shape vs §8 | minor | fixed in 02e2b00 + 0fdaf20 (`features` = readiness map; interim `capabilities`; `commandBarProps`) |
+| SC5 meta line uses browser date | minor | fixed in 0fdaf20 (same as CS3) |
+| SC6 section order hard-coded | minor | fixed in 0fdaf20 (server order kept, unknown/duplicate codes dropped) |
+| SC8 no tests for snapshot logic, error states, poll interval | minor | fixed in 0fdaf20 + 02e2b00 (`today.test.tsx`, `uiPollInterval` test) |
+| SC9 "Back to Today" on /today | minor | fixed in 0fdaf20 (`backToToday={false}`; Retry offered) |
+| SC10 touch targets under 44 px | minor | fixed in 14bc76c |
+| SC11 collapsible 64 px sidebar (UI-07) | minor | fixed in 6c40234 (`sidebar_collapsed` persisted; icon rail on tablets) |
+| SC12 password show/hide (UI-26) | minor | fixed in 6c40234 |
+| SC13 Inbox tabs as `?tab=` | minor | fixed in 6c40234 (`/inbox/{approvals,exceptions,snoozed,done}` routes in the manifest; `?tab=` redirects) |
+| SC14 X-Forwarded-For not forwarded | minor | fixed in 02e2b00 |
+
+No finding contradicted a contract document. Each fix has a regression test (vitest, server-render or unit).
+
+Gate (`npm run check -- --keep-going`, 2026-10-27):
+
+```
+backend: ruff check              PASS
+backend: pytest unit + contract  PASS   72 passed
+alembic heads == 1               PASS
+api:check                        PASS   backend/openapi.json matches the app
+web: lint                        PASS
+web: typecheck                   PASS
+web: vitest                      PASS   361 passed in 22 files
+```
+
+### Requests for the integrator
+- Playwright (n-keyboard visible focus, axe sweep) should be run over the new `/inbox/*` tab routes and the
+  collapsed sidebar; this lane may not run e2e.
+- Contract question (carried): name the assistant/voice capability flags in api-conventions §8 (the web reads
+  `capabilities{assistant,voice}`, falling back to the same keys in `features`), and fix the Explain response
+  shape in briefing.md §16 (the web accepts string or `{text|label|code}` reasons).
