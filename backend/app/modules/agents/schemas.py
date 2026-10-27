@@ -1,0 +1,324 @@
+"""Request and response models of the agents API, and the structured screen context (ai-routing.md section 4.1).
+
+Money and quantities are ``DecimalStr``. The screen context is a hint only: it is validated here for shape and
+size (<= 16 KB, <= 50 visible items), then every referenced record is re-read by ``context.ground_screen_context``.
+"""
+
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated, Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+
+from app.modules.agents.cards import Card
+
+MAX_TURN_TEXT = 4_000
+MAX_CONTEXT_BYTES = 16 * 1024
+MAX_VISIBLE_ITEMS = 50
+MAX_RECORDS = 50
+
+
+class ConversationChannel(StrEnum):
+    WEB = "web"
+    VOICE = "voice"
+    WHATSAPP = "whatsapp"
+
+
+class ConversationStatus(StrEnum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+class TurnRole(StrEnum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class RunStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    BUDGET_EXCEEDED = "budget_exceeded"
+    CANCELLED = "cancelled"
+
+
+class RunTrigger(StrEnum):
+    USER_TURN = "user_turn"
+    CLARIFICATION_ANSWER = "clarification_answer"
+
+
+class StepKind(StrEnum):
+    ROUTE = "route"
+    TOOL_CALL = "tool_call"
+    TOOL_RESULT = "tool_result"
+    CARD = "card"
+    TEXT = "text"
+    HANDOFF = "handoff"
+
+
+class ContextOrigin(StrEnum):
+    SCREEN = "screen"
+    TOOL = "tool"
+    CARD = "card"
+
+
+class ProviderName(StrEnum):
+    DEMO = "demo"
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+
+
+class CallOutcome(StrEnum):
+    OK = "ok"
+    ERROR = "error"
+    REFUSAL = "refusal"
+
+
+RequestType = Literal["command", "screen_question", "visual_extraction", "data_or_action", "analysis", "out_of_scope"]
+Short = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
+RefKey = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+ResourceType = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=80, pattern=r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")]
+
+
+# ---- screen context (section 4.1) -----------------------------------------------------------------------------
+class RouteContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    path: Annotated[str, StringConstraints(max_length=300)]
+    params: dict[str, Annotated[str, StringConstraints(max_length=200)]] = Field(default_factory=dict)
+    area: Annotated[str, StringConstraints(max_length=40)] | None = None
+
+
+class RecordRef(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: ResourceType
+    id: uuid.UUID
+    version: int | None = None
+    role: Annotated[str, StringConstraints(max_length=40)] | None = None
+
+
+class VisibleItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    ref: RefKey
+    list_key: Annotated[str, StringConstraints(max_length=80)]
+    ordinal: int = Field(ge=1, le=10_000)
+    type: ResourceType
+    id: uuid.UUID
+    version: int | None = None
+
+
+class DraftContext(BaseModel):
+    """The user's unsaved form input: never persisted from context, re-validated by the receiving service."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    form_key: Annotated[str, StringConstraints(max_length=80)]
+    record_ref: Annotated[str, StringConstraints(max_length=80)] | None = None
+    dirty_fields: list[Annotated[str, StringConstraints(max_length=80)]] = Field(default_factory=list, max_length=100)
+    values: dict[str, Any] = Field(default_factory=dict)
+
+
+class BriefingPin(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    pin_id: uuid.UUID
+    version: int | None = None
+
+
+class Viewport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    width: int = Field(ge=0, le=20_000)
+    height: int = Field(ge=0, le=20_000)
+
+
+class ScreenContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    schema_version: Literal[1] = 1
+    captured_at: datetime | None = None
+    route: RouteContext | None = None
+    focus: RecordRef | None = None
+    records: list[RecordRef] = Field(default_factory=list, max_length=MAX_RECORDS)
+    visible_items: list[VisibleItem] = Field(default_factory=list, max_length=MAX_VISIBLE_ITEMS)
+    selection: list[RefKey] = Field(default_factory=list, max_length=MAX_VISIBLE_ITEMS)
+    filters: dict[str, Any] = Field(default_factory=dict)
+    draft: DraftContext | None = None
+    briefing_pin: BriefingPin | None = None
+    viewport: Viewport | None = None
+
+    @model_validator(mode="after")
+    def _size(self) -> ScreenContext:
+        size = len(json.dumps(self.model_dump(mode="json"), separators=(",", ":")).encode())
+        if size > MAX_CONTEXT_BYTES:
+            raise ValueError(f"screen context is {size} bytes; the limit is {MAX_CONTEXT_BYTES} (trim to the focused list)")
+        return self
+
+    def for_storage(self) -> dict[str, Any]:
+        """The context as stored on the turn: draft values are the user's input and are never persisted."""
+        data = self.model_dump(mode="json")
+        if data.get("draft"):
+            data["draft"]["values"] = {}
+        return data
+
+
+# ---- requests ------------------------------------------------------------------------------------------------
+class ConversationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    channel: ConversationChannel = ConversationChannel.WEB
+    title: Short | None = None
+
+
+class SelectedOption(BaseModel):
+    """A ClarificationCard option the user chose; must have been offered by the previous assistant turn."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    slot: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+    value: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+class TurnCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: Annotated[str, StringConstraints(max_length=MAX_TURN_TEXT)] = ""
+    context: ScreenContext | None = None
+    selected_option: SelectedOption | None = None
+    client_utterance_id: uuid.UUID | None = None
+
+    @field_validator("text")
+    @classmethod
+    def _not_blank_without_option(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def _text_or_option(self) -> TurnCreate:
+        if not self.text and self.selected_option is None:
+            raise ValueError("text is required unless an option is selected")
+        return self
+
+
+# ---- responses -----------------------------------------------------------------------------------------------
+class TurnOut(BaseModel):
+    id: uuid.UUID
+    seq: int
+    role: TurnRole
+    text: str
+    cards: list[Card]
+    run_id: uuid.UUID | None
+    selected_option: dict[str, Any] | None
+    created_at: datetime
+
+
+class RunSummary(BaseModel):
+    id: uuid.UUID
+    conversation_id: uuid.UUID
+    turn_id: uuid.UUID
+    assistant_turn_id: uuid.UUID | None
+    status: RunStatus
+    trigger: RunTrigger
+    channel: str
+    provider: ProviderName
+    provider_label: str
+    mode: str
+    model_route: str | None
+    request_type: str | None
+    tainted: bool
+    error_code: str | None
+    error_message: str | None
+    step_count: int
+    tool_call_count: int
+    step_budget: int
+    time_budget_seconds: int
+    elapsed_ms: int | None
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+
+
+class StepOut(BaseModel):
+    seq: int
+    kind: StepKind
+    name: str
+    input: dict[str, Any] | None
+    output: dict[str, Any] | None
+    is_error: bool
+    error_code: str | None
+    model_route: str | None
+    duration_ms: int
+    at: datetime
+
+
+class RunDetail(BaseModel):
+    """The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards."""
+
+    run: RunSummary
+    steps: list[StepOut]
+    after_seq: int
+    last_seq: int
+    done: bool
+    text: str | None
+    cards: list[Card]
+
+
+class TurnAccepted(BaseModel):
+    run_id: uuid.UUID
+    turn_id: uuid.UUID
+    conversation_id: uuid.UUID
+    status: RunStatus
+    replayed: bool = False
+
+
+class ConversationOut(BaseModel):
+    id: uuid.UUID
+    channel: ConversationChannel
+    title: str | None
+    status: ConversationStatus
+    provider_label: str
+    mode: str
+    last_activity_at: datetime
+    created_at: datetime
+    version: int
+    turns: list[TurnOut]
+    runs: list[RunSummary]
+
+
+__all__ = [
+    "MAX_CONTEXT_BYTES",
+    "MAX_TURN_TEXT",
+    "MAX_VISIBLE_ITEMS",
+    "BriefingPin",
+    "CallOutcome",
+    "ContextOrigin",
+    "ConversationChannel",
+    "ConversationCreate",
+    "ConversationOut",
+    "ConversationStatus",
+    "DraftContext",
+    "ProviderName",
+    "RecordRef",
+    "RequestType",
+    "RouteContext",
+    "RunDetail",
+    "RunStatus",
+    "RunSummary",
+    "RunTrigger",
+    "ScreenContext",
+    "SelectedOption",
+    "StepKind",
+    "StepOut",
+    "TurnAccepted",
+    "TurnCreate",
+    "TurnOut",
+    "TurnRole",
+    "VisibleItem",
+    "Viewport",
+]
