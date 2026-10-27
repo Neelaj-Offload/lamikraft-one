@@ -73,7 +73,7 @@ def test_people_roles_managers_and_refs(world: SeedContext) -> None:
             .join(Role, Role.id == MembershipRole.role_id)
         ).all()
     by_user = {r.user_id: r for r in rows}
-    membership_of = {key: by_user[world.refs[key]].id for key in world.refs}
+    membership_of = {key: by_user[world.refs[key]].id for key in world.refs if key in keys.PEOPLE}
     for key in SLICE_1_PEOPLE:
         person, row = keys.PEOPLE[key], by_user[world.refs[key]]
         assert row.email == person.email and row.display_name == person.name
