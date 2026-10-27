@@ -63,7 +63,8 @@ def test_demo_company_branches_and_teams(world: SeedContext) -> None:
 
 
 def test_people_roles_managers_and_refs(world: SeedContext) -> None:
-    assert sorted(world.refs) == SLICE_1_PEOPLE  # Vikram is a Slice-2 person
+    # other seeds (org calendar, parties, ...) add their own refs; Vikram is a Slice-2 person
+    assert sorted(k for k in world.refs if k in keys.PEOPLE) == SLICE_1_PEOPLE
     with UnitOfWork(system(world.company_id)) as uow:
         rows = uow.session.execute(
             select(AppUser.email, AppUser.display_name, AppUser.password_hash, Membership.status, Role.role_key, Membership.manager_membership_id, Membership.id, Membership.user_id)

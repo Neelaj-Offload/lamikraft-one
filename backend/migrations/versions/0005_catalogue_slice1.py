@@ -1,7 +1,7 @@
 """catalogue, parties, pricing and commercial (Slice 1 wave 1, lane catalogue)
 
 Revision ID: 0005
-Revises: 0002
+Revises: 0004
 Create Date: 2026-10-23 08:42:25.795407+00:00
 
 All DDL of the lane in one revision (the integrator chains lane revisions at merge):
@@ -26,7 +26,7 @@ from sqlalchemy.dialects import postgresql
 from migrations import helpers
 
 revision: str = '0005'
-down_revision: str | Sequence[str] | None = '0002'
+down_revision: str | Sequence[str] | None = '0004'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
