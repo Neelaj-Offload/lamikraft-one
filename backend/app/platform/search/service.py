@@ -4,7 +4,8 @@ each user's recent searches.
 Queries are tokenised (``app.core.text.tokens``) and every provider matches tokens with escaped ILIKE
 (``escape_like``): ``%``, ``_``, ``\\`` and regular-expression metacharacters in the input are literal text.
 Providers run inside a savepoint each, so one failing provider is reported as unavailable instead of
-breaking the whole search. Group visibility and hit rows are permission-filtered on the server.
+breaking the whole search. Group visibility, hit rows and group totals are permission-filtered on the server;
+``offset`` pages through a single group for the "See all results" page (frontend_verification §12).
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import structlog
 from sqlalchemy import ColumnElement, and_, delete, false, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from app.core.errors import ValidationFailed
 from app.core.text import LIKE_ESCAPE, contains_pattern, normalize_search_text, tokens
 from app.platform.search.defs import SearchHit, SearchProvider
 from app.platform.search.models import QUERY_MAX_CHARS, RECENT_KEEP, SearchRecent
@@ -32,6 +34,8 @@ log = structlog.get_logger(__name__)
 MIN_QUERY_CHARS = 2
 DEFAULT_PER_GROUP = 5
 MAX_PER_GROUP = 20
+#: deepest offset the "See all results" page may request within one group
+MAX_OFFSET = 200
 
 
 MAX_TERMS = 8
@@ -46,7 +50,7 @@ def search_terms(q: str) -> list[str]:
     return tokens(q[:QUERY_MAX_CHARS], max_tokens=MAX_TERMS)
 
 
-def _term_forms(q: str) -> list[set[str]]:
+def term_forms(q: str) -> list[set[str]]:
     """Per term: the folded form plus the case-folded original (stored text is not diacritic-folded)."""
     raw = [unicodedata.normalize("NFC", t).casefold() for t in q[:QUERY_MAX_CHARS].split()][:MAX_TERMS]
     folded = search_terms(q)
@@ -64,7 +68,7 @@ def match_all_terms(columns: Sequence[ColumnElement[Any]], q: str) -> ColumnElem
 
     The helper search providers use to build their WHERE clause; an empty query matches nothing.
     """
-    forms = _term_forms(q)
+    forms = term_forms(q)
     if not forms or not columns:
         return false()
     return and_(
@@ -82,25 +86,45 @@ def providers() -> list[SearchProvider]:
 
 
 def _hits(provider: SearchProvider, uow: UnitOfWork, q: str, limit: int) -> list[SearchHit]:
-    hits = provider.search(uow, q, limit + 1)
+    hits = provider.search(uow, q, limit)
     for hit in hits:
         if hit.resource_type != provider.resource_type:
             raise ValueError(f"provider {provider.resource_type} returned a {hit.resource_type} hit")
-    return sorted(hits, key=lambda h: (-h.rank, h.title.casefold(), str(h.resource_id)))
+    # Providers order hits in SQL (rank, then title) before their LIMIT. A stable sort on rank alone keeps
+    # their tie order, so a page cut from a longer prefix lines up with the previous page (no repeats or gaps).
+    return sorted(hits, key=lambda h: -h.rank)
 
 
 @query("search.global.use")
 def search(
-    uow: UnitOfWork, q: str, *, limit: int = DEFAULT_PER_GROUP, types: Sequence[str] | None = None
+    uow: UnitOfWork,
+    q: str,
+    *,
+    limit: int = DEFAULT_PER_GROUP,
+    types: Sequence[str] | None = None,
+    offset: int = 0,
 ) -> SearchResults:
-    """Grouped hits from every provider the actor may read (optionally only ``types``), capped per group."""
+    """Grouped hits from every provider the actor may read (optionally only ``types``), ``limit`` per group.
+
+    ``offset`` pages through one group (the "See all results" page) and therefore needs exactly one type.
+    Each group reports ``total`` when its provider can count (the same permission-filtered query).
+    """
     q = q[:QUERY_MAX_CHARS]
     terms = search_terms(q)
     per_group = max(1, min(limit, MAX_PER_GROUP))
+    wanted = set(types) if types else None
+    if offset < 0 or offset > MAX_OFFSET:
+        raise ValidationFailed(
+            errors=[{"loc": ["query", "offset"], "msg": f"between 0 and {MAX_OFFSET}", "code": "out_of_range"}]
+        )
+    if offset and (wanted is None or len(wanted) != 1):
+        raise ValidationFailed(
+            "Page through one group at a time.",
+            errors=[{"loc": ["query", "offset"], "msg": "offset needs exactly one type", "code": "offset_needs_one_type"}],
+        )
     results = SearchResults(query=q, terms=terms, groups=[])
     if len(normalize_search_text(q)) < MIN_QUERY_CHARS or not terms:
         return results
-    wanted = set(types) if types else None
     for provider in providers():
         if wanted is not None and provider.resource_type not in wanted:
             continue
@@ -108,14 +132,16 @@ def search(
             continue
         savepoint = uow.session.begin_nested()
         try:
-            hits = _hits(provider, uow, q, per_group)
+            hits = _hits(provider, uow, q, offset + per_group + 1)
+            total = provider.count(uow, q) if provider.count is not None else None
             savepoint.commit()
         except Exception as exc:  # isolate providers: report the group as unavailable
             savepoint.rollback()
             log.warning("search.provider_failed", provider=provider.resource_type, error=type(exc).__name__)
             results.unavailable_groups.append(provider.group)
             continue
-        if not hits:
+        page = hits[offset : offset + per_group]
+        if not page and offset == 0:
             continue
         results.groups.append(
             SearchGroupRead(
@@ -129,9 +155,11 @@ def search(
                         subtitle=h.subtitle,
                         path=h.path,
                     )
-                    for h in hits[:per_group]
+                    for h in page
                 ],
-                has_more=len(hits) > per_group,
+                has_more=len(hits) > offset + per_group,
+                offset=offset,
+                total=total,
             )
         )
     return results
@@ -169,8 +197,6 @@ def record_recent(uow: UnitOfWork, q: str) -> RecentSearchRead:
     display = " ".join(q.split())[:QUERY_MAX_CHARS]
     normalized = normalize_search_text(display)[:QUERY_MAX_CHARS]
     if not normalized:
-        from app.core.errors import ValidationFailed
-
         raise ValidationFailed(errors=[{"loc": ["body", "query"], "msg": "empty search", "code": "empty"}])
     actor = uow.actor
     now = uow.now()

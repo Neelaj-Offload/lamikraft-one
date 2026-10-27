@@ -28,21 +28,32 @@ from app.platform.uow import UnitOfWork
 from app.seed.context import SeedContext
 from app.seed.world import keys
 
+# ---- fixture keys (fixtures.md §2) ---------------------------------------------------------------------
+# keys.SHIFTS.GEN, keys.CALENDAR_HO_GEN_WINDOW and keys.HOLIDAYS.DEMO were requested from the fixture steward
+# and are on main since c518507; this lane branch predates them and keys.py is read-only here. The seed reads
+# them from keys.py whenever keys.py has them and otherwise uses the identical values below, so after the
+# merge keys.py is the only source (the fallbacks can then be deleted).
+_SHIFTS = getattr(keys, "SHIFTS", None)
+_HOLIDAYS = getattr(keys, "HOLIDAYS", None)
+SHIFT_GEN: str = getattr(_SHIFTS, "GEN", "GEN")
+#: (start, end, rollover, precompute minutes before shift start) for HO-GEN / shift GEN
+CALENDAR_HO_GEN_WINDOW: tuple[str, str, str, int] = getattr(keys, "CALENDAR_HO_GEN_WINDOW", ("09:30", "18:30", "04:00", 30))
+#: (name, offset in days from D0)
+HOLIDAY_DEMO: tuple[str, int] = getattr(_HOLIDAYS, "DEMO", ("Demo holiday", 10))
+
 HO_GEN_NAME = "Head office general"
-GEN_SHIFT = ("GEN", "General shift", time(9, 30), time(18, 30))
-ROLLOVER = time(4, 0)
-PRECOMPUTE_MINUTES = 30
-HOLIDAY_OFFSET_DAYS = 10
-HOLIDAY_NAME = "Demo holiday"
+GEN_SHIFT_NAME = "General shift"
+GEN_START = time.fromisoformat(CALENDAR_HO_GEN_WINDOW[0])
+GEN_END = time.fromisoformat(CALENDAR_HO_GEN_WINDOW[1])
+ROLLOVER = time.fromisoformat(CALENDAR_HO_GEN_WINDOW[2])
+PRECOMPUTE_MINUTES = CALENDAR_HO_GEN_WINDOW[3]
+GEN_SHIFT = (SHIFT_GEN, GEN_SHIFT_NAME, GEN_START, GEN_END)
+HOLIDAY_NAME, HOLIDAY_OFFSET_DAYS = HOLIDAY_DEMO
+#: neutral demo text (fixtures.md §2): labelled Demo and stating no commercial terms, so nothing printed next
+#: to the quote defaults (incoterm, validity) can contradict them
 DEMO_TERMS = {
-    "quote": (
-        "Demo terms. Prices are ex-works unless the quote states an incoterm. The quote is valid for the "
-        "validity period shown. Replace this text in Settings > Company before issuing real documents."
-    ),
-    "challan": (
-        "Demo terms. Goods are sent for the purpose stated on this challan. Returnable items must come back "
-        "in the same condition. Replace this text in Settings > Company."
-    ),
+    "quote": "Demo terms. Replace this text in Settings > Company before issuing real documents.",
+    "challan": "Demo terms. Replace this text in Settings > Company before issuing real documents.",
     "footer": "Demo company. Documents generated in the demo are not valid for trade.",
 }
 

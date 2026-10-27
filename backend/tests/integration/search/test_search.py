@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 import pytest
 from hypothesis import HealthCheck, given, settings
@@ -59,9 +62,10 @@ def test_people_are_found_by_name_and_title(api: ApiClient, directory) -> None: 
             "resource_id": str(people["MEERA"].user_id),
             "title": keys.PEOPLE["MEERA"].name,
             "subtitle": "Export sales executive · Export Sales",
-            "path": f"/people/{people['MEERA'].user_id}",
+            "path": "/search?" + urlencode({"q": keys.PEOPLE["MEERA"].name, "types": "org.person"}),
         }
     ]
+    assert (group["total"], group["offset"], group["has_more"]) == (1, 0, False)
     by_title = _groups(api.get("/api/v1/search", params={"q": "operations lead"}).json())
     assert by_title == {"People": [keys.PEOPLE["RAVI"].name]}
     every = _groups(api.get("/api/v1/search", params={"q": "export sales"}).json())["People"]
@@ -132,7 +136,68 @@ def test_groups_are_capped_with_has_more(api: ApiClient, company) -> None:  # ty
     group = body["groups"][0]
     assert len(group["hits"]) == 5 and group["has_more"] is True
     assert [h["title"] for h in group["hits"]] == [f"Panel Member {i}" for i in range(5)]
+    assert group["total"] == 7  # the group total is the permission-filtered count, not the page size
     assert api.get("/api/v1/search", params={"q": "panel", "limit": 21}).status_code == 422
+
+
+def test_see_all_results_pages_one_group(api: ApiClient, company) -> None:  # type: ignore[no-untyped-def]
+    """frontend_verification §12: /search?q= paginates per group; pages neither repeat nor skip hits."""
+    company_id, _ = company
+    searcher = member(company_id, "Searcher", "employee")
+    for i in range(7):
+        member(company_id, f"Panel Member {i}", "employee")
+    api.as_(searcher.actor())
+    seen: list[str] = []
+    for offset, more in ((0, True), (3, True), (6, False)):
+        body = api.get("/api/v1/search", params={"q": "panel member", "limit": 3, "types": "org.person",
+                                                 "offset": offset}).json()
+        (group,) = body["groups"]
+        assert (group["offset"], group["total"], group["has_more"]) == (offset, 7, more)
+        seen += [h["title"] for h in group["hits"]]
+    assert seen == [f"Panel Member {i}" for i in range(7)]
+    past_the_end = api.get("/api/v1/search", params={"q": "panel member", "types": "org.person", "offset": 9}).json()
+    assert past_the_end["groups"][0]["hits"] == [] and past_the_end["groups"][0]["total"] == 7
+    r = api.get("/api/v1/search", params={"q": "panel member", "offset": 3})
+    assert r.status_code == 422 and problem(r)["errors"][0]["code"] == "offset_needs_one_type"
+    assert api.get("/api/v1/search", params={"q": "panel", "types": "org.person", "offset": 201}).status_code == 422
+
+
+def test_exact_matches_are_ranked_before_the_limit(api: ApiClient, company) -> None:  # type: ignore[no-untyped-def]
+    """Ranking happens in SQL before LIMIT: alphabetically earlier partial matches cannot push the exact match
+    out of the first page."""
+    company_id, _ = company
+    searcher = member(company_id, "Searcher", "employee")
+    for suffix in "ABCDEFG":
+        member(company_id, f"Aravind {suffix}", "employee")  # contain "ravi", sort before "Ravi Kumar"
+    member(company_id, keys.PEOPLE["RAVI"].name, "employee")
+    member(company_id, "Ravi", "employee")
+    body = api.as_(searcher.actor()).get("/api/v1/search", params={"q": "ravi", "limit": 5}).json()
+    (group,) = body["groups"]
+    titles = [h["title"] for h in group["hits"]]
+    assert titles[:2] == ["Ravi", keys.PEOPLE["RAVI"].name]  # exact, then prefix, then the partial matches
+    assert titles[2:] == ["Aravind A", "Aravind B", "Aravind C"] and group["total"] == 9
+
+
+def test_people_hits_open_a_planned_route(api: ApiClient, directory) -> None:  # type: ignore[no-untyped-def]
+    """Every hit path must open a route of the web route plan, never a page that does not exist."""
+    _company, people = directory
+    body = api.as_(people["MEERA"].actor()).get("/api/v1/search", params={"q": "export sales"}).json()
+    paths = [h["path"] for g in body["groups"] for h in g["hits"]]
+    assert paths
+    patterns = _route_patterns()
+    for path in paths:
+        parts = urlsplit(path)
+        assert any(p.fullmatch(parts.path) for p in patterns), path
+        assert parse_qs(parts.query)["types"] == ["org.person"]
+
+
+def _route_patterns() -> list[re.Pattern[str]]:
+    """The web route manifest (apps/web/src/lib/routes.ts) plus the S1 routes the plan adds that the manifest
+    does not list yet (frontend_verification §6: ``/search?q=``)."""
+    planned_s1 = ["/search"]
+    manifest = Path(__file__).resolve().parents[4] / "apps" / "web" / "src" / "lib" / "routes.ts"
+    paths = re.findall(r'path:\s*"([^"]+)"', manifest.read_text(encoding="utf-8")) if manifest.exists() else []
+    return [re.compile(re.sub(r"\\\[[^\]]+\\\]", "[^/]+", re.escape(p))) for p in [*paths, *planned_s1]]
 
 
 def test_providers_run_only_with_their_read_permission(api: ApiClient, directory) -> None:  # type: ignore[no-untyped-def]
@@ -143,6 +208,17 @@ def test_providers_run_only_with_their_read_permission(api: ApiClient, directory
     no_search = member(company_id, "No Search", extra={"org.directory.read": Scope.COMPANY})
     r = api.as_(no_search.actor()).get("/api/v1/search", params={"q": "meera"})
     assert r.status_code == 403 and problem(r)["code"] == "permission_denied"
+
+
+def test_people_are_filtered_by_the_directory_scope_clause(api: ApiClient, directory) -> None:  # type: ignore[no-untyped-def]
+    """The provider searches through ScopedRepository: the grant's scope is applied in SQL, so a (hypothetical)
+    own-scope directory grant finds only the searcher, never colleagues who match the query."""
+    company_id, _people = directory
+    narrow = member(company_id, "Meera Narrow", extra={"search.global.use": Scope.COMPANY,
+                                                       "org.directory.read": Scope.OWN})
+    body = api.as_(narrow.actor()).get("/api/v1/search", params={"q": "meera"}).json()
+    (group,) = body["groups"]
+    assert [h["title"] for h in group["hits"]] == ["Meera Narrow"] and group["total"] == 1
 
 
 def test_types_filter_selects_providers(api: ApiClient, directory) -> None:  # type: ignore[no-untyped-def]

@@ -9,7 +9,7 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from app.core.errors import NotFound, ValidationFailed
 from app.platform.authz.context import ActorContext
@@ -159,6 +159,45 @@ def test_valid_entries_resolve_aliases(uoms) -> None:  # type: ignore[no-untyped
         assert reference.validate_quantity(uow, Decimal("240"), "Pieces") == (Decimal("240"), "pcs")
         assert reference.validate_quantity(uow, Decimal("240.000"), "pcs") == (Decimal("240.000"), "pcs")
         assert reference.validate_quantity(uow, Decimal("1.2345"), "sq m") == (Decimal("1.2345"), "sqm")
+
+
+def test_aliases_of_an_inactive_unit_stop_resolving(uoms) -> None:  # type: ignore[no-untyped-def]
+    with UnitOfWork(ActorContext.system(uoms)) as uow:
+        uow.session.execute(text("UPDATE uom SET active = false WHERE code = 'pcs'"))
+        assert reference.resolve_uom_code(uow, "pc") is None
+        for spelling in ("pc", "pcs", "Pieces"):
+            with pytest.raises(ValidationFailed) as exc:  # a 422, never a KeyError (500)
+                reference.validate_quantity(uow, Decimal("240"), spelling)
+            assert exc.value.extra["errors"][0]["code"] == "uom_unknown"
+            with pytest.raises(ValidationFailed) as missing:
+                reference.convert(uow, Decimal("1"), spelling, "nos")
+            assert missing.value.code == "uom_conversion_missing" and missing.value.extra["unknown_uoms"] == [spelling]
+
+
+def test_a_unit_pair_has_one_conversion_whichever_way_it_is_defined(uoms) -> None:  # type: ignore[no-untyped-def]
+    """Defining cm -> m while m -> cm exists replaces the pair's conversion; it never adds a second answer."""
+    with UnitOfWork(ActorContext.system(uoms)) as uow:
+        assert reference.convert(uow, Decimal("1"), "m", "cm") == Decimal("100")
+        out = reference.define_conversion(uow, "cm", "m", Decimal("0.02"))
+        assert (out.from_code, out.to_code, out.factor) == ("cm", "m", Decimal("0.02"))
+        # both directions now give the same, single answer
+        assert reference.convert(uow, Decimal("100"), "cm", "m") == Decimal("2")
+        assert reference.convert(uow, Decimal("1"), "m", "cm") == Decimal("50")
+        pairs = uow.session.execute(
+            text("SELECT from_code, to_code FROM uom_conversion WHERE product_id IS NULL "
+                 "AND LEAST(from_code, to_code) = 'cm' AND GREATEST(from_code, to_code) = 'm'")
+        ).all()
+        assert [tuple(p) for p in pairs] == [("cm", "m")]
+
+
+def test_the_database_refuses_a_reverse_duplicate(uoms) -> None:  # type: ignore[no-untyped-def]
+    with pytest.raises(IntegrityError, match="uq_uom_conversion_pair"):
+        with UnitOfWork(ActorContext.system(uoms)) as uow:
+            uow.session.execute(
+                text("INSERT INTO uom_conversion (id, company_id, from_code, to_code, factor, provenance, "
+                     "created_at, updated_at) VALUES (:id, :c, 'cm', 'm', 0.01, 'manual', now(), now())"),
+                {"id": uuid.uuid7(), "c": uoms},
+            )
 
 
 def test_uom_rows_are_tenant_isolated(company) -> None:  # type: ignore[no-untyped-def]

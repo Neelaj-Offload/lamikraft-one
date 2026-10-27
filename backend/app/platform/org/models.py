@@ -221,11 +221,13 @@ class UomConversion(IdMixin, TenantMixin, TimestampMixin, ActorStampMixin, Base)
     provenance: Mapped[str] = enum_column(UomConversionProvenance, length=20, default=UomConversionProvenance.MANUAL)
 
     __table_args__ = (
+        # one conversion per unordered unit pair (and product): (a, b) and (b, a) can never both exist, so a
+        # pair never has two answers; ``convert`` uses the reverse row by dividing
         Index(
             "uq_uom_conversion_pair",
             "company_id",
-            "from_code",
-            "to_code",
+            text("LEAST(from_code, to_code)"),
+            text("GREATEST(from_code, to_code)"),
             "product_id",
             unique=True,
             postgresql_nulls_not_distinct=True,

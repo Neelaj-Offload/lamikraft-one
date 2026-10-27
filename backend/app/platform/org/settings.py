@@ -29,6 +29,7 @@ from pydantic import (
 )
 
 from app.core.errors import ValidationFailed
+from app.core.logging import register_restricted_log_fields
 from app.core.money import CurrencyCode
 from app.platform.authz.redaction import Restricted
 
@@ -50,7 +51,9 @@ class SettingDef:
     #: a value instance, or a callable building it from the unit of work (e.g. names from the company row);
     #: None means ``model()`` (every field has a default)
     default: BaseModel | Callable[[UnitOfWork], BaseModel] | None = None
-    #: cross-setting checks run on write (e.g. the default brand must exist in ``brands``)
+    #: cross-setting checks run on write (e.g. the default brand must exist in ``brands``). They run while the
+    #: company's setting-validation lock is held, so two coupled settings are never validated against each
+    #: other's stale values; both sides of an invariant need a hook.
     validate: Callable[[UnitOfWork, BaseModel], None] | None = None
     owner_module: str = "org"
     schema_version: int = 1
@@ -58,6 +61,8 @@ class SettingDef:
     def __post_init__(self) -> None:
         if not _KEY.match(self.key):
             raise ValueError(f"setting key {self.key!r} must be snake_case (^[a-z][a-z0-9_]{{1,63}}$)")
+        # conventions §12: restricted field names never reach the logs (the structlog processor drops them)
+        register_restricted_log_fields(restricted_log_names(self.model))
 
     def default_value(self, uow: UnitOfWork) -> BaseModel:
         if self.default is None:
@@ -97,6 +102,11 @@ def restricted_guards(model: type[BaseModel], prefix: str = "") -> dict[str, Res
             )
             out.update(restricted_guards(nested, f"{path}[]." if is_list else f"{path}."))
     return out
+
+
+def restricted_log_names(model: type[BaseModel]) -> set[str]:
+    """Leaf names of the ``Restricted(log="drop")`` fields of ``model`` (the log processor matches key names)."""
+    return {path.rsplit(".", 1)[-1] for path, meta in restricted_guards(model).items() if meta.log == "drop"}
 
 
 # ---- value helpers ---------------------------------------------------------------------------------------

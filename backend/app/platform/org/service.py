@@ -29,6 +29,9 @@ if TYPE_CHECKING:
 
 _defs_lock = threading.Lock()
 _defs_cache: tuple[int, dict[str, SettingDef]] | None = None
+#: advisory-lock namespace serialising, per company, every setting write whose definition has a ``validate``
+#: hook (cross-setting invariants); taken before the per-key lock
+VALIDATION_LOCK = "org.setting.validated"
 
 
 # ---- definitions ------------------------------------------------------------------------------------------
@@ -345,9 +348,14 @@ def _write_setting(
     actor = uow.actor
     _check_branch(uow, definition, branch_id)
     typed = _validate_value(definition, value)
-    if definition.validate is not None:
-        definition.validate(uow, typed)
 
+    # Locks, always in this order (no deadlocks): the company's validation lock, then the per-key lock.
+    # Cross-setting checks read other settings (brands <-> quote_defaults), so every write that has a
+    # check is serialised per company and validated only once the lock is held. Under READ COMMITTED the
+    # check then sees the other writer's committed value, which closes the write skew where two checks
+    # pass on stale data and both commit.
+    if definition.validate is not None:
+        uow.advisory_xact_lock(VALIDATION_LOCK, str(actor.company_id))
     uow.advisory_xact_lock("org.setting", f"{actor.company_id}:{branch_id}:{key}")
     row = _row(uow, key, branch_id, for_update=True)
     current_version = row.version if row is not None else 0
@@ -360,6 +368,8 @@ def _write_setting(
             changed_by=str(row.updated_by) if row is not None and row.updated_by else None,
             changed_at=row.updated_at.isoformat() if row is not None else None,
         )
+    if definition.validate is not None:
+        definition.validate(uow, typed)
 
     new_dump = typed.model_dump(mode="json")
     old_typed = _typed(definition, row.value) if row is not None else None

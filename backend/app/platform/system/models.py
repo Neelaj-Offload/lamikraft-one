@@ -1,6 +1,6 @@
 """``integration_status``: the single truthful state of every external integration (ADR-040).
 
-``connected`` is written only by a verification routine (``system.service.record_verification``); no API
+``connected`` is written only by a verification routine (``system.service.run_verification``); no API
 sets it directly. Rows exist only once a verification ran; until then the configured mode is reported with
 the state ``not_connected``.
 """

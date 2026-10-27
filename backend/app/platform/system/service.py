@@ -1,9 +1,10 @@
 """Integration status: the effective state of every registered integration for the actor's company.
 
 Effective state = the stored verification result when it was recorded for the currently configured mode,
-otherwise ``not_connected``; live mode with a missing secret is ``error`` / ``secret_missing``. Only
-``record_verification`` (called by ``run_verification`` with the adapter's routine) writes rows, and only
-it can produce ``connected``; state changes emit ``system.integration.status_changed``.
+otherwise ``not_connected``; live mode with a missing secret is ``error`` / ``secret_missing``. The only public
+writer is ``run_verification``: it runs the integration's registered verification routine and persists that
+routine's result (private ``_record_verification``), so ``connected`` can only come from a routine, never from
+a result a caller made up. State changes emit ``system.integration.status_changed`` once per change.
 """
 
 from __future__ import annotations
@@ -90,19 +91,21 @@ def ui_section(uow: UnitOfWork) -> dict[str, Any]:
     }
 
 
-@command("system.integration.manage")
-def record_verification(uow: UnitOfWork, key: str, result: VerificationResult) -> IntegrationRead:
-    """Persist the outcome of a verification routine for the configured mode (the only way to 'connected')."""
-    definition = integration_def(key)
-    if definition is None:
-        raise NotFound(code="not_found", resource_type="system.integration")
+def _record_verification(uow: UnitOfWork, definition: IntegrationDef, result: VerificationResult) -> IntegrationRead:
+    """Persist a verification routine's outcome for the configured mode (the only way to 'connected').
+
+    Serialised per company and integration: the previous state is read only after the lock is held, so two
+    concurrent verifications cannot both see the old state and both announce the same change.
+    """
+    key = definition.key
     mode = definition.configured_mode(get_settings())
-    previous = _effective(definition, _rows(uow).get(key))
+    uow.advisory_xact_lock("system.integration", f"{uow.actor.company_id}:{key}")
     row = uow.session.scalars(
         select(IntegrationStatus)
         .where(IntegrationStatus.company_id == uow.actor.company_id, IntegrationStatus.integration_key == key)
         .with_for_update()
     ).first()
+    previous = _effective(definition, row)
     now = uow.now()
     state = IntegrationState.CONNECTED if result.ok else IntegrationState.ERROR
     if row is None:
@@ -142,9 +145,10 @@ def record_verification(uow: UnitOfWork, key: str, result: VerificationResult) -
 
 @command("system.integration.manage")
 def run_verification(uow: UnitOfWork, key: str) -> IntegrationRead:
+    """Run the integration's registered verification routine and record its result."""
     definition = integration_def(key)
     if definition is None:
         raise NotFound(code="not_found", resource_type="system.integration")
     if definition.verify is None:
         raise NotConfigured(f"{definition.label} has no verification routine yet.", code="not_configured")
-    return record_verification(uow, key, definition.verify(uow))
+    return _record_verification(uow, definition, definition.verify(uow))

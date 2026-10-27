@@ -17,15 +17,16 @@ router = APIRouter(prefix="/search", tags=["search"])
     "",
     openapi_extra=requires("search.global.use"),
     operation_id="search_list_results",
-    summary="Grouped results across every area the actor may read (at least 2 characters)",
+    summary="Grouped results across every area the actor may read (at least 2 characters); offset pages one type",
 )
 def list_results(
     actor: Actor,
     q: str = Query(max_length=QUERY_MAX_CHARS),
     limit: int = Query(default=service.DEFAULT_PER_GROUP, ge=1, le=service.MAX_PER_GROUP),
     types: list[str] | None = Query(default=None, max_length=20),
+    offset: int = Query(default=0, ge=0, le=service.MAX_OFFSET),
 ) -> SearchResults:
-    return service.search(actor, q, limit=limit, types=types)
+    return service.search(actor, q, limit=limit, types=types, offset=offset)
 
 
 @router.get("/recent", openapi_extra=requires("search.global.use"), operation_id="search_list_recent")

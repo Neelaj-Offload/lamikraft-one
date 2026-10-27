@@ -135,3 +135,33 @@ def test_account_numbers_never_reach_actors_without_the_guard(number: str) -> No
     # model exposure is denied even for permitted users
     for_model = redact(details, _actor(BANK_GUARD), for_model=True)
     assert number not in json.dumps(for_model.model_dump(mode="json"))
+
+
+def test_restricted_setting_fields_never_reach_the_logs() -> None:
+    """conventions §12: Restricted(log="drop") fields of every SettingDef are on the structlog deny list."""
+    from app.core.logging import redact_processor
+    from app.platform.org.settings import BUILTIN_SETTINGS, restricted_log_names
+
+    assert "account_number" in set().union(*(restricted_log_names(d.model) for d in BUILTIN_SETTINGS))
+    sentinel = "CANARY0000123456789"
+    event = redact_processor(None, "info", {
+        "event": "bank_details.saved",
+        "account_number": sentinel,
+        "value": {"accounts": [{"label": "Main", "account_number": sentinel, "account_number_last4": "6789"}]},
+    })
+    assert sentinel not in json.dumps(event)
+    assert event["value"]["accounts"][0]["account_number_last4"] == "6789"  # derived, not restricted
+
+
+def test_demo_document_terms_are_neutral() -> None:
+    """fixtures.md §2: demo text is labelled Demo and states no commercial terms that could contradict the
+    seeded quote defaults (e.g. an ex-works statement next to the FOB incoterm)."""
+    from app.platform.org.settings import QuoteDefaults
+    from app.seed.world.org import DEMO_TERMS
+
+    incoterm = QuoteDefaults().incoterm
+    for text in DEMO_TERMS.values():
+        assert text.startswith("Demo")
+        lowered = text.casefold()
+        assert not any(term in lowered for term in ("ex-works", "exw", "fob", "cif", "incoterm", "validity"))
+    assert incoterm.casefold() not in " ".join(DEMO_TERMS.values()).casefold()

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Context, Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from app.core.errors import NotFound, ValidationFailed
 from app.core.money import QUANTITY_STORAGE_PLACES
@@ -145,17 +145,21 @@ def _uom_by_code(uow: UnitOfWork) -> dict[str, Uom]:
 
 
 def resolve_uom_code(uow: UnitOfWork, text: str) -> str | None:
-    """The canonical code for a unit code or alias (case/space-insensitive); None when unknown."""
+    """The canonical code for an active unit's code or alias (case/space-insensitive); None when unknown or
+    when the unit is inactive (its aliases stop resolving with it)."""
     normalized = normalize_unit_text(text)
     if not normalized:
         return None
+    company_id = uow.actor.company_id
     code = uow.session.scalar(
-        select(Uom.code).where(Uom.company_id == uow.actor.company_id, Uom.code == normalized, Uom.active.is_(True))
+        select(Uom.code).where(Uom.company_id == company_id, Uom.code == normalized, Uom.active.is_(True))
     )
     if code is not None:
         return code
     return uow.session.scalar(
-        select(UomAlias.uom_code).where(UomAlias.company_id == uow.actor.company_id, UomAlias.alias == normalized)
+        select(UomAlias.uom_code)
+        .join(Uom, and_(Uom.company_id == UomAlias.company_id, Uom.code == UomAlias.uom_code))
+        .where(UomAlias.company_id == company_id, UomAlias.alias == normalized, Uom.active.is_(True))
     )
 
 
@@ -263,12 +267,12 @@ def validate_quantity(uow: UnitOfWork, value: Decimal, uom: str, *, allow_zero: 
         raise TypeError("quantities must be Decimal (floats are rejected)")
     value = Decimal(value)
     code = resolve_uom_code(uow, uom)
-    if code is None:
+    unit = _uom_by_code(uow).get(code) if code is not None else None
+    if unit is None:
         raise ValidationFailed(
             f"Unknown unit {uom!r}.",
             errors=[{"loc": ["uom"], "msg": "unknown unit of measure", "code": "uom_unknown"}],
         )
-    unit = _uom_by_code(uow)[code]
     exponent = value.normalize().as_tuple().exponent
     places = -exponent if isinstance(exponent, int) and exponent < 0 else 0
     if unit.is_integer and places > 0:
@@ -299,7 +303,12 @@ def define_conversion(
     product_id: uuid.UUID | None = None,
     provenance: UomConversionProvenance = UomConversionProvenance.MANUAL,
 ) -> UomConversionRead:
-    """Create or replace one conversion (product packaging conversions come from the catalogue)."""
+    """Create or replace the conversion between two units (product packaging conversions come from the catalogue).
+
+    A unit pair has one conversion per product scope, stored in one direction. Defining ``b -> a`` when
+    ``a -> b`` exists replaces that row (direction and factor as given now, so the stated factor stays exact)
+    instead of adding a second row that could disagree with it; the database enforces the same rule.
+    """
     if isinstance(factor, float) or not isinstance(factor, Decimal):
         raise TypeError("factors must be Decimal (floats are rejected)")
     if factor <= 0:
@@ -309,14 +318,20 @@ def define_conversion(
         raise NotFound(code="not_found", resource_type="org.uom")
     if from_code == to_code:
         raise ValidationFailed(errors=[{"loc": ["to_uom"], "msg": "units must differ", "code": "same_unit"}])
+    low, high = sorted((from_code, to_code))
+    uow.advisory_xact_lock("org.uom_conversion", f"{uow.actor.company_id}:{low}:{high}:{product_id}")
     product_filter = UomConversion.product_id.is_(None) if product_id is None else UomConversion.product_id == product_id
     row = uow.session.scalars(
-        select(UomConversion).where(
+        select(UomConversion)
+        .where(
             UomConversion.company_id == uow.actor.company_id,
-            UomConversion.from_code == from_code,
-            UomConversion.to_code == to_code,
+            or_(
+                and_(UomConversion.from_code == from_code, UomConversion.to_code == to_code),
+                and_(UomConversion.from_code == to_code, UomConversion.to_code == from_code),
+            ),
             product_filter,
         )
+        .with_for_update()
     ).first()
     if row is None:
         row = uow.add(
@@ -330,6 +345,8 @@ def define_conversion(
             )
         )
     else:
+        row.from_code = from_code
+        row.to_code = to_code
         row.factor = factor
         row.provenance = provenance.value
     uow.flush()

@@ -170,7 +170,7 @@ def test_org_seed_creates_the_fixture_world_and_is_idempotent(seeded, frozen_clo
         assert calendars[0].branch_id is not None
         shifts = list(uow.session.scalars(select(WorkShift)))
         assert [(s.code, s.start_local, s.end_local, s.precompute_offset_min) for s in shifts] == [
-            ("GEN", time(9, 30), time(18, 30), 30)
+            (GEN_CODE, GEN_START, GEN_END, PRECOMPUTE_MINUTES)
         ]
         holidays = list(uow.session.scalars(select(WorkHoliday)))
         assert [(h.holiday_date, h.name) for h in holidays] == [(_day(HOLIDAY_OFFSET_DAYS), HOLIDAY_NAME)]

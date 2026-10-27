@@ -2,7 +2,9 @@
 
 Domain modules declare providers in ``ModuleManifest.search_providers``; ``app.platform.search`` runs the
 providers the actor may read, groups hits and records recent searches. Providers must search through
-``ScopedRepository.search`` (escaped ILIKE / trigram) and never index or return restricted fields.
+``ScopedRepository`` (its scope clause plus escaped ILIKE / trigram terms) and never index or return restricted
+fields. ``search`` returns the best ``limit`` hits already ordered in SQL (rank descending, ties by title)
+before the LIMIT, so a page of a group never drops a better hit; the optional ``count`` gives the group total.
 """
 
 from __future__ import annotations
@@ -31,4 +33,6 @@ class SearchProvider:
     resource_type: str
     group: str  # display group: "Products", "Parties", "Quotes", ...
     permission: str  # read permission the actor must hold (any scope); rows are still scope-filtered
-    search: Callable[[UnitOfWork, str, int], list[SearchHit]]  # (uow, query, limit) -> hits
+    search: Callable[[UnitOfWork, str, int], list[SearchHit]]  # (uow, query, limit) -> hits, best first
+    #: (uow, query) -> number of matching records the actor may read; None: the group shows no total
+    count: Callable[[UnitOfWork, str], int] | None = None

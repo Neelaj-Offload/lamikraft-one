@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+import pytest
+from pydantic import ValidationError
+
 from app.platform.org.reference import DEFAULT_CONVERSIONS, DEFAULT_UOMS, normalize_unit_text
 from app.platform.org.schemas import UomConversionRead
 
@@ -48,3 +51,12 @@ def test_factors_serialise_exactly_without_trailing_zeros() -> None:
                              provenance="standard").model_dump(mode="json")["factor"] == "1000"
     schema = UomConversionRead.model_json_schema()["properties"]["factor"]
     assert schema["type"] == "string"
+
+
+@pytest.mark.parametrize("bad", [0.5, "0", "-2", "0.00000000001", "abc", True, "", "NaN"])
+def test_factors_are_positive_decimals_with_at_most_10_places(bad: object) -> None:
+    """Same rules as the kernel RatioStr on main: no floats, positive, NUMERIC(20,10) precision."""
+    with pytest.raises(ValidationError):
+        UomConversionRead(from_code="kg", to_code="g", factor=bad, provenance="standard")  # type: ignore[arg-type]
+    ok = UomConversionRead(from_code="kg", to_code="g", factor="0.0000000001", provenance="standard")
+    assert ok.model_dump(mode="json")["factor"] == "0.0000000001"

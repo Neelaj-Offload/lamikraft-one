@@ -22,8 +22,12 @@ class SearchGroupRead(BaseModel):
     resource_type: str
     group: str
     hits: list[SearchHitRead]
-    #: more hits exist than the per-group limit returned ("See all results")
+    #: more hits exist after this page ("See all results" / the next page)
     has_more: bool
+    #: position of the first hit in the group (paging on the "See all results" page)
+    offset: int = 0
+    #: matching records the actor may read in this group; None when the provider cannot count
+    total: int | None = None
 
 
 class SearchResults(BaseModel):
