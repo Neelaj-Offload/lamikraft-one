@@ -153,3 +153,65 @@ alembic heads == 1 PASS, **api:check FAIL (expected: routes changed; the integra
   advisory lock instead of falling back after 3 s (the committed concurrency test proves one briefing).
 - Inbox CSV export, assignable-users, task history and dependency endpoints: Slice 2 / not in this brief.
 - Tests run on the lane's fake world for identity/parties/sales until those lanes merge.
+
+## Fix pass (2026-10-27)
+
+Two adversarial reviews (2026-10-23) produced 15 correctness-security findings (CS) and 12 spec-conformance
+findings (SP). An interrupted pass left uncommitted tasks-side fixes; this pass verified them, finished the
+briefings side, added a regression test per fixed finding and committed: `7e7c95b` (tasks), `34e8822`
+(briefings, migration 0006 column change, seed order), `029641a` (tests).
+
+| finding | severity | status |
+|---|---|---|
+| CS1 older versions served after a revoke (?version=, pins, explain) | blocker | fixed in 34e8822 (untrusted versions re-check every source and member, overview withheld, blocker titles redacted, Explain/item 404, permission_change ends pins) |
+| CS2 briefing Dismiss closes other people's obligations | major | fixed in 7e7c95b (caller's own tasks only) |
+| CS3 manual assignment undone by re-derivation | major | fixed in 7e7c95b (`assigned_by` is an override while the assignee is active and can open the source) |
+| CS4 inconsistent lock order, no retry | major | fixed in 7e7c95b (issue → tasks by id everywhere; `tasks.txn.retry_transient`, 3 attempts, on tasks and briefings HTTP commands; consumers/jobs retried by the job runtime) |
+| CS5 refresh reads before the lock (duplicate version, false failure) | major | fixed in 34e8822 (re-read with populate_existing after the advisory lock) |
+| CS6 reply items expose numbers of invisible quotes | major | fixed in 34e8822 (quote_numbers from visible quote members only) |
+| CS7 reply ignores origin_message_id links | major | fixed in 7e7c95b; fake world no longer double-links (029641a) |
+| CS8 undated P3/P4 obligations absent from Today | minor | fixed in 34e8822 (Plan for today) |
+| CS9 whitespace reminder text → 500 | minor | fixed in 7e7c95b (schema validator + service guard) |
+| CS10 briefings seed ordered before tasks seed | minor | fixed in 34e8822 (order 81) |
+| CS11 N+1 in inbox and reconciliation | minor | fixed in 7e7c95b (per-page scope queries, batched policy visibility, member contexts cached per transaction) |
+| CS12 aggregate-leak test did not test member counts | minor | fixed in 029641a (`test_no_aggregate_leak_property.py`) |
+| CS13 inbox_counts without tasks.task.read | minor | fixed in 7e7c95b |
+| CS14 naming another owner checked coarsely | minor | fixed in 7e7c95b (assign scope over the named owner; owner must see the linked record) |
+| CS15 delta accepts any instant, no limit | minor | fixed in 34e8822 (clamped to the 7-day change window, keyset pages) |
+| SP1 permission-only change writes a version | major | fixed in 34e8822 (`briefings_briefing.permission_fingerprint` records re-verification; no version, no "N updates") |
+| SP2 onboarding depends on undefined readers; dead mark-handled | major | fixed in 7e7c95b/34e8822 for what the lane owns (role template from grants without a reader; mark_handled offered only when the check's reader is installed). The reader contract itself is a request below |
+| SP3 PARITY_MATRIX names test files that do not exist | major | fixed in 029641a for A1–A4, B1–B4, B6, C2 (tests moved/added under the named files and functions); B5 lives in another lane's folder: request below |
+| SP4 no consumer for identity.membership.deactivated | major | fixed in 7e7c95b (`common.offboarding`) |
+| SP5 Sahil's facts omit rest_moving | minor | fixed in 34e8822 (boolean fact when the decisions template is used) |
+| SP6 dead-letter / generation-failure consumers missing | minor | fixed in 7e7c95b/34e8822 (`admin.failed_jobs`, PARTIAL_RULES flag and `partial_families`) |
+| SP7 every party update creates a change and version | minor | fixed in 7e7c95b (material fields only, re-read version check, no event id in the fingerprint) |
+| SP8 refresh not debounced | minor | deferred: needs per-(user, work date) coalescing with a run_after delay and rewiring of the refresh tests; versions are still only written on real changes |
+| SP9 optional concurrency guards | minor | partly fixed: expected_version required on task transitions/assignments (7e7c95b); PinUpdate gains an optional expected_version and PinView.version (34e8822; required would 409 voice clients after every ordinal resolve). Deferred: making item_fingerprint/briefing_version required on item actions changes the web client contract; coordinate with the web lane |
+| SP10 Review action links to an unplanned /approvals/{id} route | minor | deferred: request below |
+| SP11 literal fixture names in tests | minor | partly fixed in 029641a (tests import the seed constants); keys.py constants still pending (section 10) |
+| SP12 delta and reminders not paginated | minor | fixed (reminders Page in 7e7c95b, delta CursorPage-style keyset in 34e8822) |
+
+Contract note: CS1/SP1 needed two new columns on `briefings_briefing` (`permission_fingerprint`,
+`consecutive_failures`), added to the lane's unmerged revision `0006` rather than a new revision.
+
+### Gates (2026-10-27)
+- `npm run test:api`: **224 passed** in 63.73s.
+- `npm run check -- --keep-going`: ruff PASS, pytest unit + contract PASS (104 passed), alembic heads == 1 PASS,
+  api:check FAIL (expected: `backend/openapi.json is out of date`, routes/schemas changed), web lint PASS,
+  web typecheck PASS, web vitest PASS (134).
+
+### Requests for the integrator
+1. Regenerate `backend/openapi.json` and `schema.d.ts` (new/changed: `ReminderList` page fields, required
+   `expected_version` on `TaskTransition`/`TaskAssignment`, `PinUpdate.expected_version`, `PinView.version`,
+   `DeltaView.limit/next_cursor`, delta `limit`/`cursor` query, `OverviewView.facts` booleans).
+2. PARITY_MATRIX SCN-B5 names `tests/integration/workcal/test_midnight_rollover.py::test_rollover_at_0400`
+   (workcal folder, not this lane); the briefing-side rollover check is
+   `tests/integration/briefings/test_versions_and_actions.py::test_midnight_rollover`.
+3. Web lane: an `/approvals/[id]` review route (the briefing Review action and proposal source links use it),
+   or tell this lane the canonical quote review route to point at.
+4. Identity/UI/search lanes: register SourceReaders `identity.membership` (role_templates),
+   `identity.user_preference` (briefing_saved), `ui.recent_record` and `search.recent` (count); until then the
+   onboarding steps show no mark-handled control. The platform should emit `system.job.dead_lettered` with
+   `handler_key` (consumed now).
+5. Lane env note: the slot-4 databases were downgraded/upgraded to apply the 0006 change; tasks/briefings
+   tables in `lk_wt4` are empty until the next seed run.
