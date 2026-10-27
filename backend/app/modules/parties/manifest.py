@@ -24,6 +24,12 @@ def _seed(ctx: SeedContext) -> None:
     seed_parties(ctx)
 
 
+def _seed_changes(ctx: SeedContext) -> None:
+    from app.seed.world.parties import seed_party_changes
+
+    seed_party_changes(ctx)
+
+
 def _on_load() -> None:
     from app.modules.parties.service import read_party_facts
     from app.platform.sources import register_reader
@@ -39,6 +45,10 @@ MANIFEST = ModuleManifest(
     routers=[_router],
     tools=list(TOOLS),
     search_providers=[PARTY_SEARCH],
-    seeds=[SeedDef(name="parties.world", order=20, run=_seed, slice_no=1)],
+    seeds=[
+        SeedDef(name="parties.world", order=20, run=_seed, slice_no=1),
+        # dated changes near D0 run after the catalogue, pricing and sales history so the clock only moves forward
+        SeedDef(name="parties.world.changes", order=55, run=_seed_changes, slice_no=1),
+    ],
     on_load=_on_load,
 )
