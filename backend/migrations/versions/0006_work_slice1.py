@@ -1,7 +1,7 @@
 """work lane, Slice 1 wave 1: tasks (issues, obligations, change log, reminders, queues) and briefings
 
 Revision ID: 0006
-Revises: 0002
+Revises: 0005
 Create Date: 2026-10-23 08:04:19.532228+00:00
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from migrations import helpers  # noqa: F401  (RLS, append-only, enum checks)
 
 revision: str = '0006'
-down_revision: str | Sequence[str] | None = '0002'
+down_revision: str | Sequence[str] | None = '0005'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
