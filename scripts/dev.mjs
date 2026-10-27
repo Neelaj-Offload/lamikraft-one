@@ -515,7 +515,7 @@ async function dev(argv) {
     started.api = supervisor.start(
       'api',
       uvPath(),
-      ['run', '--no-sync', 'python', '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(s.apiPort), '--reload', '--reload-dir', 'app'],
+      ['run', '--no-sync', 'python', '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(s.apiPort), '--no-proxy-headers', '--reload', '--reload-dir', 'app'],
       { cwd: BACKEND, env: pythonEnv() },
     );
   }
@@ -645,7 +645,7 @@ async function testE2e(argv) {
     const api = supervisor.start(
       'api',
       uvPath(),
-      ['run', '--locked', 'python', '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(base.e2eApiPort)],
+      ['run', '--locked', 'python', '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(base.e2eApiPort), '--no-proxy-headers'],
       { cwd: BACKEND, env: pythonEnv(overrides) },
     );
     if (existsSync(join(BACKEND, 'app', 'worker.py'))) {

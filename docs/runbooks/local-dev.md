@@ -9,7 +9,7 @@ root unless a step says otherwise.
 | Piece | How it runs | Address |
 |---|---|---|
 | PostgreSQL 17 | Docker Compose service `postgres`, container `lk-postgres`, volume `lamikraft_pgdata` | `127.0.0.1:54329` |
-| API (FastAPI) | `uv run python -m uvicorn app.main:app --reload` (the `uvicorn.exe` shim can be blocked by Windows Application Control) from `backend/` | `127.0.0.1:8000 + 10N` |
+| API (FastAPI) | `uv run python -m uvicorn app.main:app --no-proxy-headers --reload` (the `uvicorn.exe` shim can be blocked by Windows Application Control) from `backend/` | `127.0.0.1:8000 + 10N` |
 | Worker | `uv run python -m app.worker` from `backend/` | no port |
 | Web (Next.js) | `npm run dev -w apps/web`; rewrites `/api/*` to the API | `127.0.0.1:3000 + 10N` |
 | e2e API / web | started by `npm run test:e2e` only | `8100 + 10N` / `3100 + 10N` |
@@ -18,6 +18,26 @@ root unless a step says otherwise.
 `N` is the worktree slot (0-9; see [Worktree slots](#worktree-slots)). The single compose project
 `lamikraft` and its one PostgreSQL container are shared by every worktree on the machine; each
 slot gets its own databases `lk_wt<N>` and `lk_wt<N>_test`.
+
+### Proxy trust (development and production)
+
+uvicorn always runs with `--no-proxy-headers` (`scripts/dev.mjs` passes it for the dev and e2e
+servers), so `request.client` stays the real TCP peer and no client-sent `X-Forwarded-For` is
+rewritten into it. The only proxy trust is `LK_TRUSTED_PROXY_HOPS` (core `Settings`): the number of
+reverse proxies in front of the web server that append the client address to `X-Forwarded-For`,
+counted from the right.
+
+- Development and e2e: `LK_TRUSTED_PROXY_HOPS=0` (default). Requests arrive through the Next.js
+  rewrite from 127.0.0.1 and share one "address unknown" sign-in rate-limit bucket.
+- Production (behind the reverse proxy, ADR-001): set `LK_TRUSTED_PROXY_HOPS=1`. With 0 the API
+  logs a startup warning. Run the API as
+
+  ```
+  LK_ENV=production LK_TRUSTED_PROXY_HOPS=1 uv run --locked python -m uvicorn app.main:app     --host 127.0.0.1 --port 8000 --no-proxy-headers --workers 2
+  ```
+
+  and keep the reverse proxy the only path to the web server (it must append, not pass through,
+  `X-Forwarded-For`).
 
 ## Prerequisites
 
