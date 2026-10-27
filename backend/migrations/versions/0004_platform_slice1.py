@@ -68,12 +68,14 @@ def upgrade() -> None:
     sa.Column('storage_backend', sa.String(length=20), nullable=False),
     sa.Column('storage_key', sa.String(length=200), nullable=False),
     sa.Column('restricted', sa.Boolean(), nullable=False),
+    sa.Column('claims', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('company_id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('created_by', sa.Uuid(), nullable=True),
     sa.Column('updated_by', sa.Uuid(), nullable=True),
+    sa.CheckConstraint("jsonb_typeof(claims) = 'array'", name=op.f('ck_file_object_claims_array')),
     sa.CheckConstraint("kind IN ('png','jpeg','gif','webp','pdf','xlsx','csv','txt')", name=op.f('ck_file_object_kind_values')),
     sa.CheckConstraint("purpose IN ('image','document','import','export')", name=op.f('ck_file_object_purpose_values')),
     sa.CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name=op.f('ck_file_object_sha256_format')),
@@ -217,7 +219,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id', name=op.f('pk_uom_conversion'))
     )
     op.create_index(op.f('ix_uom_conversion_company_id'), 'uom_conversion', ['company_id'], unique=False)
-    op.create_index('uq_uom_conversion_pair', 'uom_conversion', ['company_id', 'from_code', 'to_code', 'product_id'], unique=True, postgresql_nulls_not_distinct=True)
+    # one conversion per unordered unit pair and product: (a, b) and (b, a) can never both exist
+    op.create_index('uq_uom_conversion_pair', 'uom_conversion', ['company_id', sa.text('LEAST(from_code, to_code)'), sa.text('GREATEST(from_code, to_code)'), 'product_id'], unique=True, postgresql_nulls_not_distinct=True)
     op.create_table('setting_revision',
     sa.Column('setting_id', sa.Uuid(), nullable=False),
     sa.Column('key', sa.String(length=64), nullable=False),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import uuid
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import pytest
 from openpyxl import Workbook
 from PIL import Image
 
+from app.platform.files import sniff as sniff_module
 from app.platform.files.errors import UnsupportedMediaType
 from app.platform.files.models import FileKind
 from app.platform.files.service import content_disposition
@@ -112,6 +114,43 @@ def test_decompression_bombs_are_rejected(tmp_path) -> None:  # type: ignore[no-
     with pytest.raises(UnsupportedMediaType) as exc:
         _sniff(tmp_path, big, "huge.png")
     assert exc.value.extra["reason"] in {"image_too_large", "image_invalid"}
+
+
+def test_the_pixel_limit_does_not_depend_on_warning_filters(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Images between the limit and Pillow's hard 2x error are refused by an explicit pixel count, whatever
+    the process-wide warning filters say (they are not thread-safe to change per upload)."""
+    monkeypatch.setattr(sniff_module, "MAX_IMAGE_PIXELS", 20 * 20)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # a concurrent request may have left any filter in place
+        with pytest.raises(UnsupportedMediaType) as exc:
+            _sniff(tmp_path, image_bytes("PNG", (21, 20)), "wide.png")
+        assert exc.value.extra["reason"] == "image_too_large"
+        assert _sniff(tmp_path, image_bytes("PNG", (20, 20)), "fits.png") == FileKind.PNG
+
+
+@pytest.mark.parametrize("ext", ["csv", "txt"])
+@pytest.mark.parametrize(
+    ("markup", "reason"),
+    [
+        (b"<svg onload=alert(1)>", "svg_not_allowed"),
+        (b"<html><script>alert(1)</script>", "html_not_allowed"),
+        (b"<  SCRIPT src=//x>", "html_not_allowed"),
+    ],
+)
+#: after the sniffed head; straddling the first 64 KiB read (16-byte header + padding puts "<" 5 bytes before
+#: the boundary); deep in the file
+@pytest.mark.parametrize("padding", [HEAD_BYTES, 65536 - 16 - 5, 3 * 65536])
+def test_markup_anywhere_in_a_text_file_is_rejected(tmp_path, ext, markup, reason, padding) -> None:  # type: ignore[no-untyped-def]
+    """Not only the first 4 KiB: markup after padding, and split across two 64 KiB reads, is found."""
+    data = b"product_key,qty\n" + b"x" * padding + markup + b"\n"
+    with pytest.raises(UnsupportedMediaType) as exc:
+        _sniff(tmp_path, data, f"list.{ext}")
+    assert exc.value.extra["reason"] == reason
+
+
+def test_long_plain_text_without_markup_is_accepted(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    data = b"product_key,note\n" + b"LK-OT-0450,size < 450 mm and > 300 mm\n" * 5000
+    assert _sniff(tmp_path, data, "notes.csv") == FileKind.CSV
 
 
 @pytest.mark.parametrize(

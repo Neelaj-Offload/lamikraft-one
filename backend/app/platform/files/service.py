@@ -2,13 +2,20 @@
 
 Upload pipeline (api-conventions §11): the router streams the body to a staging file with the per-purpose
 limit while hashing it; here the bytes are sniffed (``sniff.py``), checked against the purpose, deduplicated
-on (company, sha256) and moved into storage under a random key. Downloads are authorised through the parents
-registered with ``register_file_access`` (creator-only fallback for exports and for files nothing references
-yet) and are streamed by the router after the unit of work has closed.
+on (company, sha256) and moved into storage under a random key. A blob written by a unit of work that does not
+commit is deleted again, so storage never keeps bytes without a row.
+
+Dedupe shares the row and the blob, never the authorisation: every caller who stores the bytes is recorded as
+a claimant (``FileObject.claims``) for the purpose they stored them for, and the result they get back shows
+their own name and purpose. Downloads are authorised through the parents registered with
+``register_file_access``; without a parent, an export is readable by everyone who generated it and an upload
+nothing references yet by everyone who uploaded it. Downloads are streamed by the router after the unit of
+work has closed.
 """
 
 from __future__ import annotations
 
+import hashlib
 import os
 import tempfile
 import unicodedata
@@ -16,9 +23,10 @@ import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
+from sqlalchemy import event, func, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.errors import NotFound, ValidationFailed
@@ -27,10 +35,13 @@ from app.platform.files.errors import PayloadTooLarge
 from app.platform.files.models import FileKind, FileObject, FilePurpose
 from app.platform.files.schemas import FileRead
 from app.platform.files.sniff import CONTENT_TYPES, HEAD_BYTES, INLINE_KINDS, reject, sanitize_filename, sniff
-from app.platform.files.storage import get_storage, new_storage_key, staging_dir
+from app.platform.files.storage import StorageBackend, get_storage, new_storage_key, staging_dir
 from app.platform.service import command, query
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session, SessionTransaction
+
+    from app.platform.authz.context import ActorContext
     from app.platform.files.upload import ReceivedUpload
     from app.platform.uow import UnitOfWork
 
@@ -59,15 +70,16 @@ def content_url(file_id: uuid.UUID) -> str:
     return f"/api/v1/files/{file_id}/content"
 
 
-def _read(obj: FileObject, *, deduplicated: bool = False, shown_name: str | None = None) -> FileRead:
+def _read(obj: FileObject, *, purpose: FilePurpose, name: str, deduplicated: bool = False) -> FileRead:
+    """The caller's view of a stored file: their own name and purpose, never another claimant's."""
     return FileRead(
         id=obj.id,
         sha256=obj.sha256,
         size_bytes=obj.size_bytes,
         kind=obj.kind,
         content_type=obj.content_type,
-        original_name=shown_name or obj.original_name,
-        purpose=obj.purpose,
+        original_name=name,
+        purpose=purpose.value,
         restricted=obj.restricted,
         created_at=obj.created_at,
         deduplicated=deduplicated,
@@ -81,6 +93,89 @@ def _existing(uow: UnitOfWork, sha256: str) -> FileObject | None:
     ).first()
 
 
+# ---- claims -----------------------------------------------------------------------------------------------
+def _claim(user_id: uuid.UUID, purpose: FilePurpose, name: str) -> dict[str, str]:
+    return {"user_id": str(user_id), "purpose": purpose.value, "name": name}
+
+
+def _claims_of(obj: FileObject, actor: ActorContext) -> list[dict[str, Any]]:
+    if actor.user_id is None:
+        return []
+    uid = str(actor.user_id)
+    return [c for c in (obj.claims or []) if isinstance(c, dict) and c.get("user_id") == uid]
+
+
+def _add_claim(uow: UnitOfWork, obj: FileObject, purpose: FilePurpose, name: str, *, restricted: bool) -> None:
+    """Record the actor as a claimant of ``obj`` (once per purpose) and tighten ``restricted`` if asked.
+
+    Both are single UPDATE statements: the row lock and the re-checked WHERE make concurrent claims of the same
+    bytes safe. ``restricted`` describes the content, so it only ever goes from false to true.
+    """
+    company_id = uow.actor.company_id
+    if restricted and not obj.restricted:
+        uow.session.execute(
+            update(FileObject)
+            .where(FileObject.id == obj.id, FileObject.company_id == company_id)
+            .values(restricted=True)
+            .execution_options(synchronize_session=False)
+        )
+    user_id = uow.actor.user_id
+    if user_id is not None:
+        entry = _claim(user_id, purpose, name)
+        uow.session.execute(
+            update(FileObject)
+            .where(
+                FileObject.id == obj.id,
+                FileObject.company_id == company_id,
+                ~FileObject.claims.contains([{"user_id": entry["user_id"], "purpose": entry["purpose"]}]),
+            )
+            .values(
+                claims=FileObject.claims.op("||", return_type=JSONB)(
+                    func.jsonb_build_array(
+                        func.jsonb_build_object(
+                            "user_id", entry["user_id"], "purpose", entry["purpose"], "name", entry["name"]
+                        )
+                    )
+                )
+            )
+            .execution_options(synchronize_session=False)
+        )
+    uow.session.refresh(obj)
+
+
+# ---- storage hygiene --------------------------------------------------------------------------------------
+def _delete_unless_committed(uow: UnitOfWork, storage: StorageBackend, key: str) -> None:
+    """Delete the blob at ``key`` when the unit of work's transaction ends without committing.
+
+    Covers a rollback after ``_store`` returned (a caller composing ``store_generated`` raises later) and a
+    failed commit. Nested savepoints (search providers, idempotency) are ignored; only the unit of work's own
+    transaction decides.
+    """
+    session = uow.session
+    root = session.get_transaction()
+    if root is None:  # pragma: no cover - a unit of work always has an open transaction
+        return
+    outcome = {"committed": False, "done": False}
+
+    # The listeners stay attached (removing them while the session dispatches the event is not allowed); they
+    # act once and live only as long as the unit of work's session.
+    def on_commit(sess: Session) -> None:
+        # after_commit also fires for savepoints; the unit of work's transaction commits with none open
+        if not outcome["done"] and sess.get_nested_transaction() is None and sess.get_transaction() is root:
+            outcome["committed"] = True
+
+    def on_end(sess: Session, transaction: SessionTransaction) -> None:
+        if transaction is not root or outcome["done"]:
+            return
+        outcome["done"] = True
+        if not outcome["committed"]:
+            storage.delete(key)
+
+    event.listen(session, "after_commit", on_commit)
+    event.listen(session, "after_transaction_end", on_end)
+
+
+# ---- storing ----------------------------------------------------------------------------------------------
 def _store(
     uow: UnitOfWork,
     *,
@@ -106,14 +201,13 @@ def _store(
 
     existing = _existing(uow, sha256)
     if existing is not None:
-        if restricted and not existing.restricted:
-            existing.restricted = True  # never downgrade; restricted content stays restricted
-            uow.flush()
-        return _read(existing, deduplicated=True, shown_name=name)
+        _add_claim(uow, existing, purpose, name, restricted=restricted)
+        return _read(existing, purpose=purpose, name=name, deduplicated=True)
 
     storage = get_storage()
     key = new_storage_key(actor.company_id)
     storage.put_file(key, path)
+    _delete_unless_committed(uow, storage, key)
     try:
         now = uow.now()
         new_id = uow.session.execute(
@@ -131,6 +225,7 @@ def _store(
                 storage_backend=storage.name,
                 storage_key=key,
                 restricted=restricted,
+                claims=[_claim(actor.user_id, purpose, name)] if actor.user_id is not None else [],
                 created_at=now,
                 updated_at=now,
                 created_by=actor.user_id,
@@ -139,14 +234,15 @@ def _store(
             .on_conflict_do_nothing(index_elements=["company_id", "sha256"])
             .returning(FileObject.id)
         ).scalar()
-        if new_id is None:  # a concurrent upload of the same bytes won: reuse it, drop our copy
+        if new_id is None:  # a concurrent upload of the same bytes won: claim it, drop our copy
             storage.delete(key)
             winner = _existing(uow, sha256)
             assert winner is not None
-            return _read(winner, deduplicated=True, shown_name=name)
+            _add_claim(uow, winner, purpose, name, restricted=restricted)
+            return _read(winner, purpose=purpose, name=name, deduplicated=True)
         obj = uow.session.get(FileObject, new_id)
         assert obj is not None
-        return _read(obj)
+        return _read(obj, purpose=purpose, name=name)
     except BaseException:
         storage.delete(key)
         raise
@@ -183,8 +279,6 @@ def store_generated(
     restricted: bool = False,
 ) -> FileRead:
     """Store bytes produced by a service (PDF documents, CSV/XLSX exports) under the same rules as uploads."""
-    import hashlib
-
     fd, tmp = tempfile.mkstemp(prefix="generated-", suffix=".part", dir=staging_dir())
     try:
         with os.fdopen(fd, "wb") as fh:
@@ -205,28 +299,51 @@ def store_generated(
 
 
 # ---- authorisation ----------------------------------------------------------------------------------------
-def can_read(uow: UnitOfWork, obj: FileObject) -> bool:
+@dataclass(frozen=True)
+class _Grant:
+    """Read access to a file and the name it is served under for this actor."""
+
+    name: str
+
+
+def _grant(uow: UnitOfWork, obj: FileObject) -> _Grant | None:
     actor = uow.actor
     if obj.company_id != actor.company_id:
-        return False
+        return None
+    mine = _claims_of(obj, actor)
+    # a claimant sees the name they gave the file; everyone else the first name it was stored under
+    name = next((c["name"] for c in mine if c.get("purpose") == FilePurpose.EXPORT.value), None) or (
+        mine[0]["name"] if mine else obj.original_name
+    )
     if actor.is_system:
-        return True
+        return _Grant(name)
+    if any(c.get("purpose") == FilePurpose.EXPORT.value for c in mine):
+        return _Grant(name)  # exports have no parent: whoever generated these bytes may read them
     verdicts = [checker(uow, obj) for checker in registered_file_access().values()]
     if any(v is True for v in verdicts):
-        return True
-    unreferenced = all(v is None for v in verdicts)
-    is_creator = obj.created_by is not None and obj.created_by == actor.user_id
-    return is_creator and (obj.purpose == FilePurpose.EXPORT.value or unreferenced)
+        return _Grant(name)
+    if mine and all(v is None for v in verdicts):
+        return _Grant(name)  # nothing references the file yet: only the people who uploaded it
+    return None
+
+
+def can_read(uow: UnitOfWork, obj: FileObject) -> bool:
+    return _grant(uow, obj) is not None
+
+
+def _readable(uow: UnitOfWork, file_id: uuid.UUID) -> tuple[FileObject, _Grant]:
+    obj = uow.session.scalars(
+        select(FileObject).where(FileObject.id == file_id, FileObject.company_id == uow.actor.company_id)
+    ).first()
+    grant = _grant(uow, obj) if obj is not None else None
+    if obj is None or grant is None:
+        raise NotFound(code="not_found", resource_type="files.file")
+    return obj, grant
 
 
 def get_readable(uow: UnitOfWork, file_id: uuid.UUID) -> FileObject:
     """The file if the actor may read it; 404 otherwise (no existence leak)."""
-    obj = uow.session.scalars(
-        select(FileObject).where(FileObject.id == file_id, FileObject.company_id == uow.actor.company_id)
-    ).first()
-    if obj is None or not can_read(uow, obj):
-        raise NotFound(code="not_found", resource_type="files.file")
-    return obj
+    return _readable(uow, file_id)[0]
 
 
 def require_logo_image(uow: UnitOfWork, file_id: uuid.UUID) -> None:
@@ -271,15 +388,22 @@ class DownloadTicket:
                 yield chunk
 
 
+def _audited(obj: FileObject, actor: ActorContext) -> bool:
+    """Restricted content and exports are audited on every download."""
+    return obj.restricted or obj.purpose == FilePurpose.EXPORT.value or any(
+        c.get("purpose") == FilePurpose.EXPORT.value for c in _claims_of(obj, actor)
+    )
+
+
 @query()
 def open_download(uow: UnitOfWork, file_id: uuid.UUID) -> DownloadTicket:
-    obj = get_readable(uow, file_id)
-    if obj.restricted or obj.purpose == FilePurpose.EXPORT.value:
+    obj, grant = _readable(uow, file_id)
+    if _audited(obj, uow.actor):
         uow.audit(
             "files.file.downloaded",
             resource_type="files.file",
             resource_id=obj.id,
-            resource_label=obj.original_name,
+            resource_label=grant.name,
             details={"purpose": obj.purpose, "restricted": obj.restricted},
         )
     return DownloadTicket(
@@ -287,7 +411,7 @@ def open_download(uow: UnitOfWork, file_id: uuid.UUID) -> DownloadTicket:
         storage_key=obj.storage_key,
         content_type=obj.content_type,
         kind=FileKind(obj.kind),
-        original_name=obj.original_name,
+        original_name=grant.name,
         sha256=obj.sha256,
         size_bytes=obj.size_bytes,
         restricted=obj.restricted,

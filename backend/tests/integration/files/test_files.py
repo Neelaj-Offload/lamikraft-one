@@ -14,6 +14,7 @@ from app.platform.authz.context import ActorContext
 from app.platform.authz.permissions import Scope
 from app.platform.files import service as files
 from app.platform.files.access import register_file_access, unregister_file_access
+from app.platform.files.limits import SlidingWindowLimiter, set_upload_limiter
 from app.platform.files.models import FileObject, FilePurpose
 from app.platform.files.storage import LocalFsStorage
 from app.platform.org import service as settings_service
@@ -173,10 +174,28 @@ def test_download_headers(api: ApiClient, people) -> None:  # type: ignore[no-un
     )
     etag = r.headers["etag"]
     assert etag == f'"{hashlib.sha256(PNG).hexdigest()}"'
+    # the route's own policy comes first; the complete header is pinned by the test below
     assert r.headers.get_list("cache-control")[0] == "private, no-cache"
     assert r.headers["content-length"] == str(len(PNG))
     again = api.get(f"/api/v1/files/{file_id}/content", headers={"If-None-Match": etag})
     assert again.status_code == 304 and again.content == b""
+
+
+@pytest.mark.xfail(
+    raises=AssertionError,
+    strict=False,
+    reason=(
+        "contract question 2: RequestContextMiddleware on this branch appends 'no-store' to every response, so "
+        "browsers never reuse the ETag; main fixes it in c518507 (the header is added only when unset). "
+        "Remove this marker when the lane is merged."
+    ),
+)
+def test_download_cache_policy_is_exactly_private_with_etag(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
+    """api-conventions §11: a private cache with an ETag, so the whole Cache-Control header must be that."""
+    file_id = upload(api.as_(people["meera"].actor()), PNG, "tray.png").json()["id"]
+    r = api.get(f"/api/v1/files/{file_id}/content")
+    assert r.status_code == 200
+    assert r.headers.get_list("cache-control") == ["private, no-cache"]
 
 
 def test_only_images_and_pdfs_are_inline(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
@@ -236,7 +255,7 @@ def test_exports_are_creator_only_and_restricted_ones_are_never_cached(api: ApiC
     assert export.purpose == "export" and export.restricted is True
     r = api.as_(meera).get(export.content_url)
     assert r.status_code == 200
-    assert r.headers.get_list("cache-control")[0] == "no-store"
+    assert set(r.headers.get_list("cache-control")) == {"no-store"}
     assert r.headers["content-disposition"].startswith("attachment;")
     assert api.get(export.content_url, headers={"If-None-Match": r.headers["etag"]}).status_code == 200
     assert api.as_(people["priya"].actor()).get(export.content_url).status_code == 404
@@ -269,3 +288,88 @@ def test_company_logo_is_branding_every_member_can_load(api: ApiClient, people) 
         settings_service.update_setting(priya, "company_identity", value={"logo_file_id": meera_file["id"]},
                                         expected_version=1)
     assert exc.value.extra["errors"][0]["code"] == "file_not_found"
+
+
+# ---- dedupe shares bytes, never authorisation ------------------------------------------------------------------
+def test_a_second_exporter_of_identical_bytes_reads_their_own_export(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
+    meera, neha = people["meera"].actor(), people["neha"].actor()
+    rows = b"quote_number,total\n"  # a header-only export is byte-identical for everyone
+    first = files.store_generated(meera, rows, filename="meera-quotes.csv")
+    second = files.store_generated(neha, rows, filename="neha-quotes.csv")
+    assert second.id == first.id and second.deduplicated is True
+    # the second caller sees their own name and purpose, not the first creator's
+    assert (second.original_name, second.purpose) == ("neha-quotes.csv", "export")
+    r = api.as_(neha).get(second.content_url)
+    assert r.status_code == 200 and r.content == rows
+    assert r.headers["content-disposition"].startswith('attachment; filename="neha-quotes.csv"')
+    r = api.as_(meera).get(first.content_url)
+    assert r.status_code == 200 and r.headers["content-disposition"].startswith('attachment; filename="meera-quotes.csv"')
+    # nobody else gets in through the creator path
+    assert api.as_(people["priya"].actor()).get(first.content_url).status_code == 404
+
+
+def test_a_second_uploader_of_identical_bytes_can_use_their_upload(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
+    first = upload(api.as_(people["meera"].actor()), PNG, "tray.png").json()
+    second = upload(api.as_(people["neha"].actor()), PNG, "tray copy.png", "document").json()
+    assert second["id"] == first["id"] and second["deduplicated"] is True
+    assert (second["original_name"], second["purpose"]) == ("tray copy.png", "document")
+    r = api.get(second["content_url"])  # as Neha
+    assert r.status_code == 200 and 'filename="tray copy.png"' in r.headers["content-disposition"]
+    assert api.as_(people["priya"].actor()).get(first["content_url"]).status_code == 404
+    # the deduplicated id is usable by its second uploader, e.g. as the company logo
+    logo = upload(api, PNG, "logo.png").json()  # as Priya: a third claimant of the same bytes
+    assert logo["id"] == first["id"]
+    r = api.put("/api/v1/org/settings/company_identity",
+                json={"value": {"logo_file_id": logo["id"]}, "expected_version": 0})
+    assert r.status_code == 200, r.text
+
+
+def test_restricted_only_ever_tightens(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
+    data = b"product_key,cost\nLK-OT-0450,1\n"
+    uploaded = upload(api.as_(people["meera"].actor()), data, "costs.csv", "document").json()
+    assert uploaded["restricted"] is False
+    export = files.store_generated(people["neha"].actor(), data, filename="costs.csv", restricted=True)
+    assert str(export.id) == uploaded["id"] and export.restricted is True
+    r = api.get(uploaded["content_url"])  # as Meera: still readable, now never cached
+    assert r.status_code == 200 and set(r.headers.get_list("cache-control")) == {"no-store"}
+    again = files.store_generated(people["meera"].actor(), data, filename="costs.csv")
+    assert again.restricted is True
+
+
+# ---- storage hygiene -------------------------------------------------------------------------------------------
+def _blobs(storage: LocalFsStorage) -> list[Path]:
+    return [p for p in storage.root.rglob("*") if p.is_file() and "_staging" not in p.parts]
+
+
+def test_a_blob_is_removed_when_the_storing_unit_of_work_rolls_back(people, storage: LocalFsStorage) -> None:  # type: ignore[no-untyped-def]
+    meera = people["meera"].actor()
+    with pytest.raises(RuntimeError, match="a later step failed"):
+        with UnitOfWork(meera) as uow:
+            files.store_generated(uow, b"a,b\n1,2\n", filename="x.csv")
+            assert len(_blobs(storage)) == 1
+            raise RuntimeError("a later step failed")
+    assert _blobs(storage) == []  # no row, so no bytes either
+    with UnitOfWork(meera) as uow:
+        stored = files.store_generated(uow, b"a,b\n1,2\n", filename="x.csv")
+        savepoint = uow.session.begin_nested()
+        savepoint.rollback()  # an inner savepoint ending does not decide
+    assert len(_blobs(storage)) == 1
+    assert files.open_download(meera, stored.id).size_bytes == len(b"a,b\n1,2\n")
+
+
+def test_uploads_are_rate_limited_per_user(api: ApiClient, people, company) -> None:  # type: ignore[no-untyped-def]
+    company_id, _ = company
+    set_upload_limiter(SlidingWindowLimiter(2, 600))
+    try:
+        api.as_(people["meera"].actor())
+        assert upload(api, image_bytes("PNG", (2, 2)), "a.png").status_code == 201
+        assert upload(api, image_bytes("PNG", (3, 3)), "b.png").status_code == 201
+        r = upload(api, image_bytes("PNG", (4, 4)), "c.png")
+        assert r.status_code == 429 and problem(r)["code"] == "rate_limited"
+        assert r.headers["content-type"].startswith("application/problem+json")
+        assert int(r.headers["retry-after"]) >= 1
+        assert problem(r)["retry_after_seconds"] == int(r.headers["retry-after"])
+        assert upload(api.as_(people["neha"].actor()), image_bytes("PNG", (4, 4)), "c.png").status_code == 201
+    finally:
+        set_upload_limiter(None)
+    assert _count(company_id) == 3

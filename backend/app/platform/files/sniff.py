@@ -1,7 +1,8 @@
 """Content sniffing: the bytes decide what a file is, never the declared type or the filename alone.
 
 Accepted kinds: PNG, JPEG, GIF, WEBP (each verified by decoding the header with Pillow), PDF, XLSX
-(OOXML spreadsheet without macros) and UTF-8 CSV/TXT. Rejected: SVG and any HTML/XML markup, macro-enabled
+(OOXML spreadsheet without macros) and UTF-8 CSV/TXT. Rejected: SVG and any HTML/XML markup (anywhere in a
+text file), images over ``MAX_IMAGE_PIXELS``, macro-enabled
 or legacy binary Office documents (OLE), everything unrecognised, and files whose extension disagrees with
 the sniffed kind. Rejections raise 415 ``unsupported_media_type`` with a ``reason`` code.
 """
@@ -11,7 +12,6 @@ from __future__ import annotations
 import codecs
 import re
 import unicodedata
-import warnings
 import zipfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
@@ -49,6 +49,10 @@ _MARKUP = re.compile(
     rb"<\s*(svg|!doctype|html|head|body|script|iframe|object|embed|meta|link|style|\?xml|xsl)\b", re.IGNORECASE
 )
 _MAX_ZIP_ENTRIES = 10_000
+#: bytes carried from one read into the next while scanning text for markup (longer than any tag opener)
+_MARKUP_OVERLAP = 256
+#: images with more pixels are rejected before decoding (Pillow's own default bomb threshold, ~89.5 Mpx)
+MAX_IMAGE_PIXELS = 89_478_485
 
 
 def reject(reason: str, detail: str) -> UnsupportedMediaType:
@@ -114,32 +118,57 @@ def _inspect_zip(path: Path) -> FileKind:
     raise reject("type_not_supported", "Only .xlsx spreadsheets are accepted among Office files.")
 
 
-def _check_utf8_text(path: Path) -> None:
+def _markup_rejection(data: bytes) -> UnsupportedMediaType | None:
+    if not _MARKUP.search(data):
+        return None
+    svg = re.search(rb"<\s*svg\b", data, re.IGNORECASE)
+    return reject(
+        "svg_not_allowed" if svg else "html_not_allowed",
+        "SVG images are not accepted." if svg else "HTML and XML documents are not accepted.",
+    )
+
+
+def _check_text(path: Path) -> None:
+    """Whole-file checks for CSV/TXT: strict UTF-8, no NUL bytes and no SVG/HTML markup anywhere (not only in
+    the first bytes). Reads overlap by ``_MARKUP_OVERLAP`` bytes so a tag split across two reads is found."""
     decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
+    tail = b""
     try:
         with path.open("rb") as fh:
             while chunk := fh.read(65536):
                 if b"\x00" in chunk:
                     raise reject("binary_content", "The file contains binary data and is not a text file.")
                 decoder.decode(chunk)
+                if (problem := _markup_rejection(tail + chunk)) is not None:
+                    raise problem
+                tail = chunk[-_MARKUP_OVERLAP:]
             decoder.decode(b"", final=True)
     except UnicodeDecodeError:
         raise reject("not_utf8_text", "Text files must be UTF-8 encoded.") from None
 
 
 def _verify_image(path: Path, kind: FileKind) -> None:
+    """Decode the header and check the pixel count explicitly.
+
+    The limit is compared directly instead of relying on Pillow's ``DecompressionBombWarning``: turning that
+    warning into an error needs ``warnings.catch_warnings``, which swaps process-global filters and is not
+    thread-safe while uploads run in the threadpool. Pillow still raises ``DecompressionBombError`` on open
+    for images beyond twice its own limit.
+    """
     from PIL import Image
 
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", Image.DecompressionBombWarning)
-            with Image.open(path) as image:
-                if image.format != _PILLOW_FORMATS[kind]:
-                    raise reject("image_invalid", "The image content does not match its format.")
-                image.verify()
+        with Image.open(path) as image:
+            if image.format != _PILLOW_FORMATS[kind]:
+                raise reject("image_invalid", "The image content does not match its format.")
+            width, height = image.size
+            if width * height > MAX_IMAGE_PIXELS:
+                raise reject("image_too_large", "The image has too many pixels.")
+            image.verify()
     except UnsupportedMediaType:
         raise
     except (Image.DecompressionBombError, Image.DecompressionBombWarning):
+        # the warning only arrives as an exception when the process's filters say so; either way: too large
         raise reject("image_too_large", "The image has too many pixels.") from None
     except Exception:  # noqa: BLE001 - any decoder failure means the bytes are not a valid image
         raise reject("image_invalid", "The image is damaged or not a real image.") from None
@@ -155,15 +184,11 @@ def sniff(path: Path, head: bytes, filename: str) -> FileKind:
         raise reject("macro_document_not_allowed", "Legacy Office documents (.doc, .xls) are not accepted.")
     if kind is None:
         text_head = head[3:] if head.startswith(codecs.BOM_UTF8) else head
-        if _MARKUP.search(text_head):
-            svg = re.search(rb"<\s*svg\b", text_head, re.IGNORECASE)
-            raise reject(
-                "svg_not_allowed" if svg else "html_not_allowed",
-                "SVG images are not accepted." if svg else "HTML and XML documents are not accepted.",
-            )
+        if (problem := _markup_rejection(text_head)) is not None:
+            raise problem  # markup is named as such whatever the extension
         if ext not in ("csv", "txt"):
             raise reject("unrecognised_content", "This kind of file is not accepted.")
-        _check_utf8_text(path)
+        _check_text(path)
         kind = FileKind.CSV if ext == "csv" else FileKind.TXT
     if ext not in EXTENSIONS[kind]:
         raise reject("extension_mismatch", "The file extension does not match its content.")
