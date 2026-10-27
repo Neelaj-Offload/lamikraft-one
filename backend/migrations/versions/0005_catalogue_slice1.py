@@ -100,6 +100,39 @@ ENUMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("commercial_rule_set", "status", ("draft", "active", "retired")),
 )
 
+#: commercial.md §2.2 / ADR-018: once the parent list is active (or retired), an item's price columns are immutable;
+#: only shortening valid_to, retiring the item or setting superseded_by_item_id once is allowed (draft lists are free)
+PRICE_ITEM_GUARD = """
+CREATE OR REPLACE FUNCTION lk_pricing_price_list_item_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    list_status text;
+    free_columns text[] := ARRAY['valid_to', 'status', 'superseded_by_item_id', 'version', 'updated_at', 'updated_by'];
+BEGIN
+    SELECT status INTO list_status FROM pricing_price_list WHERE id = OLD.price_list_id;
+    IF list_status IS DISTINCT FROM 'draft' THEN
+        IF (to_jsonb(NEW) - free_columns) IS DISTINCT FROM (to_jsonb(OLD) - free_columns) THEN
+            RAISE EXCEPTION 'pricing_price_list_item: prices of an active or retired list are immutable; supersede instead'
+                USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF NEW.valid_to IS DISTINCT FROM OLD.valid_to
+           AND (NEW.valid_to IS NULL OR (OLD.valid_to IS NOT NULL AND NEW.valid_to > OLD.valid_to)) THEN
+            RAISE EXCEPTION 'pricing_price_list_item: valid_to of an active price may only be shortened'
+                USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF NEW.status IS DISTINCT FROM OLD.status AND NOT (OLD.status = 'active' AND NEW.status = 'retired') THEN
+            RAISE EXCEPTION 'pricing_price_list_item: an active price may only be retired'
+                USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        IF NEW.superseded_by_item_id IS DISTINCT FROM OLD.superseded_by_item_id
+           AND OLD.superseded_by_item_id IS NOT NULL THEN
+            RAISE EXCEPTION 'pricing_price_list_item: superseded_by_item_id is set once'
+                USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+    END IF;
+    RETURN NEW;
+END $$;
+"""
+
 PRODUCT_KEY_GUARD = """
 CREATE OR REPLACE FUNCTION lk_catalogue_product_key_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -575,6 +608,7 @@ def upgrade() -> None:
     sa.Column('source_ref', sa.String(length=200), nullable=True),
     sa.Column('source_sheet', sa.String(length=200), nullable=True),
     sa.Column('source_row', sa.String(length=40), nullable=True),
+    sa.Column('import_job_id', sa.Uuid(), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('company_id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
@@ -668,9 +702,17 @@ def upgrade() -> None:
         "CREATE TRIGGER trg_catalogue_product_key_immutable BEFORE UPDATE OF product_key ON catalogue_product "
         "FOR EACH ROW EXECUTE FUNCTION lk_catalogue_product_key_immutable()"
     )
+    # active price-list items change only through an effective-dated supersede (the database refuses edits too)
+    op.execute(PRICE_ITEM_GUARD)
+    op.execute(
+        "CREATE TRIGGER trg_pricing_price_list_item_immutable BEFORE UPDATE ON pricing_price_list_item "
+        "FOR EACH ROW EXECUTE FUNCTION lk_pricing_price_list_item_immutable()"
+    )
 
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS trg_pricing_price_list_item_immutable ON pricing_price_list_item")
+    op.execute("DROP FUNCTION IF EXISTS lk_pricing_price_list_item_immutable()")
     op.execute("DROP TRIGGER IF EXISTS trg_catalogue_product_key_immutable ON catalogue_product")
     op.execute("DROP FUNCTION IF EXISTS lk_catalogue_product_key_immutable()")
     # policies, CHECKs, the exclusion constraint and append-only triggers are dropped with their tables

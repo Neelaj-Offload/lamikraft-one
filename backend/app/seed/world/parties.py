@@ -1,8 +1,10 @@
 """Fixture parties (docs/architecture/fixtures.md §4), created through the parties service.
 
-The four Slice-1 customers are created by Priya at D-120 .. D-117 (numbers P-00001 .. P-00004 follow from the
-creation order through the real allocator); Maison's shipping address is changed by Priya at D-1 10:05 IST, which
-emits ``parties.party.updated`` with ``addresses.shipping`` (the "changes since your last visit" fact for Meera).
+The four Slice-1 customers are created by Priya at D-120 .. D-117 (``parties.world``, order 20; numbers P-00001 ..
+P-00004 follow from the creation order through the real allocator). Maison's shipping address is changed by Priya
+at D-1 10:05 IST in a separate, late SeedDef (``parties.world.changes``, order 55, after the catalogue, pricing and
+sales history) so the seed clock only moves forward (fixtures.md §1 rule 2); it emits ``parties.party.updated``
+with ``addresses.shipping`` (the "changes since your last visit" fact for Meera).
 Re-running is idempotent: existing parties are found by legal name and only their references are recorded.
 Owners are the users created by the identity seed (``ctx.refs[keys.USERS.MEERA]`` ...).
 """
@@ -140,6 +142,11 @@ def _change_maison_shipping(ctx: SeedContext) -> None:
 
 
 def seed_parties(ctx: SeedContext) -> None:
+    """``parties.world`` (order 20): the four Slice-1 customers at D-120 .. D-117."""
     for spec in SLICE1_CUSTOMERS:
         ctx.refs[spec.key] = _create(ctx, spec)
+
+
+def seed_party_changes(ctx: SeedContext) -> None:
+    """``parties.world.changes`` (order 55): dated master-data changes close to D0 (Maison's shipping, D-1 10:05)."""
     _change_maison_shipping(ctx)

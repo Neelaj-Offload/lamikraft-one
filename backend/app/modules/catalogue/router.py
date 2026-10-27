@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
 from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor
 from app.core.http.pagination import MAX_LIMIT, Page
+from app.core.money import CurrencyCode
 from app.modules.catalogue import service
 from app.modules.catalogue.schemas import (
     CategoryRead,
@@ -24,6 +25,7 @@ from app.modules.catalogue.schemas import (
     ProductSummary,
 )
 
+PriceTypeFilter = Literal["domestic", "export", "sample", "distributor"]
 router = APIRouter(prefix="/catalogue", tags=["catalogue"])
 READ = requires("catalogue.product.read")
 
@@ -68,9 +70,14 @@ def list_products(
     sort: ProductSort = "product_key",
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    price_currency: Annotated[CurrencyCode, Query(description="currency of the price columns (no conversion)")] = "EUR",
+    price_type: Annotated[PriceTypeFilter | None, Query(description="limit the price columns to one list type")] = None,
 ) -> Page[ProductSummary]:
-    """Products with every filter applied before pagination; ``total`` counts the same filtered set."""
-    return service.list_products(actor, filters, sort=sort, limit=limit, offset=offset)
+    """Products with every filter applied before pagination; ``total`` counts the same filtered set. Rows carry the
+    standard-list price in ``price_currency`` and the order-value recommendation only for ``pricing.price.read``."""
+    return service.list_products(
+        actor, filters, sort=sort, limit=limit, offset=offset, price_currency=price_currency, price_type=price_type
+    )
 
 
 @router.get("/products/facets", openapi_extra=READ)
@@ -90,9 +97,11 @@ def get_product_completeness(actor: Actor) -> CompletenessSummary:
 
 
 @router.get("/products/lookup", openapi_extra=READ)
-def get_product_by_key(actor: Actor, product_key: Annotated[str, Query(min_length=1, max_length=120)]) -> ProductDetail:
-    """Resolve a business key (``/go/product/<key>`` links); keys may contain characters unsafe in a path."""
-    return service.get_product_by_key(actor, product_key)
+def get_product_by_key(
+    actor: Actor, key: Annotated[str, Query(min_length=1, max_length=120, description="the immutable product_key")]
+) -> ProductDetail:
+    """Resolve a business key (``/go/product/<key>`` links, API-13); keys may contain characters unsafe in a path."""
+    return service.get_product_by_key(actor, key)
 
 
 @router.get("/products/{product_id}", openapi_extra=READ)

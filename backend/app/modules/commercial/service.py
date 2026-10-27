@@ -1,20 +1,30 @@
 """Commercial services: versioned rule sets and calculations through the pure engine.
 
 The engine itself has no database access; this service loads the active rule set and, for the
-``calculate_quote`` tool, the resolved price-list items (prices never come from a model).
+``calculate_quote`` tool, the resolved price-list items (prices never come from a model). It also contributes the
+catalogue's price columns (price plus order-value recommendation, UI-35/UI-39) through
+``catalogue.register_price_columns``: pricing and commercial depend on the catalogue, never the reverse.
 """
 
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.db.base import new_id
 from app.core.errors import Conflict, NotConfigured, NotFound, ValidationFailed
+from app.core.http.pagination import MAX_LIMIT, Page
+from app.core.money import Money, Quantity
 from app.modules.catalogue import service as catalogue
+from app.modules.catalogue.schemas import (
+    OrderValueRecommendationRead,
+    ProductPriceColumn,
+    quantity_entry_problem,
+)
 from app.modules.commercial import engine
 from app.modules.commercial.models import RuleSet
 from app.modules.commercial.schemas import (
@@ -31,6 +41,7 @@ from app.modules.commercial.schemas import (
     TransitionRead,
 )
 from app.modules.pricing import service as pricing
+from app.modules.pricing.schemas import PricedItem, PriceType
 from app.platform.service import query
 from app.platform.uow import UnitOfWork
 
@@ -97,6 +108,14 @@ def activate_rule_set(uow: UnitOfWork, rule_set_id: uuid.UUID, *, origin: str | 
     row = uow.repo(RuleSet).get(rule_set_id, for_update=True)
     if row.status != RuleSetStatus.DRAFT.value:
         raise Conflict(f"The rule set is {row.status}", code="rule_set_not_draft")
+    today = pricing.business_date(uow)
+    if row.effective_from > today:
+        # activation retires the current version at once, so a future version is activated on its effective date
+        raise Conflict(
+            f"{row.code} v{row.version_no} is effective from {row.effective_from.isoformat()}; activate it on or "
+            f"after that date (today is {today.isoformat()})",
+            code="rule_set_not_yet_effective",
+        )
     QuoteCommercialRulesV1.model_validate(row.params)
     current = uow.session.scalars(
         select(RuleSet)
@@ -139,11 +158,19 @@ def calculate(uow: UnitOfWork, inputs: engine.CalculationInput, *, code: str = Q
 
 
 @query(READ)
-def list_rule_sets(uow: UnitOfWork, *, code: str | None = None) -> list[RuleSetRead]:
-    stmt = uow.repo(RuleSet).select()
+def list_rule_sets(
+    uow: UnitOfWork, *, code: str | None = None, limit: int = 50, offset: int = 0
+) -> Page[RuleSetRead]:
+    conds = [uow.repo(RuleSet).clause("read")]
     if code:
-        stmt = stmt.where(RuleSet.code == code)
-    return [_read(r) for r in uow.session.scalars(stmt.order_by(RuleSet.code, RuleSet.version_no.desc()))]
+        conds.append(RuleSet.code == code)
+    total = uow.session.scalar(select(func.count(RuleSet.id)).where(*conds)) or 0
+    limit = max(1, min(limit, MAX_LIMIT))
+    offset = max(0, offset)
+    rows = uow.session.scalars(
+        select(RuleSet).where(*conds).order_by(RuleSet.code, RuleSet.version_no.desc(), RuleSet.id).limit(limit).offset(offset)
+    )
+    return Page[RuleSetRead](items=[_read(r) for r in rows], total=int(total), limit=limit, offset=offset)
 
 
 @query(READ)
@@ -151,10 +178,15 @@ def get_rule_set(uow: UnitOfWork, rule_set_id: uuid.UUID) -> RuleSetDetail:
     row = uow.repo(RuleSet).get(rule_set_id)
     can_manage = uow.actor.can(MANAGE)
     is_draft = row.status == RuleSetStatus.DRAFT.value
+    effective = row.effective_from <= pricing.business_date(uow)
     if not can_manage:
         activate = Capability(allowed=False, reason_code="permission_denied")
+    elif not is_draft:
+        activate = Capability(allowed=False, reason_code="rule_set_not_draft")
+    elif not effective:
+        activate = Capability(allowed=False, reason_code="rule_set_not_yet_effective")
     else:
-        activate = Capability(allowed=is_draft, reason_code=None if is_draft else "rule_set_not_draft")
+        activate = Capability(allowed=True)
     return RuleSetDetail(
         **_read(row).model_dump(),
         capabilities={"activate": activate},
@@ -166,30 +198,50 @@ def get_rule_set(uow: UnitOfWork, rule_set_id: uuid.UUID) -> RuleSetDetail:
     )
 
 
+def _not_current(item: PricedItem, on: date) -> str:
+    if item.list_status != "active":
+        return f"{item.price_list_code} is {item.list_status}; only active price lists price a calculation"
+    if item.list_valid_from > on or (item.list_valid_to is not None and item.list_valid_to < on):
+        until = item.list_valid_to.isoformat() if item.list_valid_to else "open"
+        return f"{item.price_list_code} is valid {item.list_valid_from.isoformat()} to {until}, not on {on.isoformat()}"
+    if item.status != "active":
+        return f"the {item.price_list_code} price is {item.status}"
+    until = item.valid_to.isoformat() if item.valid_to else "open"
+    return f"the {item.price_list_code} price is effective {item.valid_from.isoformat()} to {until}, not on {on.isoformat()}"
+
+
 @query("pricing.price.read")
 def calculate_resolved_lines(uow: UnitOfWork, data: CalculateQuoteInput) -> CalculateQuoteOutput:
     """Totals over lines that reference resolved price-list items (``calculate_quote`` tool).
 
     The unit price and currency come from the item; the carton quantity from the catalogue packaging; the item's
-    MOQ is the product MOQ. An item in another currency is rejected (a price is never relabelled).
+    MOQ is the product MOQ. A line is rejected (422) when its item is in another currency (a price is never
+    relabelled), when the item's list is not active or the list or item is not effective on the business date
+    (``price_not_current``: a draft, retired or expired price is never totalled), or when the quantity breaks the
+    unit's entry rule (whole numbers for integer units, at most 4 decimal places otherwise).
     """
     items = pricing.priced_items(uow, [line.price_list_item_id for line in data.lines])
+    day = pricing.business_date(uow)
     problems: list[dict[str, Any]] = []
     for i, line in enumerate(data.lines):
         item = items.get(line.price_list_item_id)
         if item is None:
             raise NotFound(code="not_found", resource_type="pricing.price_list_item")
+        loc = ["body", "lines", i]
         if item.currency != data.currency:
             problems.append({
-                "loc": ["body", "lines", i, "price_list_item_id"],
+                "loc": [*loc, "price_list_item_id"],
                 "msg": f"The item is priced in {item.currency}; prices are never relabelled to {data.currency}",
                 "code": "currency_mismatch",
             })
+        if not item.is_current(day):
+            problems.append({"loc": [*loc, "price_list_item_id"], "msg": _not_current(item, day), "code": "price_not_current"})
+        entry = quantity_entry_problem(line.quantity, item.unit_code)
+        if entry is not None:
+            problems.append({"loc": [*loc, "quantity"], "msg": entry[1], "code": entry[0]})
     if problems:
-        raise ValidationFailed("Some lines do not match the quote currency", errors=problems)
+        raise ValidationFailed("Some lines cannot be calculated", errors=problems)
     products = catalogue.product_refs(uow, [item.product_id for item in items.values()])
-    day = pricing.business_date(uow)
-    warnings: list[str] = []
     line_inputs: list[engine.LineInput] = []
     refs: list[CalculatedLineRef] = []
     for i, line in enumerate(data.lines):
@@ -198,20 +250,21 @@ def calculate_resolved_lines(uow: UnitOfWork, data: CalculateQuoteInput) -> Calc
         if product is None:
             raise NotFound(code="not_found", resource_type="catalogue.product")
         key = line.line_key or f"L{i + 1}"
-        current = item.status == "active" and item.valid_from <= day and (item.valid_to is None or item.valid_to >= day)
-        if not current:
-            warnings.append(f"line:{key}:PRICE_NOT_CURRENT")
         moq = item.moq if item.moq_unit_code in (None, item.unit_code) else None
-        line_inputs.append(
-            engine.LineInput(
-                line_key=key,
-                line_type="catalog",
-                quantity=line.quantity,
-                unit_price=item.unit_price,
-                carton_qty=product.carton_qty if item.unit_code == (product.unit_of_sale or item.unit_code) else None,
-                product_moq=moq,
+        try:
+            line_inputs.append(
+                engine.LineInput(
+                    line_key=key,
+                    line_type="catalog",
+                    quantity=line.quantity,
+                    unit_price=item.unit_price,
+                    uom=item.unit_code,
+                    carton_qty=product.carton_qty if item.unit_code == (product.unit_of_sale or item.unit_code) else None,
+                    product_moq=moq,
+                )
             )
-        )
+        except (TypeError, ValueError) as exc:
+            raise ValidationFailed(str(exc), errors=[{"loc": ["body", "lines", i], "msg": str(exc), "code": "invalid_line"}]) from exc
         refs.append(
             CalculatedLineRef(
                 line_key=key,
@@ -226,11 +279,87 @@ def calculate_resolved_lines(uow: UnitOfWork, data: CalculateQuoteInput) -> Calc
         inputs = engine.CalculationInput(
             currency=data.currency, lines=tuple(line_inputs), surcharge_requested=data.surcharge_requested
         )
-    except ValueError as exc:
-        raise ValidationFailed(str(exc), code="validation_failed") from exc
-    result = calculate(uow, inputs)
+        result = calculate(uow, inputs)
+    except (ValueError, ArithmeticError) as exc:  # e.g. duplicate line keys; never an unhandled decimal error
+        raise ValidationFailed(f"The lines cannot be calculated: {exc}", code="validation_failed") from exc
     return CalculateQuoteOutput(
         calculation=CalculationResultOut.model_validate(result.as_dict()),
         lines=refs,
-        warnings=warnings + list(result.warnings),
+        warnings=list(result.warnings),
     )
+
+
+# =====================================================================================================
+# catalogue price columns (UI-35 list, UI-39 overview): resolved list prices + the order-value recommendation
+# =====================================================================================================
+def _active_rules_or_none(uow: UnitOfWork) -> engine.RuleSet | None:
+    try:
+        return active_rules(uow)
+    except NotConfigured:
+        return None
+
+
+def _recommendation_read(rec: engine.Recommendation, currency: str) -> OrderValueRecommendationRead:
+    return OrderValueRecommendationRead(
+        status=rec.status,
+        quantity=Quantity(value=rec.quantity, uom=rec.uom) if rec.quantity is not None else None,
+        minimum_order_value=(
+            Money(amount=rec.minimum_order_value, currency=currency)  # type: ignore[arg-type]
+            if rec.minimum_order_value is not None
+            else None
+        ),
+        carton_qty=rec.carton_qty,
+        explanation=rec.explanation,
+        label=rec.label,
+    )
+
+
+def product_price_columns(
+    uow: UnitOfWork, product_ids: Sequence[uuid.UUID], currencies: Sequence[str], price_type: str | None = None
+) -> dict[uuid.UUID, list[ProductPriceColumn]]:
+    """Batch price columns for catalogue reads: ``pricing.display_prices`` (one query) plus the engine's order-value
+    recommendation with the active rule set, per product and currency. Requires ``pricing.price.read``.
+
+    Without an active rule set the recommendation is NOT_EVALUATED; without a positive price it is UNAVAILABLE
+    (no division); a currency without a configured threshold is NOT_EVALUATED (no FX equivalent is invented)."""
+    kind = PriceType(price_type) if price_type else None
+    prices = pricing.display_prices(uow, product_ids, currencies=currencies, price_type=kind)
+    products = catalogue.product_refs(uow, list(prices))
+    rules = _active_rules_or_none(uow)
+    out: dict[uuid.UUID, list[ProductPriceColumn]] = {}
+    for product_id, per_currency in prices.items():
+        product = products.get(product_id)
+        columns: list[ProductPriceColumn] = []
+        for currency, price in per_currency.items():
+            uom = price.unit_code or (product.unit_of_sale if product else None)
+            recommendation: OrderValueRecommendationRead | None = None
+            if uom is not None:
+                if rules is None:
+                    rec = engine.Recommendation(
+                        "NOT_EVALUATED", None, uom, None, None, None,
+                        f"No active {QUOTE_COMMERCIAL} rule set; no recommendation is calculated.",
+                    )
+                else:
+                    carton = product.carton_qty if product and uom == (product.unit_of_sale or uom) else None
+                    rec = engine.order_value_recommendation(
+                        rules,
+                        currency=currency,
+                        unit_price=price.unit_price.amount if price.unit_price is not None else None,
+                        carton_qty=carton,
+                        uom=uom,
+                    )
+                recommendation = _recommendation_read(rec, currency)
+            columns.append(
+                ProductPriceColumn(
+                    currency=price.currency,
+                    status=price.status,
+                    unit_price=price.unit_price,
+                    unit_code=price.unit_code,
+                    price_list_code=price.price_list_code,
+                    item_id=price.item_id,
+                    product_moq=price.product_moq,
+                    recommendation=recommendation,
+                )
+            )
+        out[product_id] = columns
+    return out

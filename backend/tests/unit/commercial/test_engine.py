@@ -1,4 +1,8 @@
-"""The commercial engine: scenario D (fixtures.md §11) and hypothesis properties (legacy item 7, PLAN parity rule 1)."""
+"""The commercial engine: scenario D (fixtures.md §11) and hypothesis properties (legacy item 7, PLAN parity rule 1).
+
+Test names follow the PARITY_MATRIX rows: BR-01 ``test_minimum_order_meets_below_not_evaluated``, BR-02/SCN-D2
+``test_surcharge_table``, BR-03/SCN-D1/LM-61 ``test_recommended_quantity``, SCN-D4
+``test_missing_zero_price_and_non_eur``, FG-PRC-10 ``test_product_moq_distinct_from_recommendation``."""
 
 from __future__ import annotations
 
@@ -34,21 +38,25 @@ def _calc(currency: str, *lines: LineInput, toggle: bool = False) -> engine.Calc
 
 def _line(qty: str | int, price: str | Decimal | None, *, key: str = "L1", carton: int | None = CARTON, **kw: object) -> LineInput:
     return LineInput(
-        line_key=key, line_type="catalog", quantity=Decimal(qty),
+        line_key=key, line_type="catalog", quantity=Decimal(qty), uom="pcs",
         unit_price=None if price is None else Decimal(price), carton_qty=carton, **kw,  # type: ignore[arg-type]
     )
 
 
 # ---- scenario D table ------------------------------------------------------------------------------------
-def test_d_recommended_quantity_216_at_eur_24_carton_24() -> None:
+def test_recommended_quantity() -> None:
+    """SCN-D1 / BR-03 / LM-61: ceil(5000 / 24) = 209, rounded up to the carton of 24 -> 216 (advisory only)."""
     result = _calc("EUR", _line(240, OAK_TRAY_EUR))
     rec = result.lines[0].recommendation
     assert rec.status == "AVAILABLE"
     assert str(rec.quantity) == keys.EXPECTED.SCENARIO_D_RECOMMENDED_QTY == "216"
+    assert rec.uom == "pcs" and result.as_dict()["lines"][0]["recommendation"]["quantity"] == {"value": "216", "uom": "pcs"}
     assert math.ceil(EUR_MIN / OAK_TRAY_EUR) == 209  # rounded up to the carton multiple: 216
     assert "not a product MOQ" in rec.label
     assert recommended_quantity(EUR_MIN, OAK_TRAY_EUR, None) == 209
     assert recommended_quantity(EUR_MIN, OAK_TRAY_EUR, 0) == 209
+    standalone = engine.order_value_recommendation(RULES_V1, currency="EUR", unit_price=OAK_TRAY_EUR, carton_qty=CARTON, uom="pcs")
+    assert standalone == rec  # the product-list column uses the same rule
 
 
 def test_d_scenario_c_totals() -> None:
@@ -58,30 +66,46 @@ def test_d_scenario_c_totals() -> None:
     assert str(result.gross_subtotal) == str(result.net_subtotal) == str(result.applicable_subtotal) == "5760.00"
 
 
-@pytest.mark.parametrize(("toggle", "grand", "reason"), [(False, "4800.00", "TOGGLE_OFF"), (True, "5200.00", "APPLIED")])
-def test_d_4800_toggle(toggle: bool, grand: str, reason: str) -> None:
-    result = _calc("EUR", _line(200, OAK_TRAY_EUR), toggle=toggle)
-    assert str(result.applicable_subtotal) == "4800.00"
+@pytest.mark.parametrize(
+    ("qty", "price", "toggle", "applicable", "grand", "reason"),
+    [
+        (200, OAK_TRAY_EUR, False, "4800.00", "4800.00", engine.TOGGLE_OFF),  # SCN-D2: 4,800 with the toggle off
+        (200, OAK_TRAY_EUR, True, "4800.00", "5200.00", engine.APPLIED),  # SCN-D2: 4,800 + 400 with the toggle on
+        (200, Decimal("25"), True, "5000.00", "5000.00", engine.AT_OR_ABOVE_MINIMUM),  # exactly 5,000: none
+        (1, Decimal("4999.99"), True, "4999.99", "5399.99", engine.APPLIED),  # just below the minimum
+        (0, OAK_TRAY_EUR, True, "0.00", "0.00", engine.ZERO_SUBTOTAL),  # nothing to surcharge
+    ],
+)
+def test_surcharge_table(qty: int, price: Decimal, toggle: bool, applicable: str, grand: str, reason: str) -> None:
+    """BR-02 / SCN-D2: EUR 400 only when EUR, toggled and 0 < applicable subtotal < 5,000."""
+    result = _calc("EUR", _line(qty, price, carton=None), toggle=toggle)
+    assert str(result.applicable_subtotal) == applicable
     assert str(result.grand_total) == grand
     assert result.surcharge.reason_code == reason
-    assert result.surcharge.applied is toggle
-    assert str(result.surcharge.amount) == ("400.00" if toggle else "0.00")
-    assert result.minimum.status == "BELOW" and str(result.minimum.shortfall) == "200.00"
+    applied = reason == engine.APPLIED
+    assert result.surcharge.applied is applied
+    assert str(result.surcharge.amount) == ("400.00" if applied else "0.00")
     assert result.tax is None and result.tax_status == "not_calculated" and result.tax_label == "Excludes taxes"
-    if toggle:
-        assert [(a.kind, str(a.amount)) for a in result.adjustments] == [("surcharge", "400.00")]
+    assert [(a.kind, str(a.amount)) for a in result.adjustments] == ([("surcharge", "400.00")] if applied else [])
 
 
-def test_d_exactly_5000_has_no_surcharge() -> None:
-    result = _calc("EUR", _line(200, "25"), toggle=True)
-    assert str(result.applicable_subtotal) == "5000.00"
-    assert result.surcharge.applied is False and result.surcharge.reason_code == engine.AT_OR_ABOVE_MINIMUM
-    assert str(result.grand_total) == "5000.00" and result.minimum.status == "MEETS"
-
-
-def test_d_4999_99_with_toggle_is_5399_99() -> None:
-    result = _calc("EUR", _line(1, "4999.99", carton=None), toggle=True)
-    assert str(result.grand_total) == "5399.99" and result.surcharge.applied
+@pytest.mark.parametrize(
+    ("qty", "price", "status", "shortfall"),
+    [
+        (240, OAK_TRAY_EUR, "MEETS", None),
+        (200, OAK_TRAY_EUR, "BELOW", "200.00"),
+        (200, Decimal("25"), "MEETS", None),  # exactly the minimum meets it
+    ],
+)
+def test_minimum_order_meets_below_not_evaluated(qty: int, price: Decimal, status: str, shortfall: str | None) -> None:
+    """BR-01: the EUR 5,000 minimum at quote level; other currencies are NOT_EVALUATED (no invented threshold)."""
+    result = _calc("EUR", _line(qty, price))
+    assert result.minimum.status == status and str(result.minimum.minimum_order_value) == keys.COMMERCIAL.EUR_MINIMUM
+    assert (str(result.minimum.shortfall) if result.minimum.shortfall is not None else None) == shortfall
+    for currency in ("USD", "GBP", "INR"):
+        other = _calc(currency, _line(qty, price))
+        assert other.minimum.status == "NOT_EVALUATED" and other.minimum.minimum_order_value is None
+        assert other.minimum.reason_code == engine.CURRENCY_NOT_EVALUATED
 
 
 def test_d_discount_reduces_the_applicable_subtotal() -> None:
@@ -95,7 +119,8 @@ def test_d_discount_reduces_the_applicable_subtotal() -> None:
 
 
 @pytest.mark.parametrize("price", [None, "0"])
-def test_d_missing_or_zero_price_is_unavailable_without_division(price: str | None) -> None:
+def test_missing_zero_price_and_non_eur(price: str | None) -> None:
+    """SCN-D4: a missing or zero price never fabricates a recommendation or a total; non-EUR is not evaluated."""
     result = _calc("EUR", _line(240, price), toggle=True)
     line = result.lines[0]
     assert line.recommendation.status == "UNAVAILABLE" and line.recommendation.quantity is None
@@ -103,28 +128,28 @@ def test_d_missing_or_zero_price_is_unavailable_without_division(price: str | No
     assert result.grand_total is None and result.totals_complete is False
     assert result.surcharge.applied is False and result.surcharge.reason_code == engine.TOTALS_INCOMPLETE
     assert engine.TOTALS_INCOMPLETE in result.reason_codes
+    assert result.as_dict()["grand_total"] is None
+    usd = _calc("USD", _line(200, "24"), toggle=True)
+    assert usd.minimum.status == "NOT_EVALUATED" and usd.minimum.minimum_order_value is None
+    assert usd.surcharge.applied is False and usd.surcharge.reason_code == engine.CURRENCY_NOT_EVALUATED
+    assert usd.lines[0].recommendation.status == "NOT_EVALUATED"
+    assert "no foreign-currency equivalent" in usd.lines[0].recommendation.explanation
+    assert str(usd.grand_total) == "4800.00"
+    assert usd.as_dict()["grand_total"] == {"amount": "4800.00", "currency": "USD"}  # never relabelled
 
 
-def test_d_usd_minimum_not_evaluated_and_no_surcharge() -> None:
-    result = _calc("USD", _line(200, "24"), toggle=True)
-    assert result.minimum.status == "NOT_EVALUATED" and result.minimum.minimum_order_value is None
-    assert result.surcharge.applied is False and result.surcharge.reason_code == engine.CURRENCY_NOT_EVALUATED
-    assert result.lines[0].recommendation.status == "NOT_EVALUATED"
-    assert "no foreign-currency equivalent" in result.lines[0].recommendation.explanation
-    assert str(result.grand_total) == "4800.00"
-
-
-def test_zero_subtotal_has_no_surcharge() -> None:
-    result = _calc("EUR", _line(0, OAK_TRAY_EUR), toggle=True)
-    assert result.surcharge.reason_code == engine.ZERO_SUBTOTAL and str(result.grand_total) == "0.00"
-
-
-def test_advisories_are_distinct_from_product_moq() -> None:
+def test_product_moq_distinct_from_recommendation() -> None:
+    """FG-PRC-10: the product MOQ (from the price item) and the order-value recommendation are separate advisories."""
     result = _calc("EUR", _line(100, OAK_TRAY_EUR, product_moq=Decimal(120)))
-    assert set(result.lines[0].advisories) == {
+    line = result.lines[0]
+    assert set(line.advisories) == {
         engine.BELOW_ORDER_VALUE_RECOMMENDATION, engine.BELOW_PRODUCT_MOQ, engine.NOT_CARTON_MULTIPLE,
     }
-    manual = LineInput(line_key="M1", line_type="manual", quantity=Decimal(1), unit_price=Decimal("150"))
+    assert line.product_moq == Decimal(120) and line.recommendation.quantity == Decimal(216)
+    data = result.as_dict()["lines"][0]
+    assert data["product_moq"] == {"value": "120", "uom": "pcs"}
+    assert data["recommendation"]["quantity"] == {"value": "216", "uom": "pcs"}
+    manual = LineInput(line_key="M1", line_type="manual", quantity=Decimal(1), unit_price=Decimal("150"), uom="pcs")
     assert _calc("EUR", manual).lines[0].recommendation.status == "NOT_APPLICABLE"
 
 
@@ -135,9 +160,11 @@ def test_line_totals_round_half_up_to_the_minor_unit() -> None:
 
 def test_floats_are_rejected_everywhere() -> None:
     with pytest.raises(TypeError):
-        LineInput(line_key="L1", line_type="catalog", quantity=240.0, unit_price=Decimal(24))  # type: ignore[arg-type]
+        LineInput(line_key="L1", line_type="catalog", quantity=240.0, unit_price=Decimal(24), uom="pcs")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        LineInput(line_key="L1", line_type="catalog", quantity=Decimal(240), unit_price=24.0)  # type: ignore[arg-type]
+        LineInput(line_key="L1", line_type="catalog", quantity=Decimal(240), unit_price=24.0, uom="pcs")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        LineInput(line_key="L1", line_type="catalog", quantity=Decimal(240), unit_price=Decimal(24), uom="")
     with pytest.raises(TypeError):
         engine.rules_from_params(code="x", version_no=1, params={
             "thresholds": {"EUR": {"minimum_order_value": 5000.0, "surcharge_amount": "400"}},
@@ -151,12 +178,23 @@ def test_result_is_frozen_and_carries_its_inputs() -> None:
     result = _calc("EUR", _line(240, OAK_TRAY_EUR), toggle=True)
     with pytest.raises(AttributeError):
         result.grand_total = Decimal(0)  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        result.inputs["currency"] = "USD"  # type: ignore[index]
     assert result.rule_set_code == keys.COMMERCIAL.RULE_SET and result.rule_set_version == 1
     assert result.engine_version == engine.ENGINE_VERSION
     data = result.as_dict()
-    assert data["inputs"]["lines"][0]["unit_price"] == "24.0000" and data["grand_total"] == "5760.00"
-    assert data["surcharge"] == {"applied": False, "amount": "0.00", "reason_code": "AT_OR_ABOVE_MINIMUM",
-                                 "label": "Shipping surcharge"}
+    assert data["inputs"]["lines"][0]["unit_price"] == "24.0000" and data["inputs"]["lines"][0]["uom"] == "pcs"
+    assert data["grand_total"] == {"amount": "5760.00", "currency": "EUR"}
+    assert data["lines"][0]["quantity"] == {"value": "240", "uom": "pcs"}
+    assert data["lines"][0]["unit_price"] == {"amount": "24.0000", "currency": "EUR"}
+    assert data["surcharge"] == {"applied": False, "amount": {"amount": "0.00", "currency": "EUR"},
+                                 "reason_code": "AT_OR_ABOVE_MINIMUM", "label": "Shipping surcharge"}
+    # as_dict is a fresh copy: mutating it never changes the result or its hashed inputs
+    data["inputs"]["lines"][0]["unit_price"] = "1.0000"
+    data["lines"][0]["unit_price"]["amount"] = "1.0000"
+    assert result.inputs["lines"][0]["unit_price"] == "24.0000"
+    assert result.as_dict()["inputs"]["lines"][0]["unit_price"] == "24.0000"
+    assert result == _calc("EUR", _line(240, OAK_TRAY_EUR), toggle=True)
 
 
 # ---- properties ------------------------------------------------------------------------------------------
@@ -184,7 +222,7 @@ def test_recommendation_is_the_minimal_carton_multiple_reaching_the_minimum(pric
 )
 def test_engine_invariants(lines: list[tuple[Decimal, Decimal | None, str]], currency: str, toggle: bool) -> None:
     inputs = [
-        LineInput(line_key=f"L{i}", line_type=t, quantity=q, unit_price=p, carton_qty=CARTON)  # type: ignore[arg-type]
+        LineInput(line_key=f"L{i}", line_type=t, quantity=q, unit_price=p, uom="pcs", carton_qty=CARTON)  # type: ignore[arg-type]
         for i, (q, p, t) in enumerate(lines)
     ]
     result = _calc(currency, *inputs, toggle=toggle)
@@ -209,3 +247,6 @@ def test_engine_invariants(lines: list[tuple[Decimal, Decimal | None, str]], cur
     if currency != "EUR":
         assert result.minimum.status == "NOT_EVALUATED"
         assert all(ln.recommendation.status in ("NOT_EVALUATED", "NOT_APPLICABLE") for ln in result.lines)
+    data = result.as_dict()  # money always travels with its currency, quantities with their unit
+    assert all(a["amount"]["currency"] == currency for a in data["adjustments"])
+    assert data["net_subtotal"]["currency"] == currency and all(ln["quantity"]["uom"] == "pcs" for ln in data["lines"])

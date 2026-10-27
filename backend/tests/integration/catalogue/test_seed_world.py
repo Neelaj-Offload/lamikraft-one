@@ -56,8 +56,8 @@ def test_world_counts_and_taxonomy(world: World) -> None:
     }
     tree = catalogue.list_categories(world.actor(keys.USERS.MEERA))
     assert [(c.name, [s.name for s in c.subcategories], c.product_count) for c in tree] == [
-        (CATEGORIES["CAT_SERVEWARE"][0], ["Trays", "Trivets", "Boards"], 3),
-        (CATEGORIES["CAT_DECORATIVE_BOARDS"][0], ["Veneered panels"], 1),
+        (CATEGORIES["CAT_SERVEWARE"][0], [name for _key, name in CATEGORIES["CAT_SERVEWARE"][2]], 3),
+        (CATEGORIES["CAT_DECORATIVE_BOARDS"][0], [name for _key, name in CATEGORIES["CAT_DECORATIVE_BOARDS"][2]], 1),
     ]
     assert all(c.is_active and all(s.is_active for s in c.subcategories) for c in tree)
 
@@ -92,13 +92,29 @@ def test_maison_shipping_change_is_a_dated_party_update(world: World) -> None:
     assert event.actor_user_id == world.user_id(keys.USERS.PRIYA)
 
 
+def test_seed_history_is_chronological(world: World) -> None:
+    """fixtures.md §1 rule 2: the seed clock only moves forward, so outbox order (seq) is time order; the D-1 Maison
+    change runs in its own late SeedDef (parties.world.changes, order 55) after the D-116/D-115 catalogue and pricing."""
+    with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
+        events = list(
+            uow.session.execute(
+                select(DomainEvent.event_type, DomainEvent.occurred_at)
+                .where(DomainEvent.company_id == world.company_id)
+                .order_by(DomainEvent.seq)
+            )
+        )
+    times = [occurred for _type, occurred in events]
+    assert times == sorted(times)
+    assert events[-1][0] == "parties.party.updated"
+
+
 def test_oak_tray_fixture_fields(world: World) -> None:
     detail = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))
     assert detail.product_key == detail.display_sku == keys.PRODUCTS.OAK_TRAY
     assert detail.decor.decor_no == keys.DECORS.NATURAL_OAK == "0120"
     assert detail.packaging is not None and detail.specification is not None
     assert detail.packaging.carton_qty == 24 and detail.packaging.inner_qty == 6
-    assert detail.packaging.summary == "450g | 24/ctn | Poly bag"
+    assert detail.packaging.summary == "450g · 24/ctn · Poly bag"  # FG-PKG-11 canonical summary
     assert detail.packaging.warnings == []  # cbm 0.047520 = 48 x 33 x 30 cm; gross >= net
     assert str(detail.packaging.cbm) == "0.047520"
     assert (str(detail.size.length_mm), str(detail.size.width_mm)) == ("450", "300")

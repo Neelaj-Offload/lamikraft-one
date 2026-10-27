@@ -4,7 +4,9 @@
   different identifiers. The legacy float artefact ``"120.0"`` becomes ``"120"`` with a warning when the
   per-field rule is on (legacy bug §10.1 #5 used ``rstrip('.0')`` and corrupted ``"120.0"`` into ``"12"``).
 - Thickness is a canonical millimetre Decimal, so ``0.8`` and ``0.80`` are the same value.
-- Dimension strings are parsed into canonical millimetres while the original text is kept as provenance.
+- Dimension strings are parsed into canonical millimetres while the original text is kept as provenance. A unit is
+  never guessed for part of a size: ``"30 x 20 cm"`` applies the trailing unit to every part, but ``"45 cm x 300"``
+  (a unit on some parts, none on others, not covered by a trailing unit) is ambiguous with ``MIXED_UNITS``.
 - Packaging alias pairs (``carton_qty``/``master_carton_qty`` ...) resolve to one canonical value; a
   disagreement is a conflict, never a guess (legacy bug §10.1 #9).
 
@@ -27,6 +29,9 @@ SINGLE_VALUE_AMBIGUOUS = "SINGLE_VALUE_AMBIGUOUS"
 RANGE_NOT_SUPPORTED = "RANGE_NOT_SUPPORTED"
 UNRECOGNISED_FORMAT = "UNRECOGNISED_FORMAT"
 UNIT_INFERRED = "UNIT_INFERRED"
+MIXED_UNITS = "MIXED_UNITS"
+BELOW_PRECISION = "BELOW_PRECISION"
+TOO_LARGE = "TOO_LARGE"
 NOT_INTEGER = "NOT_INTEGER"
 NOT_A_NUMBER = "NOT_A_NUMBER"
 NOT_POSITIVE = "NOT_POSITIVE"
@@ -37,6 +42,9 @@ INNER_EXCEEDS_CARTON = "INNER_EXCEEDS_CARTON"
 
 MM_PLACES = Decimal("0.001")
 GRAM_PLACES = Decimal("0.001")
+#: exclusive upper bound of canonical millimetre columns (NUMERIC(12,3)); thickness is NUMERIC(8,3)
+MAX_MM = Decimal(10) ** 9
+MAX_THICKNESS_MM = Decimal(10) ** 5
 _FLOAT_ARTEFACT = re.compile(r"^(\d+)\.0+$")
 #: millimetres per unit (exact Decimal factors)
 UNIT_FACTORS: dict[str, Decimal] = {
@@ -75,8 +83,10 @@ def normalise_identifier(
     """Normalise a text identifier (decor number, code) without ever corrupting it.
 
     Strings keep leading zeros and are only trimmed. Integral numbers (spreadsheet numeric cells) become integer
-    strings. ``float_artefact_rule`` strips a pure ``.0+`` suffix (``"120.0"`` -> ``"120"``) with a warning;
-    ``"12.50"`` is unchanged. ``zero_pad_width`` is an explicit admin choice (never inferred).
+    strings; a float or Decimal written with a ``.0`` fraction (``120.0``) is the same artefact and always carries
+    the ``DECOR_FLOAT_ARTEFACT_NORMALISED`` warning. ``float_artefact_rule`` strips a pure ``.0+`` suffix from text
+    (``"120.0"`` -> ``"120"``) with the same warning; ``"12.50"`` is unchanged. ``zero_pad_width`` is an explicit
+    admin choice (never inferred).
     """
     if value is None:
         return IdentifierResult(None, None)
@@ -92,7 +102,12 @@ def normalise_identifier(
         if not number.is_finite():
             raise ValueError("identifier must be finite")
         original = str(value)
-        text = str(int(number)) if number == number.to_integral_value() else format(number.normalize(), "f")
+        if number == number.to_integral_value():
+            text = str(int(number))
+            if isinstance(value, float) or number.as_tuple().exponent < 0:  # type: ignore[operator]
+                warnings.append(DECOR_FLOAT_ARTEFACT_NORMALISED)  # a numeric cell such as 120.0
+        else:
+            text = format(number.normalize(), "f")
     elif isinstance(value, str):
         original = value
         text = value.strip()
@@ -104,7 +119,8 @@ def normalise_identifier(
         match = _FLOAT_ARTEFACT.match(text)
         if match:
             text = match.group(1)
-            warnings.append(DECOR_FLOAT_ARTEFACT_NORMALISED)
+            if DECOR_FLOAT_ARTEFACT_NORMALISED not in warnings:
+                warnings.append(DECOR_FLOAT_ARTEFACT_NORMALISED)
     if zero_pad_width is not None and text.isdigit():
         text = text.zfill(zero_pad_width)
     source = original if original != text else None
@@ -208,8 +224,15 @@ def parse_dimension(text: str | None, default_unit: str = "mm") -> ParsedDimensi
     trailing = parsed[-1][1]
     explicit = [u for _, u in parsed if u]
     inferred = not explicit
+    unit_positions = [i for i, (_, u) in enumerate(parsed) if u]
+    if explicit and len(unit_positions) < len(parsed) and unit_positions != [len(parsed) - 1]:
+        # "45 cm x 300" or "45 cm x 30 x 20 mm": some parts carry a unit and others do not, and no single trailing
+        # unit covers them ("30 x 20 cm" does); applying any unit to the bare parts would be a guess
+        return ParsedDimension("ambiguous", source, warnings=(*warnings, MIXED_UNITS))
     if inferred:
         warnings.append(UNIT_INFERRED)
+    if any(n * UNIT_FACTORS[u or trailing or default_unit] >= MAX_MM for n, u in parsed):
+        return ParsedDimension("unparsed", source, warnings=(*warnings, TOO_LARGE))
     values = [_to_mm(n, u or trailing or default_unit) for n, u in parsed]
     unit_label = explicit[0] if explicit else default_unit
     if any(v <= 0 for v in values):
@@ -247,7 +270,12 @@ def parse_length(value: Any, default_unit: str = "mm") -> tuple[Decimal, str]:
         raise TypeError(f"unsupported length type {type(value).__name__}")
     if not number.is_finite() or number <= 0:
         raise ValueError(NOT_POSITIVE)
-    return _to_mm(number, unit), source
+    if number * UNIT_FACTORS[unit] >= MAX_MM:
+        raise ValueError(TOO_LARGE)
+    mm = _to_mm(number, unit)
+    if mm <= 0:  # positive, but below 0.001 mm: it would be stored as zero
+        raise ValueError(BELOW_PRECISION)
+    return mm, source
 
 
 def normalise_thickness(value: Any) -> Decimal | None:
@@ -255,6 +283,8 @@ def normalise_thickness(value: Any) -> Decimal | None:
     if value is None or (isinstance(value, str) and not value.strip()):
         return None
     mm, _source = parse_length(value)
+    if mm >= MAX_THICKNESS_MM:
+        raise ValueError(TOO_LARGE)
     return mm
 
 

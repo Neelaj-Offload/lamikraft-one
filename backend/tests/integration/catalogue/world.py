@@ -2,7 +2,7 @@
 
 A test company with the Slice-1 personas (fixture keys from ``app.seed.world.keys``), each acting through the role
 template named in the fixtures, then the lane's own seeds run exactly as ``lk seed demo`` runs them: parties (20),
-catalogue (30), pricing and commercial (40). The identity lane owns the real member-actor builder; until it is
+catalogue (30), pricing and commercial (40), dated party changes (55). The identity lane owns the real member-actor builder; until it is
 merged, tests register a builder that resolves a persona's template grants from the frozen permission catalogue.
 """
 
@@ -77,17 +77,47 @@ def build_personas(company_key: str | None = None) -> World:
 
 
 def seed_world(world: World) -> World:
-    """Run the lane's seeds in manifest order (parties 20, catalogue 30, pricing and commercial 40)."""
+    """Run the lane's seeds in manifest order (parties 20, catalogue 30, pricing and commercial 40, party changes 55)."""
     from app.seed.world.catalogue import seed_catalogue
     from app.seed.world.commercial import seed_commercial
-    from app.seed.world.parties import seed_parties
+    from app.seed.world.parties import seed_parties, seed_party_changes
     from app.seed.world.pricing import seed_pricing
 
     seed_parties(world.ctx)
     seed_catalogue(world.ctx)
     seed_pricing(world.ctx)
     seed_commercial(world.ctx)
+    seed_party_changes(world.ctx)
     return world
+
+
+def category_name(key: str) -> str:
+    """Name of a seeded category by its refs key (``CAT_SERVEWARE``); keys.py has no taxonomy constants yet."""
+    from app.seed.world.catalogue import CATEGORIES
+
+    return CATEGORIES[key][0]
+
+
+def subcategory_name(key: str) -> str:
+    """Name of a seeded subcategory by its refs key (``SUB_TRAYS``)."""
+    from app.seed.world.catalogue import CATEGORIES
+
+    return next(name for _cat, _order, subs in CATEGORIES.values() for sub_key, name in subs if sub_key == key)
+
+
+def product_name(key: str) -> str:
+    """Name of a seeded product by its fixture key (``OAK_TRAY``)."""
+    from app.seed.world.catalogue import SLICE1_PRODUCTS
+
+    return next(p.name for p in SLICE1_PRODUCTS if p.key == key)
+
+
+def next_party_number() -> str:
+    """The number the real allocator gives the next party: one after the seeded customers (fixtures.md §1 rule 4)."""
+    from app.modules.parties.events import PARTY_SEQUENCE
+    from app.seed.world.parties import SLICE1_CUSTOMERS
+
+    return PARTY_SEQUENCE.format_template.format(seq=PARTY_SEQUENCE.start_value + len(SLICE1_CUSTOMERS))
 
 
 @pytest.fixture
