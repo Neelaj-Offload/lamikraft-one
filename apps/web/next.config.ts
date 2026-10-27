@@ -36,7 +36,18 @@ const nextConfig: NextConfig = {
     };
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // One-time demo links carry a token in the URL fragment (api-conventions §7): the page
+      // strips it, and this policy keeps the URL out of any Referer. Listed last so it wins.
+      {
+        source: "/demo-sign-in",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+    ];
   },
 };
 

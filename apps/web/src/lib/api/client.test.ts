@@ -6,16 +6,21 @@ import {
   ProblemError,
   createApiClient,
   createIdempotencyKey,
+  currentCsrfToken,
   idempotencyHeaders,
   isProblemContentType,
   loginUrl,
   readCookie,
   redirectToLogin,
+  requestUntyped,
   safeNextPath,
+  seedCsrfToken,
   unwrap,
+  uuidv7,
   type ApiClient,
   type UnauthorizedContext,
 } from "./client";
+import { conflictFromError, isEndpointUnavailable, isStalenessConflict, parseRetryAfter } from "./errors";
 
 const BASE = "http://127.0.0.1:3100";
 
@@ -78,18 +83,38 @@ describe("CSRF middleware", () => {
   });
 });
 
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 describe("Idempotency-Key", () => {
-  it("creates distinct RFC 4122 v4 keys", () => {
+  it("creates distinct RFC 9562 v7 keys", () => {
     const a = createIdempotencyKey();
     const b = createIdempotencyKey();
-    expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(a).toMatch(UUID_V7);
     expect(a).not.toBe(b);
   });
 
-  it("falls back to getRandomValues outside secure contexts", () => {
+  it("encodes the creation time in the first 48 bits", () => {
+    const now = Date.UTC(2026, 9, 12, 3, 25, 0, 123);
+    const key = uuidv7(now, new Uint8Array(10));
+    expect(Number.parseInt(key.replace(/-/g, "").slice(0, 12), 16)).toBe(now);
+    expect(key).toBe(`${now.toString(16).padStart(12, "0").slice(0, 8)}-${now.toString(16).padStart(12, "0").slice(8)}-7000-8000-000000000000`);
+  });
+
+  it("sorts by creation time", () => {
+    const keys = [3, 1, 2].map((offset) => uuidv7(1_760_000_000_000 + offset));
+    expect([...keys].sort()).toEqual([keys[1], keys[2], keys[0]]);
+  });
+
+  it("only needs getRandomValues, so plain-HTTP LAN deployments work", () => {
     const original = globalThis.crypto;
     vi.stubGlobal("crypto", { getRandomValues: original.getRandomValues.bind(original) });
-    expect(createIdempotencyKey()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(createIdempotencyKey()).toMatch(UUID_V7);
+  });
+
+  it("rejects invalid inputs", () => {
+    expect(() => uuidv7(-1)).toThrow(RangeError);
+    expect(() => uuidv7(1, new Uint8Array(4))).toThrow(RangeError);
+    expect(() => idempotencyHeaders("x".repeat(129))).toThrow();
   });
 
   it("is sent as a header and reused verbatim", async () => {
@@ -256,5 +281,242 @@ describe("readCookie", () => {
     expect(readCookie("lk_csrf", header)).toBe("abc.def");
     expect(readCookie("lk_ui", header)).toBe("theme=dark");
     expect(readCookie("missing", header)).toBeNull();
+  });
+});
+
+describe("CSRF retry", () => {
+  it("refetches the bootstrap and retries once with the rotated token", async () => {
+    let token = "stale";
+    const seen: Request[] = [];
+    const client = createApiClient({
+      baseUrl: BASE,
+      getCsrfToken: () => token,
+      onUnauthorized: vi.fn(),
+      fetch: async (request) => {
+        seen.push(request.clone());
+        if (request.url.endsWith("/api/v1/session/bootstrap")) {
+          token = "fresh";
+          return Response.json({ ok: true });
+        }
+        if (request.headers.get(CSRF_HEADER) === "stale") {
+          return problem(403, { title: "Session check failed", status: 403, code: "csrf_token_invalid" });
+        }
+        return Response.json({ saved: true, body: await request.json() });
+      },
+    });
+    const call = (client.request as unknown as UntypedRequest).bind(client);
+    const key = createIdempotencyKey();
+    const result = await call("post", "/api/v1/things", { body: { a: 1 }, headers: idempotencyHeaders(key) });
+
+    expect(result.response.status).toBe(200);
+    expect(result.data).toEqual({ saved: true, body: { a: 1 } });
+    expect(seen.map((r) => `${r.method} ${new URL(r.url).pathname} ${r.headers.get(CSRF_HEADER)}`)).toEqual([
+      "POST /api/v1/things stale",
+      "GET /api/v1/session/bootstrap null",
+      "POST /api/v1/things fresh",
+    ]);
+    // The retry is the same command, so it carries the same Idempotency-Key.
+    expect(seen[2]!.headers.get(IDEMPOTENCY_HEADER)).toBe(key);
+  });
+
+  it("does not retry when the bootstrap refresh fails", async () => {
+    let calls = 0;
+    const { call } = setup(() => {
+      calls += 1;
+      return problem(403, { title: "Nope", status: 403, code: "csrf_token_invalid" });
+    });
+    const result = await call("post", "/api/v1/things");
+    expect(result.response.status).toBe(403);
+    // the original command and the bootstrap refresh; no second command
+    expect(calls).toBe(2);
+  });
+
+  it("shares one bootstrap refresh between commands rejected at the same time (single flight)", async () => {
+    let token = "stale";
+    let bootstraps = 0;
+    const seen: string[] = [];
+    let releaseBootstrap: () => void = () => {};
+    const bootstrapGate = new Promise<void>((resolve) => (releaseBootstrap = resolve));
+    const client = createApiClient({
+      baseUrl: BASE,
+      getCsrfToken: () => token,
+      onUnauthorized: vi.fn(),
+      fetch: async (request) => {
+        if (request.url.endsWith("/api/v1/session/bootstrap")) {
+          bootstraps += 1;
+          await bootstrapGate;
+          token = `fresh-${bootstraps}`;
+          return Response.json({ ok: true });
+        }
+        seen.push(`${new URL(request.url).pathname} ${request.headers.get(CSRF_HEADER)}`);
+        if (request.headers.get(CSRF_HEADER) === "stale") {
+          return problem(403, { title: "Session check failed", status: 403, code: "csrf_token_invalid" });
+        }
+        return Response.json({ ok: true });
+      },
+    });
+    const call = (client.request as unknown as UntypedRequest).bind(client);
+    const first = call("post", "/api/v1/a");
+    const second = call("patch", "/api/v1/b");
+    await vi.waitFor(() => expect(bootstraps).toBe(1));
+    // Let both 403s arrive before the one refresh resolves.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    releaseBootstrap();
+    const [a, b] = await Promise.all([first, second]);
+    expect(a.response.status).toBe(200);
+    expect(b.response.status).toBe(200);
+    expect(bootstraps).toBe(1);
+    expect(seen.filter((line) => line.endsWith("fresh-1")).sort()).toEqual(["/api/v1/a fresh-1", "/api/v1/b fresh-1"]);
+  });
+
+  it("retries without another rotation when the token already changed since the command was sent", async () => {
+    let token = "stale";
+    let bootstraps = 0;
+    const client = createApiClient({
+      baseUrl: BASE,
+      getCsrfToken: () => token,
+      onUnauthorized: vi.fn(),
+      fetch: async (request) => {
+        if (request.url.endsWith("/api/v1/session/bootstrap")) {
+          bootstraps += 1;
+          return Response.json({ ok: true });
+        }
+        if (request.headers.get(CSRF_HEADER) === "stale") {
+          token = "fresh"; // another request refreshed meanwhile
+          return problem(403, { title: "Session check failed", status: 403, code: "csrf_token_invalid" });
+        }
+        return Response.json({ ok: true });
+      },
+    });
+    const call = (client.request as unknown as UntypedRequest).bind(client);
+    const result = await call("post", "/api/v1/things");
+    expect(result.response.status).toBe(200);
+    expect(bootstraps).toBe(0);
+  });
+
+  it("sends the bootstrap body's token while the browser cookie is still the stale one", () => {
+    vi.stubGlobal("document", { cookie: "lk_csrf=old" });
+    try {
+      seedCsrfToken("from-bootstrap");
+      expect(currentCsrfToken()).toBe("from-bootstrap");
+      // A sign-in or browser-side bootstrap set a newer cookie: the cookie wins from then on.
+      (globalThis.document as { cookie: string }).cookie = "lk_csrf=newer";
+      expect(currentCsrfToken()).toBe("newer");
+      (globalThis.document as { cookie: string }).cookie = "lk_csrf=old";
+      expect(currentCsrfToken()).toBe("old");
+    } finally {
+      seedCsrfToken(null);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("leaves other 403s and safe methods alone", async () => {
+    let calls = 0;
+    const { call } = setup(() => {
+      calls += 1;
+      return problem(403, { title: "No", status: 403, code: "permission_denied" });
+    });
+    await call("post", "/api/v1/things");
+    await call("get", "/api/v1/things");
+    expect(calls).toBe(2);
+  });
+});
+
+describe("requestUntyped", () => {
+  it("drops empty query values and returns the body", async () => {
+    const seen: Request[] = [];
+    const client = createApiClient({
+      baseUrl: BASE,
+      fetch: async (request) => {
+        seen.push(request);
+        return Response.json({ ok: 1 });
+      },
+    });
+    await expect(
+      requestUntyped<{ ok: number }>(client, "get", "/api/v1/tasks/inbox", {
+        params: { query: { tab: "tasks", cursor: undefined, q: null } },
+      }),
+    ).resolves.toEqual({ ok: 1 });
+    expect(new URL(seen[0]!.url).search).toBe("?tab=tasks");
+  });
+
+  it("throws ProblemError for failures", async () => {
+    const client = createApiClient({
+      baseUrl: BASE,
+      fetch: async () => problem(404, { title: "Not Found", status: 404, code: "not_found", detail: "Not Found" }),
+      onUnauthorized: vi.fn(),
+    });
+    const error = await requestUntyped(client, "get", "/api/v1/briefings/today").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ProblemError);
+    expect(isEndpointUnavailable(error)).toBe(true);
+  });
+});
+
+describe("401 on sign-in pages", () => {
+  it("does not redirect for invalid credentials or a used demo link", async () => {
+    for (const code of ["invalid_credentials", "link_invalid_or_used"]) {
+      const { call, onUnauthorized } = setup(() => problem(401, { title: "No", status: 401, code }));
+      await call("post", "/api/v1/identity/session");
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    }
+  });
+});
+
+describe("problem helpers", () => {
+  it("parses Retry-After seconds and dates", () => {
+    expect(parseRetryAfter("120")).toBe(120);
+    expect(parseRetryAfter("Mon, 12 Oct 2026 03:30:00 GMT", Date.UTC(2026, 9, 12, 3, 25))).toBe(300);
+    expect(parseRetryAfter("soon")).toBeNull();
+    expect(parseRetryAfter(null)).toBeNull();
+  });
+
+  it("exposes Retry-After and validation issues on the error", async () => {
+    const { call } = setup(() =>
+      problem(429, { title: "Too many attempts", status: 429, code: "rate_limited" }, { "Retry-After": "600" }),
+    );
+    const error = (await unwrap(call("post", "/api/v1/identity/session")).catch((e: unknown) => e)) as ProblemError;
+    expect(error.retryAfterSeconds).toBe(600);
+
+    const invalid = new ProblemError({
+      code: "validation_failed",
+      title: "Some values are not valid",
+      status: 422,
+      errors: [{ loc: ["body", "email"], msg: "Enter an email", code: "value_error" }, "junk"],
+    });
+    expect(invalid.validationIssues).toEqual([{ loc: ["body", "email"], msg: "Enter an email", code: "value_error" }]);
+  });
+
+  it("extracts three-way conflict data from a 409", () => {
+    const error = new ProblemError({
+      code: "version_conflict",
+      title: "This record changed since you opened it",
+      status: 409,
+      current_version: 5,
+      current: { remarks: "theirs" },
+      changed_by: { display_name: "Meera Iyer" },
+      changed_at: "2026-10-12T05:12:00Z",
+    });
+    expect(isStalenessConflict(error)).toBe(true);
+    expect(conflictFromError(error)).toMatchObject({
+      currentVersion: 5,
+      current: { remarks: "theirs" },
+      changedBy: "Meera Iyer",
+      changedAt: "2026-10-12T05:12:00Z",
+    });
+    expect(conflictFromError(new ProblemError({ code: "x", title: "x", status: 422 }))).toBeNull();
+  });
+
+  it("tells a missing endpoint from a record outside scope", () => {
+    const route = new ProblemError({ code: "not_found", title: "Not Found", status: 404, detail: "Not Found" });
+    const record = new ProblemError({
+      code: "not_found",
+      title: "Not found or not available to you",
+      status: 404,
+      detail: "The quote does not exist or is outside your scope.",
+    });
+    expect(isEndpointUnavailable(route)).toBe(true);
+    expect(isEndpointUnavailable(record)).toBe(false);
+    expect(isEndpointUnavailable(new ProblemError({ code: "method_not_allowed", title: "x", status: 405 }))).toBe(true);
+    expect(isEndpointUnavailable(new Error("x"))).toBe(false);
   });
 });
