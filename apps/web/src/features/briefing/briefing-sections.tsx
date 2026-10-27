@@ -82,6 +82,29 @@ export function updateAnnouncement(update: PendingUpdate): string {
   return update.kind === "updates" ? m.updates.announce(update.count) : m.updates.newBriefingAnnounce(update.day);
 }
 
+/** Items the person snoozed, listed (read-only) in the full list so nothing disappears silently. */
+export function SnoozedSection({ items, now, zone }: { items: readonly BriefingItem[]; now: Date; zone: ZoneOptions }) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col">
+      <h2 id={headingId} className={sectionLabelClasses}>
+        {m.snoozedTitle(items.length)}
+      </h2>
+      <ul className="divide-y">
+        {items.map((item) => {
+          const until = item.snoozed_until ? formatDayTime(item.snoozed_until, now, zone) : null;
+          return (
+            <li key={item.id} className="flex flex-col gap-1 py-3">
+              <span className="font-semibold text-ink">{item.title}</span>
+              {until ? <span className="text-sm text-ink-muted tabular">{m.item.snoozedUntil(until)}</span> : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 /** The full-list toggle: from the top five to every item, without leaving the page. */
 export function FullListToggle({
   expanded,

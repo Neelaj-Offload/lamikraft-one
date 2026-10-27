@@ -3,10 +3,14 @@
 import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ComposerDock } from "@/components/shell/composer-dock";
+import { Button, unavailableWhen } from "@/components/ui/button";
+import { Composer } from "@/features/assistant/composer";
+import { useScreenContribution } from "@/features/assistant/screen-context-store";
 import { LinkButton } from "@/components/ui/link";
 import { EmptyState, ErrorState, Loading, Offline, Stale } from "@/components/ui/states";
 import { toast } from "@/components/ui/toast";
 import { announce } from "@/lib/a11y/announcer";
+import { createIdempotencyKey } from "@/lib/api/client";
 import { commandPrefix, commandSignature, createCommandKeys } from "@/lib/api/command-keys";
 import { isNetworkError, isStalenessConflict, ProblemError } from "@/lib/api/errors";
 import { invalidationMap, queryKeys } from "@/lib/api/query-keys";
@@ -15,10 +19,9 @@ import { useOnline } from "@/lib/hooks";
 import { useNow, useSession } from "@/lib/session/context";
 import { useUiPoll } from "@/lib/session/use-ui-poll";
 import { briefingMessages as m } from "@/messages/briefing";
-import { fetchToday, receiptHref, runItemAction, snoozeItem, snoozeUntil } from "./api";
+import { acknowledgeBriefing, fetchToday, receiptHref, runItemAction, snoozeItem, snoozeUntil } from "./api";
 import { BriefingHeader } from "./briefing-header";
-import { BriefingSection, FallbackView, FullListToggle, UpdatesBanner, updateAnnouncement } from "./briefing-sections";
-import { CommandBar, commandBarProps } from "./command-bar";
+import { BriefingSection, FallbackView, FullListToggle, SnoozedSection, UpdatesBanner, updateAnnouncement } from "./briefing-sections";
 import { ExplainDialog, ReasonDialog, SnoozeDialog } from "./item-dialogs";
 import {
   actionLabel,
@@ -47,6 +50,7 @@ const TODAY_KEY = queryKeys.briefings.today();
  */
 export function TodayView() {
   const { bootstrap, zone } = useSession();
+  const [acknowledging, setAcknowledging] = useState(false);
   const now = useNow() ?? new Date(bootstrap.server_now);
   const online = useOnline();
   const queryClient = useQueryClient();
@@ -62,6 +66,21 @@ export function TodayView() {
   const [displayed, setDisplayed] = useState<BriefingView | null>(latest);
   const view = reconcileDisplayed(displayed, latest);
   if (view !== displayed) setDisplayed(view);
+
+  // What the assistant may refer to ("the second item"): the briefing on screen, in its order.
+  useScreenContribution(
+    view && view.status === "ready"
+      ? {
+          focus: view.briefing_id ? { type: "briefings.briefing", id: view.briefing_id, version: view.version } : null,
+          lists: [
+            {
+              key: "briefing_items",
+              rows: view.items.map((item) => ({ type: "briefings.issue", id: item.issue_id, version: view.version, ordinal: item.display_ordinal })),
+            },
+          ],
+        }
+      : null,
+  );
 
   // A newer briefing reported by the UI poll (higher version, or another work date after the
   // rollover) fetches the briefing; it does not touch the list. Each poll state acts once.
@@ -217,6 +236,21 @@ export function TodayView() {
   const asOfIso = view.data_as_of || view.generated_at || view.fallback?.error_at || "";
   const asOf = formatDayTime(asOfIso, now, zone) ?? asOfIso;
 
+  const acknowledge = async () => {
+    if (!view.briefing_id || view.version === null || acknowledging || offline) return;
+    setAcknowledging(true);
+    try {
+      await acknowledgeBriefing(view.briefing_id, view.version, createIdempotencyKey());
+      toast.success(m.acknowledge.done);
+      await applyFresh([queryKeys.ui.poll()]);
+    } catch (error) {
+      toast.error(m.acknowledge.failed, { description: error instanceof ProblemError ? (error.detail ?? error.title) : undefined });
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+  const canAcknowledge = !isFallback && view.briefing_id !== null && view.version !== null && !view.up_to_date;
+
   const sectionProps = {
     now,
     zone,
@@ -241,14 +275,28 @@ export function TodayView() {
                 <span className="tabular">{m.updated(formatTime(generated, zone))}</span>
               </>
             ) : null}
+            {canAcknowledge ? (
+              <Button
+                variant="quiet"
+                size="sm"
+                onPress={() => void acknowledge()}
+                isPending={acknowledging}
+                pendingLabel={m.acknowledge.pending}
+                {...unavailableWhen(offline ? m.offlineActions : null)}
+              >
+                {m.acknowledge.action}
+              </Button>
+            ) : null}
           </>
         }
         wording={wording}
       />
 
       <ComposerDock>
-        {/* No recorder (voice is Slice 3) and no agent-runtime contract this wave: nothing is wired. */}
-        <CommandBar {...commandBarProps(bootstrap.capabilities, { recorder: null, submit: null })} />
+        {/* The command bar is the assistant composer; no voice control in Slice 1. */}
+        <div className="md:rounded-lg md:border md:bg-surface md:p-4 md:shadow-sm">
+          <Composer variant="today" />
+        </div>
       </ComposerDock>
 
       <UpdatesBanner
@@ -293,7 +341,9 @@ export function TodayView() {
         </div>
       )}
 
-      {!isFallback && hasMoreThanInitial(view) ? (
+      {!isFallback && showAll && view.snoozed.length > 0 ? <SnoozedSection items={view.snoozed} now={now} zone={zone} /> : null}
+
+      {!isFallback && (hasMoreThanInitial(view) || view.snoozed.length > 0) ? (
         <div>
           <FullListToggle expanded={showAll} total={totalItems(view)} controls={listId} onToggle={() => setShowAll((value) => !value)} />
         </div>
@@ -315,7 +365,7 @@ export function TodayView() {
             action,
             [choice],
             // The instant is fixed by the first attempt, so a retry sends the same body.
-            () => snoozeUntil(choice, new Date()),
+            () => snoozeUntil(choice, new Date(), action.max_until),
             (key, version, until) => snoozeItem({ item, until, briefingVersion: version, idempotencyKey: key }),
             (until) => m.snooze.done(formatDayTime(until, now, zone) ?? until),
           );

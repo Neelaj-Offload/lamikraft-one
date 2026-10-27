@@ -37,6 +37,34 @@ export const queryKeys = {
     all: () => ["tasks"] as const,
     inbox: (params: { tab: string; cursor?: string | null }) =>
       ["tasks", "inbox", compact({ tab: params.tab, cursor: params.cursor ?? null })] as const,
+    counts: () => ["tasks", "counts"] as const,
+    task: (taskId: string) => ["tasks", "task", { task_id: taskId }] as const,
+  },
+  approvals: {
+    all: () => ["approvals"] as const,
+    proposal: (proposalId: string) => ["approvals", "proposal", { proposal_id: proposalId }] as const,
+  },
+  sales: {
+    all: () => ["sales"] as const,
+    quotes: (params: { q?: string | null; status?: string | null; scope?: string | null; offset?: number | null }) =>
+      ["sales", "quotes", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, scope: params.scope ?? null, offset: params.offset ?? null })] as const,
+    quote: (quoteId: string) => ["sales", "quote", { quote_id: quoteId }] as const,
+    quoteHistory: (quoteId: string) => ["sales", "quote-history", { quote_id: quoteId }] as const,
+    quoteRevisions: (quoteId: string) => ["sales", "quote-revisions", { quote_id: quoteId }] as const,
+    quotePreview: (quoteId: string, signature: string) => ["sales", "quote-preview", { quote_id: quoteId, signature }] as const,
+    enquiries: (params: { q?: string | null; status?: string | null; offset?: number | null }) =>
+      ["sales", "enquiries", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, offset: params.offset ?? null })] as const,
+    enquiry: (enquiryId: string) => ["sales", "enquiry", { enquiry_id: enquiryId }] as const,
+    messages: (params: { status?: string | null; offset?: number | null }) =>
+      ["sales", "customer-messages", compact({ status: params.status ?? null, offset: params.offset ?? null })] as const,
+  },
+  parties: {
+    all: () => ["parties"] as const,
+    search: (q: string) => ["parties", "search", compact({ q: q.trim() })] as const,
+  },
+  catalogue: {
+    all: () => ["catalogue"] as const,
+    productSearch: (q: string) => ["catalogue", "product-search", compact({ q: q.trim() })] as const,
   },
   search: {
     all: () => ["search"] as const,
@@ -53,6 +81,11 @@ export const invalidationMap = {
   "briefings.item_action": [queryKeys.briefings.today(), queryKeys.tasks.all(), queryKeys.ui.poll()],
   "briefings.snooze": [queryKeys.briefings.today(), queryKeys.tasks.all(), queryKeys.ui.poll()],
   "identity.preferences": [queryKeys.session.bootstrap()],
+  "tasks.task_command": [queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  "approvals.decide": [queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.sales.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  "sales.quote_changed": [queryKeys.sales.all(), queryKeys.briefings.today()],
+  "sales.quote_transition": [queryKeys.sales.all(), queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  "sales.message_replied": [queryKeys.sales.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

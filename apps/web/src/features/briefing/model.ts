@@ -156,22 +156,27 @@ export const SUPPORTED_ACTIONS: ReadonlySet<string> = new Set([
   "open",
   "review",
   "prepare",
-  "approve",
-  "reject",
+  "assign",
   "snooze",
+  "unsnooze",
   "mark_handled",
   "dismiss",
   "explain",
 ]);
 
+/** Actions that only navigate (they need an href); assign opens the task in the Inbox. */
+const NAVIGATION_ACTIONS: ReadonlySet<string> = new Set(["open", "review", "assign"]);
+
 /** Navigation actions need an href; command actions are POSTed. */
 export function isNavigationAction(action: BriefingAction): boolean {
-  return action.action === "open" || action.action === "review" || (action.action === "prepare" && Boolean(action.href));
+  return NAVIGATION_ACTIONS.has(action.action) || (action.action === "prepare" && Boolean(action.href));
 }
 
 function usable(action: BriefingAction): boolean {
   if (!SUPPORTED_ACTIONS.has(action.action)) return false;
-  if ((action.action === "open" || action.action === "review") && !action.href) return false;
+  // Decisions are taken on the review page (bound to the proposal's content hash).
+  if (action.via === "approvals") return false;
+  if (NAVIGATION_ACTIONS.has(action.action) && !action.href) return false;
   return true;
 }
 

@@ -14,7 +14,13 @@ import { briefingMessages as m } from "@/messages/briefing";
 import { actionLabel, isNavigationAction, itemStatus, primaryAction, secondaryActions } from "./model";
 import type { BriefingAction, BriefingItem } from "./types";
 
-export function dueLabel(item: Pick<BriefingItem, "due_at" | "due_kind" | "overdue">, now: Date, zone: ZoneOptions): string | null {
+/** The server's deadline text (rendered in the user's zone) when it sent one, else the web's. */
+export function dueLabel(
+  item: Pick<BriefingItem, "due_at" | "due_kind" | "overdue"> & Partial<Pick<BriefingItem, "due_label">>,
+  now: Date,
+  zone: ZoneOptions,
+): string | null {
+  if (item.due_label) return item.due_label;
   if (!item.due_at || item.due_kind === "none") return null;
   const when = formatDayTime(item.due_at, now, zone);
   if (!when) return null;

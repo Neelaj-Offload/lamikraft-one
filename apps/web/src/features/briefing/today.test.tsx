@@ -15,7 +15,6 @@ import { testBootstrap } from "@/lib/test-support/session";
 import { fetchExplanation, receiptHref } from "./api";
 import { BriefingItemRow } from "./briefing-item-row";
 import { UpdatesBanner, updateAnnouncement } from "./briefing-sections";
-import { commandBarProps } from "./command-bar";
 import { dialogIdentity, reasonToSubmit } from "./item-dialogs";
 import {
   briefingChange,
@@ -71,7 +70,14 @@ describe("Today snapshot: what a fetched briefing does to the list on screen", (
   });
 
   it("handles the fallback: a failed regeneration never replaces a briefing; the real briefing is offered", () => {
-    const fallback = parseBriefingView({ status: "fallback", version: null, overview: null, fallback: { error_at: "2026-10-12T03:32:00Z", tasks: [] } });
+    const fallback = parseBriefingView({
+      briefing_id: null,
+      work_date: "2026-10-12",
+      status: "fallback",
+      version: null,
+      overview: null,
+      fallback_detail: { error_code: "engine_failed", failed_at: "2026-10-12T03:32:00Z", tasks: [], last_successful: null },
+    });
     expect(briefingChange(v1, { ...fallback, briefing_id: v1.briefing_id, work_date: v1.work_date })).toEqual({ kind: "none" });
     expect(briefingChange(fallback, { ...fallback })).toEqual({ kind: "in_place" });
     expect(briefingChange({ ...fallback, work_date: v1.work_date }, v1)).toMatchObject({ kind: "new_briefing" });
@@ -188,12 +194,19 @@ describe("TodayView (server render)", () => {
 
   it("renders an engine-failure fallback that has no version or overview", () => {
     const fallback = parseBriefingView({
+      briefing_id: null,
+      work_date: "2026-10-12",
       status: "fallback",
       version: null,
       overview: null,
       sections: [],
       items: [],
-      fallback: { error_at: "2026-10-12T03:32:00Z", tasks: [{ id: "t1", title: "Reply to Nordhaus" }], last_successful: null },
+      fallback_detail: {
+        error_code: "engine_failed",
+        failed_at: "2026-10-12T03:32:00Z",
+        tasks: [{ id: "t1", title: "Reply to Nordhaus", source_refs: [] }],
+        last_successful: null,
+      },
     });
     expect(fallback.version).toBeNull();
     const html = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, fallback));
@@ -211,7 +224,7 @@ describe("TodayView (server render)", () => {
       id: "i2",
       section: "needs_you_now",
       title: "Reply to Berg & Co AB",
-      allowed_actions: [{ action: "mark_handled", label: null, primary: true, href: null, requires_reason: false }],
+      allowed_actions: [{ action: "mark_handled", label: null, primary: true, href: null, requires_reason: false, via: "briefings", max_until: null }],
     });
     const html = renderWithQueries(<TodayView />, (client) => {
       client.setQueryData(TODAY, view);
@@ -226,30 +239,19 @@ describe("TodayView (server render)", () => {
     expect(html).toContain('href="/sales/quotes/q38"');
   });
 
-  it("keeps push-to-talk away while no recorder is wired, even with the voice capability", () => {
-    const bootstrap = testBootstrap({ capabilities: { assistant: false, voice: true } });
+  it("renders the assistant composer as the command bar, with no voice control in Slice 1", () => {
+    const bootstrap = testBootstrap({ capabilities: { assistant: true, voice: true } });
     const html = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, meeraBriefing()), bootstrap);
     expect(html).not.toContain("Hold to talk");
-  });
-});
-
-describe("command bar capabilities", () => {
-  const recorder = { onPressStart: noop, onPressEnd: noop, isRecording: false };
-  const submit = async () => {};
-
-  it("renders push-to-talk only with the voice flag and a recorder", () => {
-    expect(commandBarProps({ assistant: false, voice: true }, { recorder, submit: null }).voice).toBe(recorder);
-    expect(commandBarProps({ assistant: false, voice: false }, { recorder, submit: null }).voice).toBeNull();
-    expect(commandBarProps({ assistant: false, voice: true }, { recorder: null, submit: null }).voice).toBeNull();
+    expect(textOf(html)).toContain("Ask about your day, or tell me what to do");
+    expect(html).not.toMatch(/<textarea[^>]*disabled=""/);
   });
 
-  it("enables typed commands only with the assistant flag and a sender, and otherwise says why", () => {
-    expect(commandBarProps({ assistant: true, voice: false }, { recorder: null, submit }).onSubmit).toBe(submit);
-    expect(commandBarProps({ assistant: false, voice: false }, { recorder: null, submit }).onSubmit).toBeUndefined();
-    const notWired = commandBarProps({ assistant: true, voice: false }, { recorder: null, submit: null });
-    expect(notWired.onSubmit).toBeUndefined();
-    expect(notWired.unavailableReason).toMatch(/can't be sent from Today yet/);
-    expect(commandBarProps({ assistant: false, voice: false }, { recorder: null, submit: null }).unavailableReason).toMatch(/isn't switched on/);
+  it("offers Mark as seen until the latest version is acknowledged", () => {
+    const html = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, meeraBriefing()));
+    expect(textOf(html)).toContain("Mark as seen");
+    const seen = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, { ...meeraBriefing(), up_to_date: true }));
+    expect(textOf(seen)).not.toContain("Mark as seen");
   });
 });
 
@@ -293,17 +295,17 @@ describe("offline item row", () => {
     const item = testItem({
       id: "c",
       section: "needs_you_now",
-      title: "Approve the price change",
+      title: "Mark the price change handled",
       allowed_actions: [
-        { action: "approve", label: null, primary: true, href: null, requires_reason: false },
-        { action: "open", label: "Open quote", primary: false, href: "/sales/quotes/q1", requires_reason: false },
+        { action: "mark_handled", label: null, primary: true, href: null, requires_reason: false, via: "briefings", max_until: null },
+        { action: "open", label: "Open quote", primary: false, href: "/sales/quotes/q1", requires_reason: false, via: "briefings", max_until: null },
       ],
     });
     const html = renderInSession(<BriefingItemRow item={item} now={NOW} zone={IST} onCommand={noop} commandsDisabledReason="You're offline." />);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Approve/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Mark handled/);
     expect(textOf(html)).toContain("You're offline.");
     const online = renderInSession(<BriefingItemRow item={item} now={NOW} zone={IST} onCommand={noop} />);
-    expect(online).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Approve/);
+    expect(online).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Mark handled/);
   });
 });
 
