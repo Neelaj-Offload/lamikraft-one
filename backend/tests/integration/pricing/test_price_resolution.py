@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import select
 
 from app.core.errors import Conflict, NotFound
+from app.core.money import Money
 from app.modules.pricing import service as pricing
 from app.modules.pricing.models import PriceListItemHistory
 from app.modules.pricing.schemas import (
@@ -65,6 +66,11 @@ def make_list(
         return pl.id
 
 
+def _amt(money: Money | None) -> str | None:
+    """The amount of a wire Money as text (prices travel as {amount, currency}, api-conventions §4)."""
+    return None if money is None else format(money.amount, "f")
+
+
 def resolve(world: World, user: str, product: str, currency: str = "EUR", uom: str = "pcs", *, party: str | None = None,
             **kw: object) -> PriceResolution:
     return pricing.resolve_price(
@@ -76,7 +82,7 @@ def resolve(world: World, user: str, product: str, currency: str = "EUR", uom: s
 def test_standard_tier_with_full_provenance(world: World) -> None:
     r = resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS")
     assert r.status == "found" and r.reason_code is None
-    assert str(r.unit_price) == keys.PRICES.OAK_TRAY_EUR and r.currency == "EUR" and r.unit_code == "pcs"
+    assert _amt(r.unit_price) == keys.PRICES.OAK_TRAY_EUR and r.currency == "EUR" and r.unit_code == "pcs"
     assert (r.tier, r.price_list_code) == ("standard", keys.PRICE_LISTS.EXP_EUR)
     assert r.item_id == world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
     assert r.on_date == D0_DATE and r.customer_type == "standard"
@@ -88,17 +94,17 @@ def test_standard_tier_with_full_provenance(world: World) -> None:
 def test_customer_agreement_beats_customer_type_beats_standard(world: World) -> None:
     make_list(world, "CT-STD-EUR", [("OAK_TRAY", "pcs", "23.0000")], scope="customer_type", customer_type="standard")
     r = resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS")
-    assert (r.status, r.tier, r.price_list_code, str(r.unit_price)) == ("found", "customer_type", "CT-STD-EUR", "23.0000")
+    assert (r.status, r.tier, r.price_list_code, _amt(r.unit_price)) == ("found", "customer_type", "CT-STD-EUR", "23.0000")
     make_list(world, "AGR-NORDHAUS", [("OAK_TRAY", "pcs", "22.5000")], scope="customer", party="NORDHAUS")
     r = resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS")
-    assert (r.status, r.tier, r.price_list_code, str(r.unit_price)) == ("found", "customer", "AGR-NORDHAUS", "22.5000")
+    assert (r.status, r.tier, r.price_list_code, _amt(r.unit_price)) == ("found", "customer", "AGR-NORDHAUS", "22.5000")
     berg = resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="BERG")  # the agreement belongs to Nordhaus only
-    assert (berg.tier, str(berg.unit_price)) == ("customer_type", "23.0000")
+    assert (berg.tier, _amt(berg.unit_price)) == ("customer_type", "23.0000")
     anonymous = resolve(world, keys.USERS.MEERA, "OAK_TRAY")
-    assert (anonymous.tier, str(anonymous.unit_price)) == ("standard", keys.PRICES.OAK_TRAY_EUR)
+    assert (anonymous.tier, _amt(anonymous.unit_price)) == ("standard", keys.PRICES.OAK_TRAY_EUR)
     # a tier priced only in another currency falls through to the next tier in the requested currency
     gbp = resolve(world, keys.USERS.MEERA, "OAK_TRAY", "GBP", party="NORDHAUS")
-    assert (gbp.tier, gbp.currency, str(gbp.unit_price)) == ("standard", "GBP", keys.PRICES.OAK_TRAY_GBP)
+    assert (gbp.tier, gbp.currency, _amt(gbp.unit_price)) == ("standard", "GBP", keys.PRICES.OAK_TRAY_GBP)
 
 
 def test_ambiguous_overlap_without_priority_never_falls_through(world: World) -> None:
@@ -121,7 +127,7 @@ def test_unique_explicit_priority_resolves_the_overlap(world: World) -> None:
     make_list(world, "CT-LO", [("OAK_TRAY", "pcs", "20.0000")], scope="customer_type", customer_type="standard",
               price_type="sample", priority=10)
     r = resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS")
-    assert (r.status, r.price_list_code, str(r.unit_price)) == ("found", "CT-HI", "21.0000")
+    assert (r.status, r.price_list_code, _amt(r.unit_price)) == ("found", "CT-HI", "21.0000")
     make_list(world, "CT-NOPRIO", [("OAK_TRAY", "pcs", "19.0000")], scope="customer_type", customer_type="standard",
               price_type="distributor")
     assert resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS").status == "ambiguous"
@@ -132,8 +138,8 @@ def test_legacy_multiple_eur_rows_are_selected_by_price_type(world: World) -> No
     assert resolve(world, keys.USERS.MEERA, "OAK_TRAY").status == "ambiguous"  # never "the last EUR row wins"
     export = resolve(world, keys.USERS.MEERA, "OAK_TRAY", price_type=PriceType.EXPORT)
     sample = resolve(world, keys.USERS.MEERA, "OAK_TRAY", price_type=PriceType.SAMPLE)
-    assert (export.price_list_code, str(export.unit_price)) == (keys.PRICE_LISTS.EXP_EUR, keys.PRICES.OAK_TRAY_EUR)
-    assert (sample.price_list_code, str(sample.unit_price)) == ("SMP-EUR-2026", "30.0000")
+    assert (export.price_list_code, _amt(export.unit_price)) == (keys.PRICE_LISTS.EXP_EUR, keys.PRICES.OAK_TRAY_EUR)
+    assert (sample.price_list_code, _amt(sample.unit_price)) == ("SMP-EUR-2026", "30.0000")
 
 
 def test_overlapping_list_activation_is_rejected(world: World) -> None:
@@ -149,7 +155,7 @@ def test_currency_is_never_relabelled_and_units_are_never_converted(world: World
     assert usd.unit_price is None and usd.currency is None and usd.requested_currency == "USD"
     assert any("EUR" in h and "not converted" in h for h in usd.hints)
     inr = resolve(world, keys.USERS.SAHIL, "WALNUT_BOARD", "INR", "sheets")
-    assert (inr.status, str(inr.unit_price), inr.price_list_code) == ("found", keys.PRICES.WALNUT_BOARD_INR,
+    assert (inr.status, _amt(inr.unit_price), inr.price_list_code) == ("found", keys.PRICES.WALNUT_BOARD_INR,
                                                                       keys.PRICE_LISTS.DOM_INR)
     wrong_unit = resolve(world, keys.USERS.SAHIL, "WALNUT_BOARD", "INR", "pcs")
     assert wrong_unit.status == "not_found" and wrong_unit.reason_code == "NO_PRICE_FOR_UNIT"
@@ -162,11 +168,11 @@ def test_effective_dates_and_supersede_history(world: World) -> None:
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         new = pricing.supersede_item(uow, old_item, SupersedeItem(unit_price=Decimal("26"), valid_from=date(2026, 11, 1),
                                                                   reason="2026 Q4 price"))
-    assert str(new.unit_price) == "26.0000" and new.valid_from == date(2026, 11, 1)
+    assert _amt(new.unit_price) == "26.0000" and new.valid_from == date(2026, 11, 1)
     today = resolve(world, keys.USERS.MEERA, "OAK_TRAY")
     later = resolve(world, keys.USERS.MEERA, "OAK_TRAY", on_date=date(2026, 11, 1))
-    assert (today.item_id, str(today.unit_price), today.valid_to) == (old_item, "24.0000", date(2026, 10, 31))
-    assert (later.item_id, str(later.unit_price)) == (new.id, "26.0000")
+    assert (today.item_id, _amt(today.unit_price), today.valid_to) == (old_item, "24.0000", date(2026, 10, 31))
+    assert (later.item_id, _amt(later.unit_price)) == (new.id, "26.0000")
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         kinds = [h.change_kind for h in uow.session.scalars(
             select(PriceListItemHistory).where(PriceListItemHistory.item_id.in_([old_item, new.id]))
@@ -191,7 +197,7 @@ def test_party_scope_applies_to_resolution_and_customer_lists(world: World) -> N
     with pytest.raises(NotFound):  # Thornbury belongs to Neha: Meera cannot resolve its prices
         resolve(world, keys.USERS.MEERA, "OAK_TRAY", "GBP", party="THORNBURY")
     neha = resolve(world, keys.USERS.NEHA, "OAK_TRAY", "GBP", party="THORNBURY")
-    assert (neha.status, neha.customer_type, str(neha.unit_price)) == ("found", "dealer", keys.PRICES.OAK_TRAY_GBP)
+    assert (neha.status, neha.customer_type, _amt(neha.unit_price)) == ("found", "dealer", keys.PRICES.OAK_TRAY_GBP)
     agreement = make_list(world, "AGR-THORNBURY", [("OAK_TRAY", "pcs", "20.0000")], scope="customer", currency="GBP",
                           party="THORNBURY")
     assert "AGR-THORNBURY" not in [p.code for p in pricing.list_price_lists(world.actor(keys.USERS.MEERA)).items]
@@ -204,5 +210,5 @@ def test_resolve_price_tool_uses_the_same_service(world: World) -> None:
     with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
         out = RESOLVE_PRICE.handler(uow, ResolvePriceInput(product_key=keys.PRODUCTS.OAK_TRAY, currency="EUR", uom="pcs",
                                                            party_id=world.ref("NORDHAUS")))
-    assert isinstance(out, PriceResolution) and out.status == "found" and str(out.unit_price) == "24.0000"
+    assert isinstance(out, PriceResolution) and out.status == "found" and _amt(out.unit_price) == "24.0000"
     assert RESOLVE_PRICE.permission == "pricing.price.read" and RESOLVE_PRICE.effect == "read"

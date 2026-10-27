@@ -120,6 +120,8 @@ class PriceListItem(TenantEntity, VersionMixin, Base):
     source_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_sheet: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_row: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    #: the import job that created the row (Slice 2; the FK to the imports job table is added when imports land)
+    import_job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint("unit_price >= 0", name="unit_price_non_negative"),

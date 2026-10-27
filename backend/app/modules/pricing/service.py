@@ -15,12 +15,13 @@ from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import ColumnElement, and_, func, or_, select
+from sqlalchemy.orm import aliased
 
 from app.core.clock import local_date
 from app.core.db.base import new_id
 from app.core.errors import Conflict, NotFound, ValidationFailed
 from app.core.http.pagination import MAX_LIMIT, Page
-from app.core.money import quantize_unit_price
+from app.core.money import Money, Quantity, quantize_unit_price
 from app.core.text import LIKE_ESCAPE, contains_pattern, tokens
 from app.modules.catalogue import service as catalogue
 from app.modules.parties import service as parties
@@ -29,6 +30,7 @@ from app.modules.pricing.models import PriceList, PriceListItem, PriceListItemHi
 from app.modules.pricing.schemas import (
     TIERS,
     Capability,
+    DisplayPrice,
     PartyMini,
     PriceCandidate,
     PricedItem,
@@ -57,6 +59,7 @@ from app.platform.uow import UnitOfWork
 
 READ = "pricing.price.read"
 MANAGE = "pricing.price_list.manage"
+COST_READ = "pricing.cost.read"
 L = PriceList
 I = PriceListItem  # noqa: E741
 
@@ -259,34 +262,53 @@ def add_item(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListItemCreat
     return item
 
 
+def _activation_target(pl: PriceList) -> str:
+    """The overlap target of a list: company, scope target, price type and currency (one activation at a time)."""
+    target = pl.party_id or pl.customer_type or "-"
+    return f"{pl.company_id}:{pl.scope_kind}:{target}:{pl.price_type}:{pl.currency}"
+
+
 def _activation_conflicts(uow: UnitOfWork, pl: PriceList) -> list[dict[str, Any]]:
     """Active items in other active lists with the same scope target, price type and currency that overlap an
-    item of ``pl`` for the same product and unit, unless both lists carry different explicit priorities."""
-    other = select(L).where(
-        L.company_id == pl.company_id,
-        L.id != pl.id,
-        L.status == PriceListStatus.ACTIVE.value,
-        L.scope_kind == pl.scope_kind,
-        L.price_type == pl.price_type,
-        L.currency == pl.currency,
-        L.party_id.is_(None) if pl.party_id is None else L.party_id == pl.party_id,
-        L.customer_type.is_(None) if pl.customer_type is None else L.customer_type == pl.customer_type,
-        or_(L.valid_to.is_(None), L.valid_to >= pl.valid_from),
-    )
+    item of ``pl`` for the same product and unit, unless both lists carry different explicit priorities.
+
+    One set-based query (this list's active items joined to the candidate lists' active items on product, unit and
+    overlapping validity), whatever the number of items or lists."""
+    other_list = aliased(PriceList)
+    mine = aliased(PriceListItem)
+    theirs = aliased(PriceListItem)
+    conds: list[ColumnElement[bool]] = [
+        mine.price_list_id == pl.id,
+        mine.status == PriceItemStatus.ACTIVE.value,
+        other_list.company_id == pl.company_id,
+        other_list.id != pl.id,
+        other_list.status == PriceListStatus.ACTIVE.value,
+        other_list.scope_kind == pl.scope_kind,
+        other_list.price_type == pl.price_type,
+        other_list.currency == pl.currency,
+        other_list.party_id.is_(None) if pl.party_id is None else other_list.party_id == pl.party_id,
+        other_list.customer_type.is_(None) if pl.customer_type is None else other_list.customer_type == pl.customer_type,
+        or_(other_list.valid_to.is_(None), other_list.valid_to >= pl.valid_from),
+        theirs.status == PriceItemStatus.ACTIVE.value,
+        or_(theirs.valid_to.is_(None), theirs.valid_to >= mine.valid_from),
+        or_(mine.valid_to.is_(None), theirs.valid_from <= mine.valid_to),
+    ]
     if pl.valid_to is not None:
-        other = other.where(L.valid_from <= pl.valid_to)
-    conflicts: list[dict[str, Any]] = []
-    mine = list(uow.session.scalars(select(I).where(I.price_list_id == pl.id, I.status == PriceItemStatus.ACTIVE.value)))
-    for other_list in uow.session.scalars(other):
-        if pl.priority is not None and other_list.priority is not None and pl.priority != other_list.priority:
-            continue
-        for item in mine:
-            for clash in _overlapping_items(uow, other_list.id, item.product_id, item.unit_code, item.valid_from, item.valid_to):
-                conflicts.append(
-                    {"product_key": item.product_key, "unit_code": item.unit_code, "price_list_code": other_list.code,
-                     "item_id": str(clash.id)}
-                )
-    return conflicts
+        conds.append(other_list.valid_from <= pl.valid_to)
+    if pl.priority is not None:  # different explicit priorities on both lists resolve the overlap at read time
+        conds.append(or_(other_list.priority.is_(None), other_list.priority == pl.priority))
+    rows = uow.session.execute(
+        select(mine.product_key, mine.unit_code, other_list.code, theirs.id)
+        .select_from(mine)
+        .join(theirs, and_(theirs.product_id == mine.product_id, theirs.unit_code == mine.unit_code))
+        .join(other_list, other_list.id == theirs.price_list_id)
+        .where(*conds)
+        .order_by(mine.product_key, mine.unit_code, other_list.code, theirs.id)
+    ).all()
+    return [
+        {"product_key": key, "unit_code": unit, "price_list_code": code, "item_id": str(item_id)}
+        for key, unit, code, item_id in rows
+    ]
 
 
 def activate_price_list(uow: UnitOfWork, price_list_id: uuid.UUID, *, origin: str | None = None) -> PriceList:
@@ -294,6 +316,9 @@ def activate_price_list(uow: UnitOfWork, price_list_id: uuid.UUID, *, origin: st
     pl = _locked_list(uow, price_list_id)
     if pl.status != PriceListStatus.DRAFT.value:
         raise Conflict(f"The price list is {pl.status}", code="price_list_not_draft")
+    # serialise activations of lists with the same overlap target: a concurrent activation cannot see this
+    # transaction's uncommitted status change, so the overlap check below would otherwise race (READ COMMITTED)
+    uow.advisory_xact_lock("pricing.activation", _activation_target(pl))
     items = list(uow.session.scalars(select(I).where(I.price_list_id == pl.id).order_by(I.product_key, I.id)))
     if not items:
         raise Conflict("A price list needs at least one item before activation", code="price_list_empty")
@@ -336,6 +361,12 @@ def supersede_item(uow: UnitOfWork, item_id: uuid.UUID, data: SupersedeItem) -> 
     pl = _locked_list(uow, item.price_list_id)
     item = uow.lock(PriceListItem, [item.id])[0]
     problems: list[tuple[Sequence[str], str, str]] = []
+    if pl.status != PriceListStatus.ACTIVE.value:
+        raise Conflict(
+            f"The price list is {pl.status}; only prices of an active list are superseded "
+            "(draft items are edited before activation, retired lists are history)",
+            code="price_list_not_active",
+        )
     if item.status != PriceItemStatus.ACTIVE.value or item.superseded_by_item_id is not None:
         raise Conflict("Only the current active price can be superseded", code="price_item_not_current")
     if data.valid_from <= item.valid_from:
@@ -457,6 +488,14 @@ def _party_minis(uow: UnitOfWork, ids: Iterable[uuid.UUID | None]) -> dict[uuid.
     return {pid: PartyMini(id=pid, party_number=number, display_name=name) for pid, (number, name) in labels.items()}
 
 
+def _money(amount: Any, currency: str) -> Money | None:
+    return None if amount is None else Money(amount=amount, currency=currency)  # type: ignore[arg-type]
+
+
+def _quantity(value: Any, uom: str | None) -> Quantity | None:
+    return None if value is None or uom is None else Quantity(value=value, uom=uom)
+
+
 def _item_read(item: PriceListItem, pl: PriceList) -> PriceListItemRead:
     return PriceListItemRead(
         id=item.id,
@@ -466,12 +505,11 @@ def _item_read(item: PriceListItem, pl: PriceList) -> PriceListItemRead:
         product_key=item.product_key,
         display_sku=item.display_sku,
         unit_code=item.unit_code,
-        unit_price=item.unit_price,
-        currency=pl.currency,
-        final_price=item.final_price,
-        base_price=item.base_price,
+        unit_price=Money(amount=item.unit_price, currency=pl.currency),  # type: ignore[arg-type]
+        final_price=_money(item.final_price, pl.currency),
+        base_price=_money(item.base_price, pl.currency),
         base_price_label=item.base_price_label,
-        addon_price=item.addon_price,
+        addon_price=_money(item.addon_price, pl.currency),
         addon_price_label=item.addon_price_label,
         price_basis=item.price_basis,
         yield_qty_per_board=item.yield_qty_per_board,
@@ -480,8 +518,7 @@ def _item_read(item: PriceListItem, pl: PriceList) -> PriceListItemRead:
         source_ref=item.source_ref,
         source_sheet=item.source_sheet,
         source_row=item.source_row,
-        moq=item.moq,
-        moq_unit_code=item.moq_unit_code,
+        moq=_quantity(item.moq, item.moq_unit_code or item.unit_code),
         notes=item.notes,
         valid_from=item.valid_from,
         valid_to=item.valid_to,
@@ -496,8 +533,7 @@ def _cost_read(row: ProductCost) -> ProductCostRead:
         id=row.id,
         product_id=row.product_id,
         cost_version=row.cost_version,
-        unit_cost_amount=row.unit_cost_amount,
-        unit_cost_currency=row.unit_cost_currency,
+        unit_cost=Money(amount=row.unit_cost_amount, currency=row.unit_cost_currency),  # type: ignore[arg-type]
         unit_code=row.unit_code,
         cost_components=row.cost_components,
         source_kind=row.source_kind,  # type: ignore[arg-type]
@@ -598,9 +634,10 @@ def _list_capabilities(uow: UnitOfWork, pl: PriceList) -> tuple[dict[str, Capabi
         denied = Capability(allowed=False, reason_code="permission_denied")
         return {"add_item": denied, "supersede_item": denied}, []
     is_draft = pl.status == PriceListStatus.DRAFT.value
+    is_active = pl.status == PriceListStatus.ACTIVE.value
     capabilities = {
         "add_item": Capability(allowed=is_draft, reason_code=None if is_draft else "price_list_not_draft"),
-        "supersede_item": Capability(allowed=True),
+        "supersede_item": Capability(allowed=is_active, reason_code=None if is_active else "price_list_not_active"),
     }
     transitions = (
         [TransitionRead(action="activate", to_status=PriceListStatus.ACTIVE.value, requires_reason=False)]
@@ -697,7 +734,7 @@ def product_prices(uow: UnitOfWork, product_id: uuid.UUID, *, on_date: date | No
     ]
     current_cost = None
     redacted: list[str] = []
-    if not uow.actor.can("pricing.cost.read"):
+    if not uow.actor.can(COST_READ):
         redacted.append("current_cost")  # never loaded for this actor; the field name is listed, no value
     else:
         cost = uow.session.scalars(
@@ -706,7 +743,9 @@ def product_prices(uow: UnitOfWork, product_id: uuid.UUID, *, on_date: date | No
                    ProductCost.effective_from <= day)
             .order_by(ProductCost.effective_from.desc(), ProductCost.cost_version.desc())
         ).first()
-        current_cost = _cost_read(cost) if cost is not None else None
+        if cost is not None:
+            current_cost = _cost_read(cost)
+            _audit_cost_read(uow, product, [cost.cost_version])
     return ProductPrices(
         product_id=product.id,
         product_key=product.product_key,
@@ -717,17 +756,36 @@ def product_prices(uow: UnitOfWork, product_id: uuid.UUID, *, on_date: date | No
     )
 
 
-@query("pricing.cost.read")
-def list_product_costs(uow: UnitOfWork, product_id: uuid.UUID) -> list[ProductCostRead]:
-    """Cost history of a product, newest first (``pricing.cost.read``; 403 without it, 404 for unknown products)."""
-    product = catalogue.get_product_ref(uow, product_id=product_id)
-    rows = uow.session.scalars(
-        uow.repo(ProductCost)
-        .select()
-        .where(ProductCost.product_id == product.id)
-        .order_by(ProductCost.cost_version.desc())
+def _audit_cost_read(uow: UnitOfWork, product: catalogue.ProductRef, versions: Sequence[int]) -> None:
+    """Record that restricted cost values were returned (field names and versions only, never the values)."""
+    uow.audit(
+        "pricing.product_cost.read",
+        resource_type="catalogue.product",
+        resource_id=product.id,
+        resource_label=product.product_key,
+        restricted_fields=["unit_cost", "cost_components"],
+        details={"cost_versions": list(versions)},
     )
-    return [_cost_read(r) for r in rows]
+
+
+@query(COST_READ)
+def list_product_costs(uow: UnitOfWork, product_id: uuid.UUID, *, limit: int = 50, offset: int = 0) -> Page[ProductCostRead]:
+    """Cost history of a product, newest first (``pricing.cost.read``; 403 without it, 404 for unknown products).
+
+    Every read that returns cost rows is audited (``pricing.cost.read`` is sensitive)."""
+    product = catalogue.get_product_ref(uow, product_id=product_id)
+    conds = [uow.repo(ProductCost).clause("read"), ProductCost.product_id == product.id]
+    total = uow.session.scalar(select(func.count(ProductCost.id)).where(*conds)) or 0
+    limit = max(1, min(limit, MAX_LIMIT))
+    offset = max(0, offset)
+    rows = list(
+        uow.session.scalars(
+            select(ProductCost).where(*conds).order_by(ProductCost.cost_version.desc()).limit(limit).offset(offset)
+        )
+    )
+    if rows:
+        _audit_cost_read(uow, product, [r.cost_version for r in rows])
+    return Page[ProductCostRead](items=[_cost_read(r) for r in rows], total=int(total), limit=limit, offset=offset)
 
 
 def priced_items(uow: UnitOfWork, item_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, PricedItem]:
@@ -754,6 +812,9 @@ def priced_items(uow: UnitOfWork, item_ids: Iterable[uuid.UUID]) -> dict[uuid.UU
             valid_from=item.valid_from,
             valid_to=item.valid_to,
             status=item.status,  # type: ignore[arg-type]
+            list_status=pl.status,  # type: ignore[arg-type]
+            list_valid_from=pl.valid_from,
+            list_valid_to=pl.valid_to,
         )
         for item, pl in rows
     }
@@ -762,6 +823,20 @@ def priced_items(uow: UnitOfWork, item_ids: Iterable[uuid.UUID]) -> dict[uuid.UU
 # =====================================================================================================
 # resolution
 # =====================================================================================================
+def _choose(matches: Sequence[tuple[PriceListItem, PriceList]]) -> tuple[PriceListItem, PriceList] | None:
+    """One match, or the unique highest explicit priority when every match carries one; otherwise None (AMBIGUOUS:
+    overlapping prices are never guessed between and never fall through to a less specific tier)."""
+    if len(matches) == 1:
+        return matches[0]
+    priorities = [pl.priority for _i, pl in matches]
+    if matches and all(p is not None for p in priorities):
+        top = max(p for p in priorities if p is not None)
+        winners = [m for m in matches if m[1].priority == top]
+        if len(winners) == 1:
+            return winners[0]
+    return None
+
+
 def _tier_condition(tier: Tier, party: parties.PartyRef | None) -> ColumnElement[bool] | None:
     if tier == "customer":
         return None if party is None else and_(L.scope_kind == PriceScope.CUSTOMER.value, L.party_id == party.id)
@@ -779,8 +854,7 @@ def _candidate(tier: Tier, item: PriceListItem, pl: PriceList) -> PriceCandidate
         price_list_code=pl.code,
         item_id=item.id,
         priority=pl.priority,
-        unit_price=item.unit_price,
-        currency=pl.currency,
+        unit_price=Money(amount=item.unit_price, currency=pl.currency),  # type: ignore[arg-type]
         unit_code=item.unit_code,
         valid_from=item.valid_from,
         valid_to=item.valid_to,
@@ -857,16 +931,7 @@ def resolve_price(
                 outcome, detail = "currency_mismatch", f"{tier.replace('_', ' ')} prices exist only in other currencies"
             checks.append(TierCheck(tier=tier, outcome=outcome, detail=detail))  # type: ignore[arg-type]
             continue
-        chosen: tuple[PriceListItem, PriceList] | None = None
-        if len(matches) == 1:
-            chosen = matches[0]
-        else:
-            priorities = [pl.priority for _i, pl in matches]
-            if all(p is not None for p in priorities):
-                top = max(p for p in priorities if p is not None)
-                winners = [m for m in matches if m[1].priority == top]
-                if len(winners) == 1:
-                    chosen = winners[0]
+        chosen = _choose(matches)
         if chosen is None:
             checks.append(TierCheck(tier=tier, outcome="ambiguous",
                                     detail=f"{len(matches)} overlapping {tier.replace('_', ' ')} prices without a unique explicit priority"))
@@ -906,7 +971,7 @@ def resolve_price(
                 f"({tier.replace('_', ' ')} tier), effective {item.valid_from.isoformat()}"
                 + (f" to {item.valid_to.isoformat()}" if item.valid_to else "")
             ),
-            unit_price=item.unit_price,
+            unit_price=Money(amount=item.unit_price, currency=pl.currency),  # type: ignore[arg-type]
             currency=pl.currency,
             unit_code=item.unit_code,
             tier=tier,
@@ -914,8 +979,7 @@ def resolve_price(
             price_list_code=pl.code,
             item_id=item.id,
             price_basis=item.price_basis,
-            product_moq=item.moq,
-            moq_unit_code=item.moq_unit_code,
+            product_moq=_quantity(item.moq, item.moq_unit_code or item.unit_code),
             valid_to=item.valid_to,
             checks=checks,
             **common,
@@ -943,3 +1007,77 @@ def resolve_price(
         **common,
     )
 
+
+
+# =====================================================================================================
+# display prices (product list and overview columns; one batch query, never per product)
+# =====================================================================================================
+def display_prices(
+    uow: UnitOfWork,
+    product_ids: Iterable[uuid.UUID],
+    *,
+    currencies: Sequence[str],
+    price_type: PriceType | None = None,
+    on_date: date | None = None,
+) -> dict[uuid.UUID, dict[str, DisplayPrice]]:
+    """Standard-tier prices of many products in the given currencies, from one query (``pricing.price.read``).
+
+    Per (product, currency): active standard lists visible to the actor and effective on the date, in that currency,
+    per the product's unit of sale (any unit when the product has none). One match is ``found``; several without a
+    unique explicit priority are ``ambiguous`` (never guessed); a zero price is ``unavailable``; nothing is
+    ``not_found``. Prices stay in their list currency (no relabelling, no conversion).
+    """
+    uow.actor.require(READ)
+    ids = list(dict.fromkeys(product_ids))
+    wanted = [c.upper() for c in dict.fromkeys(currencies)]
+    if not ids or not wanted:
+        return {}
+    day = on_date or business_date(uow)
+    refs = catalogue.product_refs(uow, ids)
+    conds: list[ColumnElement[bool]] = [
+        visible_lists(uow),
+        L.status == PriceListStatus.ACTIVE.value,
+        L.scope_kind == PriceScope.STANDARD.value,
+        L.currency.in_(wanted),
+        _effective(L, day),
+        I.status == PriceItemStatus.ACTIVE.value,
+        _effective(I, day),
+        I.product_id.in_(list(refs)),
+    ]
+    if price_type is not None:
+        conds.append(L.price_type == price_type.value)
+    rows = uow.session.execute(
+        select(I, L).join(L, L.id == I.price_list_id).where(*conds).order_by(L.code, I.unit_code, I.id)
+    ).all() if refs else []
+    grouped: dict[tuple[uuid.UUID, str], list[tuple[PriceListItem, PriceList]]] = {}
+    for item, pl in rows:
+        unit = refs[item.product_id].unit_of_sale
+        if unit is None or item.unit_code == unit:
+            grouped.setdefault((item.product_id, pl.currency), []).append((item, pl))
+    out: dict[uuid.UUID, dict[str, DisplayPrice]] = {}
+    for product_id in refs:
+        per_currency: dict[str, DisplayPrice] = {}
+        for cur in wanted:
+            matches = grouped.get((product_id, cur), [])
+            chosen = _choose(matches) if matches else None
+            if not matches:
+                per_currency[cur] = DisplayPrice(product_id=product_id, currency=cur, status="not_found")  # type: ignore[arg-type]
+            elif chosen is None:
+                per_currency[cur] = DisplayPrice(
+                    product_id=product_id, currency=cur, status="ambiguous", candidate_count=len(matches),  # type: ignore[arg-type]
+                )
+            else:
+                item, pl = chosen
+                per_currency[cur] = DisplayPrice(
+                    product_id=product_id,
+                    currency=cur,  # type: ignore[arg-type]
+                    status="unavailable" if item.unit_price == 0 else "found",
+                    unit_price=None if item.unit_price == 0 else Money(amount=item.unit_price, currency=pl.currency),  # type: ignore[arg-type]
+                    unit_code=item.unit_code,
+                    price_list_code=pl.code,
+                    item_id=item.id,
+                    product_moq=_quantity(item.moq, item.moq_unit_code or item.unit_code),
+                    candidate_count=len(matches),
+                )
+        out[product_id] = per_currency
+    return out

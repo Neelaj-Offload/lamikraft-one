@@ -79,12 +79,17 @@ def list_product_prices(actor: Actor, product_id: uuid.UUID, on_date: date | Non
 
 
 @router.get("/products/{product_id}/costs", openapi_extra=requires("pricing.cost.read"))
-def list_product_costs(actor: Actor, product_id: uuid.UUID) -> list[ProductCostRead]:
-    """Protected cost history (``pricing.cost.read``)."""
-    return service.list_product_costs(actor, product_id)
+def list_product_costs(
+    actor: Actor,
+    product_id: uuid.UUID,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> Page[ProductCostRead]:
+    """Protected cost history (``pricing.cost.read``), newest first; every read returning rows is audited."""
+    return service.list_product_costs(actor, product_id, limit=limit, offset=offset)
 
 
-@router.get("/resolve", openapi_extra=READ)
+@router.get("/prices/resolve", openapi_extra=READ)
 def resolve_price(
     actor: Actor,
     currency: CurrencyCode,
