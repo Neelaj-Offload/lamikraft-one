@@ -1,62 +1,39 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Link as RacLink } from "react-aria-components";
-import { StatusPill, type Tone } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/badge";
 import { DataTable, KeysetPagination, type DataTableColumn } from "@/components/ui/data-table";
-import { LocalDateTime, RelativeTime } from "@/components/ui/format";
+import { LocalDateTime } from "@/components/ui/format";
 import { EmptyState, ErrorState, Loading, Stale } from "@/components/ui/states";
 import { linkClasses } from "@/components/ui/styles";
 import { NavTabs } from "@/components/ui/tabs";
+import { useScreenContribution } from "@/features/assistant/screen-context-store";
 import { queryKeys } from "@/lib/api/query-keys";
 import { formatDayTime, type ZoneOptions } from "@/lib/format/time";
 import { useNow, useSession } from "@/lib/session/context";
 import { useUiPoll } from "@/lib/session/use-ui-poll";
 import { inboxMessages as m } from "@/messages/inbox";
-import { fetchInbox, inboxHref } from "./api";
-import { INBOX_TABS, type InboxItem, type InboxPage, type InboxTab } from "./types";
+import { fetchInbox, fetchInboxCounts, inboxHref } from "./api";
+import { assigneeLabel, inboxStatus, itemHref } from "./model";
+import { TaskDrawer } from "./task-drawer";
+import { INBOX_TABS, type InboxCounts, type InboxItem, type InboxPage, type InboxTab } from "./types";
 
-export function inboxStatus(item: InboxItem, now: Date | null, zone: ZoneOptions): { label: string; tone: Tone } {
-  if (item.snoozed_until && (item.state === "open" || item.state === "in_progress")) {
-    const until = now ? formatDayTime(item.snoozed_until, now, zone) : null;
-    return { label: until ? `${m.state.snoozed} · ${until}` : m.state.snoozed, tone: "neutral" };
-  }
-  if (item.overdue && (item.state === "open" || item.state === "in_progress")) return { label: m.state.overdue, tone: "danger" };
-  const tones: Record<InboxItem["state"], Tone> = {
-    open: "info",
-    in_progress: "forest",
-    done: "success",
-    dismissed: "neutral",
-    cancelled: "neutral",
-    expired: "warning",
-  };
-  return { label: m.state[item.state], tone: tones[item.state] };
-}
+export { assigneeLabel, inboxStatus, itemHref };
 
-export function inboxColumns(now: Date | null, zone: ZoneOptions): DataTableColumn<InboxItem>[] {
+export function inboxColumns(now: Date | null, zone: ZoneOptions, userId: string, tab: InboxTab, cursor: string | null): DataTableColumn<InboxItem>[] {
   return [
     {
       id: "item",
       header: m.columns.item,
       isRowHeader: true,
       mobile: "title",
-      mobileCell: (item) => (
-        <span className="flex flex-col gap-0.5">
-          <span>{item.title}</span>
-          {item.summary ? <span className="font-normal text-ink-muted">{item.summary}</span> : null}
-        </span>
-      ),
+      mobileCell: (item) => item.title,
       cell: (item) => (
-        <span className="flex flex-col gap-0.5">
-          {item.href ? (
-            <RacLink href={item.href} className={linkClasses}>
-              {item.title}
-            </RacLink>
-          ) : (
-            <span>{item.title}</span>
-          )}
-          {item.summary ? <span className="font-normal text-ink-muted">{item.summary}</span> : null}
-        </span>
+        <RacLink href={itemHref(item, tab, cursor)} className={linkClasses}>
+          {item.title}
+        </RacLink>
       ),
     },
     {
@@ -94,34 +71,24 @@ export function inboxColumns(now: Date | null, zone: ZoneOptions): DataTableColu
     {
       id: "assignee",
       header: m.columns.assignee,
-      cell: (item) => (
-        <span>
-          {item.assignee?.display_name ?? <span className="text-ink-muted">{m.unassigned}</span>}
-          {item.on_behalf_of ? <span className="text-ink-muted"> {m.forPerson(item.on_behalf_of.display_name)}</span> : null}
-        </span>
-      ),
-    },
-    {
-      id: "updated",
-      header: m.columns.updated,
-      cell: (item) => (item.updated_at ? <RelativeTime value={item.updated_at} className="text-ink-muted" /> : null),
+      cell: (item) => assigneeLabel(item, userId),
     },
   ];
 }
 
 /** The Inbox list for one tab: a semantic table, a linked phone list, keyset pages in the URL. */
 export function InboxList({ tab, page, cursor }: { tab: InboxTab; page: InboxPage; cursor: string | null }) {
-  const { zone } = useSession();
+  const { zone, bootstrap } = useSession();
   const now = useNow();
   const tabLabel = m.tabs[tab];
   return (
     <DataTable
       caption={m.caption(tabLabel)}
       hideCaption
-      columns={inboxColumns(now, zone)}
+      columns={inboxColumns(now, zone, bootstrap.user.id, tab, cursor)}
       rows={page.items}
       rowId={(item) => item.id}
-      rowHref={(item) => item.href ?? item.source?.href ?? null}
+      rowHref={(item) => itemHref(item, tab, cursor)}
       empty={<EmptyState title={m.emptyTitle(tabLabel)}>{m.empty[tab]}</EmptyState>}
       footer={
         <KeysetPagination
@@ -134,18 +101,40 @@ export function InboxList({ tab, page, cursor }: { tab: InboxTab; page: InboxPag
   );
 }
 
-export function InboxView({ tab, cursor }: { tab: InboxTab; cursor: string | null }) {
+/** Tab counts: the counts endpoint, else the UI poll, else the bootstrap (never invented). */
+export function tabCounts(fetched: InboxCounts | undefined, polled: Partial<Record<string, number>> | null, booted: Partial<Record<string, number>> | null): InboxCounts {
+  return fetched ?? (polled as InboxCounts | null) ?? (booted as InboxCounts | null) ?? {};
+}
+
+export function InboxView({ tab, cursor, taskId = null }: { tab: InboxTab; cursor: string | null; taskId?: string | null }) {
   const { bootstrap, zone } = useSession();
   const now = useNow();
+  const router = useRouter();
   const query = useQuery({
     queryKey: queryKeys.tasks.inbox({ tab, cursor }),
     queryFn: ({ signal }) => fetchInbox(tab, cursor, signal),
   });
+  const countsQuery = useQuery({ queryKey: queryKeys.tasks.counts(), queryFn: ({ signal }) => fetchInboxCounts(signal) });
   const poll = useUiPoll();
 
   const pollTabs = poll.data?.inbox_counts.status === "ok" ? poll.data.inbox_counts.value.tabs : null;
   const bootTabs = bootstrap.inbox_counts.status === "ok" ? bootstrap.inbox_counts.value.tabs : null;
-  const counts = query.data?.counts ?? pollTabs ?? bootTabs ?? {};
+  const counts = tabCounts(countsQuery.data, pollTabs, bootTabs);
+
+  useScreenContribution(
+    query.data
+      ? {
+          lists: [
+            {
+              key: `inbox_${tab}`,
+              rows: query.data.items.map((item, index) => ({ type: "tasks.task", id: item.id, version: item.version, ordinal: index + 1 })),
+            },
+          ],
+          selectedIds: taskId ? [taskId] : [],
+          filters: { tab },
+        }
+      : null,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -157,13 +146,7 @@ export function InboxView({ tab, cursor }: { tab: InboxTab; cursor: string | nul
         label={m.tabsLabel}
         currentId={tab}
         locale={zone.locale}
-        tabs={INBOX_TABS.map((id) => ({
-          id,
-          label: m.tabs[id],
-          href: inboxHref(id),
-          // Done has no meaningful open count; other tabs show the server's number when known.
-          count: id === "done" ? null : (counts[id] ?? null),
-        }))}
+        tabs={INBOX_TABS.map((id) => ({ id, label: m.tabs[id], href: inboxHref(id), count: counts[id] ?? null }))}
       />
       {query.isPending ? (
         <Loading label={`${m.tabs[tab].toLowerCase()} in your Inbox`} />
@@ -181,6 +164,7 @@ export function InboxView({ tab, cursor }: { tab: InboxTab; cursor: string | nul
       ) : (
         <ErrorState error={query.error} what="the Inbox" onRetry={() => void query.refetch()} />
       )}
+      <TaskDrawer taskId={taskId} onClose={() => router.push(inboxHref(tab, cursor) as Parameters<typeof router.push>[0])} />
     </div>
   );
 }
