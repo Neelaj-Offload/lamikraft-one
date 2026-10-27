@@ -9,10 +9,10 @@ one SQL definition per rule, shared by the list ``issue`` filter, the summary co
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, and_, case, exists, func, or_, select, true
@@ -21,6 +21,7 @@ from sqlalchemy.orm import aliased
 from app.core.db.base import new_id
 from app.core.errors import Conflict, NotFound, ValidationFailed
 from app.core.http.pagination import MAX_LIMIT, Page
+from app.core.money import CURRENCY_EXPONENT
 from app.core.text import LIKE_ESCAPE, contains_pattern, escape_like, normalize_search_text, tokens
 from app.modules.catalogue import events as ev
 from app.modules.catalogue.models import (
@@ -65,6 +66,7 @@ from app.modules.catalogue.schemas import (
     ProductDetail,
     ProductFacets,
     ProductFilters,
+    ProductPriceColumn,
     ProductResolution,
     ProductSize,
     ProductSort,
@@ -95,6 +97,36 @@ SC = Subcategory
 D = ProductDimension
 
 READ = "catalogue.product.read"
+PRICE_READ = "pricing.price.read"
+PRICE_LIST_READ = "pricing.price_list.read"
+
+
+# =====================================================================================================
+# price columns (contributed by the commercial module: pricing and commercial depend on the catalogue, so the
+# catalogue reads prices through this registered contribution and never imports them)
+# =====================================================================================================
+#: (uow, product ids, currencies, price type or None) -> product id -> one column per requested currency
+PriceColumnsProvider = Callable[
+    [UnitOfWork, Sequence[uuid.UUID], Sequence[str], str | None], dict[uuid.UUID, list[ProductPriceColumn]]
+]
+_PRICE_COLUMNS: list[PriceColumnsProvider] = []
+
+
+def register_price_columns(provider: PriceColumnsProvider) -> None:
+    """Install the price-column provider (the commercial manifest's ``on_load``; one provider, last wins)."""
+    _PRICE_COLUMNS[:] = [provider]
+
+
+def _price_columns(
+    uow: UnitOfWork, product_ids: Sequence[uuid.UUID], currencies: Sequence[str], price_type: str | None
+) -> tuple[dict[uuid.UUID, list[ProductPriceColumn]] | None, list[str]]:
+    """Price columns for a page of products in one batch (never per row); absent and listed in ``redacted_fields``
+    without ``pricing.price.read`` (UI-35)."""
+    if not uow.actor.can(PRICE_READ):
+        return None, ["prices"]
+    if not _PRICE_COLUMNS or not product_ids:
+        return None, []
+    return _PRICE_COLUMNS[0](uow, product_ids, currencies, price_type), []
 
 
 # =====================================================================================================
@@ -286,6 +318,15 @@ _DECIMAL_SCALE = {
     "net_weight_kg": Decimal("0.0001"),
     "gross_weight_kg": Decimal("0.0001"),
     "cbm": Decimal("0.000001"),
+}
+#: exclusive upper bounds of the NUMERIC columns (NUMERIC(12,3) cm, NUMERIC(12,4) kg, NUMERIC(12,6) cbm)
+_DECIMAL_LIMIT = {
+    "carton_length_cm": Decimal(10) ** 9,
+    "carton_width_cm": Decimal(10) ** 9,
+    "carton_height_cm": Decimal(10) ** 9,
+    "net_weight_kg": Decimal(10) ** 8,
+    "gross_weight_kg": Decimal(10) ** 8,
+    "cbm": Decimal(10) ** 6,
 }
 
 
@@ -548,10 +589,20 @@ def _apply_packaging(
     pack.packing_type = resolution.values.get("packing_type")
     for name in _PACKAGING_DECIMALS:
         value = raw[name]
-        if value is not None and value <= 0:
+        if value is None:
+            setattr(pack, name, None)
+            continue
+        if value <= 0:
             errors.add(["packaging", name], "not_positive", f"{name} must be positive")
             continue
-        setattr(pack, name, value.quantize(_DECIMAL_SCALE[name]) if value is not None else None)
+        if value >= _DECIMAL_LIMIT[name]:
+            errors.add(["packaging", name], "too_large", f"{name} must be below {_DECIMAL_LIMIT[name]}")
+            continue
+        stored = value.quantize(_DECIMAL_SCALE[name], rounding=ROUND_HALF_UP)
+        if stored <= 0:  # positive, but below the column scale: it would be stored as zero
+            errors.add(["packaging", name], "below_precision", f"{name} must be at least {_DECIMAL_SCALE[name]}")
+            continue
+        setattr(pack, name, stored)
     for name in _PACKAGING_TEXT:
         setattr(pack, name, _blank_to_none(raw[name]))
     pack.alias_provenance = resolution.provenance or None
@@ -885,7 +936,11 @@ def _taxonomy_ref(id_: uuid.UUID | None, name: str | None, active: bool | None) 
     return TaxonomyRef(id=id_, name=name, is_active=bool(active))
 
 
-def _summary_row(row: Any) -> ProductSummary:
+def _summary_row(
+    row: Any,
+    columns: dict[uuid.UUID, list[ProductPriceColumn]] | None = None,
+    redacted: Sequence[str] = (),
+) -> ProductSummary:
     product: Product = row[0]
     return ProductSummary(
         id=product.id,
@@ -909,6 +964,8 @@ def _summary_row(row: Any) -> ProductSummary:
         archived=product.archived_at is not None,
         updated_at=product.updated_at,
         path=product_path(product.id),
+        prices=columns.get(product.id) if columns is not None else None,
+        redacted_fields=list(redacted),
     )
 
 
@@ -942,7 +999,16 @@ def list_products(
     sort: ProductSort = "product_key",
     limit: int = 50,
     offset: int = 0,
+    price_currency: str = "EUR",
+    price_type: str | None = None,
 ) -> Page[ProductSummary]:
+    """Filters apply before paging. Rows carry the ``price_currency`` price and order-value recommendation from one
+    batch read for the page (``pricing.price.read``; otherwise ``prices`` is absent and listed as redacted)."""
+    if price_currency not in CURRENCY_EXPONENT:
+        raise ValidationFailed(
+            "price_currency is not an enabled currency",
+            errors=[{"loc": ["query", "price_currency"], "msg": "not an enabled currency", "code": "invalid_currency"}],
+        )
     conds = _conditions(uow, filters)
     where = conds.all()
     total = uow.session.scalar(_joined(select(func.count(P.id))).where(*where)) or 0
@@ -953,7 +1019,10 @@ def list_products(
     rows = uow.session.execute(
         _joined(_summary_select()).where(*where).order_by(*_order(filters, sort)).limit(limit).offset(offset)
     ).all()
-    return Page[ProductSummary](items=[_summary_row(r) for r in rows], total=int(total), limit=limit, offset=offset)
+    columns, redacted = _price_columns(uow, [r[0].id for r in rows], [price_currency], price_type)
+    return Page[ProductSummary](
+        items=[_summary_row(r, columns, redacted) for r in rows], total=int(total), limit=limit, offset=offset
+    )
 
 
 def _facet(
@@ -987,8 +1056,12 @@ def product_facets(uow: UnitOfWork, filters: ProductFilters) -> ProductFacets:
         _facet(uow, conds, "family", [P.variant_group], P.variant_group.is_not(None)),
         lambda r: FacetValue(value=r[0], label=r[0], count=r.n),
     )
+    # orientation-normalised (smaller x larger), like the size filter that matches either orientation, so a facet
+    # count always equals the total its value filters to
+    size_lo = func.least(P.size_length_mm, P.size_width_mm).label("size_lo")
+    size_hi = func.greatest(P.size_length_mm, P.size_width_mm).label("size_hi")
     sizes = values(
-        _facet(uow, conds, "size", [P.size_length_mm, P.size_width_mm], P.size_width_mm.is_not(None)),
+        _facet(uow, conds, "size", [size_lo, size_hi], and_(P.size_length_mm.is_not(None), P.size_width_mm.is_not(None))),
         lambda r: FacetValue(
             value=f"{plain_decimal(r[0])}x{plain_decimal(r[1])}",
             label=f"{plain_decimal(r[0])} × {plain_decimal(r[1])} mm",
@@ -1149,7 +1222,7 @@ def _packaging_summary(pack: ProductPackaging) -> str | None:
         parts.append(f"{pack.carton_qty}/ctn")
     if pack.packing_type:
         parts.append(pack.packing_type)
-    return " | ".join(parts) or None
+    return " · ".join(parts) or None  # FG-PKG-11: "450g · 24/ctn · Poly bag"
 
 
 def _sections(uow: UnitOfWork, product: Product) -> list[SectionRead]:
@@ -1159,7 +1232,9 @@ def _sections(uow: UnitOfWork, product: Product) -> list[SectionRead]:
         SectionRead(key="specifications", label="Specifications", path=f"{base}/specifications"),
         SectionRead(key="packaging", label="Packaging", path=f"{base}/packaging"),
     ]
-    if uow.actor.can("pricing.price.read"):
+    # UI-40: the pricing tab (lists, breakdown, provenance) needs pricing.price_list.read (legacy view_costing);
+    # resolved selling prices for pricing.price.read holders are in the overview (``prices``)
+    if uow.actor.can(PRICE_LIST_READ):
         sections.append(SectionRead(key="pricing", label="Pricing", path=f"{base}/pricing"))
     return sections
 
@@ -1171,6 +1246,11 @@ def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
     pack = uow.session.get(K, product.id)
     dims = list(uow.session.scalars(select(D).where(D.product_id == product.id).order_by(D.kind)))
     assert category is not None
+    # overview prices (UI-39): every currency in which a real active standard list prices the product
+    columns, redacted = _price_columns(uow, [product.id], sorted(CURRENCY_EXPONENT), None)
+    overview_prices = (
+        [c for c in columns.get(product.id, []) if c.status != "not_found"] if columns is not None else None
+    )
     pack_read: PackagingRead | None = None
     if pack is not None:
         pack_read = PackagingRead(
@@ -1304,6 +1384,8 @@ def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
             action: Capability(**decision)
             for action, decision in uow.repo(Product).capabilities(product, ["update"]).items()
         },
+        prices=overview_prices,
+        redacted_fields=redacted,
     )
 
 
