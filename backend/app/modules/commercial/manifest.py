@@ -1,4 +1,4 @@
-"""Commercial module manifest: rule sets, read API, calculate_quote tool, rule-set v1 seed."""
+"""Commercial module manifest: rule sets, read API, calculate_quote tool, catalogue price columns, v1 seed."""
 
 from __future__ import annotations
 
@@ -22,6 +22,15 @@ def _seed(ctx: SeedContext) -> None:
     seed_commercial(ctx)
 
 
+def _on_load() -> None:
+    # the catalogue's list and overview price columns (UI-35, UI-39) come from pricing + the engine; pricing and
+    # commercial depend on the catalogue, so the catalogue receives them as a contribution instead of importing them
+    from app.modules.catalogue.service import register_price_columns
+    from app.modules.commercial.service import product_price_columns
+
+    register_price_columns(product_price_columns)
+
+
 MANIFEST = ModuleManifest(
     name="commercial",
     models=("app.modules.commercial.models",),
@@ -29,4 +38,5 @@ MANIFEST = ModuleManifest(
     routers=[_router],
     tools=list(TOOLS),
     seeds=[SeedDef(name="commercial.world", order=40, run=_seed, slice_no=1)],
+    on_load=_on_load,
 )
