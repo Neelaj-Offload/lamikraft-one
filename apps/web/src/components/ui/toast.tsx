@@ -66,14 +66,14 @@ export function ToastRegion() {
   return (
     <RacToastRegion
       queue={toastQueue}
-      className="fixed inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] flex flex-col-reverse gap-2 outline-none md:inset-x-auto md:end-4 md:bottom-4 md:w-[380px]"
+      className="fixed inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[60] flex flex-col-reverse gap-2 outline-hidden md:inset-x-auto md:end-4 md:bottom-4 md:w-[380px]"
     >
       {({ toast: queued }) => {
         const Icon = toneIcon[queued.content.tone];
         return (
           <RacToast
             toast={queued}
-            className="flex items-start gap-3 rounded-lg border bg-surface p-3 text-ink shadow-lg outline-none entering:animate-rise-in exiting:animate-pop-out"
+            className="flex items-start gap-3 rounded-lg border bg-surface p-3 text-ink shadow-lg outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring entering:animate-rise-in exiting:animate-pop-out"
           >
             <Icon size={20} className={cx("mt-0.5 shrink-0", toneClass[queued.content.tone])} />
             <RacToastContent className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -94,7 +94,7 @@ export function ToastRegion() {
             <RacButton
               slot="close"
               aria-label="Dismiss"
-              className="-m-1 flex size-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-sunken hover:text-ink"
+              className="-m-1 flex size-11 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-sunken hover:text-ink pointer-fine:size-9"
             >
               <CloseIcon size={16} />
             </RacButton>

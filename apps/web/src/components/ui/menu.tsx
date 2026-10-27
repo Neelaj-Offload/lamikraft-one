@@ -32,7 +32,7 @@ export type MenuProps<T extends object> = Omit<RacMenuProps<T>, "className"> & {
 export function Menu<T extends object>({ className, ...props }: MenuProps<T>) {
   return (
     <Popover placement="bottom end" className="min-w-52">
-      <RacMenu {...props} className={cx("max-h-[70dvh] outline-none", className)} />
+      <RacMenu {...props} className={cx("max-h-[70dvh] outline-hidden", className)} />
     </Popover>
   );
 }

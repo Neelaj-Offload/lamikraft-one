@@ -77,14 +77,14 @@ export function Dialog({ role = "dialog", size = "md", isDismissable = true, ...
     >
       <Modal
         className={cx(
-          "flex max-h-[min(90dvh,760px)] w-full flex-col overflow-hidden rounded-t-xl border bg-surface shadow-lg outline-none md:rounded-xl",
+          "flex max-h-[min(90dvh,760px)] w-full flex-col overflow-hidden rounded-t-xl border bg-surface shadow-lg outline-hidden md:rounded-xl",
           size === "sm" && "md:max-w-md",
           size === "md" && "md:max-w-lg",
           size === "lg" && "md:max-w-2xl",
           "entering:animate-sheet-in exiting:animate-sheet-out md:entering:animate-pop-in md:exiting:animate-pop-out",
         )}
       >
-        <RacDialog role={role} className="flex min-h-0 flex-1 flex-col outline-none">
+        <RacDialog role={role} className="flex min-h-0 flex-1 flex-col outline-hidden">
           {({ close }) => <Chrome {...props} close={close} />}
         </RacDialog>
       </Modal>
@@ -109,12 +109,12 @@ export function Drawer({ width = "md", isDismissable = true, ...props }: DrawerP
     >
       <Modal
         className={cx(
-          "flex h-dvh w-full flex-col border-s bg-surface shadow-lg outline-none",
+          "flex h-dvh w-full flex-col border-s bg-surface shadow-lg outline-hidden",
           width === "md" ? "md:max-w-[480px]" : "md:max-w-[640px]",
           "entering:animate-drawer-in exiting:animate-drawer-out",
         )}
       >
-        <RacDialog className="flex min-h-0 flex-1 flex-col outline-none">
+        <RacDialog className="flex min-h-0 flex-1 flex-col outline-hidden">
           {({ close }) => <Chrome {...props} close={close} />}
         </RacDialog>
       </Modal>

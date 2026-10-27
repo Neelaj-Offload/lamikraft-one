@@ -293,6 +293,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /*
+   * Default ring for focusable elements that do not hide the outline (plain links, the page
+   * h1 after navigation). A utility such as `outline-hidden` outranks this layer, so shared
+   * controls restore it with `focus-ring` / `focus-ring-inset` (components/ui/styles.ts).
+   */
   :focus-visible,
   [data-focus-visible] {
     outline: 2px solid var(--color-focus);
@@ -312,6 +317,12 @@
 @utility focus-ring {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* The same ring inside the box, for items in scrolling or clipped containers. */
+@utility focus-ring-inset {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
 /*

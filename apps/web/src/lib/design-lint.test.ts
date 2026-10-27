@@ -64,6 +64,10 @@ describe("design lint: banned patterns", () => {
     expect(offenders(/rounded-full/, (file) => allowed.has(file))).toEqual([]);
   });
 
+  it("never hides the focus outline with outline-none (use focusRingClasses / outline-hidden + focus-ring)", () => {
+    expect(offenders(/(^|[\s"'`])outline-none\b/)).toEqual([]);
+  });
+
   it("has no 'AI-powered' filler copy", () => {
     expect(offenders(/ai[- ]powered/i)).toEqual([]);
   });

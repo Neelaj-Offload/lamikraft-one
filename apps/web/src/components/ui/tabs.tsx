@@ -21,7 +21,7 @@ import { formatCount } from "@/lib/format/money";
  */
 
 const tabClasses =
-  "relative inline-flex min-h-11 items-center gap-2 px-3 text-[15px] font-medium whitespace-nowrap text-ink-muted outline-none " +
+  "relative inline-flex min-h-11 items-center gap-2 px-3 text-[15px] font-medium whitespace-nowrap text-ink-muted outline-hidden focus-visible:focus-ring-inset data-[focus-visible]:focus-ring-inset " +
   "hover:text-ink pointer-fine:min-h-10 " +
   "after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-transparent";
 
@@ -84,7 +84,7 @@ export function Tabs({ label, tabs, className, ...props }: TabsProps) {
         )}
       </RacTabList>
       {tabs.map((tab) => (
-        <RacTabPanel key={tab.id} id={tab.id} className="outline-none">
+        <RacTabPanel key={tab.id} id={tab.id} className="rounded-md outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring">
           {tab.content}
         </RacTabPanel>
       ))}

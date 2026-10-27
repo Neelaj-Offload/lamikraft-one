@@ -94,8 +94,8 @@ export function SearchDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpen
       isDismissable
       className="fixed inset-0 z-50 flex items-start justify-center bg-scrim p-0 entering:animate-overlay-in exiting:animate-overlay-out md:p-6 md:pt-[12vh]"
     >
-      <Modal className="flex max-h-dvh w-full flex-col overflow-hidden bg-surface shadow-lg outline-none entering:animate-pop-in exiting:animate-pop-out md:max-h-[70vh] md:max-w-xl md:rounded-xl md:border">
-        <Dialog aria-labelledby="lk-search-title" className="flex min-h-0 flex-1 flex-col outline-none">
+      <Modal className="flex max-h-dvh w-full flex-col overflow-hidden bg-surface shadow-lg outline-hidden entering:animate-pop-in exiting:animate-pop-out md:max-h-[70vh] md:max-w-xl md:rounded-xl md:border">
+        <Dialog aria-labelledby="lk-search-title" className="flex min-h-0 flex-1 flex-col outline-hidden">
           <div className="flex items-center justify-between gap-2 px-4 pt-3">
             <Heading id="lk-search-title" slot="title" className="text-base font-bold">
               {m.search.dialogTitle}
@@ -123,7 +123,7 @@ export function SearchDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpen
             ) : (
               <Menu
                 aria-label="Search results"
-                className={cx("min-h-0 flex-1 overflow-y-auto px-2 pb-3 outline-none", groups.length === 0 && "hidden")}
+                className={cx("min-h-0 flex-1 overflow-y-auto px-2 pb-3 outline-hidden", groups.length === 0 && "hidden")}
                 onAction={(key) => {
                   const path = pathById.get(String(key));
                   if (!path) return;

@@ -127,7 +127,7 @@ export function DataTable<Row>({
                       <RacButton
                         onPress={() => onSortChange(nextSortState(sort, column.id))}
                         className={cx(
-                          "-mx-2 inline-flex min-h-9 items-center gap-1 rounded-sm px-2 uppercase hover:text-ink",
+                          "-mx-2 inline-flex min-h-11 items-center gap-1 rounded-sm px-2 uppercase hover:text-ink pointer-fine:min-h-9",
                           column.numeric && "flex-row-reverse",
                         )}
                       >
@@ -259,7 +259,7 @@ function MobileList<Row>({
               />
             ) : null}
             {href ? (
-              <RacLink href={href} className="flex min-h-14 flex-1 flex-col justify-center gap-1 py-3 outline-none">
+              <RacLink href={href} className="flex min-h-14 flex-1 flex-col justify-center gap-1 py-3 outline-hidden focus-visible:focus-ring-inset data-[focus-visible]:focus-ring-inset">
                 {body}
               </RacLink>
             ) : (

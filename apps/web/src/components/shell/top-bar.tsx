@@ -14,14 +14,14 @@ import { Wordmark } from "./wordmark";
 export function DemoNotice() {
   return (
     <DialogTrigger>
-      <RacButton className="flex min-h-11 items-center rounded-md px-1 outline-none pointer-fine:min-h-8">
+      <RacButton className="flex min-h-11 items-center rounded-md px-1 outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring pointer-fine:min-h-8">
         <span className="rounded-sm bg-warning-bg px-1.5 py-0.5 text-xs font-bold tracking-[0.06em] text-warning-text uppercase">
           {m.demo.label}
         </span>
         <span className="sr-only">: {m.demo.title}</span>
       </RacButton>
       <Popover placement="bottom start" className="max-w-80 p-4">
-        <Dialog className="flex flex-col gap-1 outline-none">
+        <Dialog className="flex flex-col gap-1 outline-hidden">
           <Heading slot="title" className="font-bold text-ink">
             {m.demo.title}
           </Heading>
@@ -59,7 +59,7 @@ export function TopBar(props: TopBarProps) {
         <RacButton
           onPress={props.onSearch}
           aria-keyshortcuts="/ Control+K Meta+K"
-          className="hidden min-h-11 w-56 items-center gap-2 rounded-md border border-border-strong bg-canvas px-3 text-ink-muted outline-none hover:text-ink pointer-fine:min-h-9 md:flex lg:w-72"
+          className="hidden min-h-11 w-56 items-center gap-2 rounded-md border border-border-strong bg-canvas px-3 text-ink-muted outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring hover:text-ink pointer-fine:min-h-9 md:flex lg:w-72"
         >
           <SearchIcon size={18} />
           <span className="flex-1 text-start">{m.search.trigger}</span>

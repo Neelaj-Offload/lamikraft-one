@@ -45,7 +45,7 @@ export function UserMenu({
     <MenuTrigger>
       <RacButton
         aria-label={m.user.menu(name)}
-        className="flex min-h-11 items-center gap-2 rounded-md px-1.5 text-ink outline-none hover:bg-surface-sunken pointer-fine:min-h-9 md:px-2"
+        className="flex min-h-11 items-center gap-2 rounded-md px-1.5 text-ink outline-hidden focus-visible:focus-ring data-[focus-visible]:focus-ring hover:bg-surface-sunken pointer-fine:min-h-9 md:px-2"
       >
         <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-forest-tint text-xs font-bold text-forest">
           {initials(name)}

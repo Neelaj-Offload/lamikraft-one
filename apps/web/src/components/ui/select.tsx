@@ -87,7 +87,7 @@ export function Select({
       ) : null}
       <FieldError className={fieldErrorClasses}>{errorMessage}</FieldError>
       <Popover className={popoverClasses} offset={4}>
-        <ListBox className="max-h-72 outline-none" items={options}>
+        <ListBox className="max-h-72 outline-hidden" items={options}>
           {(option) => <OptionItem option={option} />}
         </ListBox>
       </Popover>
@@ -154,7 +154,7 @@ export function ComboBox({
       <FieldError className={fieldErrorClasses}>{errorMessage}</FieldError>
       <Popover className={popoverClasses} offset={4}>
         <ListBox
-          className="max-h-72 outline-none"
+          className="max-h-72 outline-hidden"
           renderEmptyState={() => <p className="px-3 py-2 text-sm text-ink-muted">{emptyText}</p>}
         >
           {(option: Option) => <OptionItem option={option} />}
