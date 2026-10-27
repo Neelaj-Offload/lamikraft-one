@@ -133,7 +133,8 @@ def test_unique_explicit_priority_resolves_the_overlap(world: World) -> None:
     assert resolve(world, keys.USERS.MEERA, "OAK_TRAY", party="NORDHAUS").status == "ambiguous"
 
 
-def test_legacy_multiple_eur_rows_are_selected_by_price_type(world: World) -> None:
+def test_legacy_multi_eur_rows_resolved_by_price_type(world: World) -> None:
+    """BR-04 / BUG-10: several EUR rows of different price types are ambiguous until the price type selects one."""
     make_list(world, "SMP-EUR-2026", [("OAK_TRAY", "pcs", "30.0000")], price_type="sample")
     assert resolve(world, keys.USERS.MEERA, "OAK_TRAY").status == "ambiguous"  # never "the last EUR row wins"
     export = resolve(world, keys.USERS.MEERA, "OAK_TRAY", price_type=PriceType.EXPORT)
