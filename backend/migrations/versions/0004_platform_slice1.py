@@ -1,7 +1,7 @@
 """platform slice 1: settings, currency, UOM master, files, notes, recent searches, integration status
 
 Revision ID: 0004
-Revises: 0002
+Revises: 0003
 Create Date: 2026-10-23 08:02:00+00:00
 
 All DDL of the Slice-1 wave-1 platform lane (org settings and reference data, files, collab notes,
@@ -20,7 +20,7 @@ from sqlalchemy.dialects import postgresql
 from migrations import helpers
 
 revision: str = "0004"
-down_revision: str | Sequence[str] | None = "0002"
+down_revision: str | Sequence[str] | None = "0003"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
