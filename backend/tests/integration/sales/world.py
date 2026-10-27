@@ -80,7 +80,9 @@ def seed_sales_world(world: World) -> SalesWorld:
 def world(personas: World) -> SalesWorld:
     """Personas + catalogue-lane seeds (no sales history)."""
     seed_world(personas)
-    return SalesWorld(personas.company_id, personas.branch_id, personas.ctx, personas.actors)
+    sw = SalesWorld(personas.company_id, personas.branch_id, personas.ctx, personas.actors)
+    sw.at(D0)
+    return sw
 
 
 @pytest.fixture

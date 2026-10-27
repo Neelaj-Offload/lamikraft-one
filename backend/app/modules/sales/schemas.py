@@ -7,7 +7,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
 
 from app.core.money import CurrencyCode, DecimalStr, Money
 from app.modules.catalogue.schemas import UomCode
@@ -127,7 +127,11 @@ class TransitionAction(StrEnum):
 Short = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 ReasonCode = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[a-z][a-z0-9_]{0,39}$")]
-Brand = Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True, pattern=r"^[A-Z]{2,4}$")]
+Brand = Annotated[
+    str,
+    BeforeValidator(lambda v: v.strip().upper() if isinstance(v, str) else v),
+    StringConstraints(pattern=r"^[A-Z]{2,4}$"),
+]
 LongText = Annotated[str, StringConstraints(max_length=4000)]
 ExternalText = Annotated[str, StringConstraints(max_length=20000)]
 

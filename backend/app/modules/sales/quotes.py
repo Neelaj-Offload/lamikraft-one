@@ -639,7 +639,8 @@ def update_line(uow: UnitOfWork, quote_id: uuid.UUID, line_id: uuid.UUID, data: 
         if name in sent and getattr(data, name) != getattr(line, name):
             setattr(line, name, getattr(data, name))
             changed.add(name)
-    reason = data.override_reason if "override_reason" in sent else line.override_reason
+    # clearing the override drops its stale reason unless a new one is sent with the request
+    reason = data.override_reason if "override_reason" in sent else (None if data.clear_override else line.override_reason)
     price_touched = "unit_price" in sent or data.clear_override or "discount_pct" in sent or data.clear_discount
     if price_touched:
         before = (line.unit_price, line.discount_pct, line.override_reason)
