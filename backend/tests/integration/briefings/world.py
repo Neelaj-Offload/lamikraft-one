@@ -532,7 +532,6 @@ class FakeWorld:
         self.at(d0(8, 40))  # Meera's assistant drafts LK-QT-2026-0008 from M1
         q8 = self._quote("Q_NORDHAUS_DRAFT", keys.QUOTES.NORDHAUS_DRAFT, "NORDHAUS", "MEERA", "draft", "5760.00", "EUR", d0(8, 40),
                          origin_message="MSG_NORDHAUS")
-        self.messages["MSG_NORDHAUS"].linked_quotes.append("Q_NORDHAUS_DRAFT")
         self.emit_quote("MEERA", "sales.quote.created", "Q_NORDHAUS_DRAFT", agent=True, quote_number=q8.number,
                         owner_user_id=str(self.refs["MEERA"]), party_id=str(self.parties["NORDHAUS"].id),
                         origin_message_id=str(self.messages["MSG_NORDHAUS"].id))

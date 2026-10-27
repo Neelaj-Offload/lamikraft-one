@@ -17,6 +17,7 @@ from app.modules.tasks.models import Issue, Task
 from app.modules.tasks.schemas import TaskCreate
 from app.platform.events.models import DomainEvent
 from app.seed.world import keys
+from app.seed.world import tasks as seed_tasks
 from tests.integration.briefings.world import FakeWorld, d0
 
 pytestmark = pytest.mark.db
@@ -32,7 +33,7 @@ def task_id(world: FakeWorld, issue_key: str, kind: str | None = None) -> uuid.U
 
 
 def count_task() -> str:
-    return "Count walnut boards in bin A-12"
+    return seed_tasks.TASK_KABIR_COUNT_TITLE
 
 
 def kabir_task(world: FakeWorld) -> uuid.UUID:

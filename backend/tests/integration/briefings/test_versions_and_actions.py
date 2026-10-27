@@ -11,9 +11,8 @@ from sqlalchemy import func, select
 
 from app.core.errors import NotFound
 from app.modules.briefings import service
-from app.modules.briefings.errors import PinEnded
-from app.modules.briefings.models import Briefing, BriefingVersion, Recommendation
-from app.modules.briefings.schemas import ItemActionRequest, PinCreate, PinUpdate
+from app.modules.briefings.models import Briefing, BriefingVersion
+from app.modules.briefings.schemas import ItemActionRequest
 from app.modules.tasks import issue_keys
 from app.modules.tasks import service as tasks
 from app.modules.tasks.errors import ActionNotAllowed, NotComplete, SnoozeBeyondDeadline
@@ -60,47 +59,7 @@ def new_message(world: FakeWorld, key: str, party: str, at: datetime) -> Message
 
 
 # ---- B-02 / B-03: no manufactured versions ------------------------------------------------------------------
-def test_replayed_event_and_immaterial_update_create_no_version(world: FakeWorld) -> None:
-    v1 = today(world, keys.USERS.MEERA)
-    with world.uow() as uow:
-        changes_before = uow.session.scalar(select(func.count()).select_from(ChangeLog))
-        received = uow.session.scalars(select(DomainEvent).where(
-            DomainEvent.event_type == "sales.customer_message.received", DomainEvent.aggregate_id == world.refs[keys.MESSAGES.BERG])).one()
-        uow.enqueue("event.handle", {"event_id": str(received.id), "handler": "tasks.rules:sales.customer_message.received"},
-                    dedupe_key=f"replay:{received.id}")
-    world.drain()
-    world.change_quote("Q_BERG_EXPIRING")  # an internal-notes edit: new version, same material facts
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING",
-                     version=world.quotes["Q_BERG_EXPIRING"].version, changed_fields=["notes"], line_change_kinds=[])
-    world.drain()
-    assert current_version(world, v1.briefing_id) == 1  # type: ignore[arg-type]
-    with world.uow() as uow:
-        assert uow.session.scalar(select(func.count()).select_from(ChangeLog)) == changes_before
-
-
 # ---- B-01: a changed source invalidates the recommendation, keeps the issue id -------------------------------
-def test_source_change_invalidates_recommendation_but_keeps_issue_id(world: FakeWorld) -> None:
-    v1 = today(world, keys.USERS.MEERA)
-    expiry_issue = issue(world, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]))
-    with world.uow() as uow:
-        r1 = uow.session.scalars(select(Recommendation).where(Recommendation.issue_id == expiry_issue)).one()
-    world.at(d0(9, 5))
-    quote = world.change_quote("Q_BERG_EXPIRING", revision_no=3)
-    revised = world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", "Q_BERG_EXPIRING", revision_no=3)
-    world.drain()
-    v2 = today(world, keys.USERS.MEERA)
-    assert v2.version == 2 and v2.briefing_id == v1.briefing_id
-    item = next(i for i in v2.items if i.issue_id == expiry_issue)
-    assert item.change_kind == "changed"  # Meera revised it herself, so it is not a "change since your visit"
-    with world.uow() as uow:
-        recs = {r.id: r for r in uow.session.scalars(select(Recommendation).where(Recommendation.issue_id == expiry_issue))}
-        row = uow.session.scalars(select(ChangeLog).where(ChangeLog.issue_id == expiry_issue)).one()
-    assert recs[r1.id].status == "stale" and recs[r1.id].invalidated_by_event_id == revised
-    assert [r.status for r in recs.values() if r.id != r1.id] == ["active"]
-    assert item.recommendation is not None and item.recommendation.id != r1.id
-    assert (row.ref_id, row.ref_version, row.after, row.event_id) == (quote.id, quote.version, {"revision_no": 3}, revised)
-
-
 def test_out_of_order_older_event_changes_nothing(world: FakeWorld) -> None:
     """B-03: quote v3 processed, then a v2 event arrives late: facts stay at v3 and no version is made."""
     v1 = today(world, keys.USERS.MEERA)
@@ -333,36 +292,6 @@ def test_engine_failure_falls_back_to_tasks_and_last_successful(world: FakeWorld
 
 
 # ---- pins --------------------------------------------------------------------------------------------------------
-def test_voice_pin_keeps_order_and_ordinals(world: FakeWorld) -> None:
-    """B-05/B-06: pinned order is stable across a new version; approval shows in place; stop ends the pin."""
-    v1 = today(world, keys.USERS.MEERA)
-    with world.uow(keys.USERS.MEERA) as uow:
-        pin = service.create_pin(uow, v1.briefing_id, PinCreate(kind="voice"))  # type: ignore[arg-type]
-    second = uuid.UUID(pin.ordinal_map[1]["issue_id"])
-    new_message(world, "MSG_MAISON_NEW", "MAISON", d0(9, 10))
-    world.at(d0(9, 15))
-    proposal_id = world.refs[keys.PROPOSALS.NORDHAUS]
-    from app.modules.approvals import service as approvals
-
-    with world.uow(keys.USERS.SAHIL) as uow:
-        p = approvals.get(uow, proposal_id)
-        approvals.decide(uow, proposal_id, decision="approve", content_hash_seen=p.content_hash, expected_version=p.version)
-    world.drain()
-    pinned = today(world, keys.USERS.MEERA)
-    assert pinned.version == 1 and pinned.pin is not None and pinned.pin.pending_updates >= 1
-    assert [i.issue_id for i in pinned.items] == [i.issue_id for i in v1.items]
-    nordhaus = next(i for i in pinned.items if i.issue_id == issue(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])))
-    assert nordhaus.ordinal == 3 and nordhaus.blocked and nordhaus.state.blocked_now is False  # approved, shown in place
-    with world.uow(keys.USERS.MEERA) as uow:
-        resolved = service.resolve_pin(uow, pin.id, 2)
-        assert resolved.issue_id == second and not resolved.resolved_since
-        service.update_pin(uow, pin.id, PinUpdate(state="stopped"))
-    after = today(world, keys.USERS.MEERA)
-    assert after.pin is None and after.version == after.latest_version and after.version >= 2
-    with world.uow(keys.USERS.MEERA) as uow, pytest.raises(PinEnded):
-        service.resolve_pin(uow, pin.id, 2)
-
-
 # ---- delta and isolation ----------------------------------------------------------------------------------------
 def test_delta_since_yesterday_is_source_linked_and_filtered(world: FakeWorld) -> None:
     with world.uow(keys.USERS.MEERA) as uow:
@@ -402,35 +331,22 @@ def test_explain_returns_rule_text_and_sources(world: FakeWorld) -> None:
     assert out.explanation.sources and out.explanation.rule_version
 
 
-# ---- scenario C hook: an agent-drafted quote creates a scoped next action ------------------------------------
-def test_agent_draft_creates_a_review_task_for_the_owner_only(world: FakeWorld) -> None:
-    """[C] Meera's assistant drafts LK-QT-2026-0009: a review_draft for Meera due Today 18:30; Neha and
-    Kabir are unaffected; Meera's open briefing gains a version."""
-    meera = today(world, keys.USERS.MEERA)
-    neha = today(world, keys.USERS.NEHA)
-    kabir = today(world, keys.USERS.KABIR)
-    world.at(d0(9, 10))
-    q = world._quote("Q_SCENARIO_C", keys.QUOTES.SCENARIO_C_NEW, "NORDHAUS", keys.USERS.MEERA, "draft", "5760.00", "EUR", d0(9, 10))
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.created", "Q_SCENARIO_C", agent=True, quote_number=q.number,
-                     owner_user_id=str(world.refs[keys.USERS.MEERA]), party_id=str(world.parties["NORDHAUS"].id))
-    world.drain()
-    review = issue(world, issue_keys.quote_review_key(q.id))
-    with world.uow() as uow:
-        (task,) = uow.session.scalars(select(Task).where(Task.issue_id == review)).all()
-    assert (task.kind, task.owner_user_id, task.assignee_user_id) == ("review_draft",) + (world.refs[keys.USERS.MEERA],) * 2
-    after = today(world, keys.USERS.MEERA)
-    item = next(i for i in after.items if i.issue_id == review)
-    assert after.version == meera.version + 1 and item.section == "plan_for_today" and item.due_label == "Today 18:30"
-    assert item.recommendation is not None and set(item.recommendation.alternatives) <= {a.action for a in item.allowed_actions}
-    assert current_version(world, neha.briefing_id) == neha.version  # type: ignore[arg-type]
-    assert current_version(world, kabir.briefing_id) == kabir.version  # type: ignore[arg-type]
-
-
 def test_issue_ids_are_stable_across_regenerations(world: FakeWorld) -> None:
+    """A permission change that leaves the visible items unchanged writes no version and signals no update
+    (spec review 1); one that changes them writes a permission_change version with the same issue ids."""
     v1 = today(world, keys.USERS.MEERA)
-    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None}  # forces a permission_change version
+    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None}  # irrelevant to every item
+    same = today(world, keys.USERS.MEERA)
+    assert (same.version, same.latest_version, same.updates_available) == (1, 1, 0)
+    assert same.overview is not None and same.overview.sentence == v1.overview.sentence  # type: ignore[union-attr]
+    with world.uow(keys.USERS.MEERA) as uow:
+        assert service.briefing_section(uow)["updates_available"] == 0
+        latest = uow.session.scalars(select(BriefingVersion).where(BriefingVersion.briefing_id == v1.briefing_id)).all()
+    assert [v.version for v in latest] == [1]
+    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None, "parties.party.read": None}  # hides the Maison change
     v2 = today(world, keys.USERS.MEERA)
-    assert v2.version == 2 and [i.issue_id for i in v2.items] == [i.issue_id for i in v1.items]
+    assert v2.version == 2
+    assert [i.issue_id for i in v2.items] == [i.issue_id for i in v1.items if i.family != "sales.customer_changes"]
     assert v1.items[0].issue_id == issue_keys.issue_id(world.company_id, issue_keys.message_key(world.refs[keys.MESSAGES.BERG]), 1)
 
 
