@@ -1,6 +1,6 @@
 # Lane report: identity (Slice 1, wave 1)
 
-Branch `lane/s1w1-identity`, worktree `D:\lk-wt\identity`, env slot 1. Status: **done, all green**.
+Branch `lane/s1w1-identity`, worktree `D:\lk-wt\identity`, env slot 1. Status: **done, all green** (review-fix pass 2026-10-27, see the last section).
 Backend suite: **253 passed** (92 pre-existing + 161 new). `npm run check -- --keep-going`: ruff, pytest unit+contract,
 `alembic heads == 1`, web lint/typecheck/vitest pass; `api:check` fails only because routes changed (the integrator
 regenerates `backend/openapi.json` and `apps/web/src/lib/api/schema.d.ts`; neither file was committed).
@@ -137,3 +137,66 @@ None.
   password change/reset and session lists are Slice 2 (permissions.md §7.1). Session `stage` is always `active`.
 - **Recent records** (`ui` module) are not part of this brief.
 - Playwright/e2e and `next build` were not run (lane rule); `openapi.json`/`schema.d.ts` are left to the integrator.
+
+## Fix pass (2026-10-27)
+
+Two adversarial reviews (2026-10-23, lenses correctness-security and spec-conformance) were reconciled against the
+working tree. An earlier fix pass had stopped part-way through and left uncommitted work. That work was verified,
+completed, given tests and committed in `5b3aa25`. Every fixed finding has a regression test.
+
+| finding | severity | status |
+|---|---|---|
+| CS-1 Per-IP sign-in limit could be bypassed with a spoofed `X-Forwarded-For`, and every browser shared one bucket | blocker | fixed in `5b3aa25`. `client_ip` trusts the ASGI client only when no forwarded entry could have produced it. uvicorn's proxy-headers rewrite also covers `host:port` entries, which the interrupted pass had missed (its port-0 heuristic). Otherwise the entry `LK_TRUSTED_PROXY_HOPS` positions from the right is used, and the default of 0 means the address is unknown: one shared bucket that no client value can escape. Production must set hops=1 behind the reverse proxy; when it is 0, a startup warning is logged. Tests: `test_login.py::test_a_spoofed_forwarded_address_never_opens_a_fresh_bucket`, `::test_uvicorn_proxy_headers_cannot_be_used_to_spoof_the_client` (real `ProxyHeadersMiddleware`), `::test_forwarded_addresses_count_from_the_trusted_reverse_proxy`. The dev-server flag and core setting are under integrator requests |
+| CS-2 Signing in while holding another company's session cookie returned 500 | major | fixed in `5b3aa25`. The previous session is revoked with a Core UPDATE, and `rotated_from_id` is set only for the same user in the same company. Logout clears the cookies even when it answers 401. Tests: `test_sessions.py::test_signing_into_another_company_replaces_the_foreign_session`, `::test_an_expired_foreign_cookie_does_not_block_sign_in`, `::test_logout_with_a_dead_session_still_clears_the_cookies` |
+| CS-3 A database error in a bootstrap or poll section aborted the transaction | major | fixed in `5b3aa25`. The ui module builds each section inside its own SAVEPOINT, which keeps the CSRF rotation. Test: `ui/test_bootstrap.py::test_a_database_error_in_one_section_leaves_the_rest_of_the_bootstrap_intact` (bootstrap and poll). The kernel `build_sections` still lacks the savepoint (integrator request) |
+| CS-4 Concurrent demotions could bypass the last-admin guard | major | fixed in `5b3aa25`. `provisioning.lock_access` takes a transaction advisory lock per company in `assign_roles`, `set_permission_override`, `archive_permission_override` and `deactivate_membership`. Committed test: `test_committed.py::test_two_admins_demoting_each_other_concurrently_keep_one_admin`, confirmed to fail (`['ok','ok']`) with the lock removed |
+| CS-5 `provision_membership` did not check that branch, default-branch and manager ids belong to the actor's company | minor | fixed in `5b3aa25` (422 for a foreign branch, 404 for a foreign manager). Test: `test_provisioning_guards.py::test_provisioning_rejects_branches_and_managers_of_another_company` |
+| CS-6 Demo users could sign in with a password | minor | fixed in `5b3aa25`. Memberships in `is_demo` companies are never password sign-in targets. Test: `test_demo_sign_in.py::test_a_demo_member_with_a_password_still_cannot_sign_in_by_password` |
+| CS-7 N+1 queries across tenants on sign-in, /me and the last-admin guard | minor | partly fixed in `5b3aa25`: the last-admin guard now resolves access only for candidate holders found in one query (test: `test_provisioning_guards.py::test_a_company_grant_of_role_management_counts_for_the_last_admin_guard`). Deferred: `_memberships_of` still loops per company. Fixing it needs a SECURITY DEFINER lookup (new migration and grants), which is more than 15 minutes of work. A deployment has one company plus the demo company, so the cost stays bounded |
+| CS-8 / SC-6 `legacy_permission_alias` is RLS-exempt but missing from the conventions §3 list | minor | declined in code (the contract wins: the list is extended only by integrator PR). Integrator request below |
+| CS-9 The CSRF verifier blocks the event loop | minor | deferred: the fix belongs in core `CsrfOriginMiddleware` (`run_in_threadpool`, or an async verifier). Integrator request below |
+| SC-1 Permission-override API missing (API-08/09, LM-02) | major | fixed in `5b3aa25`. Added `GET/PUT/DELETE /api/v1/identity/users/{user_id}/permission-overrides[/{key}]`, with `reauth_required` (401) for the RA flag (permissions.md §6) and an idempotent PUT. `/me` returns effective `permissions` and open `overrides`. Tests: `authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump`, `::test_override_api_validation_and_authority`, `::test_override_changes_need_a_recent_password_sign_in`, `identity/test_profile.py::test_me_returns_profile_and_effective_permissions` |
+| SC-2 `POST /api/v1/identity/me/password` missing (LM-03/API-03) | major | fixed in `5b3aa25`. The current password is required, the policy applies (and the new password must differ), the caller's session rotates, and the user's other sessions in every company are revoked. Rate-limited to 10 per 10 minutes per user, and audited. Tests: `test_profile.py::test_change_password_revokes_other_sessions`, `::test_change_password_needs_the_current_password_and_the_policy`, `::test_change_password_is_rate_limited` |
+| SC-3 Catalogue and templates were never synced at startup | major | fixed in `5b3aa25`. The identity router lifespan runs `roles.sync_access_all` once per API start (skipped when `LK_ENV=test`). A failure is logged and does not stop the API. `lk admin sync-access` shares the same function. Tests: `test_access_sync.py::test_api_startup_repairs_template_drift_without_the_cli`, `::test_the_identity_router_lifespan_runs_the_sync_when_the_app_starts`, `::test_a_failing_sync_does_not_stop_the_api` |
+| SC-4 Verifying tests named in PARITY/permissions §11 missing; `last_login_at` and "startup creates no users" untested | minor | partly fixed in `5b3aa25`. Added the named `test_profile.py::{test_me_returns_profile_and_effective_permissions, test_change_password_revokes_other_sessions}` and `authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump`, plus `test_profile.py::test_sign_in_records_the_attempt_and_last_login` and a no-new-users assertion in the startup-sync test. Deferred: renaming the other existing tests to the matrix IDs. The behaviour is covered under the names in §2, and the matrix pointers are an integrator request |
+| SC-5 Seed activated Arjun at D0 08:00 inside the order-10 seed (non-chronological) | minor | fixed in `5b3aa25`. A second SeedDef, `identity.activation` (order 75), runs after the history seeds (20–60) and before tasks/briefings (80). Covered by `test_seed.py` (Arjun's event at 02:30Z, idempotent re-seed) |
+| SC-7 Preferences PATCH did not require `expected_version`, and the 409 lacked `current/changed_by/changed_at` | minor | fixed in `5b3aa25`. `expected_version` is required (`ge=0`), and the 409 carries `current_version`, `current`, `changed_by` and `changed_at`. Test: `test_me_preferences.py::test_patch_preferences_merges_sections_and_sets_the_ui_cookie` (409 body and missing-field 422). **Web lane: every PATCH must send `expected_version`** |
+| SC-8 No producer of `identity.membership.deactivated` | minor | fixed in `5b3aa25`. `provisioning.deactivate_membership` requires `identity.user.manage`, refuses your own membership and the last admin, revokes sessions and unused demo links, bumps the epoch and emits the event. Tests: `test_provisioning_guards.py::test_deactivation_revokes_sessions_and_links_and_emits`, `::test_the_last_role_manager_cannot_be_deactivated`. No HTTP route: admin user endpoints are Slice 2 (LM-06/07) |
+
+New endpoints in this pass (all on the `identity` router):
+
+| Method and path | operationId | Kind |
+|---|---|---|
+| `POST /api/v1/identity/me/password` | `identity_update_password` | authenticated |
+| `GET /api/v1/identity/users/{user_id}/permission-overrides` | `identity_list_permission_overrides` | permission (`identity.user.read` or `identity.permission.manage`) |
+| `PUT /api/v1/identity/users/{user_id}/permission-overrides/{permission_key}` | `identity_set_permission_override` | permission (`identity.permission.manage`, RA) |
+| `DELETE /api/v1/identity/users/{user_id}/permission-overrides/{permission_key}` | `identity_delete_permission_override` | permission (`identity.permission.manage`, RA) |
+
+New problem codes used: `reauth_required` (401), `password_changed` (409, a concurrent change). New audit actions:
+`auth.password.changed`, `auth.password.change_failed`, `identity.membership.deactivated`.
+
+### Gate output
+
+- `npm run test:api` (full pytest, real PostgreSQL): `276 passed in 140.01s` (253 before this pass + 23 new tests).
+- `npm run check -- --keep-going`: `backend: ruff check PASS`, `backend: pytest unit + contract PASS` (145 passed),
+  `alembic heads == 1 PASS`, `web: lint PASS`, `web: typecheck PASS`, `web: vitest PASS` (134 passed);
+  `api:check FAIL — backend/openapi.json is out of date` (expected: routes changed, the integrator regenerates).
+
+### Requests for the integrator
+
+1. **uvicorn proxy headers**: start uvicorn with `--no-proxy-headers` in `scripts/dev.mjs` (dev and e2e servers) and in the
+   production run command, so that `request.client` stays the real peer. Identity no longer depends on this, but it
+   removes a client-controlled input.
+2. **`LK_TRUSTED_PROXY_HOPS`**: move it from `app/platform/identity/config.py` into `app.core.config.Settings`, and add it
+   to `.env.example` and the production runbook. It must be `1` behind the production reverse proxy (ADR-001).
+3. **Kernel `app/platform/bootstrap.build_sections`**: wrap each section in `uow.session.begin_nested()`, as
+   `app/modules/ui/service.build_sections` now does. The ui module carries its own copy until the kernel does.
+4. **`CsrfOriginMiddleware`**: call the registered CSRF verifier through `run_in_threadpool`, or accept an async
+   verifier. The identity verifier makes one indexed query per unsafe request.
+5. **conventions.md §3**: add `legacy_permission_alias` (global reference data with no `company_id`) to the RLS-exempt
+   list and to the identity table list.
+6. **PARITY_MATRIX test pointers**: LM-01/API-01, PERM-25/26, SEC-04/05, UI-03/05/06, PERM-28 and the legacy-parity rows
+   point at test names that the lane covers under other names (see §2). Point them at the existing tests, or ask for
+   thin aliases. LM-02, LM-03, LM-08 and API-08/09 now exist under the matrix names.
+7. **Regenerate** `backend/openapi.json` and `apps/web/src/lib/api/schema.d.ts`: 4 new operations, `MeRead.permissions`
+   and `MeRead.overrides`, and `PreferencesPatch.expected_version` is now required.
