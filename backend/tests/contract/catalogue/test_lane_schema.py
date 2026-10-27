@@ -146,7 +146,8 @@ def test_lane_contributions_are_registered() -> None:
     assert (sequence.format_template, sequence.reset_policy) == ("P-{seq:05}", "never")
     seeds = sorted((s.order, s.name) for s in registry.seeds if s.name.split(".")[0] in
                    {"parties", "catalogue", "pricing", "commercial"})
-    assert seeds == [(20, "parties.world"), (30, "catalogue.world"), (40, "commercial.world"), (40, "pricing.world")]
+    assert seeds == [(20, "parties.world"), (30, "catalogue.world"), (40, "commercial.world"), (40, "pricing.world"),
+                     (55, "parties.world.changes")]  # dated changes near D0 run last (fixtures.md §1 rule 2)
     for resource in ("catalogue.product", "parties.party", "pricing.price_list", "pricing.product_cost",
                      "commercial.rule_set"):
         assert resource in registry.policies

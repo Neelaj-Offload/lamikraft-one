@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select, update
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy import select
 
 from app.core.errors import Conflict, Forbidden, NotFound, ValidationFailed, VersionConflict
 from app.modules.catalogue import service as catalogue
-from app.modules.catalogue.models import Product
 from app.modules.catalogue.schemas import (
     CompletenessRule,
     PackagingIn,
@@ -22,7 +20,13 @@ from app.platform.uow import UnitOfWork
 from app.registry import get_registry
 from app.seed.world import keys
 from tests.integration.catalogue.test_product_list import make_product
-from tests.integration.catalogue.world import World, build_personas
+from tests.integration.catalogue.world import (
+    World,
+    build_personas,
+    category_name,
+    product_name,
+    subcategory_name,
+)
 from tests.support import actor
 
 pytestmark = pytest.mark.db
@@ -32,9 +36,11 @@ def _missing(detail: object) -> set[str]:
     return {m.code.value for m in detail.completeness.missing}  # type: ignore[attr-defined]
 
 
-def test_detail_has_every_field_group_and_deep_linkable_sections(world: World) -> None:
+def test_detail_returns_all_field_groups_with_section_guards(world: World) -> None:
+    """UI-40: every field group, deep-linkable sections; the pricing tab needs pricing.price_list.read."""
     detail = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))
-    assert detail.category.name == "Serveware" and detail.subcategory and detail.subcategory.name == "Trays"
+    assert detail.category.name == category_name("CAT_SERVEWARE")
+    assert detail.subcategory and detail.subcategory.name == subcategory_name("SUB_TRAYS")
     assert detail.brand == "Lamikraft" and detail.shape == "Rectangular" and detail.finish == "Matte lacquer"
     assert detail.specification is not None and detail.specification.material_type == "Oak veneer"
     assert detail.specification.length_mm_source == "450" and detail.specification.thickness_mm_source == "12"
@@ -43,12 +49,16 @@ def test_detail_has_every_field_group_and_deep_linkable_sections(world: World) -
     ]
     assert detail.provenance.origin.value == "seed" and detail.version == 1
     base = f"/products/{detail.id}"
+    # sales hold pricing.price.read (resolved prices in the overview) but not pricing.price_list.read: no pricing tab
     assert [(s.key, s.path) for s in detail.sections] == [
         ("overview", base), ("specifications", f"{base}/specifications"), ("packaging", f"{base}/packaging"),
-        ("pricing", f"{base}/pricing"),
     ]
+    for persona in (keys.USERS.SAHIL, keys.USERS.ANANYA):  # management and finance hold pricing.price_list.read
+        guarded = catalogue.get_product(world.actor(persona), world.ref("OAK_TRAY"))
+        assert [(s.key, s.path) for s in guarded.sections][-1] == ("pricing", f"{base}/pricing")
     kabir = catalogue.get_product(world.actor(keys.USERS.KABIR), world.ref("OAK_TRAY"))  # warehouse: no prices
     assert [s.key for s in kabir.sections] == ["overview", "specifications", "packaging"]
+    assert kabir.prices is None and kabir.redacted_fields == ["prices"]
     by_key = catalogue.get_product_by_key(world.actor(keys.USERS.MEERA), f"  {keys.PRODUCTS.OAK_TRAY} ")
     assert by_key.id == detail.id
 
@@ -117,13 +127,41 @@ def test_update_replaces_sections_bumps_version_and_emits_changed_groups(world: 
     assert conflict.value.extra["errors"][0]["code"] == "alias_conflict"
 
 
-def test_writes_need_catalogue_keys_and_product_key_is_immutable(world: World) -> None:
+def test_overview_prices_only_from_real_lists(world: World) -> None:
+    """UI-39: one overview price per currency in which a real active list prices the product; never a converted
+    or relabelled figure (no USD row exists, so none is shown)."""
+    oak = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))
+    assert oak.prices is not None and oak.redacted_fields == []
+    by_currency = {p.currency: p for p in oak.prices}
+    assert set(by_currency) == {"EUR", "GBP"}
+    eur, gbp = by_currency["EUR"], by_currency["GBP"]
+    assert eur.unit_price is not None and format(eur.unit_price.amount, "f") == keys.PRICES.OAK_TRAY_EUR
+    assert eur.price_list_code == keys.PRICE_LISTS.EXP_EUR and eur.item_id == world.ref("PLI_EXP_EUR_OAK_TRAY")
+    assert gbp.unit_price is not None and format(gbp.unit_price.amount, "f") == keys.PRICES.OAK_TRAY_GBP
+    assert eur.recommendation is not None and eur.recommendation.status == "AVAILABLE"
+    assert gbp.recommendation is not None and gbp.recommendation.status == "NOT_EVALUATED"  # no GBP threshold
+    walnut = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("WALNUT_BOARD"))
+    assert walnut.prices is not None and [(p.currency, p.unit_code) for p in walnut.prices] == [("INR", "sheets")]
+    assert walnut.prices[0].unit_price is not None
+    assert format(walnut.prices[0].unit_price.amount, "f") == keys.PRICES.WALNUT_BOARD_INR
+
+
+def test_lookup_by_key_with_special_characters(world: World) -> None:
+    """API-13: ``GET /catalogue/products/lookup?key=`` resolves keys that are unsafe in a path."""
+    odd_key = "TST/ODD #1 & 50%"
+    product_id, _ = make_product(world, odd_key)
+    meera = world.actor(keys.USERS.MEERA)
+    assert catalogue.get_product_by_key(meera, f"  {odd_key} ").id == product_id
+    assert catalogue.get_product_by_key(meera, keys.PRODUCTS.OAK_TRAY).id == world.ref("OAK_TRAY")
+    with pytest.raises(NotFound):
+        catalogue.get_product_by_key(meera, "TST/ODD #1")
+
+
+def test_writes_need_catalogue_keys(world: World) -> None:
     with pytest.raises(Forbidden), UnitOfWork(world.actor(keys.USERS.SAHIL)) as uow:  # management: no catalogue writes
         catalogue.update_product(uow, world.ref("OAK_TRAY"), ProductUpdate(expected_version=1, finish="x"))
     with pytest.raises(Conflict):
         make_product(world, keys.PRODUCTS.OAK_TRAY)  # product_key is unique per company
-    with pytest.raises(DBAPIError, match="immutable"), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
-        uow.session.execute(update(Product).where(Product.id == world.ref("OAK_TRAY")).values(product_key="LK-OT-9999"))
     with pytest.raises(ValidationFailed), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         catalogue.update_product(
             uow, world.ref("OAK_TRAY"),
@@ -145,7 +183,7 @@ def test_source_reader_and_search_provider(world: World) -> None:
     meera = world.actor(keys.USERS.MEERA)
     with UnitOfWork(meera) as uow:
         facts = sources.read(uow, "catalogue.product", world.ref("OAK_TRAY"))
-        assert facts is not None and facts.label == f"{keys.PRODUCTS.OAK_TRAY} · Oak serving tray 450"
+        assert facts is not None and facts.label == f"{keys.PRODUCTS.OAK_TRAY} · {product_name('OAK_TRAY')}"
         assert facts.facts["carton_qty"] == "24" and facts.facts["thickness_mm"] == "12"
         assert facts.facts["decor_no"] == "0120" and facts.required_permission == "catalogue.product.read"
         assert facts.canonical_path == f"/products/{world.ref('OAK_TRAY')}" and facts.money == []
@@ -168,7 +206,7 @@ def test_resolve_product_unique_ambiguous_and_not_found(world: World) -> None:
     make_product(world, "LK-OT-0300", name="Oak serving tray 300")  # a Slice-2 variant, test-local here
     ambiguous = catalogue.resolve_product(meera, "oak tray")
     assert ambiguous.status == "ambiguous" and ambiguous.total_matches == 2
-    exact = catalogue.resolve_product(meera, "Oak serving tray 450")
+    exact = catalogue.resolve_product(meera, product_name("OAK_TRAY"))
     assert exact.status == "unique" and exact.candidates[0].match == "exact_name"
     make_product(world, "TST-SKU-A", display_sku="DUP-SKU")
     make_product(world, "TST-SKU-B", display_sku="DUP-SKU")

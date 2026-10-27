@@ -10,8 +10,9 @@ from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 
-from app.core.money import DecimalStr
+from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 from app.modules.catalogue.normalise import plain_decimal
+from app.platform.authz.redaction import Restricted
 
 #: Seeded UOM codes (docs/architecture/conventions.md §6). ``org.uom`` is created by the platform lane in this
 #: wave; until the FK to ``uom.code`` is added at merge, columns holding a unit code carry a CHECK on this list.
@@ -21,6 +22,20 @@ UOM_CODES: tuple[str, ...] = (
 UomCode = Literal[
     "pcs", "nos", "sheets", "kg", "g", "m", "mm", "cm", "sqm", "sqft", "box", "set", "roll", "bundle", "carton",
 ]
+#: ``uom.is_integer`` units (conventions §6): quantities in these units are whole numbers; others take <= 4 dp
+INTEGER_UOMS: frozenset[str] = frozenset({"pcs", "nos", "sheets", "box", "set", "roll", "bundle", "carton"})
+#: the guard of the price columns on catalogue reads (resolved final prices; never the breakdown or cost)
+PRICE_COLUMNS_GUARD = Restricted("pricing.price.read", model_exposure="allow")
+
+
+def quantity_entry_problem(value: Decimal, uom: str) -> tuple[str, str] | None:
+    """The conventions §6 entry rule for a quantity in ``uom``: ``(code, message)`` when it is broken, else None."""
+    if uom in INTEGER_UOMS:
+        if value != value.to_integral_value():
+            return "uom_integer_only", f"{uom} quantities are whole numbers"
+    elif value.as_tuple().exponent < -4 and value != value.quantize(Decimal("0.0001")):  # type: ignore[operator]
+        return "uom_max_decimals", f"{uom} quantities take at most 4 decimal places"
+    return None
 
 
 class ProductStatus(StrEnum):
@@ -252,6 +267,32 @@ class ProductSize(BaseModel):
     basis: SizeBasis | None = None
 
 
+class OrderValueRecommendationRead(BaseModel):
+    """The commercial engine's order-value recommendation for a list price (advisory; not a product MOQ)."""
+
+    status: Literal["AVAILABLE", "UNAVAILABLE", "NOT_EVALUATED", "NOT_APPLICABLE"]
+    quantity: Quantity | None
+    minimum_order_value: Money | None
+    carton_qty: int | None
+    explanation: str
+    label: str
+
+
+class ProductPriceColumn(BaseModel):
+    """The standard-tier price of a product in one currency, from a real active list (never relabelled or
+    converted): ``found``, ``ambiguous`` (several lists without a unique explicit priority; never guessed),
+    ``unavailable`` (zero price) or ``not_found``."""
+
+    currency: CurrencyCode
+    status: Literal["found", "ambiguous", "not_found", "unavailable"]
+    unit_price: Money | None = None
+    unit_code: str | None = None
+    price_list_code: str | None = None
+    item_id: uuid.UUID | None = None
+    product_moq: Quantity | None = None
+    recommendation: OrderValueRecommendationRead | None = None
+
+
 class ProductSummary(BaseModel):
     id: uuid.UUID
     product_key: str
@@ -274,6 +315,10 @@ class ProductSummary(BaseModel):
     archived: bool
     updated_at: datetime
     path: str
+    #: price and order-value recommendation in the requested currency (UI-35); only with ``pricing.price.read``,
+    #: otherwise absent and listed in ``redacted_fields``
+    prices: Annotated[list[ProductPriceColumn] | None, PRICE_COLUMNS_GUARD] = None
+    redacted_fields: list[str] = Field(default_factory=list)
 
 
 class DimensionRead(BaseModel):
@@ -334,7 +379,7 @@ class PackagingRead(BaseModel):
     notes: str | None
     alias_provenance: dict[str, dict[str, str]] | None
     source_extra: dict[str, Any] | None
-    summary: str | None  # "450 g | 24/ctn | Poly bag" (legacy configurator summary, from canonical fields)
+    summary: str | None  # "450g · 24/ctn · Poly bag" (FG-PKG-11 configurator summary, from canonical fields)
     warnings: list[str]
 
 
@@ -439,6 +484,10 @@ class ProductDetail(BaseModel):
     capabilities: dict[str, Capability]
     #: product status is a master field changed through ``update``; the catalogue has no workflow transitions
     allowed_transitions: list[TransitionRead] = Field(default_factory=list)
+    #: overview prices (UI-39): one per currency in which a real active standard list prices the product, with the
+    #: order-value recommendation; only with ``pricing.price.read`` (absent and listed in ``redacted_fields``)
+    prices: Annotated[list[ProductPriceColumn] | None, PRICE_COLUMNS_GUARD] = None
+    redacted_fields: list[str] = Field(default_factory=list)
 
 
 class ProductWriteResult(BaseModel):

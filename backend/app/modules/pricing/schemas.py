@@ -3,6 +3,8 @@
 Field guards (permissions.md §5): the price breakdown and provenance on items (base/addon prices and labels,
 yield, price basis, item thickness, source references) need ``pricing.price_list.read``; product cost needs
 ``pricing.cost.read`` and is never exposed to a model, even for permitted users.
+
+Money travels as ``{"amount", "currency"}`` and quantities as ``{"value", "uom"}`` (api-conventions §4).
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.core.money import CurrencyCode, DecimalStr
+from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 from app.modules.catalogue.schemas import Measure, UomCode
 from app.platform.authz.redaction import Restricted
 
@@ -22,7 +24,7 @@ PRICE_LIST_GUARD = Restricted("pricing.price_list.read", model_exposure="allow")
 COST_GUARD = Restricted("pricing.cost.read", model_exposure="deny")
 
 #: restricted field names, also registered with the log redactor so they never reach logs
-COST_FIELD_NAMES = ("unit_cost_amount", "cost_components", "current_cost", "costs")
+COST_FIELD_NAMES = ("unit_cost", "unit_cost_amount", "cost_components", "current_cost", "costs")
 
 
 class PriceType(StrEnum):
@@ -213,12 +215,12 @@ class PriceListItemRead(BaseModel):
     product_key: str
     display_sku: str | None
     unit_code: str
-    unit_price: DecimalStr
-    currency: str
-    final_price: DecimalStr | None
-    base_price: Annotated[DecimalStr | None, PRICE_LIST_GUARD] = None
+    #: per ``unit_code``, in the list currency (never relabelled)
+    unit_price: Money
+    final_price: Money | None
+    base_price: Annotated[Money | None, PRICE_LIST_GUARD] = None
     base_price_label: Annotated[str | None, PRICE_LIST_GUARD] = None
-    addon_price: Annotated[DecimalStr | None, PRICE_LIST_GUARD] = None
+    addon_price: Annotated[Money | None, PRICE_LIST_GUARD] = None
     addon_price_label: Annotated[str | None, PRICE_LIST_GUARD] = None
     price_basis: Annotated[str | None, PRICE_LIST_GUARD] = None
     yield_qty_per_board: Annotated[DecimalStr | None, PRICE_LIST_GUARD] = None
@@ -227,8 +229,8 @@ class PriceListItemRead(BaseModel):
     source_ref: Annotated[str | None, PRICE_LIST_GUARD] = None
     source_sheet: Annotated[str | None, PRICE_LIST_GUARD] = None
     source_row: Annotated[str | None, PRICE_LIST_GUARD] = None
-    moq: DecimalStr | None
-    moq_unit_code: str | None
+    #: the product MOQ of this price (distinct from the order-value recommendation)
+    moq: Quantity | None
     notes: str | None
     valid_from: date
     valid_to: date | None
@@ -250,8 +252,8 @@ class ProductCostRead(BaseModel):
     id: uuid.UUID
     product_id: uuid.UUID
     cost_version: int
-    unit_cost_amount: Annotated[DecimalStr | None, COST_GUARD] = None
-    unit_cost_currency: Annotated[str | None, COST_GUARD] = None
+    #: per ``unit_code``
+    unit_cost: Annotated[Money | None, COST_GUARD] = None
     unit_code: str
     cost_components: Annotated[list[dict[str, Any]] | None, COST_GUARD] = None
     source_kind: CostSourceKind
@@ -278,8 +280,7 @@ class PriceCandidate(BaseModel):
     price_list_code: str
     item_id: uuid.UUID
     priority: int | None
-    unit_price: DecimalStr
-    currency: str
+    unit_price: Money
     unit_code: str
     valid_from: date
     valid_to: date | None
@@ -310,7 +311,9 @@ class PriceResolution(BaseModel):
     requested_uom: str
     on_date: date
     price_type: PriceType | None
-    unit_price: DecimalStr | None = None
+    #: per ``unit_code`` in the list currency; present only when ``status`` is ``found``
+    unit_price: Money | None = None
+    #: currency of the matched list (also set for ``unavailable``); always equal to ``requested_currency``
     currency: str | None = None
     unit_code: str | None = None
     tier: Tier | None = None
@@ -318,8 +321,7 @@ class PriceResolution(BaseModel):
     price_list_code: str | None = None
     item_id: uuid.UUID | None = None
     price_basis: Annotated[str | None, PRICE_LIST_GUARD] = None
-    product_moq: DecimalStr | None = None
-    moq_unit_code: str | None = None
+    product_moq: Quantity | None = None
     valid_to: date | None = None
     candidates: list[PriceCandidate] = Field(default_factory=list)
     checks: list[TierCheck] = Field(default_factory=list)
@@ -357,3 +359,40 @@ class PricedItem(BaseModel):
     valid_from: date
     valid_to: date | None
     status: PriceItemStatus
+    #: the list's status and validity: a calculation uses an item only when the list is active and both the list
+    #: and the item are effective on the business date
+    list_status: PriceListStatus
+    list_valid_from: date
+    list_valid_to: date | None
+
+    def is_current(self, on: date) -> bool:
+        return (
+            self.list_status == PriceListStatus.ACTIVE
+            and self.status == PriceItemStatus.ACTIVE
+            and self.list_valid_from <= on
+            and (self.list_valid_to is None or self.list_valid_to >= on)
+            and self.valid_from <= on
+            and (self.valid_to is None or self.valid_to >= on)
+        )
+
+
+DisplayPriceStatus = Literal["found", "ambiguous", "not_found", "unavailable"]
+
+
+class DisplayPrice(BaseModel):
+    """The standard-tier price of one product in one currency (product list and overview columns).
+
+    Resolved like ``resolve_price`` without a party: active standard lists effective on ``on_date`` in that currency,
+    per the product's unit of sale; several matches without a unique explicit priority are ``ambiguous`` (never a
+    guess); a zero price is ``unavailable``. The price is only ever in its own list currency.
+    """
+
+    product_id: uuid.UUID
+    currency: CurrencyCode
+    status: DisplayPriceStatus
+    unit_price: Money | None = None
+    unit_code: str | None = None
+    price_list_code: str | None = None
+    item_id: uuid.UUID | None = None
+    product_moq: Quantity | None = None
+    candidate_count: int = 0

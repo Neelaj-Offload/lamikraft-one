@@ -1,20 +1,21 @@
-"""Catalogue normalisation: text identifiers, canonical millimetres and packaging aliases (pure functions)."""
+"""Catalogue normalisation: canonical millimetres and packaging aliases (pure functions; identifiers are in
+test_normalise_identifier.py)."""
 
 from __future__ import annotations
 
 from decimal import Decimal
 
 import pytest
-from hypothesis import given, settings
-from hypothesis import strategies as st
 
 from app.modules.catalogue.normalise import (
     ALIAS_CONFLICT,
+    BELOW_PRECISION,
     CBM_MISMATCH,
-    DECOR_FLOAT_ARTEFACT_NORMALISED,
     GROSS_BELOW_NET,
     INNER_EXCEEDS_CARTON,
-    normalise_identifier,
+    MIXED_UNITS,
+    TOO_LARGE,
+    UNIT_INFERRED,
     normalise_thickness,
     packaging_cross_checks,
     parse_dimension,
@@ -22,52 +23,6 @@ from app.modules.catalogue.normalise import (
     plain_decimal,
     resolve_packaging_aliases,
 )
-from app.seed.world import keys
-
-
-# ---- identifiers (legacy bug §10.1 #5: "120.0".rstrip(".0") corrupted the decor into "12") -----------------
-@pytest.mark.parametrize(
-    ("raw", "expected", "warned"),
-    [
-        (keys.DECORS.NATURAL_OAK, "0120", False),  # leading zeros are kept
-        ("0120", "0120", False),
-        ("120", "120", False),
-        ("120.0", "120", True),  # float artefact -> "120" with a warning, never "12"
-        ("120.000", "120", True),
-        ("12.50", "12.50", False),  # not an artefact; unchanged
-        ("  0457 ", "0457", False),  # only outer whitespace is trimmed
-        (120, "120", False),  # numeric spreadsheet cell
-        (Decimal("120.0"), "120", False),
-    ],
-)
-def test_decor_identifiers(raw: object, expected: str, warned: bool) -> None:
-    result = normalise_identifier(raw, float_artefact_rule=True)
-    assert result.value == expected
-    assert (DECOR_FLOAT_ARTEFACT_NORMALISED in result.warnings) is warned
-
-
-def test_leading_zero_identifier_is_distinct_from_the_number() -> None:
-    a = normalise_identifier("0120", float_artefact_rule=True).value
-    b = normalise_identifier("120", float_artefact_rule=True).value
-    c = normalise_identifier("120.0", float_artefact_rule=True).value
-    assert a == "0120" and b == c == "120" and a != b
-
-
-def test_artefact_rule_is_a_toggle_and_keeps_the_source() -> None:
-    off = normalise_identifier("120.0")
-    assert off.value == "120.0" and off.warnings == () and off.source is None
-    on = normalise_identifier("120.0", float_artefact_rule=True)
-    assert on.source == "120.0"
-    assert normalise_identifier("120", zero_pad_width=4).value == "0120"  # explicit admin choice only
-    assert normalise_identifier("   ").value is None and normalise_identifier(None).value is None
-    with pytest.raises(TypeError):
-        normalise_identifier(True)
-
-
-@settings(max_examples=200, derandomize=True)
-@given(st.from_regex(r"\A0*[1-9][0-9]{0,5}\Z", fullmatch=True))
-def test_text_identifiers_never_lose_digits(text: str) -> None:
-    assert normalise_identifier(text, float_artefact_rule=True).value == text
 
 
 # ---- thickness and dimensions -------------------------------------------------------------------------
@@ -121,6 +76,43 @@ def test_diameter_and_decimal_comma() -> None:
 def test_parse_length_keeps_the_source_text() -> None:
     assert parse_length("45 cm") == (Decimal("450.000"), "45 cm")
     assert parse_length(Decimal("18")) == (Decimal("18.000"), "18")
+
+
+@pytest.mark.parametrize("text", ["45 cm x 300", "45 cm x 30", "45 cm x 30 x 20 mm", "450 mm x 300 x 18"])
+def test_mixed_units_are_ambiguous_never_guessed(text: str) -> None:
+    parsed = parse_dimension(text)
+    assert parsed is not None and parsed.status == "ambiguous" and MIXED_UNITS in parsed.warnings
+    assert (parsed.length_mm, parsed.width_mm, parsed.height_mm) == (None, None, None)  # no guessed millimetres
+
+
+@pytest.mark.parametrize(
+    ("text", "lwh"),
+    [
+        ("30 x 20 cm", ("300.000", "200.000", None)),  # one trailing unit covers every part
+        ("45 cm x 300 mm", ("450.000", "300.000", None)),  # every part carries its own unit
+        ("450 x 300", ("450.000", "300.000", None)),  # no unit at all: the default, flagged as inferred
+    ],
+)
+def test_units_are_applied_only_when_stated_or_trailing(text: str, lwh: tuple[str | None, ...]) -> None:
+    parsed = parse_dimension(text)
+    assert parsed is not None and parsed.status == "parsed" and MIXED_UNITS not in parsed.warnings
+    got = tuple(None if v is None else format(v, "f") for v in (parsed.length_mm, parsed.width_mm, parsed.height_mm))
+    assert got == lwh
+    assert (UNIT_INFERRED in parsed.warnings) is (text == "450 x 300")
+
+
+def test_positive_values_below_the_column_scale_are_rejected_not_zeroed() -> None:
+    with pytest.raises(ValueError, match=BELOW_PRECISION):
+        parse_length("0.0004")  # would quantize to 0.000 mm and break the positive CHECK
+    with pytest.raises(ValueError, match=BELOW_PRECISION):
+        normalise_thickness("0.0004")
+    assert normalise_thickness("0.0005") == Decimal("0.001")  # HALF_UP to the column scale
+    small = parse_dimension("0.0001 x 300")
+    assert small is not None and small.status == "unparsed"
+    with pytest.raises(ValueError, match=TOO_LARGE):
+        parse_length("1000000000")  # beyond NUMERIC(12,3)
+    with pytest.raises(ValueError, match=TOO_LARGE):
+        normalise_thickness("100000")  # beyond NUMERIC(8,3)
 
 
 # ---- packaging aliases (legacy bug §10.1 #9) -----------------------------------------------------------

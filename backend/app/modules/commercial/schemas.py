@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.core.money import CurrencyCode, DecimalStr
+from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 
 QUOTE_COMMERCIAL = "quote_commercial"
+#: the DecimalStr wire bound (14 integer digits); larger inputs are a 422, never an arithmetic error
+MAX_QUANTITY = Decimal("99999999999999")
 
 
 class RuleSetStatus(StrEnum):
@@ -70,11 +73,12 @@ class RuleSetDetail(RuleSetRead):
 
 
 # ---- calculation result (mirrors engine.CalculationResult.as_dict) -------------------------------
+# Money is {"amount", "currency"} and quantities {"value", "uom"} (api-conventions §4); never JSON numbers.
 class RecommendationOut(BaseModel):
     status: Literal["AVAILABLE", "UNAVAILABLE", "NOT_EVALUATED", "NOT_APPLICABLE"]
-    quantity: int | None
-    basis_unit_price: DecimalStr | None
-    minimum_order_value: DecimalStr | None
+    quantity: Quantity | None
+    basis_unit_price: Money | None
+    minimum_order_value: Money | None
     carton_qty: int | None
     explanation: str
     label: str
@@ -83,15 +87,15 @@ class RecommendationOut(BaseModel):
 class LineResultOut(BaseModel):
     line_key: str
     line_type: Literal["catalog", "custom", "manual"]
-    quantity: DecimalStr
-    unit_price: DecimalStr | None
+    quantity: Quantity
+    unit_price: Money | None
     price_status: Literal["priced", "missing", "zero"]
-    gross: DecimalStr | None
-    discount: DecimalStr | None
-    net: DecimalStr | None
+    gross: Money | None
+    discount: Money | None
+    net: Money | None
     applicable: bool
     recommendation: RecommendationOut
-    product_moq: DecimalStr | None
+    product_moq: Quantity | None
     advisories: list[str]
 
 
@@ -99,19 +103,19 @@ class AdjustmentOut(BaseModel):
     kind: Literal["line_discount", "surcharge"]
     line_key: str | None
     label: str
-    amount: DecimalStr
+    amount: Money
 
 
 class MinimumOut(BaseModel):
     status: Literal["MEETS", "BELOW", "NOT_EVALUATED"]
-    minimum_order_value: DecimalStr | None
-    shortfall: DecimalStr | None
+    minimum_order_value: Money | None
+    shortfall: Money | None
     reason_code: str | None
 
 
 class SurchargeOut(BaseModel):
     applied: bool
-    amount: DecimalStr
+    amount: Money
     reason_code: str
     label: str
 
@@ -121,26 +125,27 @@ class CalculationResultOut(BaseModel):
     rule_set_code: str
     rule_set_id: uuid.UUID | None
     rule_set_version: int
-    currency: str
+    currency: CurrencyCode
     surcharge_requested: bool
     lines: list[LineResultOut]
     line_count: int
     priced_line_count: int
     totals_complete: bool
-    gross_subtotal: DecimalStr
-    discount_total: DecimalStr
-    net_subtotal: DecimalStr
-    applicable_subtotal: DecimalStr
+    gross_subtotal: Money
+    discount_total: Money
+    net_subtotal: Money
+    applicable_subtotal: Money
     adjustments: list[AdjustmentOut]
     minimum: MinimumOut
     surcharge: SurchargeOut
-    tax: DecimalStr | None
+    tax: Money | None
     tax_status: str
     tax_label: str
-    grand_total: DecimalStr | None
+    grand_total: Money | None
     reason_codes: list[str]
     warnings: list[str]
     input_hash: str
+    #: the canonical, hashed input record (decimal strings; the hash basis, persisted by the sales module)
     inputs: dict[str, Any]
 
 
@@ -150,7 +155,8 @@ class CalculateQuoteLineIn(BaseModel):
 
     line_key: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)] | None = None
     price_list_item_id: uuid.UUID = Field(description="item_id from a resolve_price result")
-    quantity: DecimalStr = Field(gt=0)
+    #: in the item's unit; integer-only units take whole numbers, others at most 4 decimal places (conventions §6)
+    quantity: DecimalStr = Field(gt=0, le=MAX_QUANTITY, decimal_places=6)
 
 
 class CalculateQuoteInput(BaseModel):

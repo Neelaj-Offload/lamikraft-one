@@ -26,7 +26,7 @@ from app.platform.events.models import DomainEvent
 from app.platform.uow import UnitOfWork
 from app.registry import get_registry
 from app.seed.world import keys
-from tests.integration.catalogue.world import World, build_personas
+from tests.integration.catalogue.world import World, build_personas, next_party_number
 
 pytestmark = pytest.mark.db
 
@@ -99,7 +99,7 @@ def test_create_allocates_the_next_number_and_emits_created(world: World) -> Non
         addresses=[AddressIn(kind="billing", line1="Industriestrasse 9", city="Basel", country_code="CH")],  # type: ignore[arg-type]
         tax_identifiers=[TaxIdentifierIn(scheme="vat", value="CHE 123 456 789")],  # type: ignore[arg-type]
     )
-    assert created.party_number == "P-00005"  # never reset; follows the four world customers
+    assert created.party_number == next_party_number()  # never reset; follows the four world customers
     assert created.owner.id == world.user_id(keys.USERS.MEERA) and created.version == 1
     assert created.tax_identifiers[0].value == "CHE123456789"
     assert created.tax_identifiers[0].verification_status == "unverified"
@@ -107,7 +107,7 @@ def test_create_allocates_the_next_number_and_emits_created(world: World) -> Non
         event = uow.session.scalars(
             select(DomainEvent).where(DomainEvent.event_type == "parties.party.created", DomainEvent.aggregate_id == created.id)
         ).one()
-    assert event.payload == {"party_id": str(created.id), "party_number": "P-00005",
+    assert event.payload == {"party_id": str(created.id), "party_number": next_party_number(),
                              "owner_user_id": str(world.user_id(keys.USERS.MEERA)), "origin": "user"}
     assert _numbers(world, keys.USERS.NEHA) == [keys.PARTIES.THORNBURY]  # Neha still sees only her own party
 

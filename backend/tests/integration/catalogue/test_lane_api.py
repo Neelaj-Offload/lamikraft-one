@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.core.http.deps import get_actor
 from app.platform.authz.context import ActorContext
 from app.seed.world import keys
-from tests.integration.catalogue.world import World, build_personas
+from tests.integration.catalogue.world import World, build_personas, next_party_number
 
 pytestmark = pytest.mark.db
 
@@ -41,7 +41,7 @@ EXPECTED_OPERATIONS = {
     ("get", "/pricing/price-lists/{price_list_id}/items"): "pricing_list_price_list_items",
     ("get", "/pricing/products/{product_id}/prices"): "pricing_list_product_prices",
     ("get", "/pricing/products/{product_id}/costs"): "pricing_list_product_costs",
-    ("get", "/pricing/resolve"): "pricing_resolve_price",
+    ("get", "/pricing/prices/resolve"): "pricing_resolve_price",
     ("get", "/commercial/rule-sets"): "commercial_list_rule_sets",
     ("get", "/commercial/rule-sets/{rule_set_id}"): "commercial_get_rule_set",
 }
@@ -98,6 +98,13 @@ def test_catalogue_routes(client: TestClient, world: World) -> None:
     body = r.json()
     assert body["total"] == 2 and len(body["items"]) == 1 and body["limit"] == 1
     assert isinstance(body["items"][0]["thickness_mm"], str)
+    eur = client.get(f"{API}/catalogue/products", params={"q": keys.PRODUCTS.OAK_TRAY}).json()["items"][0]
+    assert eur["prices"][0]["unit_price"] == {"amount": keys.PRICES.OAK_TRAY_EUR, "currency": "EUR"}
+    assert eur["prices"][0]["recommendation"]["quantity"] == {"value": keys.EXPECTED.SCENARIO_D_RECOMMENDED_QTY, "uom": "pcs"}
+    gbp = client.get(f"{API}/catalogue/products", params={"q": keys.PRODUCTS.OAK_TRAY, "price_currency": "GBP"}).json()
+    assert gbp["items"][0]["prices"][0]["unit_price"] == {"amount": keys.PRICES.OAK_TRAY_GBP, "currency": "GBP"}
+    hidden = client.get(f"{API}/catalogue/products", headers=_as(keys.USERS.KABIR)).json()["items"][0]
+    assert hidden["prices"] is None and hidden["redacted_fields"] == ["prices"]
     r = client.get(f"{API}/catalogue/products", params={"q": "tray", "status": ["active", "inactive"]})
     assert [p["product_key"] for p in r.json()["items"]] == [keys.PRODUCTS.OAK_TRAY]
     _problem(client.get(f"{API}/catalogue/products", params={"thickness": "thin"}), 422, "validation_failed")
@@ -105,7 +112,7 @@ def test_catalogue_routes(client: TestClient, world: World) -> None:
     assert oak["packaging"]["cbm"] == "0.047520" and oak["packaging"]["carton_qty"] == 24
     assert oak["specification"]["thickness_mm"] == "12" and oak["decor"]["decor_no"] == "0120"
     assert [s["key"] for s in oak["sections"]][:3] == ["overview", "specifications", "packaging"]
-    by_key = client.get(f"{API}/catalogue/products/lookup", params={"product_key": keys.PRODUCTS.OAK_TRAY})
+    by_key = client.get(f"{API}/catalogue/products/lookup", params={"key": keys.PRODUCTS.OAK_TRAY})
     assert by_key.json()["id"] == str(world.ref("OAK_TRAY"))
     for path in ("products/facets", "products/stats", "products/completeness", "categories"):
         assert client.get(f"{API}/catalogue/{path}").status_code == 200
@@ -131,7 +138,7 @@ def test_party_routes_scope_idempotency_and_versions(client: TestClient, world: 
     assert first.status_code == 201, first.text
     replay = client.post(f"{API}/parties/parties", json=body, headers={"Idempotency-Key": key})
     assert replay.status_code == 201 and replay.headers.get("Idempotent-Replayed") == "true"
-    assert replay.json()["id"] == first.json()["id"] and first.json()["party_number"] == "P-00005"
+    assert replay.json()["id"] == first.json()["id"] and first.json()["party_number"] == next_party_number()
     assert client.get(f"{API}/parties/parties").json()["total"] == 4  # created once
     _problem(client.post(f"{API}/parties/parties", json={**body, "legal_name": "Other AS"}, headers={"Idempotency-Key": key}),
              422, "idempotency_key_reused")
@@ -148,24 +155,31 @@ def test_party_routes_scope_idempotency_and_versions(client: TestClient, world: 
 
 
 def test_pricing_and_commercial_routes(client: TestClient, world: World) -> None:
-    r = client.get(f"{API}/pricing/resolve", params={
+    r = client.get(f"{API}/pricing/prices/resolve", params={
         "product_id": str(world.ref("OAK_TRAY")), "currency": "EUR", "uom": "pcs", "party_id": str(world.ref("NORDHAUS")),
     })
     assert r.status_code == 200
     resolution = r.json()
-    assert resolution["unit_price"] == keys.PRICES.OAK_TRAY_EUR and resolution["tier"] == "standard"
+    assert resolution["unit_price"] == {"amount": keys.PRICES.OAK_TRAY_EUR, "currency": "EUR"}
+    assert resolution["tier"] == "standard"
     assert resolution["price_list_code"] == keys.PRICE_LISTS.EXP_EUR
-    _problem(client.get(f"{API}/pricing/resolve", params={
+    _problem(client.get(f"{API}/pricing/prices/resolve", params={
         "product_id": str(world.ref("OAK_TRAY")), "currency": "GBP", "uom": "pcs", "party_id": str(world.ref("THORNBURY")),
     }), 404, "not_found")
     lists = client.get(f"{API}/pricing/price-lists").json()
     assert lists["total"] == 3
     items = client.get(f"{API}/pricing/price-lists/{world.ref('PL_EXP_EUR')}/items").json()
-    assert {i["unit_price"] for i in items["items"]} == {"18.0000", "9.5000", "24.0000"}
+    assert {(i["unit_price"]["amount"], i["unit_price"]["currency"]) for i in items["items"]} == {
+        (keys.PRICES.ASH_BOARD_EUR, "EUR"), (keys.PRICES.MAPLE_TRIVET_EUR, "EUR"), (keys.PRICES.OAK_TRAY_EUR, "EUR"),
+    }
     prices = client.get(f"{API}/pricing/products/{world.ref('OAK_TRAY')}/prices").json()
     assert prices["current_cost"] is None and prices["redacted_fields"] == ["current_cost"]
     _problem(client.get(f"{API}/pricing/products/{world.ref('OAK_TRAY')}/costs"), 403, "permission_denied")
-    assert client.get(f"{API}/pricing/products/{world.ref('OAK_TRAY')}/costs", headers=_as(keys.USERS.SAHIL)).json() == []
+    costs = client.get(f"{API}/pricing/products/{world.ref('OAK_TRAY')}/costs", headers=_as(keys.USERS.SAHIL)).json()
+    assert costs == {"items": [], "total": 0, "limit": 50, "offset": 0}
     _problem(client.get(f"{API}/commercial/rule-sets"), 403, "permission_denied")
     rule_sets = client.get(f"{API}/commercial/rule-sets", headers=_as(keys.USERS.SAHIL)).json()
-    assert rule_sets[0]["params"]["thresholds"]["EUR"] == {"minimum_order_value": "5000.00", "surcharge_amount": "400.00"}
+    assert rule_sets["total"] == 1
+    assert rule_sets["items"][0]["params"]["thresholds"]["EUR"] == {
+        "minimum_order_value": keys.COMMERCIAL.EUR_MINIMUM, "surcharge_amount": keys.COMMERCIAL.SURCHARGE,
+    }

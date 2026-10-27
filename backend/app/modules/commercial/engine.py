@@ -12,7 +12,9 @@
   ``0 < applicable < minimum``; exactly the minimum has none.
 - Tax is not calculated (``tax`` is null; totals exclude taxes). The grand total is null while any line is unpriced.
 
-Floats are rejected with ``TypeError`` everywhere; the result is a frozen object with a canonical input hash.
+Floats are rejected with ``TypeError`` everywhere; the result is a deeply frozen object with a canonical input hash.
+``as_dict()`` emits money as ``{"amount", "currency"}`` and quantities as ``{"value", "uom"}`` (api-conventions §4),
+the shape the sales module persists.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from fractions import Fraction
+from types import MappingProxyType
 from typing import Any, Literal
 
 from app.core.money import CURRENCY_EXPONENT
@@ -67,6 +70,34 @@ def _q(amount: Decimal, currency: str) -> Decimal:
 
 def _s(value: Decimal | None) -> str | None:
     return None if value is None else format(value, "f")
+
+
+def _money(value: Decimal | None, currency: str) -> dict[str, str] | None:
+    """Money on the wire: ``{"amount": "5760.00", "currency": "EUR"}`` (api-conventions §4)."""
+    return None if value is None else {"amount": format(value, "f"), "currency": currency}
+
+
+def _quantity(value: Decimal | None, uom: str) -> dict[str, str] | None:
+    """Quantity on the wire: ``{"value": "240", "uom": "pcs"}`` (api-conventions §4)."""
+    return None if value is None else {"value": format(value, "f"), "uom": uom}
+
+
+def _freeze(value: Any) -> Any:
+    """Deep read-only copy (mappings become ``MappingProxyType``, sequences tuples) so a result stays immutable."""
+    if isinstance(value, Mapping):
+        return MappingProxyType({k: _freeze(v) for k, v in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze(v) for v in value)
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    """A fresh plain ``dict``/``list`` copy of a frozen structure (callers may mutate it freely)."""
+    if isinstance(value, Mapping):
+        return {k: _thaw(v) for k, v in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw(v) for v in value]
+    return value
 
 
 # =====================================================================================================
@@ -113,6 +144,8 @@ class LineInput:
     line_type: Literal["catalog", "custom", "manual"]
     quantity: Decimal
     unit_price: Decimal | None
+    #: unit of ``quantity`` and of ``unit_price`` (a price is per this unit; units are never converted here)
+    uom: str
     discount_pct: Decimal | None = None
     discount_amount: Decimal | None = None
     carton_qty: int | None = None
@@ -123,6 +156,8 @@ class LineInput:
             raise TypeError("line_key must be a non-empty string")
         if self.line_type not in LINE_TYPES:
             raise ValueError(f"line_type must be one of {LINE_TYPES}")
+        if not isinstance(self.uom, str) or not self.uom.strip():
+            raise TypeError("uom must be a non-empty unit code")
         if _decimal(self.quantity, "quantity") < 0:  # type: ignore[operator]
             raise ValueError("quantity must not be negative")
         price = _decimal(self.unit_price, "unit_price", optional=True)
@@ -171,12 +206,25 @@ class CalculationInput:
 @dataclass(frozen=True)
 class Recommendation:
     status: Literal["AVAILABLE", "UNAVAILABLE", "NOT_EVALUATED", "NOT_APPLICABLE"]
-    quantity: int | None
+    #: whole units of ``uom`` (a Decimal, so it travels as a DecimalStr quantity and never as a JSON number)
+    quantity: Decimal | None
+    uom: str
     basis_unit_price: Decimal | None
     minimum_order_value: Decimal | None
     carton_qty: int | None
     explanation: str
     label: str = "Order-value recommendation (not a product MOQ)"
+
+    def as_dict(self, currency: str) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "quantity": _quantity(self.quantity, self.uom),
+            "basis_unit_price": _money(self.basis_unit_price, currency),
+            "minimum_order_value": _money(self.minimum_order_value, currency),
+            "carton_qty": self.carton_qty,
+            "explanation": self.explanation,
+            "label": self.label,
+        }
 
 
 @dataclass(frozen=True)
@@ -184,6 +232,7 @@ class LineResult:
     line_key: str
     line_type: str
     quantity: Decimal
+    uom: str
     unit_price: Decimal | None
     price_status: Literal["priced", "missing", "zero"]
     gross: Decimal | None
@@ -245,10 +294,16 @@ class CalculationResult:
     reason_codes: tuple[str, ...]
     warnings: tuple[str, ...]
     input_hash: str
-    inputs: dict[str, Any] = field(default_factory=dict)
+    #: the canonical, hashed input record (deeply read-only; ``as_dict`` returns a fresh copy)
+    inputs: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "inputs", _freeze(self.inputs))
 
     def as_dict(self) -> dict[str, Any]:
-        """JSON-safe dict (decimals as strings) for persistence, API output and tool results."""
+        """A fresh JSON-safe dict for persistence, API output and tool results: money as ``{amount, currency}``,
+        quantities as ``{value, uom}``, every decimal a string. Mutating it never changes this result."""
+        cur = self.currency
         return {
             "engine_version": self.engine_version,
             "rule_set_code": self.rule_set_code,
@@ -260,23 +315,15 @@ class CalculationResult:
                 {
                     "line_key": ln.line_key,
                     "line_type": ln.line_type,
-                    "quantity": _s(ln.quantity),
-                    "unit_price": _s(ln.unit_price),
+                    "quantity": _quantity(ln.quantity, ln.uom),
+                    "unit_price": _money(ln.unit_price, cur),
                     "price_status": ln.price_status,
-                    "gross": _s(ln.gross),
-                    "discount": _s(ln.discount),
-                    "net": _s(ln.net),
+                    "gross": _money(ln.gross, cur),
+                    "discount": _money(ln.discount, cur),
+                    "net": _money(ln.net, cur),
                     "applicable": ln.applicable,
-                    "recommendation": {
-                        "status": ln.recommendation.status,
-                        "quantity": ln.recommendation.quantity,
-                        "basis_unit_price": _s(ln.recommendation.basis_unit_price),
-                        "minimum_order_value": _s(ln.recommendation.minimum_order_value),
-                        "carton_qty": ln.recommendation.carton_qty,
-                        "explanation": ln.recommendation.explanation,
-                        "label": ln.recommendation.label,
-                    },
-                    "product_moq": _s(ln.product_moq),
+                    "recommendation": ln.recommendation.as_dict(cur),
+                    "product_moq": _quantity(ln.product_moq, ln.uom),
                     "advisories": list(ln.advisories),
                 }
                 for ln in self.lines
@@ -284,33 +331,34 @@ class CalculationResult:
             "line_count": self.line_count,
             "priced_line_count": self.priced_line_count,
             "totals_complete": self.totals_complete,
-            "gross_subtotal": _s(self.gross_subtotal),
-            "discount_total": _s(self.discount_total),
-            "net_subtotal": _s(self.net_subtotal),
-            "applicable_subtotal": _s(self.applicable_subtotal),
+            "gross_subtotal": _money(self.gross_subtotal, cur),
+            "discount_total": _money(self.discount_total, cur),
+            "net_subtotal": _money(self.net_subtotal, cur),
+            "applicable_subtotal": _money(self.applicable_subtotal, cur),
             "adjustments": [
-                {"kind": a.kind, "line_key": a.line_key, "label": a.label, "amount": _s(a.amount)} for a in self.adjustments
+                {"kind": a.kind, "line_key": a.line_key, "label": a.label, "amount": _money(a.amount, cur)}
+                for a in self.adjustments
             ],
             "minimum": {
                 "status": self.minimum.status,
-                "minimum_order_value": _s(self.minimum.minimum_order_value),
-                "shortfall": _s(self.minimum.shortfall),
+                "minimum_order_value": _money(self.minimum.minimum_order_value, cur),
+                "shortfall": _money(self.minimum.shortfall, cur),
                 "reason_code": self.minimum.reason_code,
             },
             "surcharge": {
                 "applied": self.surcharge.applied,
-                "amount": _s(self.surcharge.amount),
+                "amount": _money(self.surcharge.amount, cur),
                 "reason_code": self.surcharge.reason_code,
                 "label": self.surcharge.label,
             },
-            "tax": _s(self.tax),
+            "tax": _money(self.tax, cur),
             "tax_status": self.tax_status,
             "tax_label": self.tax_label,
-            "grand_total": _s(self.grand_total),
+            "grand_total": _money(self.grand_total, cur),
             "reason_codes": list(self.reason_codes),
             "warnings": list(self.warnings),
             "input_hash": self.input_hash,
-            "inputs": self.inputs,
+            "inputs": _thaw(self.inputs),
         }
 
 
@@ -329,27 +377,52 @@ def recommended_quantity(minimum: Decimal, unit_price: Decimal, carton_qty: int 
     return int(units)
 
 
-def _recommendation(line: LineInput, currency: str, threshold: Threshold | None) -> Recommendation:
-    if line.line_type not in RECOMMENDATION_LINE_TYPES:
-        return Recommendation("NOT_APPLICABLE", None, None, None, line.carton_qty,
+def _recommendation(
+    *, line_type: str, currency: str, unit_price: Decimal | None, carton_qty: int | None, uom: str,
+    threshold: Threshold | None,
+) -> Recommendation:
+    if line_type not in RECOMMENDATION_LINE_TYPES:
+        return Recommendation("NOT_APPLICABLE", None, uom, None, None, carton_qty,
                               "Manual lines have no order-value recommendation.")
     if threshold is None:
         return Recommendation(
-            "NOT_EVALUATED", None, None, None, line.carton_qty,
+            "NOT_EVALUATED", None, uom, None, None, carton_qty,
             f"No minimum order value is configured for {currency}; no foreign-currency equivalent is assumed.",
         )
-    price = line.unit_price
-    if price is None or price <= 0:
+    if unit_price is None or unit_price <= 0:
         return Recommendation(
-            "UNAVAILABLE", None, None, threshold.minimum_order_value, line.carton_qty,
+            "UNAVAILABLE", None, uom, None, threshold.minimum_order_value, carton_qty,
             f"No positive {currency} unit price; the recommendation cannot be calculated.",
         )
-    units = recommended_quantity(threshold.minimum_order_value, price, line.carton_qty)
-    carton_note = f", rounded up to a multiple of the carton quantity {line.carton_qty}" if line.carton_qty else ""
+    units = recommended_quantity(threshold.minimum_order_value, unit_price, carton_qty)
+    carton_note = f", rounded up to a multiple of the carton quantity {carton_qty}" if carton_qty else ""
     return Recommendation(
-        "AVAILABLE", units, price, threshold.minimum_order_value, line.carton_qty,
-        f"{units} units reach the {currency} {format(threshold.minimum_order_value, 'f')} minimum order value at "
-        f"{currency} {format(price, 'f')} per unit{carton_note}.",
+        "AVAILABLE", Decimal(units), uom, unit_price, threshold.minimum_order_value, carton_qty,
+        f"{units} {uom} reach the {currency} {format(threshold.minimum_order_value, 'f')} minimum order value at "
+        f"{currency} {format(unit_price, 'f')} per {uom}{carton_note}.",
+    )
+
+
+def order_value_recommendation(
+    rules: RuleSet, *, currency: str, unit_price: Decimal | None, carton_qty: int | None, uom: str
+) -> Recommendation:
+    """The order-value recommendation for one catalogue price outside a calculation (product list columns).
+
+    The same rule as a catalog line: NOT_EVALUATED without a threshold for ``currency``; UNAVAILABLE without a
+    positive price (no division); otherwise ``ceil(minimum / price)`` rounded up to a carton multiple.
+    """
+    if not isinstance(rules, RuleSet):
+        raise TypeError("rules must be a RuleSet")
+    if currency not in CURRENCY_EXPONENT:
+        raise ValueError(f"currency {currency!r} is not enabled")
+    _decimal(unit_price, "unit_price", optional=True)
+    if carton_qty is not None and (isinstance(carton_qty, bool) or not isinstance(carton_qty, int)):
+        raise TypeError("carton_qty must be an int")
+    if not isinstance(uom, str) or not uom.strip():
+        raise TypeError("uom must be a non-empty unit code")
+    return _recommendation(
+        line_type="catalog", currency=currency, unit_price=unit_price, carton_qty=carton_qty, uom=uom,
+        threshold=rules.thresholds.get(currency),
     )
 
 
@@ -372,6 +445,7 @@ def _canonical_inputs(inputs: CalculationInput, rules: RuleSet) -> dict[str, Any
                 "line_key": ln.line_key,
                 "line_type": ln.line_type,
                 "quantity": _s(ln.quantity),
+                "uom": ln.uom,
                 "unit_price": _s(ln.unit_price),
                 "discount_pct": _s(ln.discount_pct),
                 "discount_amount": _s(ln.discount_amount),
@@ -418,7 +492,10 @@ def calculate(inputs: CalculationInput, rules: RuleSet) -> CalculationResult:
                 adjustments.append(Adjustment("line_discount", line.line_key, "Line discount", -discount))
         else:
             advisories.append(PRICE_MISSING if status == "missing" else PRICE_ZERO)
-        recommendation = _recommendation(line, currency, threshold)
+        recommendation = _recommendation(
+            line_type=line.line_type, currency=currency, unit_price=line.unit_price, carton_qty=line.carton_qty,
+            uom=line.uom, threshold=threshold,
+        )
         if recommendation.status == "AVAILABLE" and recommendation.quantity is not None and line.quantity < recommendation.quantity:
             advisories.append(BELOW_ORDER_VALUE_RECOMMENDATION)
         if line.product_moq is not None and line.quantity < line.product_moq:
@@ -431,6 +508,7 @@ def calculate(inputs: CalculationInput, rules: RuleSet) -> CalculationResult:
                 line_key=line.line_key,
                 line_type=line.line_type,
                 quantity=line.quantity,
+                uom=line.uom,
                 unit_price=price,
                 price_status=status,
                 gross=gross,
