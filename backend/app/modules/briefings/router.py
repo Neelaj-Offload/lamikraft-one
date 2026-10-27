@@ -26,6 +26,7 @@ from app.modules.briefings.schemas import (
     PinUpdate,
     PinView,
 )
+from app.modules.tasks.txn import retry_transient
 from app.platform.authz.context import ActorContext
 from app.platform.idempotency.service import run_idempotent
 from app.platform.uow import UnitOfWork
@@ -35,10 +36,16 @@ READ = requires("briefings.briefing.read")
 
 
 def _command(actor: ActorContext, response: Response, operation: str, body: Any, fn: Callable[[UnitOfWork], BaseModel]) -> dict[str, Any]:
-    with UnitOfWork(actor) as uow:
-        result, replayed = run_idempotent(
-            uow, key=actor.idempotency_key, operation=operation, body=body, fn=lambda: fn(uow).model_dump(mode="json")
-        )
+    """One unit of work (idempotent with an ``Idempotency-Key``); item actions lock issue and task rows,
+    so a deadlock or serialisation failure re-runs the command (conventions 8)."""
+
+    def attempt() -> tuple[dict[str, Any], bool]:
+        with UnitOfWork(actor) as uow:
+            return run_idempotent(  # type: ignore[no-any-return]
+                uow, key=actor.idempotency_key, operation=operation, body=body, fn=lambda: fn(uow).model_dump(mode="json")
+            )
+
+    result, replayed = retry_transient(attempt)
     if replayed:
         response.headers["Idempotent-Replayed"] = "true"
     return result
@@ -70,10 +77,16 @@ def run_item_action(actor: Actor, issue_id: uuid.UUID, body: ItemActionRequest, 
 
 
 @router.get("/delta", openapi_extra=READ)
-def get_delta(actor: Actor, since: Annotated[str, Query(max_length=40)] = "yesterday") -> DeltaView:
-    """Source-linked "what changed": ``since`` is last_ack, yesterday, last_workday or an ISO instant."""
+def get_delta(
+    actor: Actor,
+    since: Annotated[str, Query(max_length=40)] = "yesterday",
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    cursor: Annotated[str | None, Query(max_length=200)] = None,
+) -> DeltaView:
+    """Source-linked "what changed": ``since`` is last_ack, yesterday, last_workday or an ISO instant
+    (clamped to the seven-day change window); keyset pages of change rows."""
     with UnitOfWork(actor) as uow:
-        return service.get_delta(uow, since=since)
+        return service.get_delta(uow, since=since, limit=limit, cursor=cursor)
 
 
 @router.post("/{briefing_id}/pins", status_code=201, openapi_extra=READ)

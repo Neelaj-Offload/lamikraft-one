@@ -108,7 +108,8 @@ class OverviewView(BaseModel):
     sentence: str
     text_source: Literal["template"] = "template"
     template_code: str
-    facts: dict[str, int]
+    #: counts, plus booleans such as ``rest_moving`` (fixtures 9.2)
+    facts: dict[str, bool | int]
 
 
 class AckView(BaseModel):
@@ -130,6 +131,8 @@ class PinView(BaseModel):
     ordinal_map: list[dict[str, Any]]
     expires_at: datetime
     pending_updates: int = 0
+    #: row version for ``PinUpdate.expected_version``
+    version: int = 1
 
 
 class LastSuccessfulView(BaseModel):
@@ -237,6 +240,9 @@ class DeltaView(BaseModel):
     since_instant: datetime
     until_instant: datetime
     groups: list[DeltaGroup]
+    limit: int = 100
+    #: keyset cursor for the next page of change rows (None on the last page)
+    next_cursor: str | None = None
 
 
 class PinCreate(BaseModel):
@@ -249,6 +255,9 @@ class PinCreate(BaseModel):
 class PinUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    #: the pin version the client acted on (409 on mismatch). Optional: ordinal resolution keeps the pin
+    #: alive and so bumps its version between a voice client's reads.
+    expected_version: int | None = Field(default=None, ge=1)
     state: Literal["active", "paused", "stopped", "completed"] | None = None
     position: int | None = Field(default=None, ge=0)
 

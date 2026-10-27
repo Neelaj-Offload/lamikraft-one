@@ -128,6 +128,11 @@ class Briefing(IdMixin, TenantMixin, TimestampMixin, Base):
     generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
     last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: generation failures since the last successful build (repeated failures open an admin obligation)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    #: the permission fingerprint the latest version's visible content was last verified against. A
+    #: permission change that leaves the visible item set unchanged updates this, not the version.
+    permission_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     __table_args__ = (
         Index("uq_briefings_briefing_user_date", "company_id", "user_id", "work_date", unique=True),
@@ -136,6 +141,7 @@ class Briefing(IdMixin, TenantMixin, TimestampMixin, Base):
         CheckConstraint(f"trigger IN ({_values(BriefingTrigger)})", name="trigger_values"),
         CheckConstraint(f"day_type IN ({_values(DayType)})", name="day_type_values"),
         CheckConstraint("current_version >= 0 AND served_version >= 0", name="versions_non_negative"),
+        CheckConstraint("consecutive_failures >= 0", name="failures_non_negative"),
     )
 
 

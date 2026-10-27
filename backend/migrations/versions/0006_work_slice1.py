@@ -65,6 +65,8 @@ def upgrade() -> None:
     sa.Column('generated_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_error_code', sa.String(length=60), nullable=True),
     sa.Column('last_error_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('consecutive_failures', sa.Integer(), server_default='0', nullable=False),
+    sa.Column('permission_fingerprint', sa.String(length=64), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('company_id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
@@ -500,6 +502,7 @@ def upgrade() -> None:
     helpers.enum_check('briefings_briefing', 'status', ['generating', 'ready', 'failed'], name=op.f('ck_briefings_briefing_status_values'))
     helpers.enum_check('briefings_briefing', 'trigger', ['first_open', 'precompute', 'whatsapp', 'agent', 'seed'], name=op.f('ck_briefings_briefing_trigger_values'))
     op.create_check_constraint(op.f('ck_briefings_briefing_versions_non_negative'), 'briefings_briefing', 'current_version >= 0 AND served_version >= 0')
+    op.create_check_constraint(op.f('ck_briefings_briefing_failures_non_negative'), 'briefings_briefing', 'consecutive_failures >= 0')
     op.create_check_constraint(op.f('ck_briefings_recommendation_inactive_has_time'), 'briefings_recommendation', "status = 'active' OR invalidated_at IS NOT NULL")
     helpers.enum_check('briefings_recommendation', 'status', ['active', 'stale', 'accepted', 'dismissed', 'superseded'], name=op.f('ck_briefings_recommendation_status_values'))
     op.create_check_constraint(op.f('ck_tasks_onboarding_template_steps_is_array'), 'tasks_onboarding_template', "jsonb_typeof(steps) = 'array'")

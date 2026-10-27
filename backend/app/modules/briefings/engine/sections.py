@@ -71,6 +71,8 @@ def place(c: Candidate, band: str, ctx: Context) -> str | None:
         return "coming_next"
     if c.changed_since_last_visit:
         return "changes_since_last_visit"
+    if c.actionable and c.due_at is None:
+        return "plan_for_today"  # an open obligation without a deadline is never absent from Today
     return None
 
 

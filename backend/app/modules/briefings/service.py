@@ -8,6 +8,9 @@ the visible item set or an item fingerprint changes; time passing alone never cr
 
 from __future__ import annotations
 
+import base64
+import dataclasses
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -107,12 +110,20 @@ def _lock(uow: UnitOfWork, user_id: uuid.UUID) -> None:
     uow.advisory_xact_lock(LOCK_NAMESPACE, f"{uow.actor.company_id}:{user_id}")
 
 
-def _briefing(uow: UnitOfWork, user_id: uuid.UUID, work_date: date) -> Briefing | None:
-    return uow.session.scalars(
-        select(Briefing).where(
-            Briefing.company_id == uow.actor.company_id, Briefing.user_id == user_id, Briefing.work_date == work_date
-        )
-    ).first()
+def _briefing(uow: UnitOfWork, user_id: uuid.UUID, work_date: date, *, fresh: bool = False) -> Briefing | None:
+    """The member's briefing row. ``fresh`` re-reads the committed state into an already-loaded object
+    (needed after taking the per-user lock: another worker may have written a version meanwhile)."""
+    stmt = select(Briefing).where(
+        Briefing.company_id == uow.actor.company_id, Briefing.user_id == user_id, Briefing.work_date == work_date
+    )
+    if fresh:
+        stmt = stmt.execution_options(populate_existing=True)
+    return uow.session.scalars(stmt).first()
+
+
+def _verified_fp(briefing: Briefing, latest: BriefingVersion | None) -> str | None:
+    """The permission fingerprint the latest version's content is known to be right for."""
+    return briefing.permission_fingerprint or (latest.permission_fingerprint if latest is not None else None)
 
 
 def _version(uow: UnitOfWork, briefing_id: uuid.UUID, version: int) -> BriefingVersion | None:
@@ -174,6 +185,7 @@ class Build:
     perm_fp: str
     hash: str
     collected: Collected
+    partial: list[dict[str, Any]] = dataclasses.field(default_factory=list)
 
 
 def build(uow: UnitOfWork, user_id: uuid.UUID, work_date: date, cal: CalendarView) -> Build:
@@ -181,20 +193,32 @@ def build(uow: UnitOfWork, user_id: uuid.UUID, work_date: date, cal: CalendarVie
     ctx = build_context(cal, work_date)
     cutoff, new_member = change_cutoff(uow, user_id, ctx)
     collected = Collector(uow, user_id, ctx, cal.time_zone).collect(cutoff)
+    partial = tasks.partial_families(uow)
+    if partial:  # a dead-lettered rule delivery: items of that family may be incomplete (PARTIAL_RULES)
+        families = {p["family"] for p in partial}
+        collected.candidates = [
+            dataclasses.replace(c, uncertainty_flags=tuple(dict.fromkeys((*c.uncertainty_flags, "PARTIAL_RULES"))))
+            if c.family in families else c
+            for c in collected.candidates
+        ]
     assembly = assemble(collected.candidates, ctx)
     facts = overview_engine.count_facts(assembly, ctx)
     name = responsibility.display_names(uow, [user_id]).get(user_id, "")
     template_code, sentence = overview_engine.compose(facts, first_name=responsibility.first_name(name), new_member=new_member)
+    stored: dict[str, Any] = {k: v for k, v in facts.items() if v}
+    if template_code == "decisions":  # fixtures 9.2: the second clause ("The rest is moving.") is a fact too
+        stored["rest_moving"] = facts.get("overdue", 0) == 0
     overview = {
         "sentence": sentence,
         "template_code": template_code,
         "template_version": overview_engine.TEMPLATE_VERSION,
-        "facts": {k: v for k, v in facts.items() if v},
+        "facts": stored,
     }
     items = list(assembly.items)
     return Build(
         items=items, sections=list(assembly.sections), initial=list(assembly.initial_issue_ids), overview=overview,
         cutoff=cutoff, perm_fp=permission_fingerprint(uow.actor), hash=item_set_hash(items, overview), collected=collected,
+        partial=partial,
     )
 
 
@@ -248,9 +272,16 @@ def write_version(
     cause: str,
     cause_event_ids: list[str] | None = None,
 ) -> BriefingVersion | None:
-    """Persist ``result`` as version n+1 unless nothing visible changed (no manufactured versions)."""
+    """Persist ``result`` as version n+1 unless nothing visible changed (no manufactured versions).
+
+    The permission fingerprint alone never forces a version: when a permission change leaves the visible
+    item set identical, the briefing row records that the latest version was re-verified for it."""
     previous = _latest_version(uow, briefing)
-    if previous is not None and previous.item_set_hash == result.hash and previous.permission_fingerprint == result.perm_fp:
+    if previous is not None and previous.item_set_hash == result.hash:
+        briefing.permission_fingerprint = result.perm_fp
+        briefing.consecutive_failures = 0
+        briefing.last_error_code = None
+        uow.flush()
         return None
     previous_fps: dict[uuid.UUID, str] = {}
     if previous is not None:
@@ -262,7 +293,8 @@ def write_version(
         cause_event_ids=list(cause_event_ids or []), generated_at=now, data_as_of=now, cutoff_at=result.cutoff,
         permission_fingerprint=result.perm_fp, priority_rule_version=PRIORITY_RULE_VERSION, overview=result.overview,
         sections=[{"code": code, "issue_ids": [str(i) for i in ids]} for code, ids in result.sections],
-        initial_issue_ids=[str(i) for i in result.initial], item_set_hash=result.hash, partial_families=[],
+        initial_issue_ids=[str(i) for i in result.initial], item_set_hash=result.hash,
+        partial_families=[dict(p) for p in result.partial],
     )
     uow.add(version)
     uow.flush()
@@ -296,7 +328,11 @@ def write_version(
     briefing.status = BriefingStatus.READY.value
     briefing.generated_at = now
     briefing.last_error_code = None
+    briefing.consecutive_failures = 0
+    briefing.permission_fingerprint = result.perm_fp
     uow.flush()
+    if cause == VersionCause.PERMISSION_CHANGE.value:
+        _end_live_pins(uow, briefing)  # a pinned list was read under the old permissions
     if number == 1:
         uow.emit(
             "briefings.briefing.generated", aggregate_id=briefing.id, aggregate_version=number,
@@ -352,6 +388,7 @@ def _fail(uow: UnitOfWork, briefing: Briefing, exc: BaseException) -> str:
         briefing.status = BriefingStatus.FAILED.value
     briefing.last_error_code = code
     briefing.last_error_at = uow.now()
+    briefing.consecutive_failures = (briefing.consecutive_failures or 0) + 1
     uow.flush()
     uow.emit("briefings.briefing.generation_failed", aggregate_id=briefing.id,
              payload={"briefing_id": str(briefing.id), "error_code": code})
@@ -367,10 +404,10 @@ def ensure_briefing(
     briefing = _briefing(uow, user_id, work_date)
     if briefing is not None and briefing.status == BriefingStatus.READY.value:
         latest = _latest_version(uow, briefing)
-        if latest is not None and latest.permission_fingerprint == current_fp:
+        if latest is not None and _verified_fp(briefing, latest) == current_fp:
             return briefing, None
     _lock(uow, user_id)
-    briefing = _briefing(uow, user_id, work_date)
+    briefing = _briefing(uow, user_id, work_date, fresh=True)
     if briefing is None:
         briefing = _new_briefing(uow, user_id, work_date, cal, trigger)
         _, error = _generate_guarded(uow, briefing, cal, cause=VersionCause.INITIAL.value)
@@ -379,7 +416,7 @@ def ensure_briefing(
     if latest is None:
         _, error = _generate_guarded(uow, briefing, cal, cause=VersionCause.INITIAL.value)
         return briefing, error
-    if latest.permission_fingerprint != current_fp:
+    if _verified_fp(briefing, latest) != current_fp:
         _, error = _generate_guarded(uow, briefing, cal, cause=VersionCause.PERMISSION_CHANGE.value)
         return briefing, error
     return briefing, None
@@ -433,7 +470,7 @@ def _allowed_actions(uow: UnitOfWork, row: BriefingItem, ov: _Overlay) -> list[A
             actions.append(ActionView(action="reject", via="approvals", requires_reason=True, proposal_id=pid,
                                       proposal_version=row.proposal_ref.get("version")))
     responsible = [t for t in open_tasks if user_id in (t.owner_user_id, t.assignee_user_id)]
-    if responsible and row.kind != "approval_decision":
+    if row.kind != "approval_decision" and any(tasks.can_verify(t) for t in responsible):
         actions.append(ActionView(action="mark_handled"))
     if open_tasks and any(tasks.can_dismiss(uow, t) for t in open_tasks):
         actions.append(ActionView(action="dismiss", requires_reason=True))
@@ -515,7 +552,7 @@ def _overview_view(uow: UnitOfWork, version: BriefingVersion, zone: str, user_id
         greeting=overview_engine.greeting(uow.now(), zone, responsibility.first_name(name)),
         sentence=data.get("sentence", ""),
         template_code=data.get("template_code", ""),
-        facts={k: int(v) for k, v in (data.get("facts") or {}).items()},
+        facts={k: v if isinstance(v, bool) else int(v) for k, v in (data.get("facts") or {}).items()},
     )
 
 
@@ -542,15 +579,52 @@ def _pin_view(pin: Pin, current_version: int) -> PinView:
     return PinView(
         id=pin.id, briefing_id=pin.briefing_id, kind=pin.kind, pinned_version=pin.pinned_version, state=pin.state,
         position=pin.position, ordinal_map=list(pin.ordinal_map), expires_at=pin.expires_at,
-        pending_updates=max(0, current_version - pin.pinned_version),
+        pending_updates=max(0, current_version - pin.pinned_version), version=pin.version,
     )
+
+
+def version_trusted(uow: UnitOfWork, briefing: Briefing, version: BriefingVersion) -> bool:
+    """Whether ``version`` was built (or re-verified) under the caller's current permissions. Anything
+    else is an older snapshot whose rows must be re-checked before they are shown (design 6/12)."""
+    current = permission_fingerprint(uow.actor)
+    if version.permission_fingerprint == current:
+        return True
+    return version.version == briefing.current_version and briefing.permission_fingerprint == current
+
+
+def row_visible(uow: UnitOfWork, row: BriefingItem, cache: SourceCache) -> bool:
+    """Every source and member of a stored row is still visible to the caller (authoritative check)."""
+    refs = [(r.get("type"), r.get("id")) for r in (row.source_refs or [])]
+    refs += [(m.get("ref_type"), m.get("ref_id")) for m in (row.members or [])]
+    for ref_type, ref_id in refs:
+        if not ref_type or not ref_id:
+            continue
+        if not can_view_source(uow, str(ref_type), uuid.UUID(str(ref_id)), cache=cache):
+            return False
+    return True
+
+
+def _visible_rows(uow: UnitOfWork, briefing: Briefing, version: BriefingVersion, rows: list[BriefingItem]) -> tuple[list[BriefingItem], bool]:
+    """(rows the caller may still see, trusted). An untrusted version keeps only rows whose every source
+    and member passes ``can_view_source`` now; its overview (counts over the old item set) is withheld."""
+    if version_trusted(uow, briefing, version):
+        return rows, True
+    cache = SourceCache()
+    return [r for r in rows if row_visible(uow, r, cache)], False
+
+
+def _redact(view: ItemView) -> ItemView:
+    """Blocker titles in an older snapshot were checked under old permissions: name none of them."""
+    if view.blocked_by:
+        view.blocked_by = [{**b, "label": "Another step"} for b in view.blocked_by]
+    return view
 
 
 def render_version(
     uow: UnitOfWork, briefing: Briefing, version: BriefingVersion, cal: CalendarView, *, pin: Pin | None = None
 ) -> BriefingView:
     user_id = briefing.user_id
-    rows = _items(uow, version.id)
+    rows, trusted = _visible_rows(uow, briefing, version, _items(uow, version.id))
     ov = _overlay(uow, user_id, rows)
     ctx = build_context(cal, briefing.work_date)
     visible: list[ItemView] = []
@@ -561,6 +635,8 @@ def render_version(
                 and row.kind == "change"):
             continue  # acknowledged and unchanged: never re-alerted
         view = _item_view(uow, row, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=ctx)
+        if not trusted:
+            view = _redact(view)
         if row.issue_id in ov.snoozes and pin is None:
             snoozed.append(view)
             continue
@@ -577,7 +653,7 @@ def render_version(
         briefing_id=briefing.id, work_date=briefing.work_date, day_type=briefing.day_type, time_zone=briefing.time_zone,
         status="ready", fallback=False, version=shown, latest_version=latest, generated_at=version.generated_at,
         data_as_of=version.data_as_of, trigger=briefing.trigger, first_opened_at=briefing.first_opened_at,
-        overview=_overview_view(uow, version, briefing.time_zone, user_id), sections=sections, items=visible,
+        overview=_overview_view(uow, version, briefing.time_zone, user_id) if trusted else None, sections=sections, items=visible,
         initial_view=[v.issue_id for v in visible[:INITIAL_ITEM_CAP]], snoozed=snoozed,
         updates_available=max(0, latest - shown),
         up_to_date=ack is not None and ack.briefing_id == briefing.id and ack.version >= latest,
@@ -611,19 +687,16 @@ def _last_successful(uow: UnitOfWork, user_id: uuid.UUID, cal: CalendarView) -> 
     if row is None:
         return None
     briefing, version = row
-    rows = _items(uow, version.id)
-    cache = SourceCache()
-    kept = [
-        r for r in rows
-        if all(can_view_source(uow, ref["type"], uuid.UUID(ref["id"]), cache=cache) for ref in (r.source_refs or []))
-    ]
+    kept, same_permissions = _visible_rows(uow, briefing, version, _items(uow, version.id))
     ov = _overlay(uow, user_id, kept)
-    same_permissions = version.permission_fingerprint == permission_fingerprint(uow.actor)
     return LastSuccessfulView(
         briefing_id=briefing.id, work_date=briefing.work_date, version=version.version, generated_at=version.generated_at,
         data_as_of=version.data_as_of,
         overview=_overview_view(uow, version, briefing.time_zone, user_id) if same_permissions else None,
-        items=[_item_view(uow, r, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=None) for r in kept],
+        items=[
+            v if same_permissions else _redact(v)
+            for v in (_item_view(uow, r, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=None) for r in kept)
+        ],
     )
 
 
@@ -685,12 +758,15 @@ def refresh_member(uow: UnitOfWork, user_id: uuid.UUID, *, cause: str, cause_eve
     member_uow = view_as(uow, actor)
     cal = responsibility.user_calendar(member_uow, user_id)
     work_date = cal.work_date(member_uow.now())
-    briefing = _briefing(member_uow, user_id, work_date)
-    if briefing is None or briefing.status != BriefingStatus.READY.value:
+    if _briefing(member_uow, user_id, work_date) is None:
         return None  # their first open computes everything fresh
     _lock(member_uow, user_id)
+    # re-read under the lock: a concurrent refresh may have written a version since the first read
+    briefing = _briefing(member_uow, user_id, work_date, fresh=True)
+    if briefing is None or briefing.status != BriefingStatus.READY.value:
+        return None
     latest = _latest_version(member_uow, briefing)
-    if latest is not None and latest.permission_fingerprint != permission_fingerprint(actor):
+    if latest is not None and _verified_fp(briefing, latest) != permission_fingerprint(actor):
         cause = VersionCause.PERMISSION_CHANGE.value
     version, _error = _generate_guarded(member_uow, briefing, cal, cause=cause, cause_event_ids=cause_event_ids)
     return version
@@ -753,15 +829,18 @@ def _current_item(uow: UnitOfWork, user_id: uuid.UUID, issue_id: uuid.UUID) -> t
     briefing = _briefing(uow, user_id, cal.work_date(uow.now()))
     if briefing is None:
         raise NotFound(code="not_found", resource_type="briefings.item")
-    row = uow.session.scalars(
-        select(BriefingItem)
+    found = uow.session.execute(
+        select(BriefingItem, BriefingVersion)
         .join(BriefingVersion, BriefingVersion.id == BriefingItem.version_id)
         .where(BriefingItem.briefing_id == briefing.id, BriefingItem.issue_id == issue_id)
         .order_by(BriefingVersion.version.desc())
         .limit(1)
     ).first()
-    if row is None:
+    if found is None:
         raise NotFound(code="not_found", resource_type="briefings.item")
+    row, version = found
+    if not version_trusted(uow, briefing, version) and not row_visible(uow, row, SourceCache()):
+        raise NotFound(code="not_found", resource_type="briefings.item")  # no longer visible: same as never seen
     return briefing, row
 
 
@@ -868,15 +947,50 @@ def _since_instant(uow: UnitOfWork, user_id: uuid.UUID, since: str, cal: Calenda
     return parsed
 
 
-def get_delta(uow: UnitOfWork, *, since: str = "yesterday") -> DeltaView:
-    """Source-linked changes since an instant (permission-filtered; grouped by issue)."""
+DELTA_MAX_LIMIT = 200
+
+
+def _delta_cursor(fact_at: datetime, row_id: uuid.UUID) -> str:
+    raw = json.dumps([fact_at.isoformat(), str(row_id)])
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def _parse_delta_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
+    try:
+        at, rid = json.loads(base64.urlsafe_b64decode((cursor + "=" * (-len(cursor) % 4)).encode()).decode())
+        return datetime.fromisoformat(at), uuid.UUID(rid)
+    except Exception as exc:  # noqa: BLE001 - malformed client input
+        raise ValidationFailed("invalid cursor", code="invalid_cursor") from exc
+
+
+def get_delta(uow: UnitOfWork, *, since: str = "yesterday", limit: int = 100, cursor: str | None = None) -> DeltaView:
+    """Source-linked changes since an instant (permission-filtered; grouped by issue).
+
+    The instant is clamped to the change window (seven days before today's work window), and the
+    change-log rows are served as keyset pages over (fact_at, id) (api-conventions 9)."""
     user_id = _user(uow)
+    limit = max(1, min(limit, DELTA_MAX_LIMIT))
     cal = responsibility.user_calendar(uow, user_id)
     now = uow.now()
-    instant = _since_instant(uow, user_id, since, cal)
+    floor = cal.window(cal.work_date(now))[0] - CHANGE_WINDOW
+    instant = max(_since_instant(uow, user_id, since, cal), floor)
     rows = tasks.changes_for(uow, user_id, instant, until=now)
+    if cursor:
+        after = _parse_delta_cursor(cursor)
+        rows = [r for r in rows if (r.fact_at, str(r.id)) > (after[0], str(after[1]))]
+    rows.sort(key=lambda r: (r.fact_at, str(r.id)))
     cache = SourceCache()
-    rows = [r for r in rows if can_view_source(uow, r.ref_type, r.ref_id, cache=cache)]
+    page: list[Any] = []
+    more = False
+    for r in rows:
+        if not can_view_source(uow, r.ref_type, r.ref_id, cache=cache):
+            continue
+        if len(page) == limit:
+            more = True
+            break
+        page.append(r)
+    rows = page
+    next_cursor = _delta_cursor(rows[-1].fact_at, rows[-1].id) if more and rows else None
     issues = tasks.issues_by_id(uow, {r.issue_id for r in rows})
     names = responsibility.display_names(uow, {r.actor_user_id for r in rows})
     groups: dict[uuid.UUID, DeltaGroup] = {}
@@ -892,7 +1006,27 @@ def get_delta(uow: UnitOfWork, *, since: str = "yesterday") -> DeltaView:
             fact_at=r.fact_at, change_code=r.change_code, actor=_person(r.actor_user_id, names), before=r.before, after=r.after,
             source=source, event_type=r.event_type,
         ))
-    return DeltaView(since=since, since_instant=instant, until_instant=now, groups=list(groups.values()))
+    return DeltaView(since=since, since_instant=instant, until_instant=now, groups=list(groups.values()),
+                     limit=limit, next_cursor=next_cursor)
+
+
+# ---- generation failures (read by the tasks rules for the admin obligation) -----------------------------------
+@dataclass(frozen=True)
+class FailureInfo:
+    user_id: uuid.UUID
+    work_date: date
+    failures: int
+    error_code: str | None
+
+
+def failure_info(uow: UnitOfWork, briefing_id: uuid.UUID) -> FailureInfo | None:
+    """Consecutive generation failures of one briefing (0 once it generates again)."""
+    briefing = uow.session.scalars(
+        select(Briefing).where(Briefing.id == briefing_id, Briefing.company_id == uow.actor.company_id)
+    ).first()
+    if briefing is None:
+        return None
+    return FailureInfo(briefing.user_id, briefing.work_date, int(briefing.consecutive_failures or 0), briefing.last_error_code)
 
 
 # ---- pins --------------------------------------------------------------------------------------------------------
@@ -933,6 +1067,15 @@ def _end_pin(uow: UnitOfWork, pin: Pin, state: str) -> None:
              payload={"pin_id": str(pin.id), "briefing_id": str(pin.briefing_id), "kind": pin.kind})
 
 
+def _end_live_pins(uow: UnitOfWork, briefing: Briefing) -> None:
+    for pin in uow.session.scalars(
+        select(Pin).where(Pin.company_id == briefing.company_id, Pin.briefing_id == briefing.id,
+                          Pin.state.in_((PinState.ACTIVE.value, PinState.PAUSED.value)))
+        .order_by(Pin.id).with_for_update()
+    ):
+        _end_pin(uow, pin, PinState.STOPPED.value)
+
+
 def _own_pin(uow: UnitOfWork, pin_id: uuid.UUID) -> Pin:
     user_id = _user(uow)
     pin = uow.session.scalars(
@@ -949,6 +1092,7 @@ def _own_pin(uow: UnitOfWork, pin_id: uuid.UUID) -> Pin:
 
 def update_pin(uow: UnitOfWork, pin_id: uuid.UUID, body: PinUpdate) -> PinView:
     pin = _own_pin(uow, pin_id)
+    uow.expect_version(pin, body.expected_version)
     briefing = uow.session.get(Briefing, pin.briefing_id)
     assert briefing is not None
     if body.position is not None:
@@ -976,7 +1120,7 @@ def resolve_pin(uow: UnitOfWork, pin_id: uuid.UUID, ordinal: int) -> PinResoluti
     assert briefing is not None
     version = _version(uow, briefing.id, pin.pinned_version)
     assert version is not None
-    rows = [r for r in _items(uow, version.id) if r.issue_id == issue_id]
+    rows, _trusted = _visible_rows(uow, briefing, version, [r for r in _items(uow, version.id) if r.issue_id == issue_id])
     item = None
     resolved = tasks.issue_states(uow, [issue_id]).get(issue_id) == "resolved"
     if rows:

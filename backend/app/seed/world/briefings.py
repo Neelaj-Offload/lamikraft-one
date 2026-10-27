@@ -1,4 +1,4 @@
-"""Fixture seed for briefings (fixtures.md §3, order 80, after the tasks seed): Meera's last
+"""Fixture seed for briefings (fixtures.md §3, order 81, after the tasks seed (80)): Meera's last
 acknowledgement on Sat D-2 18:05 and Neha's Monday briefing v1 generated at 08:49 and acknowledged at
 08:50. Prior briefings are produced by the real engine at the seeded clock times (no back-filled rows).
 """
@@ -43,4 +43,4 @@ def seed_briefings(ctx: SeedContext) -> None:
         drain()
 
 
-SEEDS = [SeedDef(name="briefings", order=80, run=seed_briefings, slice_no=1)]
+SEEDS = [SeedDef(name="briefings", order=81, run=seed_briefings, slice_no=1)]  # after tasks (80)

@@ -22,7 +22,12 @@ from app.modules.tasks import issue_keys
 from app.modules.tasks import service as tasks
 from app.modules.tasks.responsibility import display_names, first_name
 from app.modules.tasks.schemas import ChangeInfo, IssueInfo, ReminderInfo, TaskInfo
-from app.modules.tasks.visibility import INTERNAL_REF_TYPES, SourceCache, can_view_source
+from app.modules.tasks.visibility import (
+    ADMIN_REF_TYPES,
+    INTERNAL_REF_TYPES,
+    SourceCache,
+    can_view_source,
+)
 from app.platform.uow import UnitOfWork
 
 RESPONSIBILITY_RANK = {"YOUR_DECISION": 0, "ASSIGNED_TO_YOU": 1, "DELEGATED_TO_YOU": 2, "YOU_OWN": 3, "FYI": 4}
@@ -80,7 +85,7 @@ class Collector:
             return True  # onboarding refers to people in the directory (org.directory.read for every member)
         if ref_type == "tasks.task":
             return True  # the task row itself passed the task visibility clause
-        if ref_type == "tasks.queue":
+        if ref_type in ADMIN_REF_TYPES:
             return self.uow.actor.can("tasks.queue.manage")
         return can_view_source(self.uow, ref_type, ref_id, cache=self.cache)
 
@@ -302,17 +307,24 @@ class Collector:
                 if m.facts.get(key) is not None and key not in facts:
                     facts[key] = m.facts[key]
         for key, value in (primary.facts or {}).items():
-            if key in ("content_hash",):
+            if key in ("content_hash", "quote_numbers"):
                 continue
             facts.setdefault(key, value)
+        if "quote_numbers" in (primary.facts or {}):
+            # the rule lists every linked quote; the viewer only learns the numbers of quotes they can open
+            facts["quote_numbers"] = [
+                str(m.facts["quote_number"]) for m in issue.members
+                if m.ref_type == "sales.quote" and m.facts.get("quote_number") and self.visible(m.ref_type, m.ref_id)
+            ]
         return facts
 
     def _texts(self, issue: IssueInfo, t: TaskInfo, facts: dict[str, Any], blocked: bool, names: dict[uuid.UUID, str]) -> tuple[str, str]:
         zone = self.zone
         if t.kind == "reply_needed":
             title = f"Reply to {facts.get('party_name') or issue.title}"
-            if blocked and facts.get("quote_numbers"):
-                title += f" — waiting for review of {', '.join(facts['quote_numbers'])}"
+            if blocked:
+                numbers = facts.get("quote_numbers") or []
+                title += f" — waiting for review of {', '.join(numbers)}" if numbers else " — waiting for a review"
             received = facts.get("received_at")
             when = _local(datetime.fromisoformat(received), zone) if received else ""
             who = facts.get("contact_name") or facts.get("party_name") or "The customer"
