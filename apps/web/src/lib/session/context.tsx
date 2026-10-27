@@ -5,6 +5,7 @@ import { I18nProvider } from "react-aria-components";
 import { seedCsrfToken } from "@/lib/api/client";
 import { DEFAULT_LOCALE } from "@/lib/format/money";
 import { DEFAULT_TIME_ZONE, type ZoneOptions } from "@/lib/format/time";
+import { seedPreferencesVersion } from "./preferences";
 import type { SessionBootstrap } from "./types";
 
 interface SessionContextValue {
@@ -38,6 +39,11 @@ export function SessionProvider({ bootstrap, children }: { bootstrap: SessionBoo
   useEffect(() => {
     seedCsrfToken(bootstrap.csrf_token);
   }, [bootstrap.csrf_token]);
+
+  // Preference writes carry the version this bootstrap read (409 version_conflict otherwise).
+  useEffect(() => {
+    seedPreferencesVersion(bootstrap.preferences_version);
+  }, [bootstrap.preferences_version]);
 
   useEffect(() => {
     const tick = () => setNow(new Date());

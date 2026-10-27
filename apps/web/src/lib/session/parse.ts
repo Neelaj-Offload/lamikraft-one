@@ -244,6 +244,7 @@ export function parseBootstrap(raw: unknown): SessionBootstrap {
     greeting_period: greeting === "morning" || greeting === "afternoon" || greeting === "evening" ? greeting : null,
     permissions,
     ui: parseUi(raw.ui_preferences ?? (isObject(raw.preferences) ? raw.preferences.ui : undefined)),
+    preferences_version: isObject(raw.preferences) ? (count(raw.preferences.version) ?? 0) : 0,
     nav: parseNav(raw.nav),
     features: parseFeatures(raw.features),
     capabilities: parseCapabilities(raw, permissions),

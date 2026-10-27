@@ -126,6 +126,8 @@ export interface SessionBootstrap {
   greeting_period: GreetingPeriod | null;
   permissions: EffectivePermission[];
   ui: UiPreferencesState;
+  /** `preferences.version`: sent as `expected_version` with every preference change (0 if absent). */
+  preferences_version: number;
   nav: NavEntry[];
   features: FeatureReadiness;
   capabilities: SessionCapabilities;
