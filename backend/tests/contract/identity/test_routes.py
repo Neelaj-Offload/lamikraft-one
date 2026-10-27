@@ -24,6 +24,16 @@ EXPECTED = {
     ("POST", "/api/v1/identity/demo-sign-in"): ("identity_create_demo_session", "public"),
     ("GET", "/api/v1/identity/me"): ("identity_get_me", "authenticated"),
     ("PATCH", "/api/v1/identity/me/preferences"): ("identity_update_preferences", "authenticated"),
+    ("POST", "/api/v1/identity/me/password"): ("identity_update_password", "authenticated"),
+    ("GET", "/api/v1/identity/users/{user_id}/permission-overrides"): ("identity_list_permission_overrides", "permission"),
+    ("PUT", "/api/v1/identity/users/{user_id}/permission-overrides/{permission_key}"): (
+        "identity_set_permission_override",
+        "permission",
+    ),
+    ("DELETE", "/api/v1/identity/users/{user_id}/permission-overrides/{permission_key}"): (
+        "identity_delete_permission_override",
+        "permission",
+    ),
     ("GET", "/api/v1/session/bootstrap"): ("ui_get_session_bootstrap", "authenticated"),
     ("GET", "/api/v1/ui/poll"): ("ui_poll_sections", "authenticated"),
     ("POST", "/api/v1/_test/sign-in"): ("identity_create_test_session", "test_support"),

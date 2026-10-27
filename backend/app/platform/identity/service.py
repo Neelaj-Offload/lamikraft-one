@@ -20,6 +20,7 @@ from app.core.config import get_settings
 from app.core.db.engine import session_factory
 from app.core.errors import Conflict, Forbidden, NotFound, Unauthenticated, ValidationFailed, VersionConflict
 from app.platform.authz.context import ActorContext
+from app.platform.authz.permissions import Scope
 from app.platform.identity import passwords, ratelimit, sessions
 from app.platform.identity.actors import resolve_time_zone, tenant_scope
 from app.platform.identity.auth_models import (
@@ -35,6 +36,7 @@ from app.platform.identity.errors import (
     InvalidCredentials,
     LinkInvalidOrUsed,
     PasswordPolicyViolation,
+    ReauthRequired,
     TooManyAttempts,
 )
 from app.platform.identity.models import (
@@ -43,6 +45,7 @@ from app.platform.identity.models import (
     MembershipBranch,
     MembershipRole,
     Role,
+    UserPermissionOverride,
     UserPreference,
 )
 from app.platform.identity.preferences import Preferences, PreferencesPatch, apply_patch, read
@@ -55,6 +58,9 @@ from app.platform.identity.schemas import (
     MembershipView,
     MeRead,
     PermissionGrant,
+    PermissionOverrideList,
+    PermissionOverridePut,
+    PermissionOverrideView,
     PreferencesUpdated,
     ProfileView,
     RoleRef,
@@ -123,16 +129,23 @@ class MemberRef:
     company_id: uuid.UUID
     membership_id: uuid.UUID
     status: str
+    is_demo: bool = False
 
 
 def _memberships_of(user_id: uuid.UUID) -> list[MemberRef]:
     """The user's memberships in active companies, the most recently used company first.
 
-    ``membership`` is tenant-scoped, so each company is bound in turn (``company`` is RLS-exempt).
+    ``membership`` is tenant-scoped and ``lk_app`` has no BYPASSRLS, so each company is bound in turn
+    (``company`` is RLS-exempt). The cost grows with the number of tenants of one deployment (one company plus
+    the demo company in practice).
     """
     out: list[MemberRef] = []
     with session_factory()() as s, s.begin():
-        companies = list(s.scalars(select(Company.id).where(Company.status == "active").order_by(Company.created_at, Company.id)))
+        rows = s.execute(
+            select(Company.id, Company.is_demo).where(Company.status == "active").order_by(Company.created_at, Company.id)
+        ).all()
+        demo = {company_id: bool(is_demo) for company_id, is_demo in rows}
+        companies = [company_id for company_id, _ in rows]
         last = s.scalar(
             select(AuthSession.company_id)
             .where(AuthSession.user_id == user_id, AuthSession.company_id.is_not(None))
@@ -150,7 +163,7 @@ def _memberships_of(user_id: uuid.UUID) -> list[MemberRef]:
                     )
                 ).first()
             if row is not None:
-                out.append(MemberRef(company_id, row[0], row[1]))
+                out.append(MemberRef(company_id, row[0], row[1], demo[company_id]))
     return out
 
 
@@ -189,7 +202,8 @@ def login(email: str, password: str, client: ClientInfo) -> SignedIn:
     ok = passwords.verify_password(stored_hash, password)
     # the same lookups run for unknown emails so the response time does not reveal whether an account exists
     memberships = _memberships_of(user_id or _NO_USER)
-    target = next((m for m in memberships if m.status == "active"), None) if ok and user_active else None
+    # demo users sign in only through one-time links (api-conventions §7): a demo membership is never a target
+    target = next((m for m in memberships if m.status == "active" and not m.is_demo), None) if ok and user_active else None
     rehash = passwords.hash_password(password) if target and stored_hash and passwords.needs_rehash(stored_hash) else None
 
     if target is None or user_id is None:
@@ -638,11 +652,41 @@ def get_me(uow: UnitOfWork) -> MeRead:
         ),
         membership=_membership_view(uow, membership, company),
         memberships=_membership_summaries(uow, user.id, membership.id),
+        permissions=_grants(uow.actor),
+        overrides=_open_overrides(uow, membership.id),
         preferences=_preferences(uow, user.id),
         session=_session_view(uow),
         time_zone=uow.actor.time_zone,
         locale=uow.actor.locale,
     )
+
+
+def _grants(actor: ActorContext) -> list[PermissionGrant]:
+    return [PermissionGrant(key=k, scope=s.label) for k, s in sorted(actor.permissions.items())]
+
+
+def _override_view(row: UserPermissionOverride, now: datetime) -> PermissionOverrideView:
+    return PermissionOverrideView(
+        id=row.id,
+        permission_key=row.permission_key,
+        effect=row.effect,  # type: ignore[arg-type]
+        scope=row.scope,
+        reason=row.reason,
+        expires_at=row.expires_at,
+        in_effect=row.expires_at is None or row.expires_at > now,
+        created_at=row.created_at,
+        created_by=row.created_by,
+    )
+
+
+def _open_overrides(uow: UnitOfWork, membership_id: uuid.UUID) -> list[PermissionOverrideView]:
+    rows = uow.session.scalars(
+        select(UserPermissionOverride)
+        .where(UserPermissionOverride.membership_id == membership_id, UserPermissionOverride.archived_at.is_(None))
+        .order_by(UserPermissionOverride.permission_key)
+    )
+    now = uow.now()
+    return [_override_view(r, now) for r in rows]
 
 
 def _membership_summaries(uow: UnitOfWork, user_id: uuid.UUID, current_id: uuid.UUID) -> list[MembershipSummary]:
@@ -662,8 +706,8 @@ def update_preferences(uow: UnitOfWork, patch: PreferencesPatch) -> PreferencesU
     user, _membership, _company = _require_member(uow)
     row = uow.session.get(UserPreference, user.id, with_for_update=True)
     current_version = row.version if row is not None else 0
-    if patch.expected_version is not None and patch.expected_version != current_version:
-        raise VersionConflict(current_version=current_version)
+    if patch.expected_version != current_version:
+        raise _preferences_conflict(uow, user.id, row)
     stored = (
         {"ui": row.ui, "locale": row.locale, "briefing": row.briefing, "voice": row.voice, "assistant": row.assistant}
         if row is not None
@@ -677,13 +721,25 @@ def update_preferences(uow: UnitOfWork, patch: PreferencesPatch) -> PreferencesU
                 with uow.session.begin_nested():
                     uow.session.add(UserPreference(user_id=user.id, **sections))
             except IntegrityError:
-                raise VersionConflict(current_version=1) from None
+                raise _preferences_conflict(uow, user.id, uow.session.get(UserPreference, user.id, populate_existing=True)) from None
         else:
             for name, value in sections.items():
                 setattr(row, name, value)
             uow.flush()
         uow.audit("identity.preferences.updated", resource_type="identity.user", resource_id=user.id, details={"changed_fields": changed})
     return PreferencesUpdated(preferences=_preferences(uow, user.id), changed_fields=changed)
+
+
+def _preferences_conflict(uow: UnitOfWork, user_id: uuid.UUID, row: UserPreference | None) -> VersionConflict:
+    """409 ``version_conflict`` with the current representation (api-conventions §3): preferences are the user's
+    own, so ``changed_by`` is that user (another tab or device)."""
+    current = _preferences(uow, user_id)
+    return VersionConflict(
+        current_version=current.version,
+        current=current.model_dump(mode="json"),
+        changed_by=str(user_id) if row is not None else None,
+        changed_at=row.updated_at.isoformat() if row is not None and row.updated_at else None,
+    )
 
 
 def session_profile(uow: UnitOfWork) -> SessionProfile:
@@ -702,7 +758,7 @@ def session_profile(uow: UnitOfWork) -> SessionProfile:
         branches=[_branch_ref(b) for b in branches],
         time_zone=actor.time_zone or resolve_time_zone(company.default_time_zone),
         locale=actor.locale,
-        permissions=[PermissionGrant(key=k, scope=s.label) for k, s in sorted(actor.permissions.items())],
+        permissions=_grants(actor),
         preferences=_preferences(uow, user.id),
         session=_session_view(uow),
     )
@@ -713,6 +769,182 @@ def rotate_csrf(uow: UnitOfWork) -> str:
     if uow.actor.session_id is None:
         raise Unauthenticated()
     return sessions.rotate_csrf(uow.session, uow.actor.session_id)
+
+
+# ---- per-user permission overrides (PARITY API-08/API-09, LM-08) ---------------------------------------
+PERMISSION_MANAGE = "identity.permission.manage"
+USER_READ = "identity.user.read"
+
+
+def _require_recent_auth(uow: UnitOfWork, key: str) -> None:
+    """Enforce the ``RA`` flag (permissions.md §6): a password sign-in within the last 10 minutes.
+
+    MFA (the ``MFA`` flag) is required for admins from Slice 2 and is not enforced here.
+    """
+    from app.registry import get_registry
+
+    actor = uow.actor
+    if actor.is_system:
+        return
+    perm = get_registry().permissions.get(key)
+    if perm is None or not perm.requires_recent_auth:
+        return
+    if actor.recent_auth_at is None or uow.now() - actor.recent_auth_at > sessions.RECENT_AUTH_WINDOW:
+        raise ReauthRequired()
+
+
+def _member_of_user(uow: UnitOfWork, user_id: uuid.UUID) -> Membership:
+    from app.platform.identity import provisioning
+
+    membership = provisioning.membership_for_user(uow, user_id)
+    if membership is None:
+        raise NotFound(code="not_found", resource_type="identity.membership")
+    return membership
+
+
+def _open_override(uow: UnitOfWork, membership_id: uuid.UUID, key: str) -> UserPermissionOverride | None:
+    return uow.session.scalars(
+        select(UserPermissionOverride).where(
+            UserPermissionOverride.membership_id == membership_id,
+            UserPermissionOverride.permission_key == key,
+            UserPermissionOverride.archived_at.is_(None),
+        )
+    ).first()
+
+
+@query()
+def list_permission_overrides(uow: UnitOfWork, user_id: uuid.UUID) -> PermissionOverrideList:
+    """A member's open overrides; needs ``identity.user.read`` or ``identity.permission.manage`` (company)."""
+    actor = uow.actor
+    if not (actor.can(USER_READ, Scope.COMPANY) or actor.can(PERMISSION_MANAGE, Scope.COMPANY)):
+        raise Forbidden(code="permission_denied", permission=USER_READ)
+    membership = _member_of_user(uow, user_id)
+    return PermissionOverrideList(user_id=user_id, membership_id=membership.id, items=_open_overrides(uow, membership.id))
+
+
+@command(PERMISSION_MANAGE, at_least=Scope.COMPANY, idempotent=True)
+def put_permission_override(
+    uow: UnitOfWork, user_id: uuid.UUID, permission_key: str, body: PermissionOverridePut
+) -> PermissionOverrideView:
+    """Grant or revoke one key for a member (replacing the open override for that key).
+
+    Anti-escalation, the self-change ban, the last-admin guard, the epoch bump and the events are applied by
+    :func:`app.platform.identity.provisioning.set_permission_override`. Repeating an identical PUT changes nothing.
+    """
+    from app.platform.identity import provisioning
+
+    _require_recent_auth(uow, PERMISSION_MANAGE)
+    membership = _member_of_user(uow, user_id)
+    current = _open_override(uow, membership.id, permission_key)
+    if (
+        current is not None
+        and current.effect == body.effect
+        and current.scope == body.scope
+        and current.reason == body.reason.strip()[:500]
+        and current.expires_at == body.expires_at
+    ):
+        return _override_view(current, uow.now())
+    provisioning.set_permission_override(
+        uow,
+        membership.id,
+        permission_key=permission_key,
+        effect=body.effect,
+        reason=body.reason,
+        scope=body.scope,
+        expires_at=body.expires_at,
+    )
+    row = _open_override(uow, membership.id, permission_key)
+    assert row is not None  # noqa: S101 - written just above
+    return _override_view(row, uow.now())
+
+
+@command(PERMISSION_MANAGE, at_least=Scope.COMPANY, idempotent=True)
+def delete_permission_override(uow: UnitOfWork, user_id: uuid.UUID, permission_key: str) -> None:
+    """Archive a member's open override for one key (404 when there is none)."""
+    from app.platform.identity import provisioning
+
+    _require_recent_auth(uow, PERMISSION_MANAGE)
+    membership = _member_of_user(uow, user_id)
+    row = _open_override(uow, membership.id, permission_key)
+    if row is None:
+        raise NotFound(code="not_found", resource_type="identity.permission_override")
+    provisioning.archive_permission_override(uow, row.id)
+
+
+# ---- self-service password change (PARITY LM-03/API-03) --------------------------------------------
+PASSWORD_CHANGE_LIMIT = ratelimit.EMAIL_LIMIT
+
+
+def change_password(actor: ActorContext, current_password: str, new_password: str, client: ClientInfo) -> SignedIn:
+    """Change the caller's own password: the current password is required; the caller gets a new session (fresh
+    cookies and CSRF) and every other session of the user, in every company, is revoked.
+
+    Attempts are rate-limited per user (10 per 10 minutes, committed even when the request fails); argon2 runs
+    outside any transaction.
+    """
+    if actor.session_id is None or actor.user_id is None or actor.company_id is None or actor.membership_id is None:
+        raise Unauthenticated()
+    user_id = actor.user_id
+    with UnitOfWork(actor) as uow:
+        verdict = ratelimit.hit(uow.session, f"password:user:{user_id.hex}", limit=PASSWORD_CHANGE_LIMIT, now=uow.now())
+        user = uow.session.get(AppUser, user_id)
+        company = uow.session.get(Company, actor.company_id)
+        if user is None or company is None:
+            raise Unauthenticated()
+        stored_hash, email = user.password_hash, user.email
+        company_names = (company.company_key, company.display_name, company.legal_name)
+    if not verdict.allowed:
+        raise TooManyAttempts("rate_limited", verdict.retry_after_seconds)
+    if not passwords.verify_password(stored_hash, current_password):
+        with UnitOfWork(actor) as uow:
+            uow.audit(
+                "auth.password.change_failed",
+                resource_type="identity.user",
+                resource_id=user_id,
+                outcome="failed",
+                ip=client.audit_ip,
+                user_agent=client.user_agent,
+            )
+        msg = "The current password is not correct."
+        raise ValidationFailed(
+            msg, code="validation_failed", errors=[{"loc": ["body", "current_password"], "msg": msg, "code": "invalid_current_password"}]
+        )
+    violation = passwords.check_policy(new_password, email=email, company_names=company_names)
+    if violation is None and new_password == current_password:
+        violation = passwords.PolicyViolation("password_unchanged", "Choose a password different from the current one.")
+    if violation is not None:
+        raise PasswordPolicyViolation(
+            violation.message, errors=[{"loc": ["body", "new_password"], "msg": violation.message, "code": violation.code}]
+        )
+    new_hash = passwords.hash_password(new_password)
+    with UnitOfWork(actor) as uow:
+        now = uow.now()
+        row = uow.session.get(AppUser, user_id, with_for_update=True)
+        if row is None:
+            raise Unauthenticated()
+        if row.password_hash != stored_hash:  # changed concurrently (another tab): make the caller retry
+            raise Conflict("Your password was changed meanwhile. Sign in again.", code="password_changed")
+        row.password_hash = new_hash
+        row.password_changed_at = now
+        issued = sessions.create_session(
+            uow.session,
+            user_id=user_id,
+            company_id=actor.company_id,
+            membership_id=actor.membership_id,
+            method=AuthMethod.PASSWORD,
+            client=client,
+            now=now,
+        )
+        others = sessions.revoke_all(uow.session, user_id=user_id, now=now, reason="password_changed", keep=issued.session_id)
+        uow.audit(
+            "auth.password.changed",
+            resource_type="identity.user",
+            resource_id=user_id,
+            details={"other_sessions_revoked": others},
+            ip=client.audit_ip,
+            user_agent=client.user_agent,
+        )
+        return SignedIn(issued, _session_info(uow, issued), _preferences(uow, user_id))
 
 
 # ---- maintenance -----------------------------------------------------------------------------------

@@ -109,3 +109,16 @@ def test_demo_users_cannot_use_password_sign_in(client: TestClient, world: SeedC
         headers=origin_headers(),
     )
     assert r.status_code == 401 and r.json()["code"] == "invalid_credentials"
+
+
+def test_a_demo_member_with_a_password_still_cannot_sign_in_by_password(client: TestClient, tenant: Tenant) -> None:
+    """Review finding: the old test only proved that a passwordless user fails. A demo member who has a valid
+    password gets the same generic 401; a member of a real company with the same password signs in."""
+    from tests.integration.identity.fixtures import TEST_PASSWORD, login, make_tenant
+
+    demo = make_tenant(is_demo=True)
+    member = make_member(demo, ["sales"], password=TEST_PASSWORD)
+    r = login(client, member.email)
+    assert r.status_code == 401 and r.json()["code"] == "invalid_credentials"
+    real = make_member(tenant, ["sales"], password=TEST_PASSWORD)
+    assert login(client, real.email).status_code == 200

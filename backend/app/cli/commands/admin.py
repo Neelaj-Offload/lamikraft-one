@@ -71,20 +71,10 @@ def create_first(args: argparse.Namespace) -> int | None:
 
 @command("admin", "sync-access", help="Sync the permission catalogue, legacy aliases and system roles of every company")
 def sync_access(args: argparse.Namespace) -> int | None:
-    from sqlalchemy import select
-
-    from app.platform.authz.context import ActorContext
+    """The same sync the API runs at startup (``app.platform.identity.startup``), on demand."""
     from app.platform.identity import roles
-    from app.platform.org.models import Company
-    from app.platform.uow import UnitOfWork
 
-    cli = ActorContext(actor_type="cli", company_id=None, is_system=True, display_name="lk admin sync-access", channel="cli", auth_strength="system")
-    with UnitOfWork(cli) as uow:
-        count = roles.sync_permission_catalogue(uow)
-        companies = list(uow.session.execute(select(Company.id, Company.company_key)).all())
-    out(f"permissions: {count} synced")
-    for company_id, key in companies:
-        with UnitOfWork(cli.with_(company_id=company_id)) as uow:
-            synced = roles.ensure_system_roles(uow, company_id)
-        out(f"company {key}: {len(synced)} system roles")
+    result = roles.sync_access_all(origin="cli")
+    out(f"permissions: {result['permissions']} synced")
+    out(f"companies: {result['companies']} with system roles in sync")
     return None

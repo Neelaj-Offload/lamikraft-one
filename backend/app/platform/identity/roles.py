@@ -201,3 +201,25 @@ def ensure_system_roles(uow: UnitOfWork, company_id: uuid.UUID, *, origin: str =
         employee_changed = out.get(EMPLOYEE) in changed_roles
         provisioning.access_changed(uow, holders, ["roles"], origin=origin, all_members=employee_changed)
     return out
+
+
+def sync_access_all(*, origin: str = "system") -> dict[str, int]:
+    """Sync the catalogue and legacy aliases, then the system templates of every company (own transactions).
+
+    Used at API startup (:mod:`app.platform.identity.startup`) and by ``lk admin sync-access``. Idempotent; a
+    company's epoch moves only when its templates drifted.
+    """
+    from sqlalchemy import select as _select
+
+    from app.platform.authz.context import ActorContext
+    from app.platform.org.models import Company
+    from app.platform.uow import UnitOfWork
+
+    actor = ActorContext.system(None, reason=f"identity.sync_access:{origin}")
+    with UnitOfWork(actor) as uow:
+        count = sync_permission_catalogue(uow)
+        companies = list(uow.session.scalars(_select(Company.id).order_by(Company.created_at, Company.id)))
+    for company_id in companies:
+        with UnitOfWork(actor.with_(company_id=company_id)) as uow:
+            ensure_system_roles(uow, company_id, origin=origin)
+    return {"permissions": count, "companies": len(companies)}

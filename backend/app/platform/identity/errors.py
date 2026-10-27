@@ -28,6 +28,17 @@ class LinkInvalidOrUsed(Unauthenticated):
         super().__init__("Ask for a new sign-in link.")
 
 
+class ReauthRequired(Unauthenticated):
+    """A ``requires_recent_auth`` permission used more than 10 minutes after the last password sign-in.
+
+    Slice 1 has no separate step-up endpoint: signing in again with the password refreshes ``recent_auth_at``."""
+
+    code, title = "reauth_required", "Confirm your password to continue"
+
+    def __init__(self) -> None:
+        super().__init__("Sign in again with your password, then retry.")
+
+
 class TooManyAttempts(RateLimited):
     """429 with ``Retry-After``; ``code`` is ``rate_limited`` or ``account_locked``."""
 

@@ -1,11 +1,12 @@
-"""Identity part of the canonical fixture world (docs/architecture/fixtures.md §2-§3), SeedDef order 10.
+"""Identity part of the canonical fixture world (docs/architecture/fixtures.md §2-§3): SeedDefs ``identity``
+(order 10) and ``identity.activation`` (order 75).
 
 Created through the identity provisioning services as the seed actor (events carry ``origin=seed``):
 - company ``crown-demo`` (created by the runner when absent), its system role templates, branches HO and FAC;
 - teams EXP-SALES (lead Sahil; Meera, Neha, Arjun) and OPS-HO (lead Ravi; Kabir, and Vikram from Slice 2);
 - the people of §3 with their role templates, branch HO and managers; Vikram only when ``slice_max >= 2``;
-- Arjun is invited at D−3 10:00 and his membership is activated at **D0 08:00**, emitting
-  ``identity.membership.activated`` (onboarding and the manager check-in follow from that event).
+- Arjun is invited at D−3 10:00 (order 10) and his membership is activated at **D0 08:00** by the second SeedDef
+  (order 75), emitting ``identity.membership.activated`` (onboarding and the manager check-in follow from it).
 Pre-existing staff are provisioned active at the company set-up time, so they get no onboarding.
 Every person is stored in ``SeedContext.refs`` under its ``keys.PEOPLE`` key (value: user id); memberships,
 branches and teams are in ``SeedContext.facts``. Re-running is idempotent on emails, codes and keys.
@@ -150,8 +151,21 @@ def seed_identity(ctx: SeedContext) -> None:
         memberships[key] = membership_id
         ctx.refs[key] = user_id
 
-    if "ARJUN" in memberships:
-        ctx.at(arjun_activated_at(d0))
-        with UnitOfWork(_seed_actor(company_id), clock=clock) as uow:
-            provisioning.activate_membership(uow, memberships["ARJUN"], origin=ORIGIN)
     ctx.facts["memberships"] = {key: str(i) for key, i in memberships.items()}
+
+
+def seed_activation(ctx: SeedContext) -> None:
+    """SeedDef ``identity.activation`` (order 75): Arjun's membership becomes active at D0 08:00.
+
+    It runs after the history seeds (parties 20 … approvals 60), so the activation event and the onboarding it
+    starts come after the business history they describe, and before tasks/briefings (80), which assign Arjun's
+    walkthrough task at D0 08:05 and include his onboarding in the D0 briefing. Idempotent: an already active
+    membership is left alone.
+    """
+    d0: datetime = ctx.facts.get("d0", D0)
+    membership_id = (ctx.facts.get("memberships") or {}).get("ARJUN")
+    if membership_id is None:
+        return
+    ctx.at(arjun_activated_at(d0))
+    with UnitOfWork(_seed_actor(ctx.company_id), clock=ctx.clock) as uow:
+        provisioning.activate_membership(uow, uuid.UUID(membership_id), origin=ORIGIN)

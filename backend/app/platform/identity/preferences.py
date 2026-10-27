@@ -171,9 +171,10 @@ class AssistantPreferencesPatch(_Patch):
 
 
 class PreferencesPatch(_Patch):
-    """Dirty sections only; ``expected_version`` (optional) guards against overwriting a concurrent change."""
+    """Dirty sections plus ``expected_version`` (api-conventions §6): the version the client read (0 before the
+    first save). A mismatch is 409 ``version_conflict`` carrying the current preferences."""
 
-    expected_version: int | None = None
+    expected_version: int = Field(ge=0)
     ui: UiPreferencesPatch | None = None
     locale: LocalePreferencesPatch | None = None
     briefing: BriefingPreferencesPatch | None = None

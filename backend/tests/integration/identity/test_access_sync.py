@@ -102,3 +102,51 @@ def test_template_drift_is_repaired_and_bumps_the_epoch(tenant: Tenant) -> None:
             )
         )
     assert len(changed) == 1 and changed[0].payload["change_kinds"] == ["roles"]
+
+
+def test_api_startup_repairs_template_drift_without_the_cli(tenant: Tenant) -> None:
+    """platform.md §5: the catalogue and system templates sync when the API starts (review finding: only the CLI
+    and the seed did). A deleted catalogue row and a stale template row are both repaired; no user is created."""
+    from sqlalchemy import func
+
+    from app.platform.identity import startup
+    from app.platform.identity.models import AppUser, Permission
+
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        sales = uow.session.scalars(select(Role).where(Role.role_key == "sales")).one()
+        row = uow.session.get(RolePermission, (sales.id, "sales.quote.read"))
+        assert row is not None
+        row.scope = "company"
+        users = uow.session.scalar(select(func.count()).select_from(AppUser))
+    assert startup.run_startup_sync() is None  # skipped in the test environment unless forced
+    assert _db_grants(tenant.company_id, "sales")["sales.quote.read"] == Scope.COMPANY
+    result = startup.run_startup_sync(force=True)
+    assert result is not None and result["companies"] >= 1
+    assert result["permissions"] == len(get_registry().permissions)
+    assert _db_grants(tenant.company_id, "sales")["sales.quote.read"] == Scope.OWN
+    with UnitOfWork(system(None)) as uow:
+        assert uow.session.scalar(select(func.count()).select_from(AppUser)) == users
+        assert uow.session.scalar(select(func.count()).select_from(Permission)) == len(get_registry().permissions)
+
+
+def test_the_identity_router_lifespan_runs_the_sync_when_the_app_starts(monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.platform.identity import startup
+
+    calls: list[bool] = []
+    monkeypatch.setattr(startup, "run_startup_sync", lambda **kw: calls.append(True))
+    with TestClient(create_app()):
+        pass
+    assert calls == [True]
+
+
+def test_a_failing_sync_does_not_stop_the_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.platform.identity import roles, startup
+
+    def broken(**_kw: object) -> dict[str, int]:
+        raise RuntimeError("database not reachable")
+
+    monkeypatch.setattr(roles, "sync_access_all", broken)
+    assert startup.run_startup_sync(force=True) is None

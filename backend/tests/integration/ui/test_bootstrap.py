@@ -111,7 +111,7 @@ def test_greeting_follows_the_users_zone(client: TestClient, world: SeedContext,
     test_sign_in(client, keys.USERS.MEERA)
     from tests.integration.identity.fixtures import csrf_headers
 
-    client.patch("/api/v1/identity/me/preferences", json={"locale": {"time_zone": "America/New_York"}}, headers=csrf_headers(client))
+    client.patch("/api/v1/identity/me/preferences", json={"locale": {"time_zone": "America/New_York"}, "expected_version": 0}, headers=csrf_headers(client))
     body = client.get(BOOT).json()
     assert body["time_zone"] == "America/New_York"
     assert body["greeting_period"] == "evening"  # 23:25 on Sunday in New York
@@ -133,3 +133,29 @@ def test_nav_hides_areas_that_are_not_implemented(
     assert body["features"] == {
         "today": True, "inbox": True, "sales": True, "products": True, "operations": False, "finance": False, "settings": True,
     }
+
+
+def test_a_database_error_in_one_section_leaves_the_rest_of_the_bootstrap_intact(client: TestClient, world: SeedContext) -> None:
+    """Review finding: a SQL error in a section aborted the whole transaction (500, CSRF rotation lost). Each section
+    now runs in its own savepoint, so only that section is unavailable, in the bootstrap and in the poll."""
+    from sqlalchemy import text
+
+    saved = dict(_SECTIONS)
+    register_ui_section(UiSection("probe_sql_error", lambda uow: uow.session.execute(text("SELECT 1/0")).scalar(), in_poll=True))  # type: ignore[arg-type,return-value,misc]
+    register_ui_section(UiSection("probe_zz_after", lambda uow: {"rows": uow.session.execute(text("SELECT 1")).scalar()}, in_poll=True))
+    try:
+        test_sign_in(client, keys.USERS.MEERA)
+        before = client.cookies.get("lk_csrf")
+        r = client.get(BOOT)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["sections"]["probe_sql_error"] == {"status": "unavailable"}
+        assert body["sections"]["probe_zz_after"] == {"rows": 1}
+        assert body["csrf_token"] != before and client.cookies.get("lk_csrf") == body["csrf_token"]  # rotation committed
+        polled = client.get("/api/v1/ui/poll")
+        assert polled.status_code == 200, polled.text
+        assert polled.json()["sections"]["probe_sql_error"] == {"status": "unavailable"}
+        assert polled.json()["sections"]["probe_zz_after"] == {"rows": 1}
+    finally:
+        _SECTIONS.clear()
+        _SECTIONS.update(saved)

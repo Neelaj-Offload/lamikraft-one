@@ -108,3 +108,58 @@ def test_concurrent_failures_count_every_attempt(committed_db: str) -> None:
         assert row is not None
         # five failures locked the email (count reset to 0); the sixth started counting again
         assert (row.lock_count, row.count) == (1, 1) and row.blocked_until is not None
+
+
+@pytest.mark.committed
+def test_two_admins_demoting_each_other_concurrently_keep_one_admin(committed_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Review finding: without a company lock both last-admin guards passed under READ COMMITTED and the company
+    ended with no role manager. ``provisioning.lock_access`` serialises access changes: the second demotion waits,
+    then sees the first and is refused."""
+    from sqlalchemy import select
+
+    from app.platform.identity.actors import actor_for
+    from app.platform.identity.models import Membership
+
+    tenant = make_tenant()
+    first = make_member(tenant, ["admin"])
+    second = make_member(tenant, ["admin"])
+    barrier = threading.Barrier(2)
+    original = provisioning.access_changed
+
+    def paused_access_changed(*args, **kwargs):  # type: ignore[no-untyped-def]
+        # both guards have run by now unless the lock made the other thread wait; never wait for more than 2 s
+        try:
+            barrier.wait(timeout=2)
+        except threading.BrokenBarrierError:
+            pass
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(provisioning, "access_changed", paused_access_changed)
+    results: list[str] = []
+    lock = threading.Lock()
+
+    def demote(actor_user: uuid.UUID, target: uuid.UUID) -> None:
+        actor = actor_for(tenant.company_id, actor_user, "test")
+        assert actor is not None
+        try:
+            with UnitOfWork(actor) as uow:
+                provisioning.assign_roles(uow, target, ["management"])
+            outcome = "ok"
+        except AppError as exc:
+            outcome = exc.code
+        with lock:
+            results.append(outcome)
+
+    threads = [
+        threading.Thread(target=demote, args=(first.user_id, second.membership_id)),
+        threading.Thread(target=demote, args=(second.user_id, first.membership_id)),
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=60)
+    assert sorted(results) == ["last_admin", "ok"]
+    with UnitOfWork(system(tenant.company_id)) as uow:
+        members = list(uow.session.scalars(select(Membership).where(Membership.company_id == tenant.company_id)))
+        holders = [m for m in members if provisioning._holds_role_manage(uow, m)]
+    assert len(holders) == 1

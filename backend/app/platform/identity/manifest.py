@@ -40,6 +40,19 @@ def _on_load() -> None:
     register_csrf_verifier(verify_csrf)
     register_member_actor_builder(actor_for)
     register_actor_builder(actor_for_job)
+    _warn_untrusted_client_addresses()
+
+
+def _warn_untrusted_client_addresses() -> None:
+    from app.core.config import get_settings
+    from app.core.logging import get_logger
+    from app.platform.identity.config import trusted_proxy_hops
+
+    if get_settings().is_production and trusted_proxy_hops() == 0:
+        get_logger("lk.identity").warning(
+            "identity.client_address_unknown",
+            detail="LK_TRUSTED_PROXY_HOPS is 0: per-IP sign-in limits share one bucket behind the proxy",
+        )
 
 
 def _purge_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any]:
@@ -52,6 +65,12 @@ def _seed(ctx: SeedContext) -> None:
     from app.seed.world.identity import seed_identity
 
     seed_identity(ctx)
+
+
+def _seed_activation(ctx: SeedContext) -> None:
+    from app.seed.world.identity import seed_activation
+
+    seed_activation(ctx)
 
 
 MANIFEST = ModuleManifest(
@@ -67,6 +86,11 @@ MANIFEST = ModuleManifest(
             interval_seconds=3600,
         )
     ],
-    seeds=[SeedDef(name="identity", order=10, run=_seed, slice_no=1)],
+    seeds=[
+        SeedDef(name="identity", order=10, run=_seed, slice_no=1),
+        # Arjun's activation at D0 08:00: after the history seeds (20-60), before tasks/briefings (80), which need
+        # him active (walkthrough task at D0 08:05) and his onboarding in the briefing
+        SeedDef(name="identity.activation", order=75, run=_seed_activation, slice_no=1),
+    ],
     on_load=_on_load,
 )

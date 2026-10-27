@@ -167,24 +167,56 @@ def test_validation_errors_never_echo_the_password(client: TestClient, tenant: T
     assert "x" * 50 not in r.text
 
 
-def test_forwarded_client_addresses_are_trusted_only_from_the_local_proxy(db: None, api_app, tenant: Tenant) -> None:  # type: ignore[no-untyped-def]
+def _attempts(client: TestClient):  # type: ignore[no-untyped-def]
     from tests.integration.identity.fixtures import origin_headers
 
-    payload = {"email": "nobody@example.test", "password": "wrong-password-123"}
-
-    def attempt(client: TestClient, forwarded: str) -> int:
+    def attempt(forwarded: str | None) -> int:
+        headers = {**origin_headers(), **({"X-Forwarded-For": forwarded} if forwarded is not None else {})}
         return client.post(
             "/api/v1/identity/session",
-            json={**payload, "email": f"{uuid.uuid4().hex}@example.test"},
-            headers={**origin_headers(), "X-Forwarded-For": forwarded},
+            json={"email": f"{uuid.uuid4().hex}@example.test", "password": "wrong-password-123"},
+            headers=headers,
         ).status_code
 
-    behind_proxy = TestClient(api_app, base_url="http://testserver", client=("127.0.0.1", 50000))
-    # the last X-Forwarded-For entry is the address the proxy saw; an earlier, client-supplied entry is ignored
-    assert all(attempt(behind_proxy, f"203.0.113.{i}, 198.51.100.7") == 401 for i in range(30))
-    assert attempt(behind_proxy, "203.0.113.99, 198.51.100.7") == 429
-    assert attempt(behind_proxy, "198.51.100.8") == 401  # another browser behind the same proxy is not throttled
+    return attempt
 
-    direct = TestClient(api_app, base_url="http://testserver", client=("192.0.2.10", 50000))
-    assert all(attempt(direct, f"198.51.100.{i}") == 401 for i in range(30))
-    assert attempt(direct, "198.51.100.200") == 429  # a non-proxy peer cannot choose its own bucket
+
+def test_a_spoofed_forwarded_address_never_opens_a_fresh_bucket(db: None, api_app, tenant: Tenant) -> None:  # type: ignore[no-untyped-def]
+    """Review finding: the browser controls X-Forwarded-For (the Next rewrite passes it through), so with no trusted
+    reverse proxy configured (LK_TRUSTED_PROXY_HOPS=0) every proxied request shares one bucket."""
+    attempt = _attempts(TestClient(api_app, base_url="http://testserver", client=("127.0.0.1", 50000)))
+    assert all(attempt(f"198.51.100.{i}") == 401 for i in range(30))
+    assert attempt("198.51.100.250") == 429
+    assert attempt(None) == 429
+    assert attempt("203.0.113.9:4444") == 429  # host:port entries are no way out either
+
+
+def test_uvicorn_proxy_headers_cannot_be_used_to_spoof_the_client(db: None, api_app, tenant: Tenant) -> None:  # type: ignore[no-untyped-def]
+    """uvicorn rewrites the ASGI client from X-Forwarded-For for loopback peers (port 0, or the port the entry names);
+    neither form may pick a bucket."""
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+    wrapped = ProxyHeadersMiddleware(api_app, trusted_hosts="127.0.0.1")
+    attempt = _attempts(TestClient(wrapped, base_url="http://testserver", client=("127.0.0.1", 50000)))  # type: ignore[arg-type]
+    assert all(attempt(f"198.51.100.{i}" if i % 2 else f"198.51.100.{i}:{1000 + i}") == 401 for i in range(30))
+    assert attempt("198.51.100.251:9999") == 429
+    assert attempt("192.0.2.77") == 429
+
+
+def test_forwarded_addresses_count_from_the_trusted_reverse_proxy(  # type: ignore[no-untyped-def]
+    db: None, api_app, tenant: Tenant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With LK_TRUSTED_PROXY_HOPS=1 the last entry (appended by the reverse proxy) is the client; earlier,
+    client-supplied entries are ignored. A direct, non-proxy peer keeps its socket address."""
+    from app.platform.identity import http as identity_http
+
+    monkeypatch.setattr(identity_http, "trusted_proxy_hops", lambda: 1)
+    attempt = _attempts(TestClient(api_app, base_url="http://testserver", client=("127.0.0.1", 50000)))
+    assert all(attempt(f"203.0.113.{i}, 198.51.100.7") == 401 for i in range(30))
+    assert attempt("203.0.113.99, 198.51.100.7") == 429
+    assert attempt("198.51.100.8") == 401  # another browser behind the same proxy is not throttled
+    assert attempt(None) == 401  # the address is unknown: a separate bucket, not the 198.51.100.7 one
+
+    direct = _attempts(TestClient(api_app, base_url="http://testserver", client=("192.0.2.10", 50000)))
+    assert all(direct(f"198.51.100.{i}") == 401 for i in range(30))
+    assert direct("198.51.100.200") == 429  # a non-proxy peer cannot choose its own bucket

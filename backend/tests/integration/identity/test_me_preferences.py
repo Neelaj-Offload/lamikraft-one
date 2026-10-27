@@ -45,7 +45,12 @@ def test_patch_preferences_merges_sections_and_sets_the_ui_cookie(client: TestCl
     test_sign_in(client, keys.USERS.NEHA)
     r = client.patch(
         PREFS,
-        json={"ui": {"theme": "dark", "density": "compact"}, "briefing": {"detail_level": "brief"}, "locale": {"time_zone": "Europe/Berlin"}},
+        json={
+            "ui": {"theme": "dark", "density": "compact"},
+            "briefing": {"detail_level": "brief"},
+            "locale": {"time_zone": "Europe/Berlin"},
+            "expected_version": 0,
+        },
         headers=csrf_headers(client),
     )
     assert r.status_code == 200, r.text
@@ -63,9 +68,17 @@ def test_patch_preferences_merges_sections_and_sets_the_ui_cookie(client: TestCl
     assert second.json()["preferences"]["ui"]["theme"] == "dark"
     stale = client.patch(PREFS, json={"ui": {"motion": "full"}, "expected_version": 1}, headers=csrf_headers(client))
     assert stale.status_code == 409 and stale.json()["code"] == "version_conflict"
-    cleared = client.patch(PREFS, json={"locale": {"time_zone": None}}, headers=csrf_headers(client))
+    # api-conventions §3: the 409 carries the current representation and who changed it when
+    conflict = stale.json()
+    assert conflict["current_version"] == 2 and conflict["current"]["version"] == 2
+    assert conflict["current"]["ui"]["motion"] == "reduced"
+    assert conflict["changed_by"] == client.get("/api/v1/identity/me").json()["user"]["id"]
+    assert conflict["changed_at"]
+    missing = client.patch(PREFS, json={"ui": {"motion": "full"}}, headers=csrf_headers(client))
+    assert missing.status_code == 422  # expected_version is required (api-conventions §6)
+    cleared = client.patch(PREFS, json={"locale": {"time_zone": None}, "expected_version": 2}, headers=csrf_headers(client))
     assert cleared.json()["preferences"]["locale"]["time_zone"] is None
-    unchanged = client.patch(PREFS, json={"ui": {"theme": "dark"}}, headers=csrf_headers(client))
+    unchanged = client.patch(PREFS, json={"ui": {"theme": "dark"}, "expected_version": 3}, headers=csrf_headers(client))
     assert unchanged.json()["changed_fields"] == [] and unchanged.json()["preferences"]["version"] == 3
 
     with UnitOfWork(system(world.company_id)) as uow:
@@ -75,23 +88,23 @@ def test_patch_preferences_merges_sections_and_sets_the_ui_cookie(client: TestCl
 
 def test_preferences_never_weaken_policy(client: TestClient, world: SeedContext) -> None:
     test_sign_in(client, keys.USERS.MEERA)
-    r = client.patch(PREFS, json={"briefing": {"undismissable_kinds": []}}, headers=csrf_headers(client))
+    r = client.patch(PREFS, json={"briefing": {"undismissable_kinds": []}, "expected_version": 0}, headers=csrf_headers(client))
     assert r.status_code == 422 and r.json()["code"] == "mandatory_control"
     assert r.json()["fields"] == ["undismissable_kinds"]
-    r = client.patch(PREFS, json={"roles": ["admin"]}, headers=csrf_headers(client))
+    r = client.patch(PREFS, json={"roles": ["admin"], "expected_version": 0}, headers=csrf_headers(client))
     assert r.status_code == 422 and r.json()["code"] == "mandatory_control"
-    unknown = client.patch(PREFS, json={"ui": {"font": "comic"}}, headers=csrf_headers(client))
+    unknown = client.patch(PREFS, json={"ui": {"font": "comic"}, "expected_version": 0}, headers=csrf_headers(client))
     assert unknown.status_code == 422 and unknown.json()["code"] == "validation_failed"
-    bad_zone = client.patch(PREFS, json={"locale": {"time_zone": "Mars/Olympus"}}, headers=csrf_headers(client))
+    bad_zone = client.patch(PREFS, json={"locale": {"time_zone": "Mars/Olympus"}, "expected_version": 0}, headers=csrf_headers(client))
     assert bad_zone.status_code == 422
-    bad_theme = client.patch(PREFS, json={"ui": {"theme": "neon"}}, headers=csrf_headers(client))
+    bad_theme = client.patch(PREFS, json={"ui": {"theme": "neon"}, "expected_version": 0}, headers=csrf_headers(client))
     assert bad_theme.status_code == 422
 
 
 def test_preferences_need_a_session(client: TestClient, world: SeedContext) -> None:
     from tests.integration.identity.fixtures import origin_headers
 
-    r = client.patch(PREFS, json={"ui": {"theme": "dark"}}, headers=origin_headers())
+    r = client.patch(PREFS, json={"ui": {"theme": "dark"}, "expected_version": 0}, headers=origin_headers())
     assert r.status_code == 401
 
 

@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
 ACTIVE = "active"
 INVITED = "invited"
+ROLE_MANAGE = "identity.role.manage"
 
 
 # ---- authority helpers -----------------------------------------------------------------------------
@@ -55,6 +56,18 @@ def _is_privileged(uow: UnitOfWork) -> bool:
 def _require(uow: UnitOfWork, key: str) -> None:
     if not _is_privileged(uow):
         uow.actor.require(key, Scope.COMPANY)
+
+
+def lock_access(uow: UnitOfWork) -> None:
+    """Serialise access changes of the actor's company (transaction-scoped advisory lock).
+
+    Taken before any "who still holds role management" read, so two concurrent demotions cannot both pass the
+    last-admin guard under READ COMMITTED: the second waits for the first to commit and then sees its result.
+    """
+    company_id = uow.actor.company_id
+    if company_id is None:
+        raise RuntimeError("access changes need a company-bound unit of work")
+    uow.advisory_xact_lock("identity.access", str(company_id))
 
 
 def bump_authz_epoch(uow: UnitOfWork) -> int:
@@ -262,6 +275,24 @@ def _membership(uow: UnitOfWork, membership_id: uuid.UUID) -> Membership:
     return membership
 
 
+def _check_company_branches(uow: UnitOfWork, branch_ids: Sequence[uuid.UUID]) -> None:
+    """Every id must be a live branch of the actor's company (foreign keys bypass RLS, so check explicitly)."""
+    wanted = set(branch_ids)
+    if not wanted:
+        return
+    valid = set(
+        uow.session.scalars(
+            select(Branch.id).where(
+                Branch.id.in_(wanted), Branch.company_id == uow.actor.company_id, Branch.archived_at.is_(None)
+            )
+        )
+    )
+    if valid != wanted:
+        raise ValidationFailed(
+            "Unknown branch", code="validation_failed", errors=[{"loc": ["branch_ids"], "msg": "Unknown branch", "code": "unknown_branch"}]
+        )
+
+
 def membership_for_user(uow: UnitOfWork, user_id: uuid.UUID) -> Membership | None:
     return uow.session.scalars(
         select(Membership).where(Membership.company_id == uow.actor.company_id, Membership.user_id == user_id)
@@ -315,6 +346,10 @@ def provision_membership(
     if missing:
         raise ValidationFailed(f"Unknown or unassignable roles: {', '.join(missing)}", code="validation_failed")
     _check_role_grants_within_actor(uow, [roles[k] for k in role_keys])
+    branch_set = list(dict.fromkeys([*branch_ids, *([default_branch_id] if default_branch_id else [])]))
+    _check_company_branches(uow, branch_set)
+    if manager_membership_id is not None:
+        _membership(uow, manager_membership_id)  # 404 unless it is a membership of this company
     membership = Membership(
         id=uuid.uuid7(),
         company_id=uow.actor.company_id,
@@ -330,7 +365,6 @@ def provision_membership(
     now = uow.now()
     for key in dict.fromkeys(role_keys):
         uow.add(MembershipRole(membership_id=membership.id, role_id=roles[key].id, assigned_by=uow.actor.user_id, assigned_at=now))
-    branch_set = list(dict.fromkeys([*branch_ids, *([default_branch_id] if default_branch_id else [])]))
     for branch_id in branch_set:
         uow.add(MembershipBranch(membership_id=membership.id, branch_id=branch_id, assigned_at=now))
     uow.flush()
@@ -413,6 +447,7 @@ def _not_self(uow: UnitOfWork, membership: Membership) -> None:
 def assign_roles(uow: UnitOfWork, membership_id: uuid.UUID, role_keys: Sequence[str], *, origin: str | None = None) -> bool:
     """Replace a membership's roles (at least one). Returns True when the set changed."""
     _require(uow, "identity.role.manage")
+    lock_access(uow)
     membership = _membership(uow, membership_id)
     _not_self(uow, membership)
     if not role_keys:
@@ -458,9 +493,7 @@ def set_membership_branches(
     membership = _membership(uow, membership_id)
     _not_self(uow, membership)
     wanted = set(branch_ids)
-    valid = set(uow.session.scalars(select(Branch.id).where(Branch.id.in_(wanted), Branch.company_id == membership.company_id)))
-    if valid != wanted:
-        raise ValidationFailed("Unknown branch", code="validation_failed")
+    _check_company_branches(uow, list(wanted))
     current = set(uow.session.scalars(select(MembershipBranch.branch_id).where(MembershipBranch.membership_id == membership_id)))
     if wanted == current:
         return False
@@ -488,6 +521,7 @@ def set_permission_override(
 ) -> uuid.UUID:
     """Grant or revoke one key for one membership (replaces the open override for that key)."""
     _require(uow, "identity.permission.manage")
+    lock_access(uow)
     membership = _membership(uow, membership_id)
     _not_self(uow, membership)
     if effect not in {e.value for e in OverrideEffect}:
@@ -551,6 +585,7 @@ def set_permission_override(
 
 def archive_permission_override(uow: UnitOfWork, override_id: uuid.UUID, *, origin: str | None = None) -> bool:
     _require(uow, "identity.permission.manage")
+    lock_access(uow)
     row = uow.session.get(UserPermissionOverride, override_id)
     if row is None or row.company_id != uow.actor.company_id:
         raise NotFound(code="not_found", resource_type="identity.permission_override")
@@ -605,21 +640,132 @@ def _holds_role_manage(uow: UnitOfWork, membership: Membership) -> bool:
     if membership.status != ACTIVE:
         return False
     perms = load_access(uow.session, membership.company_id, membership.id, membership.user_id, now=uow.now()).permissions
-    return perms.get("identity.role.manage") == Scope.COMPANY
+    return perms.get(ROLE_MANAGE) == Scope.COMPANY
+
+
+def _role_manage_candidates(uow: UnitOfWork, changed: Membership) -> list[Membership]:
+    """Other active members who may hold ``identity.role.manage@company``: through a role (the employee base
+    included) or an open company-scope grant. Revokes are applied afterwards by full resolution."""
+    now = uow.now()
+    company_id = changed.company_id
+    granting_roles = (
+        select(Role.id, Role.role_key)
+        .join(RolePermission, RolePermission.role_id == Role.id)
+        .where(
+            Role.company_id == company_id,
+            Role.archived_at.is_(None),
+            RolePermission.permission_key == ROLE_MANAGE,
+            RolePermission.scope == Scope.COMPANY.label,
+            RolePermission.effect == "grant",
+        )
+    )
+    rows = uow.session.execute(granting_roles).all()
+    stmt = select(Membership).where(
+        Membership.company_id == company_id, Membership.status == ACTIVE, Membership.id != changed.id
+    )
+    if not any(role_key == "employee" for _, role_key in rows):  # the employee base applies to every member
+        via_roles = select(MembershipRole.membership_id).where(MembershipRole.role_id.in_([role_id for role_id, _ in rows]))
+        via_grants = select(UserPermissionOverride.membership_id).where(
+            UserPermissionOverride.company_id == company_id,
+            UserPermissionOverride.permission_key == ROLE_MANAGE,
+            UserPermissionOverride.effect == OverrideEffect.GRANT.value,
+            UserPermissionOverride.scope == Scope.COMPANY.label,
+            UserPermissionOverride.archived_at.is_(None),
+            (UserPermissionOverride.expires_at.is_(None)) | (UserPermissionOverride.expires_at > now),
+        )
+        stmt = stmt.where(Membership.id.in_(via_roles) | Membership.id.in_(via_grants))
+    return list(uow.session.scalars(stmt.order_by(Membership.id)))
 
 
 def _last_admin_guard(uow: UnitOfWork, changed: Membership, was_holder: bool) -> None:
-    """Refuse a change that removes ``identity.role.manage@company`` from the last active member holding it."""
+    """Refuse a change that removes ``identity.role.manage@company`` from the last active member holding it.
+
+    Callers hold :func:`lock_access`, so concurrent access changes of the company are serialised.
+    """
     if not was_holder or _holds_role_manage(uow, changed):
         return
-    others = uow.session.scalars(
-        select(Membership).where(
-            Membership.company_id == changed.company_id, Membership.status == ACTIVE, Membership.id != changed.id
-        )
-    )
-    if any(_holds_role_manage(uow, m) for m in others):
+    if any(_holds_role_manage(uow, m) for m in _role_manage_candidates(uow, changed)):
         return
     raise Conflict("At least one active member must keep role management", code="last_admin")
+
+
+# ---- deactivation ----------------------------------------------------------------------------------
+DEACTIVATED = "deactivated"
+SUSPENDED = "suspended"
+
+
+def deactivate_membership(
+    uow: UnitOfWork,
+    membership_id: uuid.UUID,
+    *,
+    reason: str,
+    reassign_to_membership_id: uuid.UUID | None = None,
+    origin: str | None = None,
+) -> bool:
+    """Deactivate a membership (never a hard delete): sessions and unused demo links are revoked at once.
+
+    Guards: ``identity.user.manage``, never your own membership, never the last active role manager. Emits
+    ``identity.membership.deactivated`` (tasks reassign or cancel the member's open work) and bumps the epoch.
+    Returns False when the membership is already deactivated.
+    """
+    from app.platform.identity import sessions
+    from app.platform.identity.auth_models import DemoSignInToken
+
+    _require(uow, "identity.user.manage")
+    lock_access(uow)
+    membership = _membership(uow, membership_id)
+    _not_self(uow, membership)
+    if membership.status == DEACTIVATED:
+        return False
+    if membership.status not in (ACTIVE, INVITED, SUSPENDED):
+        raise Conflict(f"A {membership.status} membership cannot be deactivated", code="invalid_transition")
+    if not reason or not reason.strip():
+        raise ValidationFailed(
+            "A reason is required", code="validation_failed", errors=[{"loc": ["reason"], "msg": "A reason is required", "code": "missing"}]
+        )
+    if reassign_to_membership_id is not None:
+        target = _membership(uow, reassign_to_membership_id)
+        if target.id == membership.id or target.status != ACTIVE:
+            raise ValidationFailed(
+                "Reassign to another active member",
+                code="validation_failed",
+                errors=[{"loc": ["reassign_to_membership_id"], "msg": "Not an active member", "code": "inactive_member"}],
+            )
+    now = uow.now()
+    was_holder = _holds_role_manage(uow, membership)
+    membership.status = DEACTIVATED
+    membership.deactivated_at = now
+    membership.deactivated_by = uow.actor.user_id
+    membership.deactivation_reason = reason.strip()[:500]
+    uow.flush()
+    _last_admin_guard(uow, membership, was_holder)
+    revoked = sessions.revoke_all(uow.session, membership_id=membership.id, now=now, reason="deactivated")
+    uow.session.execute(
+        update(DemoSignInToken)
+        .where(
+            DemoSignInToken.membership_id == membership.id,
+            DemoSignInToken.used_at.is_(None),
+            DemoSignInToken.revoked_at.is_(None),
+        )
+        .values(revoked_at=now)
+    )
+    payload: dict[str, object] = {
+        "membership_id": str(membership.id),
+        "user_id": str(membership.user_id),
+        "reassign_to_membership_id": str(reassign_to_membership_id) if reassign_to_membership_id else None,
+    }
+    if origin:
+        payload["origin"] = origin
+    uow.emit("identity.membership.deactivated", aggregate_id=membership.id, aggregate_version=membership.version, payload=payload)
+    access_changed(uow, [membership.id], ["status"], origin=origin)
+    uow.audit(
+        "identity.membership.deactivated",
+        resource_type="identity.membership",
+        resource_id=membership.id,
+        reason=membership.deactivation_reason,
+        details={"sessions_revoked": revoked, "reassign_to_membership_id": payload["reassign_to_membership_id"]},
+    )
+    return True
 
 
 __all__ = [
@@ -634,11 +780,13 @@ __all__ = [
     "archive_permission_override",
     "assign_roles",
     "bump_authz_epoch",
+    "deactivate_membership",
     "effective_permissions",
     "ensure_branch",
     "ensure_company",
     "ensure_team",
     "ensure_user",
+    "lock_access",
     "membership_for_user",
     "provision_membership",
     "remove_team_member",

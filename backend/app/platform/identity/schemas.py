@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -109,26 +110,70 @@ class MembershipSummary(BaseModel):
     is_current: bool
 
 
+class PermissionGrant(BaseModel):
+    key: str
+    scope: str
+
+
+class PermissionOverrideView(BaseModel):
+    """One open per-user override (grant or revoke; revoke always wins over roles and grants)."""
+
+    id: uuid.UUID
+    permission_key: str
+    effect: Literal["grant", "revoke"]
+    scope: str | None
+    reason: str
+    expires_at: datetime | None
+    #: False once ``expires_at`` has passed (the override no longer applies)
+    in_effect: bool
+    created_at: datetime
+    created_by: uuid.UUID | None
+
+
 class MeRead(BaseModel):
     user: ProfileView
     #: the membership of the signed-in session, in detail
     membership: MembershipView
     #: every membership of this user in an active company (the current one included)
     memberships: list[MembershipSummary]
+    #: effective permissions of the current membership (roles ∪ grants − revokes)
+    permissions: list[PermissionGrant]
+    #: the open per-user overrides behind those permissions
+    overrides: list[PermissionOverrideView]
     preferences: Preferences
     session: SessionView | None
     time_zone: str
     locale: str
 
 
+class PasswordChangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=1024)
+    # the policy (12-256, common list, email/company names) is applied by the service
+    new_password: str = Field(min_length=1, max_length=1024)
+
+
+class PermissionOverridePut(BaseModel):
+    """``PUT .../permission-overrides/{key}``: a grant needs a scope, a revoke has none; a reason is required."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    effect: Literal["grant", "revoke"]
+    scope: Literal["own", "team", "branch", "company"] | None = None
+    reason: str = Field(min_length=1, max_length=500)
+    expires_at: datetime | None = None
+
+
+class PermissionOverrideList(BaseModel):
+    user_id: uuid.UUID
+    membership_id: uuid.UUID
+    items: list[PermissionOverrideView]
+
+
 class PreferencesUpdated(BaseModel):
     preferences: Preferences
     changed_fields: list[str]
-
-
-class PermissionGrant(BaseModel):
-    key: str
-    scope: str
 
 
 class SessionProfile(BaseModel):

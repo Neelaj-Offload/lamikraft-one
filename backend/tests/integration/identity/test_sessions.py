@@ -101,6 +101,46 @@ def test_logout_revokes_and_clears_cookies(client: TestClient, tenant: Tenant) -
     assert replay.get(ME).json()["code"] == "session_expired"
 
 
+def test_signing_into_another_company_replaces_the_foreign_session(client: TestClient, tenant: Tenant) -> None:
+    """Review finding: revoking the browser's session of company A inside a unit of work bound to company B hit
+    the tenant stamp (PermissionError, 500). It is now a Core update, and only same-user same-company is a rotation."""
+    from tests.integration.identity.fixtures import make_tenant
+
+    first = _signed_in(client, tenant)
+    other = make_member(make_tenant(), ["sales"], password=TEST_PASSWORD)
+    r = client.post("/api/v1/identity/session", json={"email": other.email, "password": TEST_PASSWORD}, headers=csrf_headers(client))
+    assert r.status_code == 200, r.text
+    (old,) = _session_rows(first.user_id)
+    assert old.revoked_at is not None and old.revoked_reason == "replaced"
+    (new,) = _session_rows(other.user_id)
+    assert new.rotated_from_id is None and new.company_id == other.company_id
+    assert client.get(ME).json()["user"]["email"] == other.email
+
+
+def test_an_expired_foreign_cookie_does_not_block_sign_in(client: TestClient, tenant: Tenant, frozen_clock) -> None:  # type: ignore[no-untyped-def]
+    from tests.integration.identity.fixtures import make_tenant
+
+    first = _signed_in(client, tenant)
+    frozen_clock.advance(days=8)  # expired, never revoked
+    other = make_member(make_tenant(), ["sales"], password=TEST_PASSWORD)
+    assert login(client, other.email).status_code == 200
+    (old,) = _session_rows(first.user_id)
+    assert old.revoked_reason == "replaced"
+
+
+def test_logout_with_a_dead_session_still_clears_the_cookies(client: TestClient, tenant: Tenant, frozen_clock) -> None:  # type: ignore[no-untyped-def]
+    _signed_in(client, tenant)
+    frozen_clock.advance(days=8)
+    r = client.delete("/api/v1/identity/session", headers=csrf_headers(client))
+    assert r.status_code == 401 and r.json()["code"] == "session_expired"
+    cleared = r.headers.get_list("set-cookie")
+    assert any(c.startswith("lk_session=") and "Max-Age=0" in c for c in cleared)
+    assert any(c.startswith("lk_csrf=") and "Max-Age=0" in c for c in cleared)
+    signed_out = TestClient(client.app, base_url="http://testserver")
+    r = signed_out.delete("/api/v1/identity/session", headers=origin_headers())
+    assert r.status_code == 401 and any(c.startswith("lk_session=") for c in r.headers.get_list("set-cookie"))
+
+
 def test_revocation_and_deactivation_apply_on_the_next_request(client: TestClient, tenant: Tenant) -> None:
     member = _signed_in(client, tenant)
     assert client.get(ME).status_code == 200
@@ -123,7 +163,7 @@ def test_revocation_and_deactivation_apply_on_the_next_request(client: TestClien
 
 def test_unsafe_requests_need_the_session_csrf_token(client: TestClient, tenant: Tenant) -> None:
     _signed_in(client, tenant)
-    body = {"ui": {"theme": "dark"}}
+    body = {"ui": {"theme": "dark"}, "expected_version": 0}
     missing = client.patch(PREFS, json=body, headers=origin_headers())
     assert missing.status_code == 403 and missing.json()["code"] == "csrf_token_invalid"
     wrong = client.patch(PREFS, json=body, headers={**origin_headers(), "X-CSRF-Token": "forged"})
@@ -138,7 +178,7 @@ def test_unsafe_requests_need_the_session_csrf_token(client: TestClient, tenant:
         headers={"Referer": origin_headers()["Origin"] + "/settings", "X-CSRF-Token": client.cookies.get("lk_csrf") or ""},
     )
     assert referer_only.status_code == 200  # Origin falls back to the Referer
-    ok = client.patch(PREFS, json=body, headers=csrf_headers(client))
+    ok = client.patch(PREFS, json={**body, "expected_version": 1}, headers=csrf_headers(client))
     assert ok.status_code == 200
     assert client.get(ME).status_code == 200  # safe methods need no token
 
@@ -149,7 +189,7 @@ def test_csrf_token_is_bound_to_its_session(client: TestClient, tenant: Tenant) 
     other = TestClient(client.app, base_url="http://testserver")
     member = make_member(tenant, ["sales"], password=TEST_PASSWORD)
     assert login(other, member.email).status_code == 200
-    r = other.patch(PREFS, json={"ui": {"theme": "dark"}}, headers={**origin_headers(), "X-CSRF-Token": mine or ""})
+    r = other.patch(PREFS, json={"ui": {"theme": "dark"}, "expected_version": 0}, headers={**origin_headers(), "X-CSRF-Token": mine or ""})
     assert r.status_code == 403 and r.json()["code"] == "csrf_token_invalid"
 
 
@@ -160,9 +200,9 @@ def test_bootstrap_rotates_the_csrf_token(client: TestClient, tenant: Tenant) ->
     assert r.status_code == 200
     after = r.json()["csrf_token"]
     assert after != before and client.cookies.get("lk_csrf") == after
-    stale = client.patch(PREFS, json={"ui": {"theme": "dark"}}, headers={**origin_headers(), "X-CSRF-Token": before or ""})
+    stale = client.patch(PREFS, json={"ui": {"theme": "dark"}, "expected_version": 0}, headers={**origin_headers(), "X-CSRF-Token": before or ""})
     assert stale.status_code == 403 and stale.json()["code"] == "csrf_token_invalid"
-    assert client.patch(PREFS, json={"ui": {"theme": "dark"}}, headers=csrf_headers(client)).status_code == 200
+    assert client.patch(PREFS, json={"ui": {"theme": "dark"}, "expected_version": 0}, headers=csrf_headers(client)).status_code == 200
 
 
 def test_tokens_never_come_from_the_url(client: TestClient, tenant: Tenant) -> None:

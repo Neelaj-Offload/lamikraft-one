@@ -99,13 +99,18 @@ def create_session(
     client: ClientInfo,
     now: datetime,
 ) -> IssuedSession:
-    """Insert a new session, revoking the one this browser presented (rotation)."""
+    """Insert a new session, revoking the one this browser presented (rotation).
+
+    The presented session may belong to another person or company (or be expired but unrevoked), so it is
+    revoked with a Core UPDATE (``auth_session`` is RLS-exempt), never through the ORM unit of work, whose tenant
+    stamp rejects a dirty row of another company. ``rotated_from_id`` links only the same user in the same company.
+    """
     rotated_from: uuid.UUID | None = None
     previous = find_by_token(session, client.session_token)
     if previous is not None and previous.revoked_at is None:
-        previous.revoked_at = now
-        previous.revoked_reason = "rotated" if previous.user_id == user_id else "replaced"
-        if previous.user_id == user_id:
+        same = previous.user_id == user_id and previous.company_id == company_id
+        revoke(session, previous.id, now=now, reason="rotated" if same else "replaced")
+        if same:
             rotated_from = previous.id
     token, csrf = new_token(), new_token()
     absolute = now + ABSOLUTE_LIFETIME
@@ -122,7 +127,8 @@ def create_session(
         last_seen_at=now,
         idle_expires_at=min(now + IDLE_LIFETIME, absolute),
         absolute_expires_at=absolute,
-        recent_auth_at=now if method == AuthMethod.PASSWORD else None,
+        # test-support sessions stand in for password sign-ins (same strength); demo links are not re-authentication
+        recent_auth_at=now if method in (AuthMethod.PASSWORD, AuthMethod.TEST_SUPPORT) else None,
         rotated_from_id=rotated_from,
         ip_hash=client.ip_hash,
         user_agent_hash=client.user_agent_hash,
@@ -159,6 +165,29 @@ def revoke(session: Session, session_id: uuid.UUID, *, now: datetime, reason: st
         .values(revoked_at=now, revoked_reason=reason[:40])
     )
     return bool(result.rowcount)  # type: ignore[attr-defined]
+
+
+def revoke_all(
+    session: Session,
+    *,
+    now: datetime,
+    reason: str,
+    user_id: uuid.UUID | None = None,
+    membership_id: uuid.UUID | None = None,
+    keep: uuid.UUID | None = None,
+) -> int:
+    """Revoke every open session of a user (all companies) or of one membership, except ``keep``."""
+    if user_id is None and membership_id is None:
+        raise ValueError("revoke_all needs a user or a membership")
+    stmt = update(AuthSession).where(AuthSession.revoked_at.is_(None))
+    if user_id is not None:
+        stmt = stmt.where(AuthSession.user_id == user_id)
+    if membership_id is not None:
+        stmt = stmt.where(AuthSession.membership_id == membership_id)
+    if keep is not None:
+        stmt = stmt.where(AuthSession.id != keep)
+    result = session.execute(stmt.values(revoked_at=now, revoked_reason=reason[:40]))
+    return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
 
 def rotate_csrf(session: Session, session_id: uuid.UUID) -> str:

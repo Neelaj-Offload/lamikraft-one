@@ -25,6 +25,7 @@ from app.platform.authz.context import ActorContext, AuthStrength
 from app.platform.identity import sessions
 from app.platform.identity.actors import build_member_actor, tenant_scope
 from app.platform.identity.auth_models import AuthMethod, AuthSession
+from app.platform.identity.config import trusted_proxy_hops
 from app.platform.identity.errors import SessionExpired
 from app.platform.identity.preferences import UiPreferences, ui_cookie_value
 from app.platform.identity.sessions import CSRF_COOKIE, CSRF_HEADER, UI_COOKIE, ClientInfo, IssuedSession
@@ -41,28 +42,51 @@ _STRENGTH: dict[str, AuthStrength] = {
 UI_COOKIE_MAX_AGE = 400 * 24 * 3600
 
 
-def client_ip(request: Request) -> str | None:
-    """The caller's address for rate limits and audit.
-
-    The browser reaches FastAPI through the same-origin Next.js rewrite (a local proxy), so the socket peer is
-    a loopback address for everyone. Only when the peer is loopback is ``X-Forwarded-For`` trusted, and then
-    only its last entry — the address our own proxy appended — never a client-supplied earlier entry.
-    """
-    peer = request.client.host if request.client else None
-    if peer is None:
-        return None
+def _valid_ip(value: str) -> str | None:
+    """A normalised IP address from ``value`` (``host``, ``host:port`` or ``[v6]:port``), else None."""
+    value = value.strip()
+    if value.startswith("[") and "]" in value:
+        value = value[1 : value.index("]")]
+    elif value.count(":") == 1:
+        value = value.split(":", 1)[0]
     try:
-        loopback = ipaddress.ip_address(peer).is_loopback
+        return str(ipaddress.ip_address(value))
     except ValueError:
-        return peer
-    forwarded = request.headers.get("x-forwarded-for")
-    if loopback and forwarded:
-        last = forwarded.split(",")[-1].strip()
-        try:
-            return str(ipaddress.ip_address(last))
-        except ValueError:
-            return peer
-    return peer
+        return None
+
+
+def _forwarded_entries(request: Request) -> list[str]:
+    return [e.strip() for header in request.headers.getlist("x-forwarded-for") for e in header.split(",") if e.strip()]
+
+
+def client_ip(request: Request) -> str | None:
+    """The caller's address for rate limits and audit, or None when it cannot be established.
+
+    ``X-Forwarded-For`` is client-controlled unless a trusted hop wrote it: the same-origin Next.js rewrite passes
+    a browser-supplied header through unchanged, and uvicorn's proxy-headers middleware (on by default for loopback
+    peers) copies an entry of that header into the ASGI client (any port the entry names). The ASGI client is
+    therefore only trusted when no ``X-Forwarded-For`` could have produced it:
+
+    - a non-loopback peer that is not one of the forwarded entries is a direct caller: its socket address, the
+      header ignored;
+    - anything else came through the local proxy (a loopback peer, or a client rewritten from the header). It gets
+      the entry ``LK_TRUSTED_PROXY_HOPS`` positions from the right (the address the outermost trusted reverse proxy
+      appended) and nothing else. With the default of 0 hops the address is unknown (None): every such request
+      shares one rate-limit bucket and no client-chosen value can open a fresh one.
+    """
+    if request.client is None:
+        return None
+    host = request.client.host
+    ip = _valid_ip(host)
+    entries = _forwarded_entries(request)
+    forwarded_ips = {_valid_ip(e) for e in entries}
+    loopback = ip is not None and ipaddress.ip_address(ip).is_loopback
+    if not loopback and (not entries or (ip or host) not in forwarded_ips):
+        return ip or host  # a direct peer (non-IP hosts only occur under test clients)
+    hops = trusted_proxy_hops()
+    if hops <= 0 or len(entries) < hops:
+        return None
+    return _valid_ip(entries[-hops])
 
 
 def client_info(request: Request) -> ClientInfo:

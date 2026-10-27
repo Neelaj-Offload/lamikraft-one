@@ -31,7 +31,7 @@ def test_stored_unknown_keys_are_ignored_on_read() -> None:
 
 def test_patch_changes_only_dirty_fields() -> None:
     stored = {"ui": {"theme": "dark", "density": "compact"}}
-    patch = PreferencesPatch.model_validate({"ui": {"motion": "reduced"}, "voice": {"speak_responses": True}})
+    patch = PreferencesPatch.model_validate({"expected_version": 0, "ui": {"motion": "reduced"}, "voice": {"speak_responses": True}})
     sections, changed = apply_patch(stored, patch)
     assert sections["ui"]["theme"] == "dark" and sections["ui"]["density"] == "compact"
     assert sections["ui"]["motion"] == "reduced" and sections["voice"]["speak_responses"] is True
@@ -40,7 +40,7 @@ def test_patch_changes_only_dirty_fields() -> None:
 
 def test_null_means_unchanged_except_for_clearable_fields() -> None:
     stored = {"ui": {"theme": "dark"}, "locale": {"time_zone": "Europe/Berlin", "locale": "en-GB"}}
-    patch = PreferencesPatch.model_validate({"ui": {"theme": None}, "locale": {"time_zone": None}})
+    patch = PreferencesPatch.model_validate({"expected_version": 0, "ui": {"theme": None}, "locale": {"time_zone": None}})
     sections, changed = apply_patch(stored, patch)
     assert sections["ui"]["theme"] == "dark"
     assert sections["locale"] == {"locale": "en-GB", "time_zone": None}
@@ -49,13 +49,13 @@ def test_null_means_unchanged_except_for_clearable_fields() -> None:
 
 def test_unknown_fields_and_bad_values_are_rejected() -> None:
     with pytest.raises(ValidationError):
-        PreferencesPatch.model_validate({"ui": {"font": "comic"}})
+        PreferencesPatch.model_validate({"expected_version": 0, "ui": {"font": "comic"}})
     with pytest.raises(ValidationError):
-        PreferencesPatch.model_validate({"ui": {"theme": "neon"}})
+        PreferencesPatch.model_validate({"expected_version": 0, "ui": {"theme": "neon"}})
     with pytest.raises(ValidationError):
-        PreferencesPatch.model_validate({"locale": {"time_zone": "Mars/Olympus"}})
+        PreferencesPatch.model_validate({"expected_version": 0, "locale": {"time_zone": "Mars/Olympus"}})
     with pytest.raises(ValidationError):
-        PreferencesPatch.model_validate({"briefing": {"detail_level": 3.5}})
+        PreferencesPatch.model_validate({"expected_version": 0, "briefing": {"detail_level": 3.5}})
 
 
 @pytest.mark.parametrize("key", sorted(MANDATORY_CONTROL_KEYS))

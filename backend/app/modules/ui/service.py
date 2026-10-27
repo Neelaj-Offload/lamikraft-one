@@ -18,8 +18,10 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import structlog
+
 from app.core.config import get_settings
-from app.platform.bootstrap import build_sections
+from app.platform.bootstrap import registered_sections
 from app.platform.identity import service as identity
 from app.platform.service import command, query
 from app.platform.uow import UnitOfWork
@@ -33,6 +35,8 @@ from .schemas import (
     SessionBootstrap,
     UiPoll,
 )
+
+log = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,26 @@ def greeting_period(now: datetime, time_zone: str) -> str:
     if 12 <= hour < 17:
         return "afternoon"
     return "evening"
+
+
+def build_sections(uow: UnitOfWork, *, poll_only: bool = False) -> dict[str, Any]:
+    """``app.platform.bootstrap.build_sections`` with each section in its own SAVEPOINT.
+
+    The kernel helper isolates Python exceptions, but a database error inside one section would abort the whole
+    transaction (``InFailedSqlTransaction`` for every later statement and a failed commit, losing the CSRF
+    rotation). Here a failing section rolls back only its savepoint and is reported as unavailable.
+    """
+    out: dict[str, Any] = {}
+    for section in registered_sections():
+        if poll_only and not section.in_poll:
+            continue
+        try:
+            with uow.session.begin_nested():
+                out[section.key] = section.build(uow)
+        except Exception as exc:  # isolate contributors; the session must still bootstrap
+            log.warning("ui.section_failed", section=section.key, error=type(exc).__name__)
+            out[section.key] = {"status": "unavailable"}
+    return out
 
 
 @command()
