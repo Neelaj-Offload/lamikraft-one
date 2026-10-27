@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { Form } from "react-aria-components";
 import { Button } from "@/components/ui/button";
 import { ErrorIcon } from "@/components/ui/icons";
-import { TextField } from "@/components/ui/text-field";
+import { PasswordField, TextField } from "@/components/ui/text-field";
 import { authMessages as m } from "@/messages/auth";
 import { loginFailure, signIn, type AuthFailure } from "./auth-api";
 
@@ -45,7 +45,7 @@ export function LoginForm({ next }: { next: string }) {
           ref={alertRef}
           tabIndex={-1}
           role="alert"
-          className="flex gap-3 rounded-lg border border-danger bg-danger-bg p-3 text-danger outline-none"
+          className="flex gap-3 rounded-lg border border-danger bg-danger-bg p-3 text-danger outline-hidden"
         >
           <ErrorIcon className="mt-0.5 shrink-0" />
           <div className="flex flex-col gap-1">
@@ -71,10 +71,10 @@ export function LoginForm({ next }: { next: string }) {
         validationBehavior="native"
         validate={(value) => (value.trim() ? null : m.login.emailRequired)}
       />
-      <TextField
+      <PasswordField
         label={m.login.password}
+        revealLabel={m.login.showPassword}
         name="password"
-        type="password"
         autoComplete="current-password"
         isRequired
         value={password}

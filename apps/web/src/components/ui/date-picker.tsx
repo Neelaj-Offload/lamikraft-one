@@ -1,7 +1,15 @@
 "use client";
 
-import { parseAbsolute, parseDate, type CalendarDate, type ZonedDateTime } from "@internationalized/date";
-import type { ReactNode } from "react";
+import {
+  now as zonedNow,
+  parseAbsolute,
+  parseDate,
+  toZoned,
+  type CalendarDate,
+  type DateValue,
+  type ZonedDateTime,
+} from "@internationalized/date";
+import { useMemo, type ReactNode } from "react";
 import {
   Button as RacButton,
   Calendar,
@@ -48,6 +56,20 @@ export function zonedToUtcIso(value: ZonedDateTime): string {
   return value.toDate().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
+/**
+ * Any picker value → UTC instant. A value without a zone (a CalendarDateTime, which the picker
+ * produces when it starts empty without a zoned placeholder) is wall time in `timeZone`, the
+ * session zone, never the browser's.
+ */
+export function dateValueToUtcIso(value: DateValue, timeZone: string): string {
+  return zonedToUtcIso("timeZone" in value ? value : toZoned(value, timeZone));
+}
+
+/** Placeholder for an empty instant field: the current hour in the session zone, so the zone segment shows. */
+export function zonedPlaceholder(timeZone: string): ZonedDateTime {
+  return zonedNow(timeZone).set({ minute: 0, second: 0, millisecond: 0 });
+}
+
 interface CommonProps {
   label: string;
   description?: ReactNode;
@@ -83,7 +105,7 @@ function PickerChrome({ label, description, errorMessage }: Pick<CommonProps, "l
           {(segment) => (
             <DateSegment
               segment={segment}
-              className="rounded-xs px-0.5 outline-none placeholder-shown:text-ink-muted focus:bg-forest focus:text-on-forest data-[type=literal]:px-0"
+              className="rounded-xs px-0.5 outline-hidden placeholder-shown:text-ink-muted focus:bg-forest focus:text-on-forest data-[type=literal]:px-0"
             />
           )}
         </DateInput>
@@ -98,7 +120,7 @@ function PickerChrome({ label, description, errorMessage }: Pick<CommonProps, "l
       ) : null}
       <FieldError className={fieldErrorClasses}>{errorMessage}</FieldError>
       <Popover className={cx(popoverClasses, "p-3")} offset={4}>
-        <Dialog className="outline-none" aria-label={`${label}: choose a date`}>
+        <Dialog className="outline-hidden" aria-label={`${label}: choose a date`}>
           <Calendar>
             <header className="mb-2 flex items-center justify-between gap-2">
               <RacButton slot="previous" aria-label="Previous month" className={iconButtonClasses("quiet")}>
@@ -114,7 +136,7 @@ function PickerChrome({ label, description, errorMessage }: Pick<CommonProps, "l
                 <CalendarCell
                   date={date}
                   className={cx(
-                    "flex size-10 items-center justify-center rounded-md tabular outline-none pointer-fine:size-9",
+                    "flex size-11 items-center justify-center rounded-md tabular outline-hidden focus-visible:focus-ring-inset data-[focus-visible]:focus-ring-inset pointer-fine:size-9",
                     "hover:bg-surface-sunken outside-month:invisible selected:bg-forest selected:text-on-forest",
                     "disabled:opacity-40 unavailable:text-ink-muted unavailable:line-through",
                   )}
@@ -135,6 +157,9 @@ function PickerChrome({ label, description, errorMessage }: Pick<CommonProps, "l
 export function DatePicker(props: DatePickerProps) {
   const zone = useZone();
   const { label, description, errorMessage, isRequired, isDisabled, name, className } = props;
+  // Without a zoned placeholder an empty picker produces zone-less values (read in the
+  // browser's zone) and shows no zone segment.
+  const placeholder = useMemo(() => zonedPlaceholder(zone.timeZone), [zone.timeZone]);
   const shared = {
     isRequired,
     isDisabled,
@@ -149,7 +174,9 @@ export function DatePicker(props: DatePickerProps) {
         {...shared}
         granularity="minute"
         value={toZonedDateTime(props.value, zone.timeZone)}
-        onChange={(next) => props.onChange(next ? zonedToUtcIso(next) : null)}
+        placeholderValue={placeholder}
+        // Typed as ZonedDateTime, but converted defensively in case a zone-less value arrives.
+        onChange={(next: DateValue | null) => props.onChange(next ? dateValueToUtcIso(next, zone.timeZone) : null)}
       >
         <PickerChrome label={label} description={description} errorMessage={errorMessage} />
       </RacDatePicker>

@@ -233,3 +233,14 @@ export const ConflictIcon = (p: IconProps) => (
     <path d="M7 4v10M7 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM17 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 10c0 4-10 2-10 6" />
   </Icon>
 );
+export const EyeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+export const EyeOffIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16.6 16.6 0 0 1-2.9 3.6M6.6 7.2C4 8.9 2.5 12 2.5 12S6 18 12 18a9.3 9.3 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Icon>
+);

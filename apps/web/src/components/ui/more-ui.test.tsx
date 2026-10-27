@@ -1,8 +1,9 @@
+import { CalendarDateTime } from "@internationalized/date";
 import { Button as RacButton } from "react-aria-components";
 import { describe, expect, it } from "vitest";
 import { countTags, render, renderInSession, textOf } from "@/lib/test-support/render";
 import { testBootstrap } from "@/lib/test-support/session";
-import { DatePicker, toCalendarDate, toZonedDateTime, zonedToUtcIso } from "./date-picker";
+import { DatePicker, dateValueToUtcIso, toCalendarDate, toZonedDateTime, zonedPlaceholder, zonedToUtcIso } from "./date-picker";
 import { Dialog, Drawer } from "./dialog";
 import { Menu, MenuItem, MenuTrigger } from "./menu";
 import { ComboBox } from "./select";
@@ -42,6 +43,19 @@ describe("DatePicker", () => {
       testBootstrap({ time_zone: "Asia/Kolkata" }),
     );
     expect(html).toMatch(/IST|GMT\+5:30|India/);
+  });
+
+  it("starts an empty date-time field in the session zone and saves the wall time there", () => {
+    const html = renderInSession(
+      <DatePicker label="Remind me" granularity="minute" value={null} onChange={noop} />,
+      testBootstrap({ time_zone: "Asia/Kolkata" }),
+    );
+    // The zone segment shows even before a value is chosen.
+    expect(html).toMatch(/IST|GMT\+5:30|India/);
+    expect(zonedPlaceholder("Asia/Kolkata").timeZone).toBe("Asia/Kolkata");
+    // A zone-less value (what an empty picker used to produce) is wall time in the session zone.
+    expect(dateValueToUtcIso(new CalendarDateTime(2026, 10, 23, 10, 0), "Asia/Kolkata")).toBe("2026-10-23T04:30:00Z");
+    expect(dateValueToUtcIso(toZonedDateTime("2026-10-23T04:30:00Z", "Europe/Berlin")!, "Asia/Kolkata")).toBe("2026-10-23T04:30:00Z");
   });
 });
 

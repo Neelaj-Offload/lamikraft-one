@@ -97,6 +97,14 @@ describe("auth pages", () => {
     expect(textOf(html)).toBe("Email Password Sign in");
   });
 
+  it("login form: the password starts hidden with a labelled show/hide toggle (PARITY UI-26)", () => {
+    const html = render(<LoginForm next="/today" />);
+    expect(html).toMatch(/<input[^>]*type="password"/);
+    expect(html).toMatch(/<button(?=[^>]*aria-pressed="false")(?=[^>]*aria-label="Show password")[^>]*>/);
+    // The toggle is a plain button, never a second submit button inside the form.
+    expect(html).toMatch(/<button(?=[^>]*aria-label="Show password")(?=[^>]*type="button")[^>]*>/);
+  });
+
   it("demo sign-in starts as a status message (the token is read after mount)", () => {
     const html = render(<DemoSignIn />);
     expect(html).toContain('role="status"');

@@ -1,4 +1,5 @@
 import { api, requestUntyped, type ApiClient } from "@/lib/api/client";
+import { safeAppPath } from "@/lib/safe-path";
 import { INBOX_TABS, type InboxItem, type InboxPage, type InboxTab, type TaskState } from "./types";
 
 export const INBOX_PATH = "/api/v1/tasks/inbox";
@@ -18,22 +19,21 @@ export function cursorFrom(value: string | string[] | null | undefined): string 
   return raw && /^[A-Za-z0-9_\-=.]{1,512}$/.test(raw) ? raw : null;
 }
 
+/**
+ * Each tab is its own route (frontend_verification §4: `/inbox`, `/inbox/approvals`,
+ * `/inbox/exceptions`, `/inbox/done`, plus `/inbox/snoozed`), so tabs deep-link and appear in
+ * the route manifest; Tasks is `/inbox` itself. The keyset cursor stays a query parameter.
+ */
 export function inboxHref(tab: InboxTab, cursor: string | null = null): string {
-  const params = new URLSearchParams();
-  if (tab !== "tasks") params.set("tab", tab);
-  if (cursor) params.set("cursor", cursor);
-  const query = params.toString();
-  return query ? `/inbox?${query}` : "/inbox";
+  const path = tab === "tasks" ? "/inbox" : `/inbox/${tab}`;
+  return cursor ? `${path}?${new URLSearchParams({ cursor }).toString()}` : path;
 }
 
 const STATES: readonly TaskState[] = ["open", "in_progress", "done", "dismissed", "cancelled", "expired"];
 type Json = Record<string, unknown>;
 const isObject = (value: unknown): value is Json => value !== null && typeof value === "object" && !Array.isArray(value);
 const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
-const appPath = (value: unknown): string | null => {
-  const path = str(value);
-  return path && path.startsWith("/") && !path.startsWith("//") ? path : null;
-};
+const appPath = safeAppPath;
 const person = (value: unknown) =>
   isObject(value) && str(value.display_name) ? { id: str(value.id) ?? "", display_name: str(value.display_name)! } : null;
 

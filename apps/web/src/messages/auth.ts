@@ -5,6 +5,7 @@ export const authMessages = {
     intro: "Use your work email and password.",
     email: "Email",
     password: "Password",
+    showPassword: "Show password",
     submit: "Sign in",
     submitting: "Signing in…",
     // One message for every wrong email/password combination: no account enumeration.

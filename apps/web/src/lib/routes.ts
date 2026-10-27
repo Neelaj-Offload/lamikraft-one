@@ -186,6 +186,47 @@ export const routes = [
     requiredPermission: null,
     access: "session",
   },
+  // --- web lane, Slice 1 wave 1 review fixes: Inbox tabs are routes (frontend_verification §4) -
+  {
+    id: "inbox-approvals",
+    path: "/inbox/approvals",
+    label: "Approvals",
+    area: "inbox",
+    navGroup: "context",
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "inbox-exceptions",
+    path: "/inbox/exceptions",
+    label: "Exceptions",
+    area: "inbox",
+    navGroup: "context",
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "inbox-snoozed",
+    path: "/inbox/snoozed",
+    label: "Snoozed",
+    area: "inbox",
+    navGroup: "context",
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "inbox-done",
+    path: "/inbox/done",
+    label: "Done",
+    area: "inbox",
+    navGroup: "context",
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];

@@ -23,6 +23,10 @@ export const shellMessages = {
     resultsAnnouncement: (count: number) => (count === 1 ? "1 result" : `${count} results`),
     shortcutHint: "Press / or Ctrl K to search from anywhere.",
   },
+  sidebar: {
+    collapse: "Collapse sidebar",
+    expand: "Expand sidebar",
+  },
   rail: {
     show: "Show context panel",
     hide: "Hide context panel",
@@ -37,6 +41,7 @@ export const shellMessages = {
     themeDark: "Dark",
     signOut: "Sign out",
     themeSaveFailed: "Your theme applies on this device, but it couldn't be saved to your profile.",
+    sidebarSaveFailed: "The sidebar setting applies until you reload; it couldn't be saved to your profile.",
     railSaveFailed: "The panel setting applies until you reload; it couldn't be saved to your profile.",
     signOutFailed: "You're still signed in. Lamikraft One couldn't reach the server to sign you out. Try again.",
   },

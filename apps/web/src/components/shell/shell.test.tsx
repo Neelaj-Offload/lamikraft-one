@@ -3,13 +3,15 @@ import { announce, getAnnouncerState, subscribeAnnouncer } from "@/lib/a11y/anno
 import { createApiClient } from "@/lib/api/client";
 import { navRoutesFromBootstrap } from "@/lib/session/nav";
 import { signOut } from "@/lib/session/sign-out";
-import { countTags, render, renderInSession, textOf } from "@/lib/test-support/render";
+import { controlsWithoutVisibleFocus, countTags, render, renderInSession, textOf } from "@/lib/test-support/render";
 import { testBootstrap } from "@/lib/test-support/session";
+import { shellGridClasses } from "./app-shell";
 import { phoneTabs } from "./bottom-nav";
 import { ComposerDock } from "./composer-dock";
 import { DemoNotice } from "./top-bar";
 import { deniedRoute } from "./route-gate";
 import { initials } from "./user-menu";
+import { PrimaryNav } from "./primary-nav";
 import { WorkHub } from "./hubs";
 
 describe("phone tabs", () => {
@@ -116,5 +118,25 @@ describe("live announcer", () => {
     expect(seen[0]).not.toBe(seen[1]);
     expect(getAnnouncerState().polite.message).toBe("3 updates");
     expect(getAnnouncerState().assertive.message).toBe("Saved");
+  });
+});
+
+describe("collapsible sidebar (PARITY UI-07)", () => {
+  const routes = navRoutesFromBootstrap(testBootstrap().nav, testBootstrap().permissions.map((p) => p.key));
+
+  it("uses the 64 px icon rail when collapsed and on tablets, 208 px from 1280 px otherwise", () => {
+    expect(shellGridClasses("rail", false)).toBe("md:grid-cols-[64px_minmax(0,1fr)]");
+    expect(shellGridClasses("rail", true)).toContain("xl:grid-cols-[64px_minmax(0,1fr)_300px]");
+    expect(shellGridClasses("auto", false)).toBe("md:grid-cols-[64px_minmax(0,1fr)] xl:grid-cols-[208px_minmax(0,1fr)]");
+    expect(shellGridClasses("auto", true)).toContain("xl:grid-cols-[208px_minmax(0,1fr)_300px]");
+  });
+
+  it("keeps every link's name in the icon rail (visually hidden) and a visible focus ring", () => {
+    const html = renderInSession(<PrimaryNav routes={routes} inboxCount={3} locale="en-IN" mode="rail" showTooltips />);
+    expect(html).toMatch(/<span class="[^"]*\bsr-only\b[^"]*">Today<\/span>/);
+    expect(html).toMatch(/<span class="[^"]*\bsr-only\b[^"]*">Inbox<\/span>/);
+    expect(controlsWithoutVisibleFocus(html)).toEqual([]);
+    const wide = renderInSession(<PrimaryNav routes={routes} inboxCount={null} locale="en-IN" mode="auto" />);
+    expect(wide).toMatch(/<span class="[^"]*md:max-xl:sr-only[^"]*">Today<\/span>/);
   });
 });

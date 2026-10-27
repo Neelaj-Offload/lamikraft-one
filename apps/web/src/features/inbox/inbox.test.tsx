@@ -38,20 +38,29 @@ describe("Inbox URL state", () => {
     expect(cursorFrom("eyJrIjoxfQ")).toBe("eyJrIjoxfQ");
     expect(cursorFrom("<script>")).toBeNull();
     expect(inboxHref("tasks")).toBe("/inbox");
-    expect(inboxHref("approvals", "abc")).toBe("/inbox?tab=approvals&cursor=abc");
+    expect(inboxHref("approvals", "abc")).toBe("/inbox/approvals?cursor=abc");
+    // Tabs are routes (frontend_verification §4), so they deep-link.
+    expect(inboxHref("exceptions")).toBe("/inbox/exceptions");
   });
 });
 
 describe("parseInboxPage", () => {
   it("reads a keyset page and keeps only in-app links", () => {
     const page = parseInboxPage({
-      items: [rawItem(), rawItem({ id: "t2", href: "https://evil.example", source: null }), { id: "bad" }],
+      items: [
+        rawItem(),
+        rawItem({ id: "t2", href: "https://evil.example", source: null }),
+        { id: "bad" },
+        // Browsers read "/\host" like "//host": off-site.
+        rawItem({ id: "t3", href: "/\\evil.example/phish", source: null }),
+      ],
       next_cursor: "next-1",
       limit: 50,
       counts: { tasks: 3, approvals: 1, bogus: 9, done: -1 },
     });
-    expect(page.items.map((item) => item.id)).toEqual(["t1", "t2"]);
+    expect(page.items.map((item) => item.id)).toEqual(["t1", "t2", "t3"]);
     expect(page.items[1]!.href).toBeNull();
+    expect(page.items[2]!.href).toBeNull();
     expect(page.next_cursor).toBe("next-1");
     expect(page.counts).toEqual({ tasks: 3, approvals: 1 });
   });
@@ -83,7 +92,7 @@ describe("Inbox list", () => {
 
   it("offers the first page from later pages", () => {
     const html = renderInSession(<InboxList tab="approvals" page={{ ...page, next_cursor: null }} cursor="c2" />);
-    expect(html).toContain('href="/inbox?tab=approvals"');
+    expect(html).toContain('href="/inbox/approvals"');
     expect(textOf(html)).toContain("First page");
     expect(textOf(html)).not.toContain("Next page");
   });

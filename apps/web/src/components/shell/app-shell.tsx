@@ -4,11 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { IconButton } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { SearchDialog } from "@/features/search/search-dialog";
 import { cx } from "@/lib/cx";
-import { OfflineIcon } from "@/components/ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, OfflineIcon } from "@/components/ui/icons";
 import { useMediaQuery, useOnline } from "@/lib/hooks";
 import { useSession } from "@/lib/session/context";
 import { navRoutesFromBootstrap } from "@/lib/session/nav";
@@ -20,7 +21,7 @@ import type { ThemePreference } from "@/lib/ui-preferences";
 import { shellMessages as m } from "@/messages/shell";
 import { BottomNav } from "./bottom-nav";
 import { RailBody, RailContext, type RailSlot } from "./context-rail";
-import { PrimaryNav } from "./primary-nav";
+import { PrimaryNav, sidebarClasses, type SidebarMode } from "./primary-nav";
 import { RouteGate } from "./route-gate";
 import { ShellContext, type ShellContextValue } from "./shell-context";
 import { SkipLink } from "./skip-link";
@@ -28,6 +29,20 @@ import { TopBar } from "./top-bar";
 import { Wordmark } from "./wordmark";
 
 const WIDE_QUERY = "(min-width: 1280px)";
+
+/**
+ * Grid columns from 768 px: the sidebar (64 px icon rail on tablets and when collapsed,
+ * otherwise 208 px from 1280 px), the canvas, and the optional 300 px context rail at 1280 px.
+ * One literal string per case, so exactly one `xl:grid-cols-*` class applies.
+ */
+export function shellGridClasses(mode: SidebarMode, railInline: boolean): string {
+  if (mode === "rail") {
+    return railInline ? "md:grid-cols-[64px_minmax(0,1fr)] xl:grid-cols-[64px_minmax(0,1fr)_300px]" : "md:grid-cols-[64px_minmax(0,1fr)]";
+  }
+  return railInline
+    ? "md:grid-cols-[64px_minmax(0,1fr)] xl:grid-cols-[208px_minmax(0,1fr)_300px]"
+    : "md:grid-cols-[64px_minmax(0,1fr)] xl:grid-cols-[208px_minmax(0,1fr)]";
+}
 
 /** Moves focus to the new page's h1 after client-side navigation (frontend_verification §16). */
 function useFocusHeadingOnNavigate(): void {
@@ -46,7 +61,8 @@ function useFocusHeadingOnNavigate(): void {
 }
 
 /**
- * The signed-in frame (build brief <design_direction>): 208 px sidebar from 768 px, a slim
+ * The signed-in frame (build brief <design_direction>): a 208 px sidebar from 1280 px that the
+ * person can collapse to a 64 px icon rail (always the rail on tablets, 768-1279 px), a slim
  * top bar, the main canvas and an optional 300 px context rail at ≥1280 px (an overlay drawer
  * on tablets); below 768 px a bottom navigation (Today, Inbox, Work, More) replaces the
  * sidebar. Landmarks: banner, navigation "Primary", main, complementary "Context".
@@ -68,6 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [theme, setThemeState] = useState<ThemePreference>(bootstrap.ui.theme);
   const [railOpen, setRailOpen] = useState(bootstrap.ui.context_rail_open);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(bootstrap.ui.sidebar_collapsed);
   const [railDrawerOpen, setRailDrawerOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const isWide = useMediaQuery(WIDE_QUERY, true);
@@ -111,6 +128,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     saveUiPreferences({ context_rail_open: next }).catch(() => toast.warning(m.user.railSaveFailed));
   }, [isWide, railOpen]);
 
+  const toggleSidebar = useCallback(() => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    saveUiPreferences({ sidebar_collapsed: next }).catch(() => toast.warning(m.user.sidebarSaveFailed));
+  }, [sidebarCollapsed]);
+
   const requestSignOut = useCallback(async () => {
     setSigningOut(true);
     const result = await signOut();
@@ -137,25 +160,54 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const roleLabel = bootstrap.membership.role_names.join(", ") || null;
   const railInline = railOpen;
+  const sidebarMode: SidebarMode = sidebarCollapsed ? "rail" : "auto";
+  const sidebar = sidebarClasses[sidebarMode];
+  const navId = "lk-primary-nav";
 
   return (
     <ShellContext value={shell}>
       <RailContext value={railSlot}>
-        <div
-          className={cx(
-            "min-h-dvh md:grid md:grid-cols-[208px_minmax(0,1fr)]",
-            railInline && "xl:grid-cols-[208px_minmax(0,1fr)_300px]",
-          )}
-        >
+        <div className={cx("min-h-dvh md:grid", shellGridClasses(sidebarMode, railInline))}>
           <SkipLink />
-          <div className="sticky top-0 hidden h-dvh flex-col gap-6 border-e bg-surface px-3 py-4 md:flex">
-            <Link href="/today" aria-label={m.homeLink} className="inline-flex min-h-11 items-center self-start rounded-md px-3">
-              <Wordmark />
+          <div
+            className={cx(
+              "sticky top-0 hidden h-dvh flex-col gap-6 border-e bg-surface py-4 md:flex",
+              sidebarMode === "rail" ? "px-2" : "px-2 xl:px-3",
+            )}
+          >
+            <Link
+              href="/today"
+              aria-label={m.homeLink}
+              className={cx(
+                "inline-flex min-h-11 items-center rounded-md",
+                sidebarMode === "rail" ? "self-center px-2" : "self-start px-3 md:max-xl:self-center md:max-xl:px-2",
+              )}
+            >
+              <Wordmark labelClassName={sidebar.label} />
             </Link>
-            <PrimaryNav routes={navRoutes} inboxCount={inboxCount} locale={zone.locale} />
-            <div className="mt-auto flex flex-col gap-0.5 border-t px-3 pt-4 text-sm">
-              <span className="font-semibold text-ink">{bootstrap.user.display_name}</span>
-              {roleLabel ? <span className="text-ink-muted">{roleLabel}</span> : null}
+            <PrimaryNav
+              id={navId}
+              routes={navRoutes}
+              inboxCount={inboxCount}
+              locale={zone.locale}
+              mode={sidebarMode}
+              showTooltips={sidebarCollapsed || !isWide}
+            />
+            <div className="mt-auto flex flex-col gap-3 border-t pt-4 text-sm">
+              <div className={cx("flex flex-col gap-0.5 px-3", sidebar.wide)}>
+                <span className="font-semibold text-ink">{bootstrap.user.display_name}</span>
+                {roleLabel ? <span className="text-ink-muted">{roleLabel}</span> : null}
+              </div>
+              {/* Tablets always show the icon rail; the choice applies from 1280 px. */}
+              <div className={cx("hidden xl:flex", sidebarMode === "rail" ? "justify-center" : "px-1")}>
+                <IconButton
+                  label={sidebarCollapsed ? m.sidebar.expand : m.sidebar.collapse}
+                  onPress={toggleSidebar}
+                  aria-controls={navId}
+                >
+                  {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                </IconButton>
+              </div>
             </div>
           </div>
 
@@ -182,7 +234,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               id="main"
               tabIndex={-1}
               className={cx(
-                "@container min-w-0 flex-1 px-4 py-6 outline-none md:px-8 lg:px-10 lg:py-8",
+                "@container min-w-0 flex-1 px-4 py-6 outline-hidden md:px-8 lg:px-10 lg:py-8",
                 "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom)+1.5rem)]",
                 "max-md:has-[[data-composer-dock]]:pb-[calc(3.5rem+env(safe-area-inset-bottom)+10rem)]",
               )}
