@@ -127,6 +127,7 @@ def _capabilities(uow: UnitOfWork, job: ImportJob) -> dict[str, Capability]:
 
 
 def _detail(uow: UnitOfWork, job: ImportJob) -> JobDetail:
+    uow.flush()  # pending changes (counts, progress) bump the version before it is reported
     return JobDetail(
         **_summary_fields(job, _names(uow, [job.created_by])),
         sheet_name=job.sheet_name,
@@ -247,7 +248,7 @@ def list_jobs(
     """Durable history (UI-87), newest first; filters apply before paging."""
     conds = []
     if import_type:
-        conds.append(J.import_type == import_type.value)
+        conds.append(J.import_type == str(import_type))
     if status:
         conds.append(J.status == status)
     if mine:

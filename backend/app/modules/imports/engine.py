@@ -190,7 +190,7 @@ def validate_job(uow: UnitOfWork, job: ImportJob) -> None:
             row.status = RowStatus.REJECTED.value
         elif duplicate_of.get(row.id) == "identical":
             row.status = RowStatus.DUPLICATE_IDENTICAL.value
-        elif any(i.severity == ERROR for i in issues) or duplicate_of.get(row.id) == "conflict":
+        elif any(i.severity in (ERROR, QUARANTINE) for i in issues) or duplicate_of.get(row.id) == "conflict":
             row.status = _status_for(issues)
         else:
             plan = defn.plan(uow, p, options)
