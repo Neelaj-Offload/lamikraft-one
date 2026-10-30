@@ -5,9 +5,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    StringConstraints,
+    field_validator,
+)
+from pydantic_core import core_schema
 
 from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode
@@ -27,10 +36,28 @@ class PartyStatus(StrEnum):
     BLOCKED = "blocked"
 
 
-class CustomerType(StrEnum):
-    STANDARD = "standard"
-    DEALER = "dealer"
-    DISTRIBUTOR = "distributor"
+CUSTOMER_TYPE_PATTERN = r"^[a-z][a-z0-9_]{1,19}$"
+
+
+class CustomerType(str):
+    """A customer-type code from the ``parties_customer_type`` table (SC-13). On the wire it is the plain code string;
+    ``.value`` keeps the call sites written against the former StrEnum (``detail.customer_type.value``) working."""
+
+    STANDARD: ClassVar[str] = "standard"
+    DEALER: ClassVar[str] = "dealer"
+    DISTRIBUTOR: ClassVar[str] = "distributor"
+
+    @property
+    def value(self) -> str:
+        return str(self)
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _source: Any, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(pattern=CUSTOMER_TYPE_PATTERN, min_length=2, max_length=20),
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
 
 
 class AddressKind(StrEnum):
@@ -237,3 +264,41 @@ class ResolvePartyInput(BaseModel):
     )
     party_role: PartyRole | None = Field(default=None, description="Limit to customers, vendors, ...")
     country_code: Country | None = None
+
+
+# ---- customer types (SC-13) ---------------------------------------------------------------------------------------
+class CustomerTypeCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: Annotated[
+        str,
+        BeforeValidator(lambda v: v.strip().lower() if isinstance(v, str) else v),
+        StringConstraints(pattern=CUSTOMER_TYPE_PATTERN),
+    ]
+    label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+    description: Annotated[str, StringConstraints(max_length=2000)] | None = None
+    display_order: int = Field(default=0, ge=0, le=100000)
+    is_active: bool = True
+
+
+class CustomerTypeUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)] | None = None
+    description: Annotated[str, StringConstraints(max_length=2000)] | None = None
+    display_order: int | None = Field(default=None, ge=0, le=100000)
+    is_active: bool | None = None
+
+
+class CustomerTypeRead(BaseModel):
+    id: uuid.UUID
+    code: str
+    label: str
+    description: str | None
+    display_order: int
+    is_active: bool
+    is_system: bool
+    party_count: int
+    version: int
+    capabilities: dict[str, Capability]

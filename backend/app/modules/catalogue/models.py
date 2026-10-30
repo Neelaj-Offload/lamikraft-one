@@ -8,12 +8,14 @@ Enumerations are varchar + CHECK (created in the migration through ``helpers.enu
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -23,6 +25,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -311,9 +314,111 @@ class LookupReference(IdMixin, TenantMixin, TimestampMixin, Base):
     )
 
 
+class TaxonomyAlias(IdMixin, TenantMixin, TimestampMixin, Base):
+    """A former taxonomy name (written on rename) so old spreadsheets still resolve, with a warning."""
+
+    __tablename__ = "catalogue_taxonomy_alias"
+
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_category.id", ondelete="CASCADE"), nullable=False
+    )
+    subcategory_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_subcategory.id", ondelete="CASCADE"), nullable=True
+    )
+    alias_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    alias_key: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    __table_args__ = (
+        Index(
+            "uq_catalogue_taxonomy_alias_category",
+            "company_id",
+            "alias_key",
+            unique=True,
+            postgresql_where=text("subcategory_id IS NULL"),
+        ),
+        Index(
+            "uq_catalogue_taxonomy_alias_subcategory",
+            "category_id",
+            "alias_key",
+            unique=True,
+            postgresql_where=text("subcategory_id IS NOT NULL"),
+        ),
+    )
+
+
+class ProductMedia(TenantEntity, VersionMixin, Base):
+    """A product's image, document or packaging photo: a link to a content-addressed ``file_object`` (or a
+    pending/external location from an import). Soft-deleted with a reason; one live primary image per product."""
+
+    __tablename__ = "catalogue_product_media"
+
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_product.id", ondelete="CASCADE"), nullable=False
+    )
+    file_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("file_object.id", ondelete="RESTRICT"), nullable=True
+    )
+    media_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    alt_text: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    source_kind: Mapped[str] = mapped_column(String(30), nullable=False, default="upload")
+    source_url_key: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    source_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    ingest_status: Mapped[str] = mapped_column(String(20), nullable=False, default="stored")
+    ingest_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source_catalog_page: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    legacy_media_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    import_job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("NOT is_primary OR media_type = 'image'", name="primary_is_image"),
+        CheckConstraint("ingest_status <> 'stored' OR file_id IS NOT NULL", name="stored_has_file"),
+        CheckConstraint("size_bytes IS NULL OR size_bytes >= 0", name="size_non_negative"),
+        Index(
+            "uq_catalogue_product_media_primary",
+            "product_id",
+            unique=True,
+            postgresql_where=text("is_primary AND deleted_at IS NULL"),
+        ),
+        Index(
+            "uq_catalogue_product_media_file",
+            "product_id",
+            "file_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL AND file_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_catalogue_product_media_source",
+            "product_id",
+            "media_type",
+            "source_url_key",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL AND source_url_key IS NOT NULL"),
+        ),
+        Index("ix_catalogue_product_media_product", "company_id", "product_id"),
+        Index("ix_catalogue_product_media_file_id", "file_id"),
+    )
+
+
 __all__ = [
     "Category",
     "LookupReference",
+    "ProductMedia",
+    "TaxonomyAlias",
     "Product",
     "ProductDimension",
     "ProductPackaging",

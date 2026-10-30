@@ -22,7 +22,7 @@ from app.modules.catalogue.schemas import (
 )
 from app.modules.commercial.schemas import RuleSetStatus
 from app.modules.parties import events as party_events
-from app.modules.parties.schemas import AddressKind, CustomerType, PartyStatus, TaxScheme
+from app.modules.parties.schemas import AddressKind, PartyStatus, TaxScheme
 from app.modules.pricing import events as pricing_events
 from app.modules.pricing.schemas import (
     CostSourceKind,
@@ -39,6 +39,15 @@ from app.platform.tools import FORBIDDEN_INPUT_FIELDS
 from app.platform.uow import UnitOfWork
 from app.registry import get_registry
 
+class SystemCustomerType(StrEnum):
+    """The built-in customer types; parties reference ``parties_customer_type`` by FK since Slice 2 (SC-13), price
+    lists still carry the CHECK until the pricing lane moves them to the FK."""
+
+    STANDARD = "standard"
+    DEALER = "dealer"
+    DISTRIBUTOR = "distributor"
+
+
 LANE_TABLES = (
     "catalogue_category", "catalogue_subcategory", "catalogue_product", "catalogue_product_specification",
     "catalogue_product_packaging", "catalogue_product_dimension", "catalogue_lookup_reference", "parties_party",
@@ -53,13 +62,12 @@ ENUM_COLUMNS: dict[tuple[str, str], type[StrEnum]] = {
     ("catalogue_product", "size_basis"): SizeBasis,
     ("catalogue_product_dimension", "kind"): DimensionKind,
     ("catalogue_product_dimension", "parse_status"): ParseStatus,
-    ("parties_party", "customer_type"): CustomerType,
     ("parties_party", "status"): PartyStatus,
     ("parties_party_address", "kind"): AddressKind,
     ("parties_party_tax_identifier", "scheme"): TaxScheme,
     ("pricing_price_list", "price_type"): PriceType,
     ("pricing_price_list", "scope_kind"): PriceScope,
-    ("pricing_price_list", "customer_type"): CustomerType,
+    ("pricing_price_list", "customer_type"): SystemCustomerType,
     ("pricing_price_list", "status"): PriceListStatus,
     ("pricing_price_list", "source_kind"): PriceSourceKind,
     ("pricing_price_list_item", "status"): PriceItemStatus,
