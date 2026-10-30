@@ -94,7 +94,7 @@ describe("auth pages", () => {
     expect(html).toMatch(/autoComplete="current-password"/);
     expect(countTags(html, "label")).toBe(2);
     expect(html).toContain('type="submit"');
-    expect(textOf(html)).toBe("Email Password Sign in");
+    expect(textOf(html)).toBe("Email Password Sign in Forgot your password?");
   });
 
   it("login form: the password starts hidden with a labelled show/hide toggle (PARITY UI-26)", () => {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorIcon } from "@/components/ui/icons";
 import { PasswordField, TextField } from "@/components/ui/text-field";
 import { authMessages as m } from "@/messages/auth";
-import { loginFailure, signIn, type AuthFailure } from "./auth-api";
+import { afterSignIn, loginFailure, signIn, type AuthFailure } from "./auth-api";
 
 /**
  * Email and password sign-in. On success the browser holds the session cookies and the
@@ -26,8 +26,8 @@ export function LoginForm({ next }: { next: string }) {
     setPending(true);
     setFailure(null);
     try {
-      await signIn(email.trim(), password);
-      window.location.assign(next);
+      const stage = await signIn(email.trim(), password);
+      window.location.assign(afterSignIn(stage, next));
     } catch (error) {
       setFailure(loginFailure(error));
       setPassword("");
@@ -85,6 +85,9 @@ export function LoginForm({ next }: { next: string }) {
       <Button type="submit" variant="primary" isPending={pending} pendingLabel={m.login.submitting} className="w-full">
         {m.login.submit}
       </Button>
+      <a href="/forgot-password" className="focus-ring self-center rounded text-sm text-ink-muted underline underline-offset-2">
+        Forgot your password?
+      </a>
     </Form>
   );
 }

@@ -11,8 +11,17 @@ import { authMessages as m } from "@/messages/auth";
 export const LOGIN_PATH = "/api/v1/identity/session";
 export const DEMO_SIGN_IN_PATH = "/api/v1/identity/demo-sign-in";
 
-export async function signIn(email: string, password: string, client: ApiClient = api): Promise<void> {
-  await requestUntyped<unknown>(client, "post", LOGIN_PATH, { body: { email, password } });
+/** Sign-in stage (platform-2): "active", or a second step still to do on /two-step (enter or set up a code). */
+export type SignInStage = "active" | "mfa_pending" | "mfa_enrollment_required";
+
+export async function signIn(email: string, password: string, client: ApiClient = api): Promise<SignInStage> {
+  const info = await requestUntyped<{ stage?: SignInStage } | null>(client, "post", LOGIN_PATH, { body: { email, password } });
+  return info?.stage ?? "active";
+}
+
+/** Where to go after the password: `next`, or the two-step page (which then continues to `next`). */
+export function afterSignIn(stage: SignInStage, next: string): string {
+  return stage === "active" ? next : `/two-step?next=${encodeURIComponent(next)}`;
 }
 
 export async function demoSignIn(token: string, client: ApiClient = api): Promise<void> {
