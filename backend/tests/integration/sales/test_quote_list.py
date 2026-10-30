@@ -63,3 +63,23 @@ def test_status_tabs_include_revised_cancelled_archived(sales_world: SalesWorld)
     with sales_world.uow(keys.USERS.SAHIL) as uow:
         assert sales.status_counts(uow, QuoteFilters())["cancelled"] == 1
         assert sales.status_counts(uow, QuoteFilters(q="nordhaus"))["cancelled"] == 1
+
+
+def test_archived_and_revised_tabs_count_and_filter(sales_world: SalesWorld) -> None:
+    """UI-50: revised and archived quotes appear in their own tabs with server counts; currency filters too."""
+    w = sales_world
+    d = w.new_draft(keys.USERS.MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
+    w.transition(keys.USERS.MEERA, d.id, "mark_sent")
+    w.transition(keys.USERS.MEERA, d.id, "revise")
+    lost = w.new_draft(keys.USERS.MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
+    w.transition(keys.USERS.MEERA, lost.id, "mark_sent")
+    w.transition(keys.USERS.MEERA, lost.id, "mark_lost", reason_code="price")
+    w.transition(keys.USERS.MEERA, lost.id, "archive")
+    with w.uow(keys.USERS.MEERA) as uow:
+        counts = sales.status_counts(uow, QuoteFilters())
+        archived = sales.list_quotes(uow, QuoteFilters(status=[QuoteStatus.ARCHIVED]))
+        revised = sales.list_quotes(uow, QuoteFilters(status=[QuoteStatus.REVISED]))
+        gbp = sales.list_quotes(uow, QuoteFilters(currency="GBP"))
+    assert (counts["revised"], counts["archived"]) == (1, 1)
+    assert [q.id for q in archived.items] == [lost.id] and [q.id for q in revised.items] == [d.id]
+    assert gbp.total == 0

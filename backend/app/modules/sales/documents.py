@@ -53,7 +53,7 @@ NUMERIC_COLUMNS = (0, 3, 4, 5)
 # =====================================================================================================
 # snapshot (the input of the document, stored immutably on the revision)
 # =====================================================================================================
-def _line_snapshot(line: QuoteLine) -> dict[str, Any]:
+def line_snapshot(line: QuoteLine) -> dict[str, Any]:
     """Everything printed for a line; ``internal_note`` is deliberately absent (redacted from documents)."""
     product = line.product_snapshot or {}
     return {
@@ -85,6 +85,8 @@ def _line_snapshot(line: QuoteLine) -> dict[str, Any]:
 def build_revision_snapshot(
     uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine], *, revision_no: int, issued_at: datetime, valid_until: date
 ) -> dict[str, Any]:
+    from app.modules.sales.revisions import working_copy_of
+
     legal_name, display_name = company_names(uow)
     owner = user_ref(uow, quote.owner_user_id)
     issuer = user_ref(uow, uow.actor.user_id)
@@ -123,7 +125,7 @@ def build_revision_snapshot(
             "issued_by": {"id": str(uow.actor.user_id) if uow.actor.user_id else None, "display_name": issuer.display_name if issuer else None},
         },
         "party": quote.party_snapshot,
-        "lines": [_line_snapshot(ln) for ln in lines],
+        "lines": [line_snapshot(ln) for ln in lines],
         "totals": {
             "currency": quote.currency,
             "gross_subtotal": format(quote.gross_subtotal_amount, "f"),
@@ -145,6 +147,8 @@ def build_revision_snapshot(
         },
         "terms": list(TERMS_DEMO),
         "content_hash": quote.content_hash,
+        # restorable content (priced fields and provenance; never internal notes): revision restore and compare
+        "working_copy": working_copy_of(quote, list(lines)),
     }
 
 

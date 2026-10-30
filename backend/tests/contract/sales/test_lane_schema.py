@@ -14,19 +14,28 @@ from sqlalchemy import text
 
 from app.core.db.base import Base
 from app.modules.approvals import service as approvals
-from app.modules.pricing.schemas import PriceType
+from app.modules.pricing.models import FxRate
+from app.modules.pricing.schemas import FxRateStatus, FxSourceKind, PriceType
 from app.modules.sales import events as ev
 from app.modules.sales.schemas import (
     Channel,
+    CustomHistoryAction,
+    CustomProductStatus,
+    CustomType,
+    DeliveryEvidence,
     DispatchChannel,
     EnquiryStatus,
+    FeedbackOutcome,
     Incoterm,
     LineType,
     ManualPreset,
     MessageStatus,
+    PromotionStatus,
     QuoteOrigin,
     QuoteStatus,
     RevisionKind,
+    SampleStatus,
+    SpecOutcome,
     TransitionAction,
 )
 from app.modules.sales.state import TRANSITIONS
@@ -51,6 +60,16 @@ ENUM_COLUMNS: dict[tuple[str, str], type[StrEnum]] = {
     ("sales_quote_revision", "kind"): RevisionKind,
     ("sales_quote_dispatch", "channel"): DispatchChannel,
     ("sales_quote_status_history", "action"): TransitionAction,
+    ("sales_custom_product", "custom_type"): CustomType,
+    ("sales_custom_product", "status"): CustomProductStatus,
+    ("sales_custom_product_spec_revision", "outcome"): SpecOutcome,
+    ("sales_custom_product_status_history", "action"): CustomHistoryAction,
+    ("sales_custom_product_promotion", "status"): PromotionStatus,
+    ("sales_sample", "status"): SampleStatus,
+    ("sales_sample", "delivery_evidence_kind"): DeliveryEvidence,
+    ("sales_sample", "feedback_outcome"): FeedbackOutcome,
+    ("pricing_fx_rate", "status"): FxRateStatus,
+    ("pricing_fx_rate", "source_kind"): FxSourceKind,
 }
 PAYLOADS: dict[str, type[BaseModel]] = {
     ev.ENQUIRY_RECEIVED: ev.EnquiryReceivedPayload,
@@ -70,6 +89,29 @@ PAYLOADS: dict[str, type[BaseModel]] = {
     ev.QUOTE_CANCELLED: ev.QuoteReasonPayload,
     ev.QUOTE_DELETED: ev.QuoteDeletedPayload,
     ev.QUOTE_STATUS_CHANGED: ev.QuoteStatusChangedPayload,
+    ev.QUOTE_REVISED: ev.QuoteRevisedPayload,
+    ev.QUOTE_VALIDITY_EXTENDED: ev.QuoteValidityExtendedPayload,
+    ev.QUOTE_ARCHIVED: ev.QuoteArchivedPayload,
+    ev.QUOTE_UNARCHIVED: ev.QuoteArchivedPayload,
+    ev.QUOTE_STATUS_CORRECTED: ev.QuoteStatusCorrectedPayload,
+    ev.QUOTE_OWNER_CHANGED: ev.QuoteOwnerChangedPayload,
+    ev.QUOTE_DUPLICATED: ev.QuoteDuplicatedPayload,
+    ev.QUOTE_RESTORED: ev.QuoteRestoredPayload,
+    ev.QUOTE_CURRENCY_CHANGED: ev.QuoteCurrencyChangedPayload,
+    ev.CUSTOM_CREATED: ev.CustomCreatedPayload,
+    ev.CUSTOM_UPDATED: ev.CustomUpdatedPayload,
+    ev.CUSTOM_STATUS_CHANGED: ev.CustomStatusChangedPayload,
+    ev.CUSTOM_SPEC_RECORDED: ev.CustomSpecRecordedPayload,
+    ev.CUSTOM_PROMOTION_REQUESTED: ev.CustomPromotionRequestedPayload,
+    ev.CUSTOM_PROMOTED: ev.CustomPromotedPayload,
+    ev.CUSTOM_PROMOTION_REJECTED: ev.CustomPromotionRejectedPayload,
+    ev.CUSTOM_DUPLICATED: ev.CustomLineagePayload,
+    ev.CUSTOM_ARCHIVED: ev.CustomLineagePayload,
+    ev.SAMPLE_CREATED: ev.SampleCreatedPayload,
+    ev.SAMPLE_DISPATCHED: ev.SampleDispatchedPayload,
+    ev.SAMPLE_DELIVERED: ev.SampleDeliveredPayload,
+    ev.SAMPLE_FEEDBACK_RECORDED: ev.SamplePayload,
+    ev.SAMPLE_CLOSED: ev.SamplePayload,
 }
 
 
@@ -96,7 +138,10 @@ def test_enum_checks_match_the_strenums(db: None) -> None:
 def test_sales_tables_force_rls_and_append_only_matches_model_flags(db: None) -> None:
     tables = _sales_tables()
     assert set(tables) == {"sales_enquiry", "sales_customer_message", "sales_quote", "sales_quote_line",
-                           "sales_quote_status_history", "sales_quote_revision", "sales_quote_dispatch"}
+                           "sales_quote_status_history", "sales_quote_revision", "sales_quote_dispatch",
+                           "sales_custom_product", "sales_custom_product_costing", "sales_custom_product_spec_revision",
+                           "sales_custom_product_status_history", "sales_custom_product_promotion", "sales_sample"}
+    tables["pricing_fx_rate"] = FxRate
     with UnitOfWork(ActorContext.system(None)) as uow:
         policies = set(uow.session.execute(text("SELECT tablename FROM pg_policies WHERE policyname = 'tenant_isolation'")).scalars())
         forced = set(uow.session.execute(text("SELECT relname FROM pg_class WHERE relforcerowsecurity")).scalars())
@@ -143,6 +188,16 @@ def test_lane_contributions_are_registered() -> None:
     quote_seq, enquiry_seq = registry.sequences["sales.quote"], registry.sequences["sales.enquiry"]
     assert (quote_seq.format_template, quote_seq.reset_policy) == ("{brand}-QT-{yyyy}-{seq:04}", "never")
     assert (enquiry_seq.format_template, enquiry_seq.reset_policy) == ("ENQ-{yyyy}-{seq:04}", "yearly")
+    custom_seq, sample_seq = registry.sequences["sales.custom_product"], registry.sequences["sales.sample"]
+    assert (custom_seq.format_template, custom_seq.reset_policy) == ("CP-{seq:04}", "never")
+    assert (sample_seq.format_template, sample_seq.reset_policy) == ("SMP-{yyyy}-{seq:04}", "yearly")
+    for kind, permission in (("sales.custom_product.promotion", "sales.custom_product.approve"),
+                             ("pricing.fx_rate.approve", "pricing.fx_rate.approve")):
+        assert approvals.handler_for(kind).approve_permission == permission
+    for resource in ("sales.custom_product", "sales.sample"):
+        assert resource in registry.policies
+    for child in ("sales.custom_product_costing", "sales.custom_product_spec_revision", "sales.custom_product_promotion"):
+        assert registry.policies[child].parent is not None, child
     assert [(s.order, s.name) for s in registry.seeds if s.name.startswith("sales")] == [(50, "sales.world"), (56, "sales.world.messages"), (76, "sales.world.d0")]
     assert "sales.document_render" in registry.jobs
     for resource in ("sales.quote", "sales.enquiry", "sales.customer_message"):

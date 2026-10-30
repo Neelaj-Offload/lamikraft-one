@@ -50,6 +50,7 @@ from app.modules.sales.common import (
 from app.modules.sales.models import (
     LINE_NO_CONSTRAINT,
     CustomerMessage,
+    CustomProduct,
     Enquiry,
     Quote,
     QuoteLine,
@@ -62,6 +63,8 @@ from app.modules.sales.schemas import (
     BasisLine,
     Capability,
     CommercialSnapshot,
+    CustomProductSnapshot,
+    Incoterm,
     LineType,
     MediaSnapshot,
     MinimumRead,
@@ -93,13 +96,14 @@ from app.modules.sales.schemas import (
     TransitionRead,
     UsualOrderOutput,
 )
-from app.modules.sales.state import transitions_from
+from app.modules.sales.state import target_status, transitions_from
 from app.platform.service import query
 from app.platform.uow import UnitOfWork
 
 READ = "sales.quote.read"
 PRICE_CHANGED = "PRICE_CHANGED_SINCE_SNAPSHOT"
-OPEN_STATUSES = frozenset({QuoteStatus.DRAFT.value, QuoteStatus.INTERNAL_REVIEW.value})
+OPEN_STATUSES = frozenset({QuoteStatus.DRAFT.value, QuoteStatus.INTERNAL_REVIEW.value, QuoteStatus.REVISED.value})
+EDITABLE_STATUSES = frozenset({QuoteStatus.DRAFT.value, QuoteStatus.REVISED.value})
 DEFAULT_UNIT = "pcs"
 TERMS_PLACEHOLDER = "Demo terms: prices exclude taxes; payment and delivery terms as agreed in writing."
 
@@ -198,10 +202,33 @@ def resolve_line_price(
     uow: UnitOfWork, *, product_id: uuid.UUID, party_id: uuid.UUID | None, currency: str, unit_code: str, price_type: str,
     on_date: date | None = None,
 ) -> PriceResolution:
+    """List price in the quote currency; when no list exists in that currency, Pass B converts the FX policy's source
+    currency at an approved, dated rate (provenance kept on the line; never a relabel)."""
     return pricing.resolve_price(
         uow, currency=currency, uom=unit_code, product_id=product_id, party_id=party_id,
-        on_date=on_date or business_date(uow), price_type=PriceType(price_type),
+        on_date=on_date or business_date(uow), price_type=PriceType(price_type), allow_fx=True,
     )
+
+
+def apply_provenance(line: QuoteLine, resolution: PriceResolution | None) -> None:
+    """Record where the line's default price came from: the list currency and price, plus the FX rate when the
+    figure was converted (the ``no_currency_relabel`` CHECK needs the rate whenever the currencies differ)."""
+    if resolution is None or resolution.status != "found" or resolution.unit_price is None:
+        line.source_currency = None
+        line.source_unit_price = None
+        line.fx_rate_id = None
+        line.fx_rate = None
+        return
+    if resolution.fx is not None and resolution.source_unit_price is not None:
+        line.source_currency = resolution.source_unit_price.currency
+        line.source_unit_price = quantize_unit_price(resolution.source_unit_price.amount)
+        line.fx_rate_id = resolution.fx.fx_rate_id
+        line.fx_rate = resolution.fx.rate
+    else:
+        line.source_currency = resolution.unit_price.currency
+        line.source_unit_price = quantize_unit_price(resolution.unit_price.amount)
+        line.fx_rate_id = None
+        line.fx_rate = None
 
 
 def commercial_snapshot(resolution: PriceResolution, unit_code: str) -> CommercialSnapshot:
@@ -264,6 +291,7 @@ def content_of(quote: Quote, lines: Sequence[QuoteLine]) -> dict[str, Any]:
                 "line_key": str(ln.line_key),
                 "line_type": ln.line_type,
                 "product_id": str(ln.product_id) if ln.product_id else None,
+                "custom_product_id": str(ln.custom_product_id) if ln.custom_product_id else None,
                 "description": ln.description,
                 "quantity": _d(ln.quantity),
                 "unit_code": ln.unit_code,
@@ -317,8 +345,8 @@ def recalculate(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine]) -> en
     quote.calc_input_hash = result.input_hash
     quote.calculation = result.as_dict()
     quote.has_price_override = any(
-        ln.line_type == LineType.CATALOG.value and ln.unit_price is not None and ln.default_unit_price is not None
-        and ln.unit_price != ln.default_unit_price
+        ln.line_type in (LineType.CATALOG.value, LineType.CUSTOM.value) and ln.unit_price is not None
+        and ln.default_unit_price is not None and ln.unit_price != ln.default_unit_price
         for ln in lines
     )
     quote.has_discount = any(ln.discount_pct is not None and ln.discount_pct > 0 for ln in lines)
@@ -346,7 +374,7 @@ def touch(uow: UnitOfWork, quote: Quote, *, invalidate: bool = True) -> None:
     quote.updated_at = uow.now()
     if invalidate:
         approvals.invalidate_for_target(uow, "sales.quote", quote.id)
-        if quote.review_proposal_id is not None and quote.status == QuoteStatus.DRAFT.value:
+        if quote.review_proposal_id is not None and quote.status in EDITABLE_STATUSES:
             quote.review_proposal_id = None
 
 
@@ -399,7 +427,12 @@ def create_quote(
         uow.repo(Enquiry).get(data.enquiry_id, "update")
     if data.origin_message_id is not None:
         uow.repo(CustomerMessage).get(data.origin_message_id)
-    currency = data.currency or party.default_currency
+    defaults = quote_defaults(uow)
+    currency = data.currency or party.default_currency or defaults.get("currency") or "EUR"
+    brand = data.brand or defaults.get("brand") or "LK"
+    price_type = data.price_type or PriceType(defaults.get("price_type") or PriceType.EXPORT.value)
+    incoterm = data.incoterm.value if data.incoterm else (defaults.get("incoterm") if defaults.get("incoterm") in INCOTERMS else None)
+    validity_days = data.validity_days or int(defaults.get("validity_days") or 30)
     snapshot = party_snapshot(uow, party.id)
     actor_origin = QuoteOrigin.AGENT.value if actor.actor_type == "agent" else QuoteOrigin.USER.value
     quote = Quote(
@@ -416,13 +449,13 @@ def create_quote(
         origin_message_id=data.origin_message_id,
         origin=origin or actor_origin,
         origin_ref=origin_ref,
-        brand=data.brand,
-        price_type=data.price_type.value,
+        brand=brand,
+        price_type=price_type.value,
         currency=currency,
-        incoterm=data.incoterm.value if data.incoterm else None,
+        incoterm=incoterm,
         incoterm_place=data.incoterm_place,
         payment_terms=data.payment_terms,
-        validity_days=data.validity_days,
+        validity_days=validity_days,
         customer_reference=data.customer_reference,
         remarks=data.remarks,
         apply_minimum_surcharge=data.apply_minimum_surcharge,
@@ -458,6 +491,19 @@ def create_quote(
     uow.audit("sales.quote.created", resource_type="sales.quote", resource_id=quote.id,
               resource_label=f"{quote.quote_number} · {quote.party_name}")
     return quote
+
+
+INCOTERMS = frozenset(i.value for i in Incoterm)
+
+
+def quote_defaults(uow: UnitOfWork) -> dict[str, Any]:
+    """The company's quote defaults (setting ``quote_defaults``); empty when the actor cannot read settings."""
+    from app.platform.org.service import effective_value
+
+    try:
+        return effective_value(uow, "quote_defaults").model_dump(mode="json")
+    except AppError:
+        return {}
 
 
 def update_quote(uow: UnitOfWork, quote_id: uuid.UUID, data: QuoteUpdate, *, origin: str | None = None) -> Quote:
@@ -562,6 +608,104 @@ def _catalog_line(uow: UnitOfWork, quote: Quote, data: QuoteLineCreate, errors: 
         media_snapshot=media.model_dump(mode="json"),
         commercial_snapshot=commercial_snapshot(resolution, unit_code).model_dump(mode="json"),
     )
+    apply_provenance(line, resolution)
+    _apply_override(uow, line, requested_price=data.unit_price, reason=data.override_reason, discount_pct=data.discount_pct, errors=errors)
+    return line
+
+
+def custom_snapshot(custom: CustomProduct) -> CustomProductSnapshot:
+    size = custom.dimensions_text
+    spec_bits = [b for b in (
+        f"{plain_decimal(custom.thickness_mm)} mm" if custom.thickness_mm is not None else custom.thickness_text,
+        custom.finish,
+        custom.shape,
+    ) if b]
+    return CustomProductSnapshot(
+        custom_product_id=custom.id,
+        custom_code=custom.custom_code,
+        custom_type=custom.custom_type,
+        product_key=custom.custom_code,
+        display_sku=custom.custom_code,
+        product_name=custom.product_name,
+        decor_no=custom.decor_no,
+        decor_name=custom.decor_name,
+        finish=custom.finish,
+        shape=custom.shape,
+        size_text=size,
+        thickness_mm=custom.thickness_mm,
+        specification_summary=" · ".join(spec_bits) or None,
+        unit_of_sale=custom.unit_code,
+        product_version=custom.version,
+    )
+
+
+def custom_default_price(uow: UnitOfWork, custom: CustomProduct, currency: str) -> tuple[Decimal | None, dict[str, Any]]:
+    """The custom product's quoted price in ``currency``: as entered when the currencies match, else converted at an
+    approved, dated rate (provenance returned), else None."""
+    if custom.quoted_price is None or custom.quoted_currency is None:
+        return None, {}
+    if custom.quoted_currency == currency:
+        return quantize_unit_price(custom.quoted_price), {"source_currency": currency, "source_unit_price": quantize_unit_price(custom.quoted_price)}
+    converted = pricing.convert_amount(uow, Decimal(custom.quoted_price), custom.quoted_currency, currency, business_date(uow))
+    if converted is None:
+        return None, {}
+    amount, fx = converted
+    return quantize_unit_price(amount), {
+        "source_currency": custom.quoted_currency, "source_unit_price": quantize_unit_price(custom.quoted_price),
+        "fx_rate_id": fx.fx_rate_id, "fx_rate": fx.rate,
+    }
+
+
+def _custom_line(uow: UnitOfWork, quote: Quote, data: QuoteLineCreate, errors: Errors) -> QuoteLine:
+    assert data.custom_product_id is not None
+    custom = uow.repo(CustomProduct).get(data.custom_product_id)
+    if custom.archived_at is not None or custom.status in ("rejected", "converted_to_standard"):
+        errors.add(["custom_product_id"], "custom_product_not_quotable", f"The custom product is {custom.status if custom.archived_at is None else 'archived'}")
+        errors.raise_if_any()
+    unit_code = data.unit_code or custom.unit_code or DEFAULT_UNIT
+    quantity = _check_quantity(data.quantity, unit_code, errors)
+    errors.raise_if_any()
+    default, provenance = custom_default_price(uow, custom, quote.currency)
+    if default is None and data.unit_price is None:
+        raise Conflict(
+            f"{custom.custom_code} has no quoted price in {quote.currency} (and no approved FX rate converts it); enter a price",
+            code="price_unavailable", reason_code="NO_CUSTOM_PRICE",
+        )
+    snap = custom_snapshot(custom)
+    packaging = (custom.packaging or {})
+    line = QuoteLine(
+        id=new_id(),
+        company_id=uow.actor.company_id,
+        quote_id=quote.id,
+        line_key=new_id(),
+        line_type=LineType.CUSTOM.value,
+        product_id=None,
+        custom_product_id=custom.id,
+        description=data.description or custom.product_name,
+        quantity=quantity,
+        unit_code=unit_code,
+        default_unit_price=default,
+        currency=quote.currency,
+        remarks=data.remarks,
+        internal_note=data.internal_note,
+        product_snapshot=snap.model_dump(mode="json"),
+        packaging_snapshot=PackagingSnapshot(
+            carton_qty=packaging.get("carton_qty"), inner_qty=packaging.get("inner_qty"),
+            unit_weight_g=packaging.get("unit_weight_g"), packing_type=packaging.get("packing_type"), cbm=packaging.get("cbm"),
+            net_weight_kg=None, gross_weight_kg=None, summary=custom.packaging_notes,
+        ).model_dump(mode="json"),
+        media_snapshot=MediaSnapshot(hint=None).model_dump(mode="json"),
+        commercial_snapshot=CommercialSnapshot(
+            price_list_id=None, price_list_code=None, item_id=None, tier=None, unit_price=default, currency=quote.currency,
+            unit_code=unit_code, product_moq=None, moq_unit_code=None, resolved_on=business_date(uow),
+            reason_code=None if default is not None else "NO_CUSTOM_PRICE",
+        ).model_dump(mode="json"),
+        **provenance,
+    )
+    if default is None:
+        # no own price in this currency: the entered price is the line's price (like a manual line)
+        assert data.unit_price is not None
+        line.default_unit_price = quantize_unit_price(data.unit_price)
     _apply_override(uow, line, requested_price=data.unit_price, reason=data.override_reason, discount_pct=data.discount_pct, errors=errors)
     return line
 
@@ -601,7 +745,12 @@ def add_line(uow: UnitOfWork, quote_id: uuid.UUID, data: QuoteLineCreate, *, ori
     uow.expect_version(quote, data.expected_version)
     errors = Errors()
     lines = lines_of(uow, quote)
-    line = _catalog_line(uow, quote, data, errors) if data.line_type == "catalog" else _manual_line(uow, quote, data, errors)
+    if data.line_type == "catalog":
+        line = _catalog_line(uow, quote, data, errors)
+    elif data.line_type == "custom":
+        line = _custom_line(uow, quote, data, errors)
+    else:
+        line = _manual_line(uow, quote, data, errors)
     line.line_no = (max((ln.line_no for ln in lines), default=0)) + 1
     uow.add(line)
     uow.flush()
@@ -725,6 +874,7 @@ def refresh_snapshots(uow: UnitOfWork, quote_id: uuid.UUID, data: RefreshSnapsho
         line.commercial_snapshot = commercial_snapshot(resolution, line.unit_code).model_dump(mode="json")
         line.price_list_item_id = resolution.item_id
         if new_default is not None:
+            apply_provenance(line, resolution)
             line.default_unit_price = new_default
             if not was_overridden:
                 line.unit_price = new_default
@@ -865,7 +1015,8 @@ def line_reads(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine], *, wit
                 unit_price=line.unit_price,
                 currency=line.currency,
                 is_overridden=line.override_reason is not None or (
-                    line.line_type == LineType.CATALOG.value and line.unit_price is not None and line.unit_price != line.default_unit_price
+                    line.line_type in (LineType.CATALOG.value, LineType.CUSTOM.value) and line.unit_price is not None
+                    and line.unit_price != line.default_unit_price
                 ),
                 override_reason=line.override_reason,
                 discount_pct=line.discount_pct,
@@ -875,7 +1026,20 @@ def line_reads(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine], *, wit
                 remarks=line.remarks,
                 internal_note=line.internal_note,
                 price_list_item_id=line.price_list_item_id,
-                product_snapshot=ProductSnapshot.model_validate(line.product_snapshot) if line.product_snapshot else None,
+                custom_product_id=line.custom_product_id,
+                product_snapshot=(
+                    ProductSnapshot.model_validate(line.product_snapshot)
+                    if line.product_snapshot and line.line_type != LineType.CUSTOM.value else None
+                ),
+                custom_snapshot=(
+                    CustomProductSnapshot.model_validate(line.product_snapshot)
+                    if line.product_snapshot and line.line_type == LineType.CUSTOM.value else None
+                ),
+                source_currency=line.source_currency,
+                source_unit_price=line.source_unit_price,
+                fx_rate_id=line.fx_rate_id,
+                fx_rate=format(Decimal(line.fx_rate).normalize(), "f") if line.fx_rate is not None else None,
+                restored_from_revision_no=line.restored_from_revision_no,
                 packaging_snapshot=PackagingSnapshot.model_validate(line.packaging_snapshot) if line.packaging_snapshot else None,
                 media_snapshot=MediaSnapshot.model_validate(line.media_snapshot) if line.media_snapshot else None,
                 commercial_snapshot=CommercialSnapshot.model_validate(line.commercial_snapshot) if line.commercial_snapshot else None,
@@ -939,15 +1103,20 @@ def allowed_transitions(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine
             continue
         if t.guard == "lines_present" and not lines:
             continue
-        out.append(TransitionRead(action=t.action, to_status=t.to_status, requires_reason=t.requires_reason))
+        out.append(TransitionRead(action=t.action, to_status=target_status(t, quote), requires_reason=t.requires_reason))
     return out
+
+
+def is_expired(uow: UnitOfWork, quote: Quote) -> bool:
+    """Computed, never a status: a sent quote whose last valid day is before today (company zone)."""
+    return quote.status == QuoteStatus.SENT.value and quote.valid_until is not None and quote.valid_until < business_date(uow)
 
 
 def detail(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine] | None = None) -> QuoteDetail:
     lines = list(lines) if lines is not None else lines_of(uow, quote)
     base = _summary(uow, [quote])[0]
     repo = uow.repo(Quote)
-    caps = repo.capabilities(quote, ["update", "delete", "export", "issue", "transition"])
+    caps = repo.capabilities(quote, ["update", "delete", "export", "issue", "transition", "archive", "correct", "assign"])
     reasons = needs_review(quote)
     current = approval_current(quote)
     if caps["issue"]["allowed"]:
@@ -959,6 +1128,19 @@ def detail(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine] | None = No
             caps["issue"] = {"allowed": False, "reason_code": "review_approval_required"}
     caps["add_line"] = dict(caps["update"])
     caps["refresh_snapshots"] = dict(caps["update"])
+    caps["change_currency"] = dict(caps["update"])
+    can_create = uow.actor.can("sales.quote.create")
+    caps["duplicate"] = {"allowed": can_create and quote.deleted_at is None,
+                         "reason_code": None if can_create and quote.deleted_at is None else "permission_denied"}
+    # restore needs the working copy: editable now, or a sent quote the actor may revise (an implicit revise)
+    restorable = quote.revision_no >= 1 and (
+        caps["update"]["allowed"] or (quote.status == QuoteStatus.SENT.value and caps["transition"]["allowed"])
+    )
+    caps["restore"] = {"allowed": restorable, "reason_code": None if restorable else ("quote_not_issued" if quote.revision_no == 0 else "permission_denied")}
+    from app.modules.sales.exports import can_export
+
+    lines_csv = quote.deleted_at is None and can_export(uow, quote)
+    caps["export_lines"] = {"allowed": lines_csv, "reason_code": None if lines_csv else "permission_denied"}
     return QuoteDetail(
         **base.model_dump(),
         party_snapshot=PartySnapshot.model_validate(quote.party_snapshot),
@@ -977,6 +1159,10 @@ def detail(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine] | None = No
         lost_reason_code=quote.lost_reason_code,
         cancelled_reason_code=quote.cancelled_reason_code,
         deleted_at=quote.deleted_at,
+        archived_from_status=quote.archived_from_status,
+        duplicated_from_quote_id=quote.duplicated_from_quote_id,
+        restored_from_revision_no=quote.restored_from_revision_no,
+        is_expired=is_expired(uow, quote),
         lines=line_reads(uow, quote, lines),
         totals=totals_of(quote),
         calculation=CalculationResultOut.model_validate(quote.calculation) if quote.calculation else None,
@@ -1030,6 +1216,8 @@ def _conditions(uow: UnitOfWork, f: QuoteFilters) -> list[ColumnElement[bool]]:
         conds.append(Quote.owner_user_id == f.owner_user_id)
     if f.party_id:
         conds.append(Quote.party_id == f.party_id)
+    if f.currency:
+        conds.append(Quote.currency == f.currency)
     return conds
 
 

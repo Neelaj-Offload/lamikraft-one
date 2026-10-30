@@ -26,7 +26,41 @@ EXPECTED_OPERATIONS = {
     ("post", f"{Q}/{{quote_id}}/lines"): ("sales_create_quote_line", ["sales.quote.update"]),
     ("patch", f"{Q}/{{quote_id}}/lines/{{line_id}}"): ("sales_update_quote_line", ["sales.quote.update"]),
     ("delete", f"{Q}/{{quote_id}}/lines/{{line_id}}"): ("sales_delete_quote_line", ["sales.quote.update"]),
-    ("post", f"{Q}/{{quote_id}}/transitions"): ("sales_transition_quote", ["sales.quote.transition", "sales.quote.issue"]),
+    ("post", f"{Q}/{{quote_id}}/transitions"): (
+        "sales_transition_quote", ["sales.quote.transition", "sales.quote.issue", "sales.quote.archive", "sales.quote.correct"]
+    ),
+    # Slice 2
+    ("get", f"{Q}/export.csv"): ("sales_export_quotes_csv", ["sales.quote.export"]),
+    ("get", f"{Q}/{{quote_id}}/lines.csv"): ("sales_export_quote_lines_csv", ["sales.quote.export"]),
+    ("post", f"{Q}/{{quote_id}}/duplicate"): ("sales_duplicate_quote", ["sales.quote.create"]),
+    ("get", f"{Q}/{{quote_id}}/revisions/compare"): ("sales_compare_quote_revisions", ["sales.quote.read"]),
+    ("post", f"{Q}/{{quote_id}}/revisions/{{revision_no}}/restore"): (
+        "sales_restore_quote_revision", ["sales.quote.update", "sales.quote.transition"]
+    ),
+    ("get", f"{Q}/{{quote_id}}/currency-change"): ("sales_preview_quote_currency_change", ["sales.quote.read"]),
+    ("post", f"{Q}/{{quote_id}}/currency-change"): ("sales_change_quote_currency", ["sales.quote.update"]),
+    ("put", f"{Q}/{{quote_id}}/owner"): ("sales_change_quote_owner", ["sales.quote.assign"]),
+    ("get", "/sales/quote-settings"): ("sales_get_quote_settings", ["sales.quote.read"]),
+    ("put", "/sales/quote-settings"): ("sales_update_quote_settings", ["sales.quote_settings.manage"]),
+    ("get", "/sales/custom-products"): ("sales_list_custom_products", ["sales.custom_product.read"]),
+    ("post", "/sales/custom-products"): ("sales_create_custom_product", ["sales.custom_product.create"]),
+    ("get", "/sales/custom-products/export.csv"): ("sales_export_custom_products_csv", ["sales.custom_product.export"]),
+    ("get", "/sales/custom-products/{custom_product_id}"): ("sales_get_custom_product", ["sales.custom_product.read"]),
+    ("patch", "/sales/custom-products/{custom_product_id}"): ("sales_update_custom_product", ["sales.custom_product.update"]),
+    ("post", "/sales/custom-products/{custom_product_id}/transitions"): (
+        "sales_transition_custom_product", ["sales.custom_product.transition"]
+    ),
+    ("post", "/sales/custom-products/{custom_product_id}/duplicate"): ("sales_duplicate_custom_product", ["sales.custom_product.create"]),
+    ("post", "/sales/custom-products/{custom_product_id}/archive"): ("sales_archive_custom_product", ["sales.custom_product.archive"]),
+    ("get", "/sales/custom-products/{custom_product_id}/costing"): ("sales_list_custom_product_costing", ["pricing.cost.read"]),
+    ("post", "/sales/custom-products/{custom_product_id}/costing"): ("sales_create_custom_product_costing", ["pricing.cost.update"]),
+    ("post", "/sales/custom-products/{custom_product_id}/promotion"): (
+        "sales_request_custom_product_promotion", ["sales.custom_product.promote"]
+    ),
+    ("get", "/sales/samples"): ("sales_list_samples", ["sales.sample.read"]),
+    ("post", "/sales/samples"): ("sales_create_sample", ["sales.sample.create"]),
+    ("get", "/sales/samples/{sample_id}"): ("sales_get_sample", ["sales.sample.read"]),
+    ("post", "/sales/samples/{sample_id}/transitions"): ("sales_transition_sample", ["sales.sample.transition"]),
     ("get", f"{Q}/{{quote_id}}/revisions"): ("sales_list_quote_revisions", ["sales.quote.read"]),
     ("get", f"{Q}/{{quote_id}}/revisions/{{revision_no}}"): ("sales_get_quote_revision", ["sales.quote.read"]),
     ("get", f"{Q}/{{quote_id}}/revisions/{{revision_no}}/document.pdf"): ("sales_download_quote_revision_pdf", ["sales.quote.export"]),

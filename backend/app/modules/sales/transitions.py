@@ -4,6 +4,10 @@ Each transition locks the quote, checks the actor's scope for the required ``sal
 optimistic version, evaluates the guard, appends a status-history row, emits the specific event **and**
 ``sales.quote.status_changed`` and audits. ``mark_sent`` is the issue: it freezes the content into an immutable
 revision with its deterministic document hash, sets ``valid_until`` in the company zone and records a dispatch.
+
+Slice 2 adds ``revise`` (sent -> revised working copy), ``discard_revision`` (back to the latest issued revision),
+``extend_validity``, ``archive``/``unarchive`` (closed quotes, restoring the status they came from) and the lawful
+correction paths ``correct_status`` (management, reason required).
 """
 
 from __future__ import annotations
@@ -17,7 +21,7 @@ from app.modules.approvals import service as approvals
 from app.modules.approvals.service import TargetRef
 from app.modules.sales import documents, quotes
 from app.modules.sales import events as ev
-from app.modules.sales.common import company_zone, idempotent
+from app.modules.sales.common import business_date, company_zone, idempotent
 from app.modules.sales.models import Quote, QuoteDispatch, QuoteLine, QuoteRevision, QuoteStatusHistory
 from app.modules.sales.schemas import (
     REVIEW_KIND,
@@ -27,45 +31,52 @@ from app.modules.sales.schemas import (
     RevisionKind,
     TransitionAction,
 )
-from app.modules.sales.state import KNOWN_FUTURE_ACTIONS, TRANSITIONS, Transition
+from app.modules.sales.state import REQUESTABLE, TRANSITIONS, Transition, target_status
 from app.platform.uow import UnitOfWork
 
 REVIEW_EXPIRY = timedelta(hours=24)
+EDITABLE = frozenset({QuoteStatus.DRAFT.value, QuoteStatus.REVISED.value})
+
+
+def editable_status(quote: Quote) -> str:
+    """The working status of a quote: ``draft`` until first issued, ``revised`` afterwards."""
+    return QuoteStatus.REVISED.value if quote.revision_no >= 1 else QuoteStatus.DRAFT.value
 
 
 def _invalid(uow: UnitOfWork, quote: Quote, action: str) -> InvalidTransition:
     allowed = quotes.allowed_transitions(uow, quote, quotes.lines_of(uow, quote))
-    detail = (
-        f"{action} is not available in Slice 1" if action in KNOWN_FUTURE_ACTIONS else f"{action} is not allowed while the quote is {quote.status}"
-    )
+    detail = f"{action} is not allowed while the quote is {quote.status}" if action in REQUESTABLE else f"{action} is not a quote action"
     return InvalidTransition(detail, allowed_transitions=[t.model_dump() for t in allowed], current_status=quote.status)
 
 
-def _history(uow: UnitOfWork, quote: Quote, t: Transition, data: QuoteTransition) -> None:
+def write_history(
+    uow: UnitOfWork, quote: Quote, *, action: str, from_status: str, to_status: str, reason_code: str | None = None,
+    reason: str | None = None,
+) -> None:
     uow.add(
         QuoteStatusHistory(
             company_id=uow.actor.company_id,
             quote_id=quote.id,
-            action=t.action,
-            from_status=t.from_status,
-            to_status=t.to_status,
+            action=action,
+            from_status=from_status,
+            to_status=to_status,
             actor_user_id=uow.actor.user_id,
-            reason_code=data.reason_code,
-            reason=data.reason,
+            reason_code=reason_code,
+            reason=reason,
             occurred_at=uow.now(),
             quote_version=quote.version,
         )
     )
 
 
-def _status_changed(uow: UnitOfWork, quote: Quote, t: Transition, *, origin: str | None) -> None:
+def emit_status_changed(uow: UnitOfWork, quote: Quote, action: str, from_status: str, to_status: str, *, origin: str | None) -> None:
     uow.emit(
         ev.QUOTE_STATUS_CHANGED,
         aggregate_id=quote.id,
         aggregate_version=quote.version,
         payload=ev.payload(
             ev.QuoteStatusChangedPayload(
-                quote_id=quote.id, version=quote.version, action=t.action, from_status=t.from_status, to_status=t.to_status,
+                quote_id=quote.id, version=quote.version, action=action, from_status=from_status, to_status=to_status,
                 origin=origin,
             )
         ),
@@ -125,7 +136,7 @@ def _close_pending_review(uow: UnitOfWork, quote: Quote, *, reason: str) -> None
 def _withdraw_review(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
     proposal_id = quote.review_proposal_id
     _close_pending_review(uow, quote, reason="review_withdrawn")
-    quote.status = QuoteStatus.DRAFT.value
+    quote.status = editable_status(quote)
     quote.review_proposal_id = None
     quote.updated_at = uow.now()
     # an approved review stays recorded (bound to its content hash); the event names the request being left
@@ -177,6 +188,32 @@ def _issue(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], data: QuoteTra
     return {"revision": revision, "dispatch": dispatch}
 
 
+def _revise(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
+    quote.status = QuoteStatus.REVISED.value
+    quote.updated_at = uow.now()
+    return {}
+
+
+def _discard_revision(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
+    """Drop the working copy: the lines and header return to the latest issued revision, the quote to ``sent``."""
+    from app.modules.sales.revisions import load_working_copy
+
+    approvals.invalidate_for_target(uow, "sales.quote", quote.id, reason="revision_discarded")
+    revision = quotes.revision_row(uow, quote, quote.revision_no)
+    load_working_copy(uow, quote, revision)
+    quote.status = QuoteStatus.SENT.value
+    quote.review_proposal_id = None
+    quote.updated_at = uow.now()
+    return {"revision": revision}
+
+
+def _extend_validity(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
+    assert data.valid_until is not None
+    quote.valid_until = data.valid_until
+    quote.updated_at = uow.now()
+    return {"revision": quotes.revision_row(uow, quote, quote.revision_no)}
+
+
 def _won(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
     revision_no = data.accepted_revision_no or quote.revision_no
     revision = quotes.revision_row(uow, quote, revision_no)
@@ -187,7 +224,9 @@ def _won(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTran
     return {"revision": revision}
 
 
-def _lost(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
+def _lost(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
+    if quote.status == QuoteStatus.REVISED.value:  # the working copy is dropped; the issued revision is what was lost
+        _discard_revision(uow, quote, lines, data)
     quote.status = QuoteStatus.LOST.value
     quote.lost_at = uow.now()
     quote.lost_reason_code = data.reason_code or "other"
@@ -205,17 +244,59 @@ def _cancel(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteT
     return {}
 
 
+def _archive(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
+    quote.archived_from_status = quote.status
+    quote.status = QuoteStatus.ARCHIVED.value
+    quote.archived_at = uow.now()
+    quote.archived_by = uow.actor.user_id
+    quote.updated_at = uow.now()
+    return {"archived_from_status": quote.archived_from_status}
+
+
+def _unarchive(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
+    restored = quote.archived_from_status or QuoteStatus.WON.value
+    quote.status = restored
+    quote.archived_from_status = None
+    quote.archived_at = None
+    quote.archived_by = None
+    quote.updated_at = uow.now()
+    return {"archived_from_status": restored}
+
+
+def _correct(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
+    """Lawful correction: the closing facts of the wrong outcome are cleared; history keeps them."""
+    from_status = quote.status
+    if from_status == QuoteStatus.WON.value:
+        quote.won_at = None
+        quote.accepted_revision_id = None
+    elif from_status == QuoteStatus.LOST.value:
+        quote.lost_at = None
+        quote.lost_reason_code = None
+    elif from_status == QuoteStatus.CANCELLED.value:
+        quote.cancelled_at = None
+        quote.cancelled_reason_code = None
+    quote.status = QuoteStatus.SENT.value if quote.revision_no >= 1 else QuoteStatus.DRAFT.value
+    quote.updated_at = uow.now()
+    return {}
+
+
 EFFECTS = {
     TransitionAction.SUBMIT_REVIEW.value: _submit_review,
     TransitionAction.WITHDRAW_REVIEW.value: _withdraw_review,
     TransitionAction.MARK_SENT.value: _issue,
+    TransitionAction.REVISE.value: _revise,
+    TransitionAction.DISCARD_REVISION.value: _discard_revision,
+    TransitionAction.EXTEND_VALIDITY.value: _extend_validity,
     TransitionAction.MARK_WON.value: _won,
     TransitionAction.MARK_LOST.value: _lost,
     TransitionAction.CANCEL.value: _cancel,
+    TransitionAction.ARCHIVE.value: _archive,
+    TransitionAction.UNARCHIVE.value: _unarchive,
+    TransitionAction.CORRECT_STATUS.value: _correct,
 }
 
 
-def _guard(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], t: Transition) -> None:
+def _guard(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], t: Transition, data: QuoteTransition) -> None:
     if t.guard == "lines_present" and not lines:
         raise Conflict("Add at least one line before requesting a review", code="no_lines")
     if t.guard == "issue_allowed":
@@ -231,10 +312,27 @@ def _guard(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], t: Transition)
                 code="review_approval_required",
                 reasons=reasons,
             )
+    if t.guard == "valid_until":
+        today = business_date(uow)
+        problem = None
+        if data.valid_until is None:
+            problem = ("valid_until_required", "the new last day of validity is required")
+        elif quote.valid_until is not None and data.valid_until <= quote.valid_until:
+            problem = ("valid_until_not_later", f"the new date must be after {quote.valid_until.isoformat()}")
+        elif data.valid_until < today:
+            problem = ("valid_until_in_past", "the new date cannot be in the past")
+        elif data.valid_until > today + timedelta(days=365):
+            problem = ("valid_until_too_far", "validity can be extended by at most a year from today")
+        if problem is not None:
+            raise ValidationFailed(
+                "The validity date is not valid",
+                errors=[{"loc": ["body", "valid_until"], "msg": problem[1], "code": problem[0]}],
+            )
 
 
-def _emit_specific(uow: UnitOfWork, quote: Quote, t: Transition, effect: dict[str, object], data: QuoteTransition, *, origin: str | None) -> None:
-    if t.action == TransitionAction.SUBMIT_REVIEW.value or t.action == TransitionAction.WITHDRAW_REVIEW.value:
+def _emit_specific(uow: UnitOfWork, quote: Quote, t: Transition, effect: dict[str, object], from_status: str, data: QuoteTransition, *, origin: str | None) -> None:
+    a = TransitionAction
+    if t.action in (a.SUBMIT_REVIEW.value, a.WITHDRAW_REVIEW.value):
         proposal_id = effect.get("proposal_id")
         if proposal_id is not None:
             uow.emit(
@@ -243,7 +341,7 @@ def _emit_specific(uow: UnitOfWork, quote: Quote, t: Transition, effect: dict[st
                 aggregate_version=quote.version,
                 payload=ev.payload(ev.QuoteProposalPayload(quote_id=quote.id, proposal_id=proposal_id, origin=origin)),  # type: ignore[arg-type]
             )
-    elif t.action == TransitionAction.MARK_SENT.value:
+    elif t.action == a.MARK_SENT.value:
         revision: QuoteRevision = effect["revision"]  # type: ignore[assignment]
         dispatch: QuoteDispatch = effect["dispatch"]  # type: ignore[assignment]
         uow.emit(
@@ -268,22 +366,43 @@ def _emit_specific(uow: UnitOfWork, quote: Quote, t: Transition, effect: dict[st
             resource_type="sales.quote",
             resource_id=quote.id,
         )
-    elif t.action == TransitionAction.MARK_WON.value:
+    elif t.action == a.MARK_WON.value:
         revision = effect["revision"]  # type: ignore[assignment]
         uow.emit(ev.QUOTE_WON, aggregate_id=quote.id, aggregate_version=quote.version,
                  payload=ev.payload(ev.QuoteWonPayload(quote_id=quote.id, accepted_revision_id=revision.id, origin=origin)))
-    elif t.action == TransitionAction.MARK_LOST.value:
+    elif t.action == a.MARK_LOST.value:
         uow.emit(ev.QUOTE_LOST, aggregate_id=quote.id, aggregate_version=quote.version,
                  payload=ev.payload(ev.QuoteReasonPayload(quote_id=quote.id, reason_code=quote.lost_reason_code or "other", origin=origin)))
-    elif t.action == TransitionAction.CANCEL.value:
+    elif t.action == a.CANCEL.value:
         uow.emit(ev.QUOTE_CANCELLED, aggregate_id=quote.id, aggregate_version=quote.version,
                  payload=ev.payload(ev.QuoteReasonPayload(quote_id=quote.id, reason_code=quote.cancelled_reason_code or "other", origin=origin)))
+    elif t.action == a.REVISE.value:
+        uow.emit(ev.QUOTE_REVISED, aggregate_id=quote.id, aggregate_version=quote.version,
+                 payload=ev.payload(ev.QuoteRevisedPayload(quote_id=quote.id, revision_no=quote.revision_no + 1, origin=origin)))
+    elif t.action == a.DISCARD_REVISION.value:
+        uow.emit(ev.QUOTE_RESTORED, aggregate_id=quote.id, aggregate_version=quote.version,
+                 payload=ev.payload(ev.QuoteRestoredPayload(quote_id=quote.id, from_revision_no=quote.revision_no, origin=origin)))
+    elif t.action == a.EXTEND_VALIDITY.value:
+        revision = effect["revision"]  # type: ignore[assignment]
+        assert quote.valid_until is not None
+        uow.emit(ev.QUOTE_VALIDITY_EXTENDED, aggregate_id=quote.id, aggregate_version=quote.version,
+                 payload=ev.payload(ev.QuoteValidityExtendedPayload(quote_id=quote.id, revision_id=revision.id,
+                                                                    valid_until=quote.valid_until, origin=origin)))
+    elif t.action in (a.ARCHIVE.value, a.UNARCHIVE.value):
+        name = ev.QUOTE_ARCHIVED if t.action == a.ARCHIVE.value else ev.QUOTE_UNARCHIVED
+        uow.emit(name, aggregate_id=quote.id, aggregate_version=quote.version,
+                 payload=ev.payload(ev.QuoteArchivedPayload(quote_id=quote.id, archived_from_status=str(effect["archived_from_status"]),
+                                                            origin=origin)))
+    elif t.action == a.CORRECT_STATUS.value:
+        uow.emit(ev.QUOTE_STATUS_CORRECTED, aggregate_id=quote.id, aggregate_version=quote.version,
+                 payload=ev.payload(ev.QuoteStatusCorrectedPayload(quote_id=quote.id, from_status=from_status, to_status=quote.status,
+                                                                   reason_code=data.reason_code or "correction", origin=origin)))
 
 
 def transition_quote(uow: UnitOfWork, quote_id: uuid.UUID, data: QuoteTransition, *, origin: str | None = None) -> Quote:
     """Apply one state-machine action. 409 ``invalid_transition`` (with ``allowed_transitions``) when the action is not
     in the table for the current status; 403 when the actor lacks the verb in scope; 409 ``version_conflict`` when
-    stale; 409 with a guard code when a precondition fails."""
+    stale; 409 or 422 with a guard code when a precondition fails."""
     repo = uow.repo(Quote)
     quote = repo.get(quote_id, for_update=True, include_archived=False)
     t = TRANSITIONS.get((quote.status, data.action))
@@ -297,15 +416,17 @@ def transition_quote(uow: UnitOfWork, quote_id: uuid.UUID, data: QuoteTransition
             errors=[{"loc": ["body", "reason"], "msg": "a reason or reason code is required", "code": "reason_required"}],
         )
     lines = quotes.lines_of(uow, quote)
-    _guard(uow, quote, lines, t)
+    _guard(uow, quote, lines, t, data)
+    from_status = quote.status
     effect = EFFECTS[t.action](uow, quote, lines, data)
     uow.flush()
-    _history(uow, quote, t, data)
-    _emit_specific(uow, quote, t, effect, data, origin=origin)
-    _status_changed(uow, quote, t, origin=origin)
+    write_history(uow, quote, action=t.action, from_status=from_status, to_status=quote.status, reason_code=data.reason_code,
+                  reason=data.reason)
+    _emit_specific(uow, quote, t, effect, from_status, data, origin=origin)
+    emit_status_changed(uow, quote, t.action, from_status, quote.status, origin=origin)
     uow.audit(
         f"sales.quote.{t.action}", resource_type="sales.quote", resource_id=quote.id, resource_label=quote.quote_number,
-        reason=data.reason, details={"from_status": t.from_status, "to_status": t.to_status, "reason_code": data.reason_code},
+        reason=data.reason, details={"from_status": from_status, "to_status": quote.status, "reason_code": data.reason_code},
     )
     return quote
 
@@ -323,3 +444,7 @@ def transition_quote_command(uow: UnitOfWork, quote_id: uuid.UUID, data: QuoteTr
     return idempotent(
         uow, f"sales.transition_quote:{quote_id}", data, lambda: quotes.detail(uow, transition_quote(uow, quote_id, data)), QuoteDetail
     )
+
+
+__all__ = ["EDITABLE", "editable_status", "emit_status_changed", "target_status", "transition_quote",
+           "transition_quote_command", "write_history"]

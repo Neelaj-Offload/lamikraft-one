@@ -42,8 +42,13 @@ def _decide(world: SalesWorld, person: str, proposal_id: uuid.UUID, decision: st
 def test_quote_status_machine_table(world: SalesWorld) -> None:
     """Every row of the table is exercised once; everything else is 409 invalid_transition with allowed_transitions."""
     assert {(f, a) for f, a in TRANSITIONS} == {
-        ("draft", "submit_review"), ("internal_review", "withdraw_review"), ("draft", "mark_sent"), ("internal_review", "mark_sent"),
-        ("sent", "mark_won"), ("sent", "mark_lost"), ("draft", "cancel"), ("internal_review", "cancel"), ("sent", "cancel"),
+        ("draft", "submit_review"), ("revised", "submit_review"), ("internal_review", "withdraw_review"),
+        ("draft", "mark_sent"), ("internal_review", "mark_sent"), ("revised", "mark_sent"),
+        ("sent", "revise"), ("revised", "discard_revision"), ("sent", "extend_validity"),
+        ("sent", "mark_won"), ("sent", "mark_lost"), ("revised", "mark_lost"),
+        ("draft", "cancel"), ("internal_review", "cancel"), ("sent", "cancel"), ("revised", "cancel"),
+        ("won", "archive"), ("lost", "archive"), ("cancelled", "archive"), ("archived", "unarchive"),
+        ("won", "correct_status"), ("lost", "correct_status"), ("cancelled", "correct_status"),
     }
     d = world.new_draft(MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
     assert [t.action for t in d.allowed_transitions] == ["submit_review", "mark_sent", "cancel"]
@@ -68,14 +73,15 @@ def test_quote_status_machine_table(world: SalesWorld) -> None:
     assert approved.review.approval_current and approved.capabilities["issue"].allowed
     s = world.transition(MEERA, d.id, "mark_sent", dispatch_channel="email", sent_to="lena.brandt@nordhaus-interiors.test")
     assert s.status == "sent" and s.revision_no == 1 and s.valid_until is not None and s.sent_at is not None
-    assert [t.action for t in s.allowed_transitions] == ["mark_won", "mark_lost", "cancel"]
+    assert [t.action for t in s.allowed_transitions] == ["revise", "extend_validity", "mark_won", "mark_lost", "cancel"]
     with pytest.raises(ValidationFailed):  # mark_lost needs a reason
         world.transition(MEERA, d.id, "mark_lost")
     won = world.transition(MEERA, d.id, "mark_won")
-    assert won.status == "won" and won.won_at is not None and won.accepted_revision_id is not None and won.allowed_transitions == []
+    assert won.status == "won" and won.won_at is not None and won.accepted_revision_id is not None
+    assert [t.action for t in won.allowed_transitions] == ["archive"]  # correct_status is management's
     with pytest.raises(InvalidTransition) as exc:
         world.transition(MEERA, d.id, "cancel", reason="too late")
-    assert exc.value.code == "invalid_transition" and exc.value.extra["allowed_transitions"] == []
+    assert exc.value.code == "invalid_transition" and [t["action"] for t in exc.value.extra["allowed_transitions"]] == ["archive"]
 
     names = [name for name, _p in _events(world, d.id)]
     assert names == [
@@ -202,8 +208,8 @@ def test_issued_revision_immutable_by_trigger(world: SalesWorld) -> None:
 
 
 def test_cancelled_and_archived_transitions(world: SalesWorld) -> None:
-    """BUG-01: cancel works from draft, internal_review and sent; archive is Slice 2 and answers 409 with the
-    allowed transitions (never a 400)."""
+    """BUG-01 / PRD-01: cancel works from draft, internal_review and sent; archive works from cancelled (and won/lost)
+    and unarchive restores the status it came from; anything not in the table is 409 with the allowed transitions."""
     for start in ("draft", "internal_review", "sent"):
         d = world.new_draft(MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
         if start == "internal_review":
@@ -213,13 +219,19 @@ def test_cancelled_and_archived_transitions(world: SalesWorld) -> None:
         with pytest.raises(ValidationFailed):
             world.transition(MEERA, d.id, "cancel")
         c = world.transition(MEERA, d.id, "cancel", reason_code="customer_withdrew", reason="Customer withdrew the enquiry")
-        assert c.status == "cancelled" and c.cancelled_reason_code == "customer_withdrew" and c.allowed_transitions == []
+        assert c.status == "cancelled" and c.cancelled_reason_code == "customer_withdrew"
         if start == "internal_review":
             with world.uow(SAHIL) as uow:
                 assert approvals.list_for_actor(uow, status="withdrawn")
+        assert [t.action for t in c.allowed_transitions] == ["archive"]
+        archived = world.transition(MEERA, d.id, "archive")
+        assert (archived.status, archived.archived_from_status) == ("archived", "cancelled")
+        assert [(t.action, t.to_status) for t in archived.allowed_transitions] == [("unarchive", "cancelled")]
         with pytest.raises(InvalidTransition) as exc:
             world.transition(MEERA, d.id, "archive")
-        assert exc.value.code == "invalid_transition" and exc.value.extra["current_status"] == "cancelled"
+        assert exc.value.code == "invalid_transition" and exc.value.extra["current_status"] == "archived"
+        back = world.transition(MEERA, d.id, "unarchive")
+        assert (back.status, back.archived_from_status) == ("cancelled", None)
     d = world.new_draft(MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
     with pytest.raises(InvalidTransition) as exc:
         world.transition(MEERA, d.id, "archive")
@@ -227,7 +239,10 @@ def test_cancelled_and_archived_transitions(world: SalesWorld) -> None:
     with pytest.raises(InvalidTransition):
         world.transition(MEERA, d.id, "mark_won")  # not sent yet
     with pytest.raises(InvalidTransition):
-        world.transition(MEERA, d.id, "revise")  # Slice 2
+        world.transition(MEERA, d.id, "revise")  # only a sent quote is revised
+    with pytest.raises(InvalidTransition) as exc:
+        world.transition(MEERA, d.id, "explode")
+    assert "not a quote action" in (exc.value.detail or "")
 
 
 def test_transition_permissions_and_versions(world: SalesWorld) -> None:
@@ -268,3 +283,36 @@ def test_marked_sent_distinct_from_delivery_status(world: SalesWorld) -> None:
     assert marked["dispatch_id"] == str(dispatch.id) and marked["revision_id"] == str(revision.id)
     issued = [p for n, p in _events(world, d.id) if n == "sales.quote.issued"][0]
     assert issued["revision_no"] == 1 and issued["valid_until"] == s.valid_until.isoformat()
+
+
+def test_extend_validity_and_correction_paths(world: SalesWorld) -> None:
+    """LP-06.8: extend_validity on a sent quote (later date, not past); correction paths won/lost -> sent and
+    cancelled -> draft (never issued) need sales.quote.correct (management) and a reason, and clear the outcome."""
+    from datetime import date, timedelta
+
+    d = world.new_draft(MEERA, "NORDHAUS", ("OAK_TRAY", "240"))
+    sent = world.transition(MEERA, d.id, "mark_sent")
+    assert sent.valid_until == date(2026, 11, 11) and not sent.is_expired
+    with pytest.raises(ValidationFailed):
+        world.transition(MEERA, d.id, "extend_validity", valid_until=sent.valid_until)
+    extended = world.transition(MEERA, d.id, "extend_validity", valid_until=sent.valid_until + timedelta(days=14), reason="Customer asked")
+    assert extended.status == "sent" and extended.valid_until == date(2026, 11, 25)
+    won = world.transition(MEERA, d.id, "mark_won")
+    with pytest.raises(Forbidden):  # sales cannot correct an outcome
+        world.transition(MEERA, d.id, "correct_status", reason="clicked the wrong button")
+    with pytest.raises(ValidationFailed):
+        world.transition(SAHIL, d.id, "correct_status")
+    corrected = world.transition(SAHIL, d.id, "correct_status", reason="Customer had not confirmed", reason_code="wrong_outcome")
+    assert (corrected.status, corrected.won_at, corrected.accepted_revision_id) == ("sent", None, None)
+    assert won.accepted_revision_id is not None
+    lost = world.transition(MEERA, d.id, "mark_lost", reason_code="price", reason="Too expensive")
+    back = world.transition(SAHIL, d.id, "correct_status", reason="Reopened by the customer")
+    assert (lost.status, back.status, back.lost_reason_code) == ("lost", "sent", None)
+    draft = world.new_draft(MEERA, "NORDHAUS", ("OAK_TRAY", "24"))
+    world.transition(MEERA, draft.id, "cancel", reason="duplicate")
+    reopened = world.transition(SAHIL, draft.id, "correct_status", reason="Cancelled the wrong quote")
+    assert (reopened.status, reopened.cancelled_reason_code) == ("draft", None)
+    with world.uow(SAHIL) as uow:
+        names = [r[0] for r in uow.session.execute(select(DomainEvent.event_type, DomainEvent.payload)
+                                                   .where(DomainEvent.aggregate_id == d.id).order_by(DomainEvent.seq)).all()]
+    assert names.count("sales.quote.status_corrected") == 2 and "sales.quote.validity_extended" in names

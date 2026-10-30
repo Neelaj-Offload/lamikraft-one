@@ -95,7 +95,8 @@ def on_rejected(uow: UnitOfWork, proposal: Any) -> None:
         if quote is None or quote.status != QuoteStatus.INTERNAL_REVIEW.value:
             continue
         from_status = quote.status
-        quote.status = QuoteStatus.DRAFT.value
+        # back to the working copy: draft when never issued, revised when it has an issued revision
+        quote.status = QuoteStatus.REVISED.value if quote.revision_no >= 1 else QuoteStatus.DRAFT.value
         quote.review_proposal_id = None
         quote.updated_at = uow.now()
         uow.flush()
