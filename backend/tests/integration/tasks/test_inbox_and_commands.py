@@ -17,7 +17,6 @@ from app.modules.tasks.models import Issue, Task
 from app.modules.tasks.schemas import TaskCreate
 from app.platform.events.models import DomainEvent
 from app.seed.world import keys
-from app.seed.world import tasks as seed_tasks
 from tests.integration.briefings.world import FakeWorld, d0
 
 pytestmark = pytest.mark.db
@@ -33,7 +32,7 @@ def task_id(world: FakeWorld, issue_key: str, kind: str | None = None) -> uuid.U
 
 
 def count_task() -> str:
-    return seed_tasks.TASK_KABIR_COUNT_TITLE
+    return keys.TEXTS.TASK_KABIR_COUNT
 
 
 def kabir_task(world: FakeWorld) -> uuid.UUID:
@@ -145,14 +144,14 @@ def test_assign_checks_scope_and_the_assignees_access(world: FakeWorld) -> None:
     with world.uow(keys.USERS.RAVI) as uow:
         out = tasks.assign_task(uow, tid, assignee_user_id=world.refs[keys.USERS.RAVI])
     assert out.assignee_user_id == world.refs[keys.USERS.RAVI]
-    expiry = task_id(world, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]))
+    expiry = task_id(world, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]))
     with world.uow(keys.USERS.MEERA) as uow, pytest.raises(ValidationFailed) as err:
         tasks.assign_task(uow, expiry, assignee_user_id=world.refs[keys.USERS.KABIR])
     assert err.value.code == "assignee_cannot_view"
 
 
 def test_manual_task_link_must_be_visible_to_creator_and_assignee(world: FakeWorld) -> None:
-    quote = world.refs["Q_BERG_EXPIRING"]
+    quote = world.refs[keys.QUOTE_REFS.BERG_EXPIRING]
     with world.uow(keys.USERS.KABIR) as uow, pytest.raises(NotFound):
         tasks.create_task(uow, TaskCreate(title="Check Berg quote", linked_ref_type="sales.quote", linked_ref_id=quote))
     with world.uow(keys.USERS.RAVI) as uow, pytest.raises(ValidationFailed):

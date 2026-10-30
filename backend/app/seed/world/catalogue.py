@@ -24,12 +24,15 @@ from app.seed.context import SeedContext
 from app.seed.world import keys
 from app.seed.world.parties import CREATOR, as_member, at_ist
 
-BRAND = "Lamikraft"
+BRAND = keys.BRAND_NAMES[keys.BRANDS.LK]
 
-#: refs keys for taxonomy rows (categories and subcategories are not business documents, so no keys.py constant)
+_CAT, _SUB, _NAME = keys.CATEGORIES, keys.SUBCATEGORIES, keys.TAXONOMY_NAMES
+#: refs key -> (name, display order, ((subcategory refs key, name), ...)); keys and names from keys.py
 CATEGORIES: dict[str, tuple[str, int, tuple[tuple[str, str], ...]]] = {
-    "CAT_SERVEWARE": ("Serveware", 10, (("SUB_TRAYS", "Trays"), ("SUB_TRIVETS", "Trivets"), ("SUB_BOARDS", "Boards"))),
-    "CAT_DECORATIVE_BOARDS": ("Decorative Boards", 20, (("SUB_VENEERED_PANELS", "Veneered panels"),)),
+    _CAT.SERVEWARE: (
+        _NAME[_CAT.SERVEWARE], 10, tuple((k, _NAME[k]) for k in (_SUB.TRAYS, _SUB.TRIVETS, _SUB.BOARDS))
+    ),
+    _CAT.DECORATIVE_BOARDS: (_NAME[_CAT.DECORATIVE_BOARDS], 20, ((_SUB.VENEERED_PANELS, _NAME[_SUB.VENEERED_PANELS]),)),
 }
 
 
@@ -50,7 +53,8 @@ class FixtureProduct:
 
 SLICE1_PRODUCTS: tuple[FixtureProduct, ...] = (
     FixtureProduct(
-        "OAK_TRAY", "Oak serving tray 450", "CAT_SERVEWARE", "SUB_TRAYS", "pcs", keys.DECORS.NATURAL_OAK, "Natural Oak",
+        "OAK_TRAY", keys.PRODUCT_NAMES["OAK_TRAY"], _CAT.SERVEWARE, _SUB.TRAYS, "pcs", keys.DECORS.NATURAL_OAK,
+        keys.DECOR_NAMES[keys.DECORS.NATURAL_OAK],
         master={"size_mm": "450 x 300", "finish": "Matte lacquer", "shape": "Rectangular", "variant_group": "Oak serving tray"},
         specification={
             "length_mm": "450", "width_mm": "300", "thickness_mm": "12", "finish": "Matte lacquer",
@@ -63,7 +67,8 @@ SLICE1_PRODUCTS: tuple[FixtureProduct, ...] = (
         },
     ),
     FixtureProduct(
-        "MAPLE_TRIVET", "Maple trivet 300", "CAT_SERVEWARE", "SUB_TRIVETS", "pcs", keys.DECORS.HARD_MAPLE, "Hard Maple",
+        "MAPLE_TRIVET", keys.PRODUCT_NAMES["MAPLE_TRIVET"], _CAT.SERVEWARE, _SUB.TRIVETS, "pcs", keys.DECORS.HARD_MAPLE,
+        keys.DECOR_NAMES[keys.DECORS.HARD_MAPLE],
         master={"size_mm": "300 x 300"},
         specification={"length_mm": "300", "width_mm": "300", "thickness_mm": "10"},
         packaging={
@@ -73,7 +78,8 @@ SLICE1_PRODUCTS: tuple[FixtureProduct, ...] = (
         },
     ),
     FixtureProduct(
-        "ASH_BOARD", "Ash chopping board 400", "CAT_SERVEWARE", "SUB_BOARDS", "pcs", keys.DECORS.WHITE_ASH, "White Ash",
+        "ASH_BOARD", keys.PRODUCT_NAMES["ASH_BOARD"], _CAT.SERVEWARE, _SUB.BOARDS, "pcs", keys.DECORS.WHITE_ASH,
+        keys.DECOR_NAMES[keys.DECORS.WHITE_ASH],
         master={"size_mm": "400 x 250"},
         specification={"length_mm": "400", "width_mm": "250", "thickness_mm": "18"},
         packaging={
@@ -83,8 +89,8 @@ SLICE1_PRODUCTS: tuple[FixtureProduct, ...] = (
         },
     ),
     FixtureProduct(
-        "WALNUT_BOARD", "Walnut veneered board 18 mm", "CAT_DECORATIVE_BOARDS", "SUB_VENEERED_PANELS", "sheets",
-        keys.DECORS.AMERICAN_WALNUT, "American Walnut",
+        "WALNUT_BOARD", keys.PRODUCT_NAMES["WALNUT_BOARD"], _CAT.DECORATIVE_BOARDS, _SUB.VENEERED_PANELS, "sheets",
+        keys.DECORS.AMERICAN_WALNUT, keys.DECOR_NAMES[keys.DECORS.AMERICAN_WALNUT],
         master={"size_mm": "2440 x 1220"},
         specification={"board_size_mm": "2440 x 1220", "thickness_mm": "18"},
         packaging={"packing_type": "Pallet"},

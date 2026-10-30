@@ -39,8 +39,8 @@ def _missing(detail: object) -> set[str]:
 def test_detail_returns_all_field_groups_with_section_guards(world: World) -> None:
     """UI-40: every field group, deep-linkable sections; the pricing tab needs pricing.price_list.read."""
     detail = catalogue.get_product(world.actor(keys.USERS.MEERA), world.ref("OAK_TRAY"))
-    assert detail.category.name == category_name("CAT_SERVEWARE")
-    assert detail.subcategory and detail.subcategory.name == subcategory_name("SUB_TRAYS")
+    assert detail.category.name == category_name(keys.CATEGORIES.SERVEWARE)
+    assert detail.subcategory and detail.subcategory.name == subcategory_name(keys.SUBCATEGORIES.TRAYS)
     assert detail.brand == "Lamikraft" and detail.shape == "Rectangular" and detail.finish == "Matte lacquer"
     assert detail.specification is not None and detail.specification.material_type == "Oak veneer"
     assert detail.specification.length_mm_source == "450" and detail.specification.thickness_mm_source == "12"

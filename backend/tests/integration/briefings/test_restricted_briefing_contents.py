@@ -7,7 +7,6 @@ import json
 import pytest
 
 from app.seed.world import keys
-from app.seed.world import tasks as seed_tasks
 from tests.integration.briefings.test_expected_briefings import today
 from tests.integration.briefings.world import FakeWorld
 
@@ -24,4 +23,4 @@ def test_kabir_sees_only_his_task(world: FakeWorld) -> None:
     for token in ("EUR", "GBP", keys.QUOTES.BERG_EXPIRING, "5700", "decision"):
         assert token not in text
     assert payload["overview"]["facts"] == {"tasks_due_today": 1, "assigned_tasks": 1}  # his own item only
-    assert [i["title"] for i in payload["items"]] == [seed_tasks.TASK_KABIR_COUNT_TITLE]
+    assert [i["title"] for i in payload["items"]] == [keys.TEXTS.TASK_KABIR_COUNT]

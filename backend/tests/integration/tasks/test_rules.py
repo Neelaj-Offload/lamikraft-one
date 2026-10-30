@@ -96,15 +96,15 @@ def test_reply_closes_when_the_message_is_replied(world: FakeWorld) -> None:
 
 def test_reply_closes_when_a_linked_quote_is_sent_after_the_message(world: FakeWorld) -> None:
     world.at(d0(10, 0))
-    world.change_quote("Q_NORDHAUS_DRAFT", status="sent", sent_at=d0(10, 0), valid_until=datetime(2026, 11, 11).date())
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", "Q_NORDHAUS_DRAFT", revision_id=str(uuid.uuid7()),
+    world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="sent", sent_at=d0(10, 0), valid_until=datetime(2026, 11, 11).date())
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", keys.QUOTE_REFS.NORDHAUS_DRAFT, revision_id=str(uuid.uuid7()),
                      dispatch_id=str(uuid.uuid7()))
     world.drain()
     issue = issue_of(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS]))
     reply = next(t for t in tasks_of(world, issue.id) if t.kind == "reply_needed")
     assert reply.state == "done" and reply.completion_evidence["reason"] == "linked_quote_sent"
     assert reply.completion_evidence["quote_number"] == keys.QUOTES.NORDHAUS_DRAFT
-    expiry = issue_of(world, issue_keys.quote_expiry_key(world.refs["Q_NORDHAUS_DRAFT"]))
+    expiry = issue_of(world, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.NORDHAUS_DRAFT]))
     assert [t.state for t in tasks_of(world, expiry.id)] == ["open"]
 
 
@@ -140,7 +140,7 @@ def test_proposals_expire_after_24_hours(world: FakeWorld) -> None:
 
 
 def test_customer_change_is_an_informational_issue_for_the_owner(world: FakeWorld) -> None:
-    issue = issue_of(world, issue_keys.party_info_key(world.refs["MAISON"]))
+    issue = issue_of(world, issue_keys.party_info_key(world.refs[keys.PARTY_REFS.MAISON]))
     assert (issue.state, issue.family, issue.scope_owner_id) == ("info", "sales.customer_changes", world.refs[keys.USERS.MEERA])
     with world.uow() as uow:
         (row,) = uow.session.scalars(select(ChangeLog).where(ChangeLog.issue_id == issue.id)).all()
@@ -188,7 +188,7 @@ def test_enquiries_open_and_close(world: FakeWorld) -> None:
 
 def _message(world: FakeWorld, key: str, assignee: str, at: datetime, *, origin: str | None = None) -> MessageRec:
     world.at(at)
-    m = MessageRec(uuid.uuid7(), "BERG", "Erik Lindqvist", assignee, at)
+    m = MessageRec(uuid.uuid7(), "BERG", keys.CONTACTS["BERG"][0], assignee, at)
     world.messages[key] = m
     payload = {"message_id": str(m.id), "party_id": str(world.parties["BERG"].id), "contact_id": None, "channel": "email",
                "assignee_user_id": str(world.refs[assignee]), "enquiry_id": None, "quote_id": None}
@@ -264,8 +264,8 @@ def test_dismissed_reply_keeps_the_issue_open_across_rederivation(world: FakeWor
     with world.uow(keys.USERS.MEERA) as uow:
         tasks.transition_task(uow, reply.id, action="dismiss", reason_code="handled_outside_system")
     world.at(d0(9, 40))
-    world.change_quote("Q_BERG_EXPIRING", revision_no=2)
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", "Q_BERG_EXPIRING", revision_no=2)  # re-derives msg:M2
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)  # re-derives msg:M2
     world.drain()
     issue = issue_of(world, key)
     assert issue.state == "open" and [t.state for t in tasks_of(world, issue.id)] == ["dismissed"]
@@ -277,22 +277,22 @@ def test_lapsed_quote_is_not_reopened_by_later_events(world: FakeWorld) -> None:
     world.at(ist(2026, 10, 13, 0, 5))
     with world.uow() as uow:
         tasks.sweep_overdue(uow)
-    world.change_quote("Q_BERG_EXPIRING")
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING", version=world.quotes["Q_BERG_EXPIRING"].version,
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version,
                      changed_fields=["notes"], line_change_kinds=[])
     world.drain()
-    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]), 1))
+    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]), 1))
     assert expiry.state == "resolved" and [t.state for t in tasks_of(world, expiry.id)] == ["expired"]
 
 
 def test_event_after_lapse_expires_the_obligation_before_the_sweep_runs(world: FakeWorld) -> None:
     """The rule re-reads the quote: an event arriving after validity ended lapses the task, never re-arms it."""
     world.at(ist(2026, 10, 13, 0, 5))  # the sweep has not run yet
-    world.change_quote("Q_BERG_EXPIRING")
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING", version=world.quotes["Q_BERG_EXPIRING"].version,
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version,
                      changed_fields=["notes"], line_change_kinds=[])
     world.drain()
-    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]), 1))
+    expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]), 1))
     assert (expiry.state, expiry.resolution) == ("resolved", "source_closed")
     (task,) = tasks_of(world, expiry.id)
     assert task.state == "expired" and task.completion_evidence == {"reason": "quote_lapsed"}

@@ -61,25 +61,25 @@ def _address(kind: str, line1: str, city: str, postal: str, country: str, line2:
 #: fictional addresses and contacts; tax identifiers are deliberately empty (no fabricated GSTIN/VAT numbers)
 SLICE1_CUSTOMERS: tuple[FixtureParty, ...] = (
     FixtureParty(
-        "NORDHAUS", "DE", "EUR", "standard", keys.USERS.MEERA, "Lena Brandt", "lena.brandt@nordhaus-interiors.test",
+        "NORDHAUS", "DE", "EUR", "standard", keys.USERS.MEERA, *keys.CONTACTS["NORDHAUS"],
         _address("billing", "Lagerweg 4", "Hamburg", "20457", "DE"),
         _address("shipping", "Lagerweg 4, Tor 2", "Hamburg", "20457", "DE"),
         at_ist(-120, 10),
     ),
     FixtureParty(
-        "MAISON", "FR", "EUR", "standard", keys.USERS.MEERA, "Camille Laurent", "camille.laurent@maison-atelier.test",
+        "MAISON", "FR", "EUR", "standard", keys.USERS.MEERA, *keys.CONTACTS["MAISON"],
         _address("billing", "12 rue des Ateliers", "Lyon", "69002", "FR"),
         _address("shipping", "Entrepôt A, 8 rue du Port", "Lyon", "69007", "FR"),
         at_ist(-119, 10),
     ),
     FixtureParty(
-        "BERG", "SE", "EUR", "standard", keys.USERS.MEERA, "Erik Lindqvist", "erik.lindqvist@bergco.test",
+        "BERG", "SE", "EUR", "standard", keys.USERS.MEERA, *keys.CONTACTS["BERG"],
         _address("billing", "Hamngatan 5", "Göteborg", "41106", "SE"),
         _address("shipping", "Hamngatan 5, Lager 1", "Göteborg", "41106", "SE"),
         at_ist(-118, 10),
     ),
     FixtureParty(
-        "THORNBURY", "GB", "GBP", "dealer", keys.USERS.NEHA, "Oliver Hart", "oliver.hart@thornbury-kitchens.test",
+        "THORNBURY", "GB", "GBP", "dealer", keys.USERS.NEHA, *keys.CONTACTS["THORNBURY"],
         _address("billing", "Unit 4, Mill Lane Trading Estate", "Bristol", "BS3 4AA", "GB"),
         _address("shipping", "Unit 4, Mill Lane Trading Estate, Gate B", "Bristol", "BS3 4AA", "GB"),
         at_ist(-117, 10),

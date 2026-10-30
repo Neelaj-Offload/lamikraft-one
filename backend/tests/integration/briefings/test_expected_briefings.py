@@ -16,7 +16,6 @@ from app.modules.tasks import issue_keys
 from app.modules.tasks.models import ChangeLog
 from app.platform.identity.models import AppUser
 from app.seed.world import keys
-from app.seed.world import tasks as seed_tasks
 from tests.integration.briefings.world import FakeWorld, d0
 
 pytestmark = pytest.mark.db
@@ -114,7 +113,7 @@ def test_new_employee_onboarding(world: FakeWorld) -> None:
     assert cutoff == d0(8, 0)
     steps = [i for i in view.items if i.kind == "onboarding_step"]
     assert len(steps) == 3 and all(s.due_label == "Today 18:30" for s in steps)
-    assert [i.title for i in view.items if i.section == "coming_next"] == [seed_tasks.TASK_ARJUN_WALKTHROUGH_TITLE]
+    assert [i.title for i in view.items if i.section == "coming_next"] == [keys.TEXTS.TASK_ARJUN_WALKTHROUGH]
 
 
 def test_due_dates_in_the_users_zone(world: FakeWorld) -> None:
@@ -126,7 +125,7 @@ def test_due_dates_in_the_users_zone(world: FakeWorld) -> None:
     view = today(world, keys.USERS.MEERA)
     reply = view.items[0]
     assert reply.due_at == datetime(2026, 10, 12, 13, 0, tzinfo=UTC)
-    assert (view.time_zone, reply.due_label) == ("Europe/Berlin", "Today 15:00")
+    assert (view.time_zone, reply.due_label) == ("Europe/Berlin", keys.EXPECTED.BERLIN_DUE_LABEL)
     assert view.items[1].due_label == "Expires today"
 
 
@@ -135,7 +134,7 @@ def test_only_authorised_sources_are_linked(world: FakeWorld) -> None:
     view = today(world, keys.USERS.MEERA)
     payload = view.model_dump_json()
     for secret in (keys.PARTY_NAMES["THORNBURY"], "GBP", str(world.refs[keys.USERS.NEHA]),
-                   str(world.refs["Q_THORNBURY_OVERRIDE"]), str(world.refs["Q_THORNBURY_EXPIRING"])):
+                   str(world.refs[keys.QUOTE_REFS.THORNBURY_OVERRIDE]), str(world.refs[keys.QUOTE_REFS.THORNBURY_EXPIRING])):
         assert secret not in payload
     from app.modules.tasks.visibility import SourceCache, can_view_source
 

@@ -52,7 +52,7 @@ def test_lists_items_and_product_prices(world: World) -> None:
     assert page.total == 3 and all(p.status == PriceListStatus.ACTIVE for p in page.items)
     assert pricing.list_price_lists(meera, currency="GBP").total == 1
     assert pricing.list_price_lists(meera, on_date=date(2027, 1, 1)).total == 0
-    eur = world.ref("PL_EXP_EUR")
+    eur = world.ref(keys.PRICE_LIST_REFS.EXP_EUR)
     detail = pricing.get_price_list(meera, eur)
     assert (detail.code, detail.currency, detail.item_count, detail.valid_to) == (keys.PRICE_LISTS.EXP_EUR, "EUR", 3,
                                                                                 date(2026, 12, 31))
@@ -70,7 +70,7 @@ def test_lists_items_and_product_prices(world: World) -> None:
 
 
 def test_price_list_capabilities_follow_permission_and_state(world: World) -> None:
-    eur = world.ref("PL_EXP_EUR")
+    eur = world.ref(keys.PRICE_LIST_REFS.EXP_EUR)
     meera = pricing.get_price_list(world.actor(keys.USERS.MEERA), eur)
     assert {k: (c.allowed, c.reason_code) for k, c in meera.capabilities.items()} == {
         "add_item": (False, "permission_denied"), "supersede_item": (False, "permission_denied"),
@@ -176,9 +176,9 @@ def test_items_never_overlap_for_the_same_list_product_and_unit(world: World) ->
     with pytest.raises(Conflict), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         pricing.add_item(uow, pl.id, PriceListItemCreate(product_id=world.ref("OAK_TRAY"), unit_code="pcs", unit_price=Decimal(2)))
     with pytest.raises(Conflict), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:  # active lists change by supersede
-        pricing.add_item(uow, world.ref("PL_EXP_EUR"),
+        pricing.add_item(uow, world.ref(keys.PRICE_LIST_REFS.EXP_EUR),
                          PriceListItemCreate(product_id=world.ref("WALNUT_BOARD"), unit_code="sheets", unit_price=Decimal(1)))
-    original = world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
+    original = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
     with pytest.raises(DBAPIError, match="ex_pricing_price_list_item_no_overlap"), UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         row = uow.session.get(PriceListItem, original)
         assert row is not None
@@ -205,11 +205,11 @@ def test_supersede_only_on_active_lists(world: World) -> None:
         pricing.supersede_item(uow, draft_item_id, SupersedeItem(unit_price=Decimal(31), valid_from=date(2026, 11, 1)))
     assert excinfo.value.code == "price_list_not_active"
     with UnitOfWork(priya) as uow:  # a retired list (Slice 2 retires lists; set directly here)
-        uow.session.execute(update(PriceList).where(PriceList.id == world.ref("PL_EXP_GBP")).values(status="retired"))
-    retired = pricing.get_price_list(world.actor(keys.USERS.PRIYA), world.ref("PL_EXP_GBP")).capabilities
+        uow.session.execute(update(PriceList).where(PriceList.id == world.ref(keys.PRICE_LIST_REFS.EXP_GBP)).values(status="retired"))
+    retired = pricing.get_price_list(world.actor(keys.USERS.PRIYA), world.ref(keys.PRICE_LIST_REFS.EXP_GBP)).capabilities
     assert retired["supersede_item"].reason_code == "price_list_not_active"
     with pytest.raises(Conflict) as excinfo, UnitOfWork(priya) as uow:
-        pricing.supersede_item(uow, world.ref(item_ref("PL_EXP_GBP", "OAK_TRAY")),
+        pricing.supersede_item(uow, world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_GBP, "OAK_TRAY")),
                                SupersedeItem(unit_price=Decimal(21), valid_from=date(2026, 11, 1)))
     assert excinfo.value.code == "price_list_not_active"
 
@@ -218,7 +218,7 @@ def test_active_item_prices_are_immutable_in_the_database(world: World) -> None:
     """commercial.md §2.2 / ADR-018: once the list is active, the price columns cannot be updated, even by SQL; only
     shortening valid_to, retiring and setting superseded_by once are allowed. Draft items stay editable."""
     priya = world.actor(keys.USERS.PRIYA)
-    item_id = world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
+    item_id = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
     for values in ({"unit_price": Decimal(1)}, {"unit_code": "box"}, {"valid_from": date(2026, 2, 1)},
                    {"status": "draft"}):
         with pytest.raises(DBAPIError, match="immutable|only be"), UnitOfWork(priya) as uow:

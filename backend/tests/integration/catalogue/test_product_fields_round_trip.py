@@ -35,8 +35,8 @@ def test_master_decor_provenance_and_stock_fields_round_trip(world: World) -> No
         display_sku=keys.PRODUCTS.WALNUT_BOARD,  # display SKUs are not unique
         product_name="Round-trip walnut panel",
         brand="Lamikraft",
-        category_id=world.ref("CAT_DECORATIVE_BOARDS"),
-        subcategory_id=world.ref("SUB_VENEERED_PANELS"),
+        category_id=world.ref(keys.CATEGORIES.DECORATIVE_BOARDS),
+        subcategory_id=world.ref(keys.SUBCATEGORIES.VENEERED_PANELS),
         category_source="DECORATIVE BOARDS",
         subcategory_source="Veneered Panels",
         product_type="Panel",
@@ -103,8 +103,8 @@ def test_specification_fields_and_dimension_rows_round_trip(world: World) -> Non
     product_id, _ = _create(world, ProductCreate(
         product_key="RT-SPEC-0001",
         product_name="Round-trip specification",
-        category_id=world.ref("CAT_SERVEWARE"),
-        subcategory_id=world.ref("SUB_BOARDS"),
+        category_id=world.ref(keys.CATEGORIES.SERVEWARE),
+        subcategory_id=world.ref(keys.SUBCATEGORIES.BOARDS),
         unit_of_sale="pcs",
         specification=SpecificationIn(
             length_mm="45 cm", width_mm="300", height_mm="18", thickness_mm="0.80", thickness_text="0.8 mm laminate",
@@ -160,8 +160,8 @@ def test_packaging_fields_and_legacy_alias_pairs_round_trip(world: World) -> Non
     product_id, warnings = _create(world, ProductCreate(
         product_key="RT-PACK-0001",
         product_name="Round-trip packaging",
-        category_id=world.ref("CAT_SERVEWARE"),
-        subcategory_id=world.ref("SUB_TRAYS"),
+        category_id=world.ref(keys.CATEGORIES.SERVEWARE),
+        subcategory_id=world.ref(keys.SUBCATEGORIES.TRAYS),
         unit_of_sale="pcs",
         packaging=PackagingIn(
             master_carton_qty="24", inner_qty=6, inner_pack_qty="6.0", unit_weight_kg="0.45",

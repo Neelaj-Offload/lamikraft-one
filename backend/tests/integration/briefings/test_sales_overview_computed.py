@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.modules.tasks import issue_keys
 from app.seed.world import keys
 from tests.integration.briefings.test_expected_briefings import key_id, today
 from tests.integration.briefings.world import FakeWorld
@@ -22,12 +21,8 @@ def test_meera_sentence_and_sections(world: FakeWorld) -> None:
     assert view.overview.greeting == keys.EXPECTED.MEERA_S1_GREETING
     assert view.overview.sentence == keys.EXPECTED.MEERA_S1_SENTENCE
     assert view.overview.facts == {"customer_replies": 2, "quotes_expiring_today": 1}
-    expected_order = [
-        key_id(world, issue_keys.message_key(world.refs[keys.MESSAGES.BERG])),
-        key_id(world, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"])),
-        key_id(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])),
-        key_id(world, issue_keys.party_info_key(world.refs["MAISON"])),
-    ]
+    # fixtures.md §9.1 rows 1-4 (row 5, the reminder, is checked below)
+    expected_order = [key_id(world, template.format_map(world.refs)) for template in keys.EXPECTED.MEERA_S1_ITEM_ORDER[:4]]
     assert [i.issue_id for i in view.items][:4] == expected_order
     assert view.items[4].is_reminder and view.items[4].due_label == "Tomorrow 10:00"
     sections = {s.code: s.total for s in view.sections}

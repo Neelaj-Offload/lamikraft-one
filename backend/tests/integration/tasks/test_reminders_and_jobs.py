@@ -97,7 +97,7 @@ def test_overdue_sweep_emits_once_and_lapses_quote_expiry(world: FakeWorld) -> N
     with world.uow() as uow:
         from app.modules.tasks.models import Issue
 
-        issue = uow.session.scalars(select(Issue).where(Issue.issue_key == issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]))).one()
+        issue = uow.session.scalars(select(Issue).where(Issue.issue_key == issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]))).one()
         assert (issue.state, issue.resolution) == ("resolved", "source_closed")
 
 

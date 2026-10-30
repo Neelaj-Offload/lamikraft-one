@@ -26,9 +26,9 @@ def test_replay_and_immaterial_change_create_no_version(world: FakeWorld) -> Non
         uow.enqueue("event.handle", {"event_id": str(received.id), "handler": "tasks.rules:sales.customer_message.received"},
                     dedupe_key=f"replay:{received.id}")
     world.drain()
-    world.change_quote("Q_BERG_EXPIRING")  # an internal-notes edit: new version, same material facts
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", "Q_BERG_EXPIRING",
-                     version=world.quotes["Q_BERG_EXPIRING"].version, changed_fields=["notes"], line_change_kinds=[])
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING)  # an internal-notes edit: new version, same material facts
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING,
+                     version=world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version, changed_fields=["notes"], line_change_kinds=[])
     world.drain()
     assert current_version(world, v1.briefing_id) == 1  # type: ignore[arg-type]
     with world.uow() as uow:

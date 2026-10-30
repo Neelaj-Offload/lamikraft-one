@@ -40,7 +40,7 @@ def test_world_numbers_follow_creation_order(world: World) -> None:
         thornbury = parties.get_party(uow, world.ref("THORNBURY"))
     assert thornbury.owner.id == world.user_id(keys.USERS.NEHA)
     assert thornbury.customer_type == "dealer" and thornbury.default_currency == "GBP"
-    assert thornbury.contacts[0].name == "Oliver Hart" and thornbury.contacts[0].is_primary
+    assert thornbury.contacts[0].name == keys.CONTACTS["THORNBURY"][0] and thornbury.contacts[0].is_primary
     assert thornbury.tax_identifiers == []
 
 
@@ -56,8 +56,8 @@ def test_world_counts_and_taxonomy(world: World) -> None:
     }
     tree = catalogue.list_categories(world.actor(keys.USERS.MEERA))
     assert [(c.name, [s.name for s in c.subcategories], c.product_count) for c in tree] == [
-        (CATEGORIES["CAT_SERVEWARE"][0], [name for _key, name in CATEGORIES["CAT_SERVEWARE"][2]], 3),
-        (CATEGORIES["CAT_DECORATIVE_BOARDS"][0], [name for _key, name in CATEGORIES["CAT_DECORATIVE_BOARDS"][2]], 1),
+        (CATEGORIES[keys.CATEGORIES.SERVEWARE][0], [name for _key, name in CATEGORIES[keys.CATEGORIES.SERVEWARE][2]], 3),
+        (CATEGORIES[keys.CATEGORIES.DECORATIVE_BOARDS][0], [name for _key, name in CATEGORIES[keys.CATEGORIES.DECORATIVE_BOARDS][2]], 1),
     ]
     assert all(c.is_active and all(s.is_active for s in c.subcategories) for c in tree)
 

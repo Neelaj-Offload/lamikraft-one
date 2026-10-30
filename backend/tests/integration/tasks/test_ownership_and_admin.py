@@ -39,8 +39,8 @@ def open_tasks(world: FakeWorld, issue_key: str) -> list[Task]:
 def test_briefing_dismiss_leaves_other_peoples_obligations_open(world: FakeWorld) -> None:
     """Review major 2: Sahil dismisses his assigned review; Meera's reply on the same issue stays open."""
     world.at(d0(9, 0))
-    q = world.change_quote("Q_NORDHAUS_DRAFT", status="draft")
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.status_changed", "Q_NORDHAUS_DRAFT", version=q.version,
+    q = world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="draft")
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.status_changed", keys.QUOTE_REFS.NORDHAUS_DRAFT, version=q.version,
                      action="withdraw_review", from_status="internal_review", to_status="draft")
     world.drain()
     key = issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])
@@ -91,7 +91,7 @@ def test_naming_an_owner_needs_assign_scope_over_that_owner(world: FakeWorld) ->
     with world.uow(keys.USERS.SAHIL) as uow, pytest.raises(ValidationFailed) as err:
         tasks.create_task(uow, TaskCreate(title="Look at the Berg quote", owner_user_id=world.refs[keys.USERS.KABIR],
                                           assignee_user_id=world.refs[keys.USERS.SAHIL], linked_ref_type="sales.quote",
-                                          linked_ref_id=world.refs["Q_BERG_EXPIRING"]))
+                                          linked_ref_id=world.refs[keys.QUOTE_REFS.BERG_EXPIRING]))
     assert err.value.code == "assignee_cannot_view"
     with world.uow(keys.USERS.RAVI) as uow:  # same branch: allowed
         out = tasks.create_task(uow, TaskCreate(title="Count oak boards", owner_user_id=world.refs[keys.USERS.KABIR]))
@@ -186,10 +186,10 @@ def test_reply_closes_through_origin_message_link_only(world: FakeWorld) -> None
     """Review major 7: the message does not list the draft; the draft's origin_message_id links it."""
     with world.uow() as uow:
         facts = sources.read(uow, "sales.customer_message", world.refs[keys.MESSAGES.NORDHAUS])
-    assert facts is not None and str(world.refs["Q_NORDHAUS_DRAFT"]) not in facts.facts["linked_quote_ids"]
+    assert facts is not None and str(world.refs[keys.QUOTE_REFS.NORDHAUS_DRAFT]) not in facts.facts["linked_quote_ids"]
     world.at(d0(10, 0))
-    world.change_quote("Q_NORDHAUS_DRAFT", status="sent", sent_at=d0(10, 0))
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", "Q_NORDHAUS_DRAFT", revision_id=str(uuid.uuid7()),
+    world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="sent", sent_at=d0(10, 0))
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", keys.QUOTE_REFS.NORDHAUS_DRAFT, revision_id=str(uuid.uuid7()),
                      dispatch_id=str(uuid.uuid7()))
     world.drain()
     (reply,) = [t for t in open_tasks(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])) if t.kind == "reply_needed"]

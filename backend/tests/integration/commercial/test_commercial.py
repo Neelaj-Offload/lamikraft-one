@@ -114,7 +114,7 @@ def test_future_rule_set_is_not_activated_before_its_effective_date(world: World
 
 
 def test_scenario_c_line_through_the_tool(world: World) -> None:
-    out = _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), keys.EXPECTED.SCENARIO_C_QTY)])
+    out = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), keys.EXPECTED.SCENARIO_C_QTY)])
     calc = out.calculation
     assert calc.grand_total is not None and calc.grand_total.currency == "EUR"
     assert _amount(calc.grand_total) == keys.EXPECTED.SCENARIO_C_TOTAL
@@ -131,18 +131,18 @@ def test_scenario_c_line_through_the_tool(world: World) -> None:
 
 @pytest.mark.parametrize(("toggle", "grand", "applied"), [(False, "4800.00", False), (True, "5200.00", True)])
 def test_scenario_d_surcharge_through_the_tool(world: World, toggle: bool, grand: str, applied: bool) -> None:
-    calc = _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), "200")], toggle=toggle).calculation
+    calc = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), "200")], toggle=toggle).calculation
     assert _amount(calc.applicable_subtotal) == "4800.00" and _amount(calc.grand_total) == grand
     assert calc.surcharge.applied is applied
     assert engine.BELOW_ORDER_VALUE_RECOMMENDATION in calc.lines[0].advisories
 
 
 def test_mixed_lines_and_a_gbp_quote_are_not_evaluated_against_the_eur_rule(world: World) -> None:
-    calc = _calculate(world, [(item_ref("PL_EXP_EUR", "MAPLE_TRIVET"), "100"), (item_ref("PL_EXP_EUR", "ASH_BOARD"), "100")],
+    calc = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "MAPLE_TRIVET"), "100"), (item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "ASH_BOARD"), "100")],
                       toggle=True).calculation
     assert [_amount(ln.gross) for ln in calc.lines] == ["950.00", "1800.00"]
     assert _amount(calc.grand_total) == "3150.00"  # 2,750.00 + 400.00 surcharge
-    gbp = _calculate(world, [(item_ref("PL_EXP_GBP", "OAK_TRAY"), "250")], currency="GBP", toggle=True,
+    gbp = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_GBP, "OAK_TRAY"), "250")], currency="GBP", toggle=True,
                      user=keys.USERS.NEHA).calculation
     assert gbp.grand_total == Money(amount=Decimal("5250.00"), currency="GBP")  # never relabelled
     assert gbp.minimum.status == "NOT_EVALUATED"
@@ -151,13 +151,13 @@ def test_mixed_lines_and_a_gbp_quote_are_not_evaluated_against_the_eur_rule(worl
 
 def test_prices_are_never_relabelled_and_items_must_be_visible(world: World) -> None:
     with pytest.raises(ValidationFailed) as excinfo:
-        _calculate(world, [(item_ref("PL_EXP_GBP", "OAK_TRAY"), "240")], currency="EUR")
+        _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_GBP, "OAK_TRAY"), "240")], currency="EUR")
     assert excinfo.value.extra["errors"][0]["code"] == "currency_mismatch"
     with pytest.raises(Forbidden):  # warehouse holds no pricing.price.read
-        _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), "240")], user=keys.USERS.KABIR)
+        _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), "240")], user=keys.USERS.KABIR)
     with pytest.raises(ValidationError):  # floats are rejected at the tool boundary
         CalculateQuoteInput.model_validate({"currency": "EUR", "lines": [
-            {"price_list_item_id": str(world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))), "quantity": 240.0}]})
+            {"price_list_item_id": str(world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))), "quantity": 240.0}]})
 
 
 def test_missing_rule_set_is_not_configured(personas: World) -> None:
@@ -198,23 +198,23 @@ def test_draft_retired_or_expired_prices_are_never_totalled(world: World) -> Non
                          price="1.0000", valid_to=date(2026, 3, 31))
     assert _tool_errors(world, expired_item, "240") == [("price_not_current", "price_list_item_id")]
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:  # the seeded EUR item, superseded from next month
-        later = pricing.supersede_item(uow, world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY")),
+        later = pricing.supersede_item(uow, world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY")),
                                        SupersedeItem(unit_price=Decimal("26"), valid_from=date(2026, 11, 1)))
     assert _tool_errors(world, later.id, "240") == [("price_not_current", "price_list_item_id")]  # not yet effective
-    current = _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), "240")], user=keys.USERS.SAHIL)
+    current = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), "240")], user=keys.USERS.SAHIL)
     assert _amount(current.calculation.grand_total) == keys.EXPECTED.SCENARIO_C_TOTAL  # today's price still prices
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
-        uow.session.execute(update(PriceList).where(PriceList.id == world.ref("PL_EXP_GBP")).values(status="retired"))
-    assert _tool_errors(world, world.ref(item_ref("PL_EXP_GBP", "OAK_TRAY")), "240", currency="GBP") == [
+        uow.session.execute(update(PriceList).where(PriceList.id == world.ref(keys.PRICE_LIST_REFS.EXP_GBP)).values(status="retired"))
+    assert _tool_errors(world, world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_GBP, "OAK_TRAY")), "240", currency="GBP") == [
         ("price_not_current", "price_list_item_id"),
     ]
 
 
 def test_quantities_follow_the_unit_entry_rule(world: World) -> None:
     """conventions.md §6: integer units take whole numbers; other units at most 4 decimal places (422 otherwise)."""
-    oak = world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
+    oak = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
     assert _tool_errors(world, oak, "240.5") == [("uom_integer_only", "quantity")]
-    walnut = world.ref(item_ref("PL_DOM_INR", "WALNUT_BOARD"))
+    walnut = world.ref(item_ref(keys.PRICE_LIST_REFS.DOM_INR, "WALNUT_BOARD"))
     assert _tool_errors(world, walnut, "2.5", currency="INR") == [("uom_integer_only", "quantity")]  # sheets
     sqm = _list(world, "SMP-INR-SQM", price_type="sample", currency="INR", product="WALNUT_BOARD", unit="sqm",
                 price="100")
@@ -225,7 +225,7 @@ def test_quantities_follow_the_unit_entry_rule(world: World) -> None:
     assert isinstance(out, CalculateQuoteOutput)
     assert out.calculation.lines[0].quantity.model_dump(mode="json") == {"value": "1.2500", "uom": "sqm"}
     assert _amount(out.calculation.grand_total) == "125.00"
-    whole = _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), "240.000")])  # a whole number written with zeros
+    whole = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), "240.000")])  # a whole number written with zeros
     assert _amount(whole.calculation.grand_total) == "5760.00"
 
 
@@ -233,9 +233,9 @@ def test_quantities_follow_the_unit_entry_rule(world: World) -> None:
 def test_out_of_range_quantities_are_a_422_never_an_arithmetic_error(world: World, quantity: str) -> None:
     with pytest.raises(ValidationError):
         CalculateQuoteInput.model_validate({"currency": "EUR", "lines": [
-            {"price_list_item_id": str(world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))), "quantity": quantity}]})
+            {"price_list_item_id": str(world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))), "quantity": quantity}]})
 
 
 def test_largest_wire_quantity_is_calculated(world: World) -> None:
-    out = _calculate(world, [(item_ref("PL_EXP_EUR", "OAK_TRAY"), "99999999999999")])
+    out = _calculate(world, [(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"), "99999999999999")])
     assert _amount(out.calculation.grand_total) == "2399999999999976.00"

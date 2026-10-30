@@ -37,7 +37,7 @@ class FixturePriceList:
 
 SLICE1_PRICE_LISTS: tuple[FixturePriceList, ...] = (
     FixturePriceList(
-        "PL_EXP_EUR", keys.PRICE_LISTS.EXP_EUR, "Export EUR 2026", "export", "EUR", "pcs",
+        keys.PRICE_LIST_REFS.EXP_EUR, keys.PRICE_LISTS.EXP_EUR, keys.PRICE_LIST_NAMES["EXP_EUR"], "export", "EUR", "pcs",
         (
             ("OAK_TRAY", "pcs", keys.PRICES.OAK_TRAY_EUR),
             ("MAPLE_TRIVET", "pcs", keys.PRICES.MAPLE_TRIVET_EUR),
@@ -45,11 +45,12 @@ SLICE1_PRICE_LISTS: tuple[FixturePriceList, ...] = (
         ),
     ),
     FixturePriceList(
-        "PL_EXP_GBP", keys.PRICE_LISTS.EXP_GBP, "Export GBP 2026", "export", "GBP", "pcs",
+        keys.PRICE_LIST_REFS.EXP_GBP, keys.PRICE_LISTS.EXP_GBP, keys.PRICE_LIST_NAMES["EXP_GBP"], "export", "GBP", "pcs",
         (("OAK_TRAY", "pcs", keys.PRICES.OAK_TRAY_GBP),),
     ),
     FixturePriceList(
-        "PL_DOM_INR", keys.PRICE_LISTS.DOM_INR, "Domestic INR 2026", "domestic", "INR", "sheets",
+        keys.PRICE_LIST_REFS.DOM_INR, keys.PRICE_LISTS.DOM_INR, keys.PRICE_LIST_NAMES["DOM_INR"], "domestic", "INR",
+        "sheets",
         (("WALNUT_BOARD", "sheets", keys.PRICES.WALNUT_BOARD_INR),),
     ),
 )
