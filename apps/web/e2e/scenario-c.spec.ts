@@ -63,8 +63,14 @@ test("Sahil approves it from the Inbox", async ({ page }) => {
   const number = quoteNumber;
   expect(number, "the draft from the first step").not.toBe("");
   await signInAs(page, "SAHIL");
-  await page.goto("/inbox/approvals");
-  await page.getByRole("link", { name: new RegExp(number) }).first().click();
+  // The review task is created by the worker from the review event a moment after the request:
+  // reload the Approvals view until it is there.
+  const reviewLink = page.getByRole("link", { name: new RegExp(number) }).first();
+  await expect(async () => {
+    await page.goto("/inbox/approvals");
+    await expect(reviewLink).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+  await reviewLink.click();
   await expect(page).toHaveURL(/\/inbox\/approvals\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(number);
 
