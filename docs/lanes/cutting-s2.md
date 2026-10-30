@@ -139,6 +139,17 @@ Further tests:
 6. **PARITY_MATRIX:** move the rows above using the table, and record the canonical-decor decision against `operations.md` §14.
 7. **e2e:** run `apps/web/e2e/scenarios/h-cutting-canvas.spec.ts`. It creates its own plans as Ravi.
 
-## Gates
+## Gates (run in this worktree, 2026-10-30)
 
-See the final section of the full report (counts pasted from the runs).
+- `npm run test:api`: exit 0, 1105 passed, 1 warning (the existing PIL decompression-bomb warning). The `-q` run prints one dot per passing test; there were no F/E.
+- `npm run check -- --keep-going`:
+
+  | Step | Result |
+  |---|---|
+  | backend: ruff check | PASS |
+  | backend: pytest unit + contract | PASS (505 passed) |
+  | alembic heads == 1 | PASS |
+  | api:check | FAIL, expected: "backend/openapi.json is out of date" (new routes; not committed per lane rules) |
+  | web: lint | PASS |
+  | web: typecheck | PASS |
+  | web: vitest | PASS (29 files, 426 tests) |
