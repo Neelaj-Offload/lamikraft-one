@@ -3,7 +3,9 @@
 ``GET /api/v1/session/bootstrap`` (module ``ui``) returns every registered section; ``GET /api/v1/ui/poll``
 returns the sections with ``in_poll=True`` (Inbox counts, current briefing version, ...). Modules register
 in their manifest ``on_load`` so ``ui`` never imports them. A failing section is reported as unavailable and
-never breaks the bootstrap (an AI or briefing outage must not stop sign-in).
+never breaks the bootstrap (an AI or briefing outage must not stop sign-in). Each section runs in its own
+SAVEPOINT, so a database error inside one section rolls back only that section and never aborts the caller's
+transaction (which must still commit, e.g. the CSRF rotation of the bootstrap).
 """
 
 from __future__ import annotations
@@ -44,7 +46,8 @@ def build_sections(uow: UnitOfWork, *, poll_only: bool = False) -> dict[str, Any
         if poll_only and not section.in_poll:
             continue
         try:
-            out[section.key] = section.build(uow)
+            with uow.session.begin_nested():
+                out[section.key] = section.build(uow)
         except Exception as exc:  # isolate contributors; the session must still bootstrap
             log.warning("ui.section_failed", section=section.key, error=type(exc).__name__)
             out[section.key] = {"status": "unavailable"}
