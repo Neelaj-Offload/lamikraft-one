@@ -79,13 +79,40 @@ def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, default=lambda v: v.isoformat() if isinstance(v, datetime) else str(v)))
 
 
+def published_facts() -> dict[str, dict[str, str]]:
+    """The fixture constants e2e specs read (``apps/web/e2e/support/world.ts``): ``expected`` (the string values
+    of ``keys.EXPECTED``, e.g. ``SCENARIO_C_TOTAL``), ``quotes`` (``keys.QUOTES``: fixture name -> quote number)
+    and ``enquiries`` (``keys.ENQUIRIES``: fixture name -> enquiry number)."""
+    return {
+        "expected": {k: v for k, v in vars(keys.EXPECTED).items() if isinstance(v, str)},
+        "quotes": dict(vars(keys.QUOTES)),
+        "enquiries": dict(vars(keys.ENQUIRIES)),
+    }
+
+
+def business_key_refs(ctx: SeedContext) -> dict[str, str]:
+    """Ids by business key (quote and enquiry numbers) for every seeded quote and enquiry, next to the fixture keys
+    (``Q_MAISON_OVERRIDE`` and ``LK-QT-2026-0005`` name the same id)."""
+    out: dict[str, str] = {}
+    pairs = [(f"Q_{name}", number) for name, number in vars(keys.QUOTES).items()]
+    pairs += [(f"ENQ_{name}", number) for name, number in vars(keys.ENQUIRIES).items()]
+    for fixture_key, business_key in pairs:
+        if fixture_key in ctx.refs:
+            out[business_key] = str(ctx.refs[fixture_key])
+    if "PRIOR_WON" in ctx.refs:  # the one quote whose fixture key has no ``Q_`` prefix
+        out[keys.QUOTES.PRIOR_WON] = str(ctx.refs["PRIOR_WON"])
+    return out
+
+
 def world_summary(ctx: SeedContext) -> dict[str, Any]:
+    refs = {k: str(v) for k, v in ctx.refs.items()}
+    refs.update(business_key_refs(ctx))
     return {
         "company_id": str(ctx.company_id),
         "company_key": keys.COMPANY_KEY,
         "slice_max": ctx.slice_max,
-        "refs": {k: str(v) for k, v in sorted(ctx.refs.items())},
-        "facts": _json_safe(ctx.facts),
+        "refs": dict(sorted(refs.items())),
+        "facts": {**_json_safe(ctx.facts), **published_facts()},
     }
 
 

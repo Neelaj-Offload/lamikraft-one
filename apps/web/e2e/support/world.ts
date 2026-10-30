@@ -4,9 +4,9 @@
  * numbers and expected figures come from `GET /api/v1/_test/fixtures`, never from literals.
  *
  * `/_test/fixtures` returns `{company_id, company_key, slice_max, refs, facts}` (seed/runner.py
- * `world_summary`). The expected results (`keys.EXPECTED`, `keys.QUOTES`) are read from
- * `facts.expected` and `facts.quotes`; until the seed publishes them there, `expected()` fails
- * with a message naming the missing key (integrator request in docs/lanes/web.md, wave 2).
+ * `world_summary`). The expected results are read from `facts.expected` (string values of
+ * `keys.EXPECTED`), `facts.quotes` (`keys.QUOTES`) and `facts.enquiries` (`keys.ENQUIRIES`);
+ * `refs` carries ids by fixture key and, for quotes and enquiries, by business key too.
  */
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";

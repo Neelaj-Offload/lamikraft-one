@@ -44,6 +44,11 @@ def test_fixtures_returns_the_seeded_references(client: TestClient, world: SeedC
     assert body["company_id"] == str(world.company_id)
     assert body["refs"][keys.USERS.SAHIL] == str(world.refs[keys.USERS.SAHIL])
     assert set(body["facts"]["branches"]) == {keys.BRANCHES.HO, keys.BRANCHES.FAC}
+    # the constants the e2e specs read (apps/web/e2e/support/world.ts)
+    assert body["facts"]["expected"]["SCENARIO_C_TOTAL"] == keys.EXPECTED.SCENARIO_C_TOTAL
+    assert body["facts"]["expected"]["SCENARIO_C_QTY"] == keys.EXPECTED.SCENARIO_C_QTY
+    assert body["facts"]["quotes"]["SCENARIO_C_NEW"] == keys.QUOTES.SCENARIO_C_NEW
+    assert body["facts"]["enquiries"]["MAISON"] == keys.ENQUIRIES.MAISON
 
 
 def test_clock_moves_business_time(client: TestClient, world: SeedContext, frozen_clock) -> None:  # type: ignore[no-untyped-def]
