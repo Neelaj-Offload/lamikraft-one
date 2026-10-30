@@ -1,15 +1,14 @@
 /**
  * The assistant (agents module) as the web uses it.
  *
- * INTERIM(api-generate): the agents module (backend/app/modules/agents, lane `agents`) is being
- * built in the same wave and has no router or schemas yet. The wire shapes below follow the
- * lane brief (scratchpad/s1w1/agents-brief.md §2-§3) and docs/architecture/ai-routing.md §4.1
- * and §5; `parse.ts` is the only reader of them, so after `npm run api:generate` only that
- * adapter changes. Endpoints (operationIds):
- * - `POST /api/v1/agents/conversations` (agents_create_conversation) → `{id}`
- * - `POST /api/v1/agents/conversations/{id}/turns` (agents_create_turn) → 202 `{run_id}`
- * - `GET  /api/v1/agents/runs/{run_id}?after_seq=N` (agents_get_run) → run status + steps
- * - `POST /api/v1/agents/runs/{run_id}/cancel` (agents_cancel_run)
+ * INTERIM(api-generate): checked against the agents lane's committed router and schemas
+ * (backend/app/modules/agents/{router,schemas,cards}.py) and ai-routing.md §4.1 and §5;
+ * `parse.ts` is the only reader of the wire, so after `npm run api:generate` only that adapter
+ * changes. Endpoints (operationIds):
+ * - `POST /api/v1/agents/conversations` (agents_create_conversation) → 201 `ConversationOut{id}`
+ * - `POST /api/v1/agents/conversations/{id}/turns` (agents_create_turn) → 202 `TurnAccepted{run_id}`
+ * - `GET  /api/v1/agents/runs/{run_id}?after_seq=N` (agents_get_run) → `RunDetail{run, steps, done, text, cards}`
+ * - `POST /api/v1/agents/runs/{run_id}/cancel` (agents_cancel_run) → `RunSummary`
  */
 
 // ---------------------------------------------------------------------------------------------
@@ -74,7 +73,12 @@ export interface AgentRun {
   error_code: string | null;
   /** The run read external text (customer messages): proposals need explicit confirmation. */
   tainted: boolean;
+  /** `demo` when the deterministic demo engine answered (`RunSummary.provider`). */
+  provider: string | null;
   steps: RunStep[];
+  /** The assistant turn's final text and cards (`RunDetail.text/cards`), once the run is done. */
+  text: string | null;
+  cards: AssistantCard[];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -103,8 +107,12 @@ export interface QuoteDraftCardLine {
 export interface QuoteDraftCard {
   kind: "quote_draft";
   demo: boolean;
-  quote_id: string;
-  quote_number: string;
+  /** Null for a calculation preview that wrote no draft (`preview_only`). */
+  quote_id: string | null;
+  quote_number: string | null;
+  preview_only: boolean;
+  /** The run read customer text: a person confirms every detail before anything is sent. */
+  requires_confirmation: boolean;
   status: string;
   party_name: string | null;
   lines: QuoteDraftCardLine[];
@@ -113,16 +121,22 @@ export interface QuoteDraftCard {
   grand_total: CardMoney | null;
   /** The engine's recommended quantity note ("216 pcs reach the order minimum"), when sent. */
   notes: string[];
-  open_href: string;
-  review_href: string;
+  open_href: string | null;
+  review_href: string | null;
+}
+
+/** `TurnCreate.selected_option`: exactly the slot and value the server offered. */
+export interface SelectedOption {
+  slot: string;
+  value: string;
 }
 
 export interface ClarificationOption {
   id: string;
   label: string;
   detail: string | null;
-  /** Posted back as the next turn's `selected_option`; opaque to the client. */
-  value: unknown;
+  /** Posted back as the next turn's `selected_option`. */
+  value: SelectedOption;
 }
 
 export interface ClarificationCard {
@@ -138,6 +152,8 @@ export interface ErrorCard {
   code: string;
   message: string;
   recoverable: CardLink | null;
+  /** Direct controls to finish the job by hand (`direct_controls`). */
+  controls: CardLink[];
 }
 
 export interface RecordLinkCard {

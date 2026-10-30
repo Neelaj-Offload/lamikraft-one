@@ -14,6 +14,7 @@ import type {
   ClarificationOption,
   QuoteDraftCardLine,
   RunStep,
+  SelectedOption,
 } from "./types";
 
 export class AssistantShapeError extends Error {
@@ -82,61 +83,80 @@ function quoteDraft(raw: Json, demo: boolean): AssistantCard | null {
   const quote = isObject(raw.quote) ? raw.quote : null;
   const quoteId = str(raw.quote_id) ?? (quote ? str(quote.id) : null);
   const number = str(raw.quote_number) ?? (quote ? str(quote.quote_number) : null);
-  if (!quoteId || !number) return null;
+  const previewOnly = raw.preview_only === true;
+  // A draft card names a saved quote; only a calculation preview may come without one.
+  if (!previewOnly && (!quoteId || !number)) return null;
   const totals = isObject(raw.totals) ? raw.totals : raw;
   const currency = str(raw.currency) ?? str(totals.currency);
   const party = isObject(raw.party) ? raw.party : null;
-  const base = `/sales/quotes/${encodeURIComponent(quoteId)}`;
+  const lines = arr(raw.lines)
+    .map((line, index) => quoteLine(line, currency, index))
+    .filter((line): line is QuoteDraftCardLine => line !== null);
   const recommendation = isObject(raw.recommendation) ? str(raw.recommendation.label) : null;
+  const recommended = int(totals.recommended_quantity);
+  const unit = lines[0]?.unit_code ? ` ${lines[0].unit_code}` : "";
   const notes = [
     ...arr(raw.notes).filter((note): note is string => typeof note === "string"),
+    ...arr(isObject(raw.totals) ? raw.totals.notes : null).filter((note): note is string => typeof note === "string"),
     ...(recommendation ? [recommendation] : []),
+    ...(recommended !== null ? [`Recommended quantity: ${recommended}${unit}`] : []),
     ...(str(totals.threshold_note) ? [str(totals.threshold_note)!] : []),
   ];
   const surcharge = cardMoney(totals.surcharge, currency);
   // A surcharge is shown only when the server applied one.
-  const surchargeShown = totals.surcharge_applied !== false && surcharge !== null && compareDecimalStr(surcharge.amount, "0") !== 0;
+  const surchargeShown = totals.surcharge_applied === true && surcharge !== null && compareDecimalStr(surcharge.amount, "0") !== 0;
+  const base = quoteId ? `/sales/quotes/${encodeURIComponent(quoteId)}` : null;
+  const review = isObject(raw.review) ? appLinkFor(raw.review.path ?? raw.review.href) : null;
   return {
     kind: "quote_draft",
     demo,
     quote_id: quoteId,
     quote_number: number,
+    preview_only: previewOnly,
+    requires_confirmation: raw.requires_confirmation === true,
     status: str(raw.status) ?? "draft",
-    party_name: str(raw.party_name) ?? (party ? (str(party.display_name) ?? str(party.name)) : null),
-    lines: arr(raw.lines)
-      .map((line, index) => quoteLine(line, currency, index))
-      .filter((line): line is QuoteDraftCardLine => line !== null),
+    party_name: str(raw.party_label) ?? str(raw.party_name) ?? (party ? (str(party.display_name) ?? str(party.name)) : null),
+    lines,
     subtotal: cardMoney(totals.applicable_subtotal ?? totals.net_subtotal ?? totals.subtotal, currency),
     surcharge: surchargeShown ? surcharge : null,
     grand_total: cardMoney(totals.grand_total, currency),
     notes: [...new Set(notes)],
     open_href: appLinkFor(raw.open_path ?? raw.path) ?? base,
-    review_href: appLinkFor(raw.review_path ?? (isObject(raw.links) ? raw.links.review : null)) ?? base,
+    review_href: review ?? appLinkFor(raw.review_path ?? (isObject(raw.links) ? raw.links.review : null)) ?? base,
   };
+}
+
+/** `ClarificationOption.action{slot, value}` (or a flat `{slot, value}`) as the next turn's `selected_option`. */
+function selectedOption(option: Json, cardSlot: string | null): SelectedOption | null {
+  const action = isObject(option.action) ? option.action : option;
+  const slot = str(action.slot) ?? cardSlot;
+  const value = str(action.value) ?? (typeof action.value === "number" ? String(action.value) : null);
+  return slot && value ? { slot, value } : null;
+}
+
+/** Cards and runs answered by the deterministic demo engine carry `provider_label: "Demo"`. */
+export function isDemoProvider(raw: Json): boolean {
+  const label = str(raw.provider_label) ?? str(raw.provider) ?? str(raw.mode);
+  return raw.demo === true || (label !== null && label.toLowerCase() === "demo");
 }
 
 export function parseCard(raw: unknown): AssistantCard | null {
   if (!isObject(raw)) return null;
   const kind = cardKind(raw.kind ?? raw.type);
   if (!kind) return null;
-  const demo = raw.demo === true || raw.provider === "demo" || raw.mode === "demo";
+  const demo = isDemoProvider(raw);
   switch (kind) {
     case "quote_draft":
       return quoteDraft(raw, demo);
     case "clarification": {
       const question = str(raw.question) ?? str(raw.text);
+      const slot = str(raw.slot);
       const options = arr(raw.options).flatMap((option, index): ClarificationOption[] => {
         if (!isObject(option)) return [];
         const label = str(option.label) ?? str(option.display_name);
-        if (!label) return [];
-        return [
-          {
-            id: str(option.id) ?? str(option.value) ?? `option-${index + 1}`,
-            label,
-            detail: str(option.detail) ?? str(option.description),
-            value: option.action ?? option.value ?? option.id ?? label,
-          },
-        ];
+        const value = selectedOption(option, slot);
+        if (!label || !value) return [];
+        return [{ id: str(option.ref) ?? str(option.id) ?? `option-${index + 1}`, label, detail: str(option.detail) ?? str(option.description), value }];
       });
       if (!question || options.length === 0) return null;
       return { kind, demo, question, options };
@@ -150,6 +170,9 @@ export function parseCard(raw: unknown): AssistantCard | null {
         code: str(raw.code) ?? "error",
         message,
         recoverable: link(raw.recoverable_draft ?? raw.draft ?? raw.record, "Open the saved draft"),
+        controls: arr(raw.direct_controls)
+          .map((control) => link(control, "Open"))
+          .filter((control): control is CardLink => control !== null),
       };
     }
     case "record_link": {
@@ -159,9 +182,9 @@ export function parseCard(raw: unknown): AssistantCard | null {
       return { kind, demo, label, detail: str(raw.detail) ?? str(raw.summary), href };
     }
     case "receipt": {
-      const title = str(raw.title) ?? str(raw.text) ?? str(raw.label);
+      const title = str(raw.summary) ?? str(raw.title) ?? str(raw.text) ?? str(raw.label);
       if (!title) return null;
-      return { kind, demo, title, detail: str(raw.detail) ?? str(raw.summary), link: link(raw.link ?? raw.record ?? raw, "Open") };
+      return { kind, demo, title, detail: str(raw.detail), link: link(raw.record ?? raw.link, "Open") };
     }
   }
 }
@@ -183,27 +206,41 @@ function step(value: unknown): RunStep | null {
   };
 }
 
+/**
+ * A run from `RunDetail{run: RunSummary, steps, done, text, cards}` (the polling payload) or a
+ * bare `RunSummary` (the cancel answer, which has no steps).
+ */
 export function parseRun(raw: unknown): AgentRun {
   if (!isObject(raw)) throw new AssistantShapeError("The assistant's run could not be read.");
-  const id = str(raw.id) ?? str(raw.run_id);
-  const status = str(raw.status);
+  const summary = isObject(raw.run) ? raw.run : raw;
+  const id = str(summary.id) ?? str(raw.run_id);
+  const status = str(summary.status);
   if (!id || !status) throw new AssistantShapeError("The assistant's run could not be read (id, status).");
   const steps = arr(raw.steps)
     .map(step)
     .filter((entry): entry is RunStep => entry !== null)
     .sort((a, b) => a.seq - b.seq);
-  // Cards may also come as a top-level list: fold them in after the steps.
-  const last = steps.at(-1)?.seq ?? 0;
-  const extra: RunStep[] = arr(raw.cards)
-    .map(parseCard)
-    .filter((card): card is AssistantCard => card !== null)
-    .map((card, index) => ({ seq: last + index + 1, kind: "card", name: null, is_error: false, text: null, card }));
   return {
     id,
     status,
-    error_code: str(raw.error_code),
-    tainted: raw.tainted === true,
-    steps: extra.length > 0 && !steps.some((entry) => entry.card) ? [...steps, ...extra] : steps,
+    error_code: str(summary.error_code),
+    tainted: summary.tainted === true,
+    provider: str(summary.provider),
+    steps,
+    text: str(raw.text),
+    cards: arr(raw.cards)
+      .map(parseCard)
+      .filter((card): card is AssistantCard => card !== null),
+  };
+}
+
+/** What the run shows: the step cards and text as they arrive, else the final turn's. */
+export function runOutput(run: AgentRun): { texts: string[]; cards: AssistantCard[] } {
+  const stepCards = run.steps.flatMap((entry) => (entry.card ? [entry.card] : []));
+  const stepTexts = run.steps.flatMap((entry) => (entry.text ? [entry.text] : []));
+  return {
+    texts: stepTexts.length > 0 ? stepTexts : run.text ? [run.text] : [],
+    cards: stepCards.length > 0 ? stepCards : run.cards,
   };
 }
 
@@ -228,7 +265,14 @@ export function mergeRun(current: AgentRun | null, update: AgentRun): AgentRun {
   if (!current || current.id !== update.id) return update;
   const known = new Set(current.steps.map((entry) => entry.seq));
   const steps = [...current.steps, ...update.steps.filter((entry) => !known.has(entry.seq))].sort((a, b) => a.seq - b.seq);
-  return { ...update, tainted: current.tainted || update.tainted, steps };
+  return {
+    ...update,
+    tainted: current.tainted || update.tainted,
+    provider: update.provider ?? current.provider,
+    steps,
+    text: update.text ?? current.text,
+    cards: update.cards.length > 0 ? update.cards : current.cards,
+  };
 }
 
 export function lastSeq(run: AgentRun | null): number {

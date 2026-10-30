@@ -10,7 +10,7 @@ import { cancelRun, createConversation, fetchRun, postTurn } from "./api";
 import { lastSeq, mergeRun } from "./parse";
 import { buildScreenContext, type ScreenContribution } from "./screen-context";
 import { currentContributions } from "./screen-context-store";
-import type { AgentRun } from "./types";
+import type { AgentRun, SelectedOption } from "./types";
 
 export interface Exchange {
   id: string;
@@ -46,7 +46,7 @@ export function runEndText(run: AgentRun): string | null {
 export interface UseAssistant {
   exchanges: Exchange[];
   busy: boolean;
-  send: (text: string, options?: { selectedOption?: unknown }) => Promise<void>;
+  send: (text: string, options?: { selectedOption?: SelectedOption }) => Promise<void>;
   cancel: () => Promise<void>;
 }
 
@@ -99,7 +99,7 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
   }, [runId, runStatus, afterSeq, exchangeId, patch]);
 
   const send = useCallback(
-    async (text: string, options: { selectedOption?: unknown } = {}) => {
+    async (text: string, options: { selectedOption?: SelectedOption } = {}) => {
       const value = text.trim();
       if (!value || sending || runActive) return;
       const id = createIdempotencyKey();
@@ -114,8 +114,8 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
           now: new Date(),
           viewport: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight },
         });
-        const run = await postTurn(conversation.current, { text: value, context, selectedOption: options.selectedOption }, id);
-        patch(id, (exchange) => ({ ...exchange, run: { id: run, status: "queued", error_code: null, tainted: false, steps: [] } }));
+        const run = await postTurn(conversation.current, { text: value, context, selectedOption: options.selectedOption, clientUtteranceId: id }, id);
+        patch(id, (exchange) => ({ ...exchange, run: { id: run, status: "queued", error_code: null, tainted: false, provider: null, steps: [], text: null, cards: [] } }));
       } catch (error) {
         patch(id, (exchange) => ({ ...exchange, problem: assistantProblem(error) }));
       } finally {

@@ -62,6 +62,9 @@ export const assistantMessages = {
   cards: {
     draftTitle: (number: string) => `Draft ${number}`,
     draftFor: (party: string) => `For ${party}`,
+    previewTitle: "Totals preview",
+    previewOnly: "A preview only: nothing was saved. Apply the change in the quote to keep it.",
+    confirm: "This used text from a customer message. Check every line before you request review or send it.",
     line: "Line",
     quantity: "Quantity",
     unitPrice: "Unit price",

@@ -39,13 +39,13 @@ export function QuoteDraftCardView({ card }: { card: QuoteDraftCard }) {
     <section aria-labelledby={titleId} className={surface} data-card="quote_draft">
       <div className="flex flex-col gap-0.5">
         <CardHeading id={titleId} demo={card.demo}>
-          {m.cards.draftTitle(card.quote_number)}
+          {card.quote_number ? m.cards.draftTitle(card.quote_number) : m.cards.previewTitle}
         </CardHeading>
         {card.party_name ? <p className="text-sm text-ink-muted">{m.cards.draftFor(card.party_name)}</p> : null}
       </div>
       {card.lines.length > 0 ? (
         <table className="w-full text-sm">
-          <caption className="sr-only">{m.cards.linesCaption(card.quote_number)}</caption>
+          <caption className="sr-only">{m.cards.linesCaption(card.quote_number ?? m.cards.previewTitle)}</caption>
           <thead>
             <tr className="text-start text-ink-muted">
               <th scope="col" className="py-1 text-start font-semibold">
@@ -114,16 +114,20 @@ export function QuoteDraftCardView({ card }: { card: QuoteDraftCard }) {
           ))}
         </ul>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <LinkButton href={card.open_href} variant="primary">
-          {m.cards.openDraft}
-        </LinkButton>
-        {card.review_href !== card.open_href ? (
-          <LinkButton href={card.review_href} variant="secondary">
-            {m.cards.review}
+      {card.preview_only ? <p className="text-sm text-ink-muted">{m.cards.previewOnly}</p> : null}
+      {card.requires_confirmation ? <p className="text-sm text-warning-text">{m.cards.confirm}</p> : null}
+      {card.open_href ? (
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href={card.open_href} variant="primary">
+            {m.cards.openDraft}
           </LinkButton>
-        ) : null}
-      </div>
+          {card.review_href && card.review_href !== card.open_href ? (
+            <LinkButton href={card.review_href} variant="secondary">
+              {m.cards.review}
+            </LinkButton>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -164,6 +168,15 @@ export function ErrorCardView({ card }: { card: ErrorCard }) {
       </CardHeading>
       <p className="text-[15px] text-ink">{card.message}</p>
       {card.recoverable ? <Link href={card.recoverable.href}>{card.recoverable.label}</Link> : null}
+      {card.controls.length > 0 ? (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {card.controls.map((control) => (
+            <li key={control.href}>
+              <Link href={control.href}>{control.label}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

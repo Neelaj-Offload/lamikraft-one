@@ -14,7 +14,8 @@ import type { SessionBootstrap } from "@/lib/session/types";
 import { assistantMessages as m } from "@/messages/assistant";
 import { AssistantCardView } from "./cards";
 import type { ScreenContribution } from "./screen-context";
-import type { AgentRun, RunStep } from "./types";
+import { runOutput } from "./parse";
+import type { AgentRun, RunStep, SelectedOption } from "./types";
 import { runEndText, useAssistant, type Exchange } from "./use-assistant";
 
 /** Demo when the AI integration runs in demo mode (bootstrap `integration_modes.ai`). */
@@ -29,13 +30,12 @@ export function stepLabel(step: RunStep): string | null {
   return (step.name ? m.stepNames[step.name] : undefined) ?? m.stepKinds[step.kind] ?? null;
 }
 
-function RunView({ run, onChoose, isBusy }: { run: AgentRun; onChoose: (value: unknown, label: string) => void; isBusy: boolean }) {
+function RunView({ run, onChoose, isBusy }: { run: AgentRun; onChoose: (value: SelectedOption, label: string) => void; isBusy: boolean }) {
   const steps = run.steps.flatMap((step) => {
     const label = stepLabel(step);
     return label ? [{ step, label }] : [];
   });
-  const texts = run.steps.filter((step) => step.text);
-  const cards = run.steps.filter((step) => step.card);
+  const { texts, cards } = runOutput(run);
   const active = isAgentRunActive(run.status);
   const ended = runEndText(run);
   return (
@@ -54,28 +54,21 @@ function RunView({ run, onChoose, isBusy }: { run: AgentRun; onChoose: (value: u
           </ol>
         </div>
       ) : null}
-      {texts.map((step) => (
-        <p key={step.seq} className="text-[15px] text-ink">
-          {step.text}
+      {texts.map((text, index) => (
+        <p key={`text-${index}`} className="text-[15px] text-ink">
+          {text}
         </p>
       ))}
-      {cards.map((step) =>
-        step.card ? (
-          <AssistantCardView
-            key={step.seq}
-            card={step.card}
-            isBusy={isBusy}
-            onChoose={(option) => onChoose(option.value, option.label)}
-          />
-        ) : null,
-      )}
+      {cards.map((card, index) => (
+        <AssistantCardView key={`card-${index}`} card={card} isBusy={isBusy} onChoose={(option) => onChoose(option.value, option.label)} />
+      ))}
       {run.tainted ? <p className="text-sm text-warning-text">{m.run.tainted}</p> : null}
       {ended ? <p className="text-sm text-ink-muted">{ended}</p> : null}
     </div>
   );
 }
 
-function ExchangeView({ exchange, onChoose, isBusy }: { exchange: Exchange; onChoose: (value: unknown, label: string) => void; isBusy: boolean }) {
+function ExchangeView({ exchange, onChoose, isBusy }: { exchange: Exchange; onChoose: (value: SelectedOption, label: string) => void; isBusy: boolean }) {
   return (
     <li className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0">
       <p className="text-[15px]">
