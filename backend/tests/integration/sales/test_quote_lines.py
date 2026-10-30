@@ -175,3 +175,45 @@ def test_price_ambiguity_is_409(world: SalesWorld, monkeypatch: pytest.MonkeyPat
     with pytest.raises(Conflict) as exc:
         _line(world, draft.id, draft.version, product_id=world.ref("OAK_TRAY"), quantity=Decimal("24"))
     assert exc.value.code == "price_ambiguous" and len(exc.value.extra["candidates"]) == 2
+
+
+def test_custom_line_from_custom_product(world: SalesWorld) -> None:
+    """LM-47 / LM-69 / FG-QLN-02: a custom line references a custom product, takes its quoted price in the quote
+    currency, snapshots its spec (later edits do not change the line) and keeps the override rule."""
+    from app.modules.sales.schemas import CustomProductCreate, CustomProductUpdate
+
+    with world.uow(keys.USERS.MEERA) as uow:
+        custom = sales.create_custom_product(uow, CustomProductCreate(
+            product_name="Oak tray 520", dimensions_text="520 x 330 mm", decor_no="0120", finish="Matt",
+            quoted_price=Decimal("31.5"), quoted_currency="EUR", packaging={"carton_qty": 12},  # type: ignore[arg-type]
+        ))
+        custom_id, version = custom.id, custom.version
+    draft = world.new_draft(keys.USERS.MEERA, "NORDHAUS")
+    with pytest.raises(ValidationError):
+        QuoteLineCreate(expected_version=1, line_type="custom", quantity=Decimal("1"))
+    with world.uow(keys.USERS.MEERA) as uow:
+        quote, line = sales.add_line(uow, draft.id, QuoteLineCreate(expected_version=draft.version, line_type="custom",
+                                                                    custom_product_id=custom_id, quantity=Decimal("240")))
+        detail = sales.detail(uow, quote)
+    read = detail.lines[0]
+    assert (read.line_type.value, read.custom_product_id, read.default_unit_price, read.unit_price) == (
+        "custom", custom_id, Decimal("31.5000"), Decimal("31.5000"))
+    assert read.custom_snapshot is not None and read.product_snapshot is None
+    assert (read.custom_snapshot.custom_code, read.custom_snapshot.size_text, read.packaging_snapshot.carton_qty) == ("CP-0001", "520 x 330 mm", 12)  # type: ignore[union-attr]
+    assert (read.source_currency, read.source_unit_price) == ("EUR", Decimal("31.5000"))
+    assert detail.totals.grand_total.amount == Decimal("7560.00") and line.custom_product_id == custom_id  # type: ignore[union-attr]
+    with world.uow(keys.USERS.MEERA) as uow:  # the spec changes later: the line keeps its snapshot
+        sales.update_custom_product(uow, custom_id, CustomProductUpdate(expected_version=version, product_name="Oak tray 530"))
+        again = sales.get_quote(uow, draft.id).lines[0]
+    assert again.description == "Oak tray 520" and again.custom_snapshot.product_name == "Oak tray 520"  # type: ignore[union-attr]
+    # in a currency the custom product is not priced in (and without an approved rate) a price must be entered
+    thornbury = world.new_draft(keys.USERS.NEHA, "THORNBURY")
+    with world.uow(keys.USERS.SAHIL) as uow:  # management can see both the product and Neha's quote
+        with pytest.raises(Conflict) as exc:
+            sales.add_line(uow, thornbury.id, QuoteLineCreate(expected_version=thornbury.version, line_type="custom",
+                                                              custom_product_id=custom_id, quantity=Decimal("10")))
+        assert exc.value.code == "price_unavailable"
+        _q, manual_priced = sales.add_line(uow, thornbury.id, QuoteLineCreate(
+            expected_version=thornbury.version, line_type="custom", custom_product_id=custom_id, quantity=Decimal("10"),
+            unit_price=Decimal("28")))
+    assert (manual_priced.currency, manual_priced.unit_price, manual_priced.default_unit_price) == ("GBP", Decimal("28.0000"), Decimal("28.0000"))
