@@ -11,7 +11,7 @@ from app.modules.commercial import engine
 from app.modules.commercial import service as commercial
 from app.modules.sales import service as sales
 from app.modules.sales.models import Quote, QuoteLine
-from app.modules.sales.schemas import QuoteLineCreate, QuoteLineUpdate, QuotePreviewIn, QuoteUpdate
+from app.modules.sales.schemas import QuoteLineCreate, QuotePreviewIn, QuoteUpdate
 from app.seed.world import keys
 from tests.integration.sales.world import SalesWorld
 
