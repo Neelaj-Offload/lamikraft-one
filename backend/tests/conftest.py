@@ -93,6 +93,36 @@ def _registry_loaded() -> None:
     get_registry()
 
 
+def seam_registrations() -> dict[str, object]:
+    """What tests may swap at the platform seams: SourceReaders, the member-actor builder, approval handlers."""
+    from app.modules.approvals import service as approvals
+    from app.platform import sources
+    from app.platform.authz import actors
+
+    return {
+        "readers": dict(sources._READERS),
+        "member_actor_builder": actors._builder,
+        "approval_handlers": dict(approvals._HANDLERS),
+    }
+
+
+@pytest.fixture(autouse=True)
+def _seams_restored(_registry_loaded: None) -> Iterator[None]:
+    """A test (or its fixtures) that swaps a reader, the member-actor builder or an approval handler must restore
+    it, so no fake leaks into another lane's tests whatever the order (torn down after the test's fixtures)."""
+    before = seam_registrations()
+    yield
+    after = seam_registrations()
+    changed = {name: _diff(before[name], after[name]) for name in before if after[name] != before[name]}
+    assert not changed, f"seam registrations not restored after the test (register in a fixture, restore on teardown): {changed}"
+
+
+def _diff(before: object, after: object) -> object:
+    if isinstance(before, dict) and isinstance(after, dict):
+        return sorted(k for k in before.keys() | after.keys() if before.get(k) is not after.get(k))
+    return {"before": before, "after": after}
+
+
 @pytest.fixture
 def db(request: pytest.FixtureRequest, migrated_db: str) -> Iterator[None]:
     """Savepoint mode: all units of work share one outer transaction that is rolled back."""

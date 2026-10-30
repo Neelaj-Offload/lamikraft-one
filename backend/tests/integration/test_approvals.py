@@ -34,6 +34,7 @@ def _handler() -> None:
 
 @pytest.fixture
 def world(db: None):  # type: ignore[no-untyped-def]
+    previous = approvals._HANDLERS.get("test.thing.review")
     _handler()
     company, _ = create_company()
     requester = create_user(company, "Meera")
@@ -42,7 +43,13 @@ def world(db: None):  # type: ignore[no-untyped-def]
     _versions[target] = 3
     req = actor(company, user_id=requester, permissions={"sales.quote.approve": Scope.COMPANY})
     app = actor(company, user_id=approver, permissions={"sales.quote.approve": Scope.COMPANY})
-    return company, req, app, target
+    try:
+        yield company, req, app, target
+    finally:  # fixture-scoped: the test handler never outlives this test
+        if previous is None:
+            approvals._HANDLERS.pop("test.thing.review", None)
+        else:
+            approvals._HANDLERS["test.thing.review"] = previous
 
 
 def _submit(req, target, content=None):  # type: ignore[no-untyped-def]
