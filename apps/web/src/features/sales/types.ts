@@ -291,7 +291,15 @@ export interface ManualLineRequest {
   manual_preset?: ManualPreset;
 }
 
-export type LineCreateRequest = CatalogLineRequest | ManualLineRequest;
+/** Slice 2: a line quoting a custom product (priced from its quoted price, or the price entered here). */
+export interface CustomLineRequest {
+  line_type: "custom";
+  custom_product_id: string;
+  quantity: string;
+  unit_price?: string;
+}
+
+export type LineCreateRequest = CatalogLineRequest | ManualLineRequest | CustomLineRequest;
 
 export interface LineUpdateRequest {
   quantity?: string;

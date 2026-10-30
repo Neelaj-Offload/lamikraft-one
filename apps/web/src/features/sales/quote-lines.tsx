@@ -13,6 +13,8 @@ import { TextField } from "@/components/ui/text-field";
 import { queryKeys } from "@/lib/api/query-keys";
 import { compareDecimalStr, isDecimalStr } from "@/lib/format/decimal";
 import { useDebouncedValue } from "@/lib/hooks";
+import { useSession } from "@/lib/session/context";
+import { fetchCustomProducts } from "@/features/custom-products/api";
 import { salesMessages as m } from "@/messages/sales";
 import { addQuoteLine, previewQuote, removeQuoteLine, updateQuoteLine } from "./api";
 import { useProductSearch, type ProductOption } from "./pickers";
@@ -84,6 +86,7 @@ export function QuoteLines({ quote, editable, commands }: { quote: QuoteDetail; 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <AddProductLine quote={quote} commands={commands} />
           <AddManualLine quote={quote} commands={commands} />
+          <AddCustomLine quote={quote} commands={commands} />
         </div>
       ) : (
         <p className="text-sm text-ink-muted">{m.workspace.readOnly}</p>
@@ -396,6 +399,95 @@ function AddManualLine({ quote, commands }: { quote: QuoteDetail; commands: Comm
         </div>
         <div>
           <Button type="submit" variant="secondary" isPending={commands.pending === "add_manual_line"} pendingLabel={m.workspace.saving} {...unavailableWhen(commands.offline)}>
+            {m.workspace.addLine}
+          </Button>
+        </div>
+      </Form>
+    </section>
+  );
+}
+
+
+/** A custom-product line (LM-47, UI-61): search the custom-product library the person can see. */
+function AddCustomLine({ quote, commands }: { quote: QuoteDetail; commands: Commands }) {
+  const titleId = useId();
+  const { permissionKeys } = useSession();
+  const [text, setText] = useState("");
+  const [chosen, setChosen] = useState<{ id: string; label: string } | null>(null);
+  const [quantity, setQuantity] = useState<string | null>(null);
+  const [price, setPrice] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const q = useDebouncedValue(text.trim(), 250);
+  const search = useQuery({
+    queryKey: queryKeys.sales.customProducts({ q, status: null, scope: "all", offset: 0 }),
+    queryFn: ({ signal }) => fetchCustomProducts({ q, scope: "all" }, signal),
+    enabled: q.length >= 2 && permissionKeys.has("sales.custom_product.read"),
+    staleTime: 30_000,
+  });
+  if (!permissionKeys.has("sales.custom_product.read")) return null;
+  const options = [
+    ...(chosen ? [chosen] : []),
+    ...(search.data?.items ?? [])
+      .filter((item) => item.id !== chosen?.id && item.status !== "rejected" && item.status !== "converted_to_standard")
+      .map((item) => ({ id: item.id, label: `${item.custom_code} · ${item.product_name}` })),
+  ];
+  const quantityOk = quantity !== null && isDecimalStr(quantity) && compareDecimalStr(quantity, "0") > 0;
+  const priceOk = price === null || isDecimalStr(price);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitted(true);
+    if (!chosen || !quantityOk || !priceOk) return;
+    const line = { line_type: "custom" as const, custom_product_id: chosen.id, quantity: quantity!, ...(price ? { unit_price: price } : {}) };
+    const outcome = await commands.run("add_custom_line", [quote.version, chosen.id, quantity, price], (key) => addQuoteLine(quote, line, key), {
+      done: m.workspace.added,
+      failed: m.workspace.failed(m.workspace.addLine),
+      conflictMessage: m.workspace.lineConflict,
+    });
+    if (outcome.ok) {
+      setChosen(null);
+      setText("");
+      setQuantity(null);
+      setPrice(null);
+      setSubmitted(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby={titleId} className="flex flex-col gap-3 rounded-lg border p-4">
+      <h3 id={titleId} className="font-[650] text-ink">
+        {m.workspace.addCustom}
+      </h3>
+      <Form onSubmit={submit} className="flex flex-col gap-3" validationBehavior="aria">
+        <ComboBox
+          label={m.workspace.customSearch}
+          placeholder={m.workspace.customPlaceholder}
+          emptyText={text.trim().length < 2 ? m.workspace.customPlaceholder : m.workspace.customEmpty}
+          options={options}
+          value={chosen?.id ?? null}
+          inputValue={text}
+          onInputChange={setText}
+          onChange={(id) => {
+            const option = options.find((candidate) => candidate.id === id) ?? null;
+            setChosen(option);
+            if (option) setText(option.label);
+          }}
+          isRequired
+          errorMessage={submitted && !chosen ? m.workspace.customRequired : undefined}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <NumberField label={m.workspace.quantity} value={quantity} onChange={setQuantity} isRequired errorMessage={submitted && !quantityOk ? m.workspace.quantityInvalid : undefined} />
+          <NumberField
+            label={m.workspace.unitPriceManual}
+            description={m.workspace.customPriceHint}
+            value={price}
+            onChange={setPrice}
+            currency={quote.currency}
+            errorMessage={submitted && !priceOk ? m.workspace.priceInvalid : undefined}
+          />
+        </div>
+        <div>
+          <Button type="submit" variant="secondary" isPending={commands.pending === "add_custom_line"} pendingLabel={m.workspace.saving} {...unavailableWhen(commands.offline)}>
             {m.workspace.addLine}
           </Button>
         </div>

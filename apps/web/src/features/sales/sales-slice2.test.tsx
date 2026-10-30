@@ -70,10 +70,10 @@ describe("Slice 2 quote lifecycle in the workspace", () => {
   it("shows duplicate, currency change and the lines CSV only when the server allows them", () => {
     const wire = testQuoteWire({
       capabilities: {
-        update: { allowed: true },
-        duplicate: { allowed: true },
-        change_currency: { allowed: true },
-        export_lines: { allowed: true },
+        update: { allowed: true, reason_code: null },
+        duplicate: { allowed: true, reason_code: null },
+        change_currency: { allowed: true, reason_code: null },
+        export_lines: { allowed: true, reason_code: null },
         restore: { allowed: false, reason_code: "quote_not_issued" },
       },
     });
@@ -94,7 +94,7 @@ describe("Slice 2 quote lifecycle in the workspace", () => {
       renderWithQueries(
         <QuoteWorkspace quoteId={QUOTE} />,
         (c) => {
-          c.setQueryData(queryKeys.sales.quote(QUOTE), parseQuoteDetail(testQuoteWire({ capabilities: { update: { allowed: true } } })));
+          c.setQueryData(queryKeys.sales.quote(QUOTE), parseQuoteDetail(testQuoteWire({ capabilities: { update: { allowed: true, reason_code: null } } })));
           c.setQueryData(queryKeys.sales.quoteHistory(QUOTE), []);
           c.setQueryData(queryKeys.sales.quoteRevisions(QUOTE), parseRevisions([], QUOTE));
         },
