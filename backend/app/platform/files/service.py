@@ -396,8 +396,26 @@ def _audited(obj: FileObject, actor: ActorContext) -> bool:
 
 
 @query()
-def open_download(uow: UnitOfWork, file_id: uuid.UUID) -> DownloadTicket:
+def open_download(uow: UnitOfWork, file_id: uuid.UUID, variant: str | None = None) -> DownloadTicket:
+    """The ticket to stream a file (or its ``thumb``/``medium`` image variant, authorised exactly like the file)."""
     obj, grant = _readable(uow, file_id)
+    if variant is not None:
+        from app.platform.files.variants import variant_of
+
+        row = variant_of(uow, obj.id, variant)
+        if row is None:
+            raise NotFound(code="not_found", resource_type="files.file_variant")
+        stem = grant.name.rsplit(".", 1)[0]
+        return DownloadTicket(
+            file_id=obj.id,
+            storage_key=row.storage_key,
+            content_type=row.content_type,
+            kind=FileKind.JPEG if row.content_type == "image/jpeg" else FileKind.PNG,
+            original_name=f"{stem}-{variant}.{'jpg' if row.content_type == 'image/jpeg' else 'png'}",
+            sha256=row.sha256,
+            size_bytes=row.size_bytes,
+            restricted=obj.restricted,
+        )
     if _audited(obj, uow.actor):
         uow.audit(
             "files.file.downloaded",
