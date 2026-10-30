@@ -44,3 +44,39 @@ class ProductCostRecordedPayload(BaseModel):
 
 def payload(model: BaseModel) -> dict[str, object]:
     return model.model_dump(mode="json", exclude_none=True)
+
+
+# ---- Slice 2 -----------------------------------------------------------------------------------------
+PRICE_LIST_RETIRED = "pricing.price_list.retired"
+ITEM_RETIRED = "pricing.price_list_item.retired"
+FX_RATE_PROPOSED = "pricing.fx_rate.proposed"
+FX_RATE_APPROVED = "pricing.fx_rate.approved"
+FX_RATE_REJECTED = "pricing.fx_rate.rejected"
+
+#: every event this module emits (contract test: all are in the frozen catalogue)
+EMITTED_EVENTS: tuple[str, ...] = (
+    PRICE_LIST_CREATED, PRICE_LIST_ACTIVATED, PRICE_LIST_RETIRED, ITEM_SUPERSEDED, ITEM_RETIRED, PRODUCT_COST_RECORDED,
+    FX_RATE_PROPOSED, FX_RATE_APPROVED, FX_RATE_REJECTED,
+)
+
+
+class PriceListRetiredPayload(BaseModel):
+    price_list_id: uuid.UUID
+    code: str
+    reason_code: str
+    origin: str | None = None
+
+
+class ItemRetiredPayload(BaseModel):
+    item_id: uuid.UUID
+    price_list_id: uuid.UUID
+    product_id: uuid.UUID
+    origin: str | None = None
+
+
+class FxRatePayload(BaseModel):
+    fx_rate_id: uuid.UUID
+    base_currency: str
+    quote_currency: str
+    rate_date: str
+    origin: str | None = None

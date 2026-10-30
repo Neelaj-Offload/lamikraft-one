@@ -12,17 +12,23 @@ from sqlalchemy import insert, select, text, update
 from sqlalchemy.exc import DBAPIError
 
 from app.core.db.base import new_id
-from app.core.errors import Conflict, Forbidden
+from app.core.errors import Conflict, Forbidden, ValidationFailed
 from app.core.money import Money
 from app.modules.pricing import service as pricing
 from app.modules.pricing.models import PriceList, PriceListItem, PriceListItemHistory, ProductCost
 from app.modules.pricing.schemas import (
     CostComponent,
+    PriceListCommand,
     PriceListCreate,
+    PriceListDuplicate,
     PriceListItemCreate,
+    PriceListItemUpdate,
     PriceListStatus,
+    PriceListUpdate,
     ProductCostCreate,
+    RetireItem,
     SupersedeItem,
+    SupersedeItemCommand,
 )
 from app.platform.audit.models import AuditLog
 from app.platform.authz.redaction import redact
@@ -73,22 +79,24 @@ def test_price_list_capabilities_follow_permission_and_state(world: World) -> No
     eur = world.ref(keys.PRICE_LIST_REFS.EXP_EUR)
     meera = pricing.get_price_list(world.actor(keys.USERS.MEERA), eur)
     assert {k: (c.allowed, c.reason_code) for k, c in meera.capabilities.items()} == {
-        "add_item": (False, "permission_denied"), "supersede_item": (False, "permission_denied"),
+        k: (False, "permission_denied") for k in ("update", "add_item", "edit_item", "supersede_item", "retire_item", "duplicate")
     }
     assert meera.allowed_transitions == []
     priya = world.actor(keys.USERS.PRIYA)
     active = pricing.get_price_list(priya, eur)
     assert {k: (c.allowed, c.reason_code) for k, c in active.capabilities.items()} == {
-        "add_item": (False, "price_list_not_draft"), "supersede_item": (True, None),
+        "update": (True, None), "add_item": (False, "price_list_not_draft"), "edit_item": (False, "price_list_not_draft"),
+        "supersede_item": (True, None), "retire_item": (True, None), "duplicate": (True, None),
     }
-    assert active.allowed_transitions == []
+    assert [(t.action, t.to_status, t.requires_reason) for t in active.allowed_transitions] == [("retire", "retired", True)]
     with UnitOfWork(priya) as uow:
         draft_id = pricing.create_price_list(uow, PriceListCreate.model_validate({
             "code": "DRAFT-CAPS", "name": "Draft", "price_type": "export", "currency": "EUR", "valid_from": "2026-01-01",
         })).id
     draft = pricing.get_price_list(priya, draft_id)
     assert draft.capabilities["add_item"].allowed is True
-    assert [(t.action, t.to_status, t.requires_reason) for t in draft.allowed_transitions] == [("activate", "active", False)]
+    assert [(t.action, t.to_status, t.requires_reason) for t in draft.allowed_transitions] == [
+        ("activate", "active", False), ("retire", "retired", True)]
 
 
 def test_breakdown_fields_need_price_list_read(world: World) -> None:
@@ -255,3 +263,155 @@ def test_activation_takes_the_target_lock(world: World) -> None:
         ), {"a": zlib.crc32(b"pricing.activation") & 0x7FFFFFFF, "b": zlib.crc32(target.encode()) & 0x7FFFFFFF})
     assert held == 1
     assert target == f"{world.company_id}:standard:-:sample:EUR"
+
+
+# =====================================================================================================
+# Slice 2: price-list create/edit/retire, effective-dated supersede with history (LM-19, BUG-15, FG-PRC-13..15)
+# =====================================================================================================
+def _draft(world: World, code: str, **extra: object) -> PriceList:
+    with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
+        return pricing.create_price_list(uow, PriceListCreate.model_validate({
+            "code": code, "name": f"List {code}", "price_type": "sample", "currency": "EUR", "valid_from": "2026-01-01",
+            **extra,
+        }))
+
+
+def test_item_create_and_supersede_with_history(world: World) -> None:
+    """LM-19 / API-17: a price is added to a draft list, the list is activated, the price is superseded from a date;
+    resolution follows the dates and the history records every step with actor and reason."""
+    priya = world.actor(keys.USERS.PRIYA)
+    pl = _draft(world, "SMP-EUR-HIST")
+    with UnitOfWork(priya) as uow:
+        item = pricing.add_item(uow, pl.id, PriceListItemCreate(product_id=world.ref("OAK_TRAY"), unit_code="pcs", unit_price=Decimal("30")))
+        item_id = item.id
+        detail = pricing.get_price_list(uow, pl.id)
+        pricing.activate_price_list_command(uow, pl.id, PriceListCommand(expected_version=detail.version))
+    with UnitOfWork(priya) as uow:
+        current = pricing.get_item(uow, item_id)
+        new = pricing.supersede_item(uow, item_id, SupersedeItemCommand(
+            unit_price=Decimal("32.5"), valid_from=date(2026, 11, 1), reason="Veneer cost increase", expected_version=current.version))
+    assert format(new.unit_price.amount, "f") == "32.5000" and new.valid_from == date(2026, 11, 1)
+    for day, price in ((date(2026, 10, 31), "30.0000"), (date(2026, 11, 1), "32.5000")):
+        found = pricing.resolve_price(priya, currency="EUR", uom="pcs", product_id=world.ref("OAK_TRAY"), on_date=day,
+                                      price_type="sample")  # type: ignore[arg-type]
+        assert found.status == "found" and format(found.unit_price.amount, "f") == price  # type: ignore[union-attr]
+    history = pricing.item_history(priya, new.id)
+    assert [(h.change_kind.value, h.reason) for h in history] == [
+        ("created", None), ("list_activated", None), ("superseded", "Veneer cost increase"), ("created", "Veneer cost increase"),
+    ]
+    assert history[2].before["unit_price"] == "30.0000" and history[2].after["valid_to"] == "2026-10-31"
+    assert all(h.actor_name for h in history)
+    # a stale supersede is a 409 (version conflict), not a silent second change
+    with pytest.raises(Conflict), UnitOfWork(priya) as uow:
+        pricing.supersede_item(uow, new.id, SupersedeItemCommand(unit_price=Decimal(33), valid_from=date(2026, 12, 1),
+                                                                  expected_version=new.version + 5))
+    # sales can read prices but not manage lists
+    with pytest.raises(Forbidden), UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
+        pricing.supersede_item(uow, new.id, SupersedeItem(unit_price=Decimal(34), valid_from=date(2026, 12, 1)))
+
+
+def test_overlap_rejected_at_activation(world: World) -> None:
+    """FG-PRC-13: two standard lists for the same type and currency may not overlap for a product unless both carry
+    different explicit priorities; the activation returns a conflict report."""
+    priya = world.actor(keys.USERS.PRIYA)
+    first, second = _draft(world, "SMP-A"), _draft(world, "SMP-B")
+    with UnitOfWork(priya) as uow:
+        for pl in (first, second):
+            pricing.add_item(uow, pl.id, PriceListItemCreate(product_id=world.ref("OAK_TRAY"), unit_code="pcs", unit_price=Decimal(30)))
+        pricing.activate_price_list(uow, first.id)
+    with pytest.raises(Conflict) as exc, UnitOfWork(priya) as uow:
+        pricing.activate_price_list(uow, second.id)
+    assert exc.value.code == "price_list_overlap"
+    assert exc.value.extra["conflicts"][0]["price_list_code"] == "SMP-A"
+    # moving the draft's validity after the active list's end clears the overlap only when the active list ends
+    with UnitOfWork(priya) as uow:
+        v = pricing.get_price_list(uow, first.id).version
+        pricing.update_price_list(uow, first.id, PriceListUpdate(expected_version=v, valid_to=date(2026, 6, 30)))
+        v2 = pricing.get_price_list(uow, second.id).version
+        pricing.update_price_list(uow, second.id, PriceListUpdate(expected_version=v2, valid_from=date(2026, 7, 1)))
+    with UnitOfWork(priya) as uow:  # items still start 2026-01-01 inside the list: edit the draft item's validity
+        item = pricing.list_price_list_items(uow, second.id).items[0]
+        pricing.update_item(uow, item.id, PriceListItemUpdate(expected_version=item.version, valid_from=date(2026, 7, 1)))
+        pricing.activate_price_list(uow, second.id)
+    assert pricing.get_price_list(priya, second.id).status == PriceListStatus.ACTIVE
+
+
+def test_item_fields_round_trip(world: World) -> None:
+    """FG-PRC-14 / LP-05.1: every item field (base/add-on breakdown and labels, basis, yield, thickness, MOQ, validity,
+    notes, provenance) round-trips; draft edits are recorded as ``edited_draft`` history."""
+    priya = world.actor(keys.USERS.PRIYA)
+    pl = _draft(world, "SMP-FIELDS", price_basis="per piece", priority=5)
+    with UnitOfWork(priya) as uow:
+        item = pricing.add_item(uow, pl.id, PriceListItemCreate(
+            product_id=world.ref("WALNUT_BOARD"), unit_code="sheets", unit_price=Decimal("1450.5"), final_price=Decimal("1450.5"),
+            base_price=Decimal("1300"), base_price_label="Board", addon_price=Decimal("150.5"), addon_price_label="Lamination",
+            price_basis="per sheet", yield_qty_per_board=Decimal("8"), thickness_mm=Decimal("18"), moq=Decimal("10"),
+            notes="Imported row", valid_from=date(2026, 2, 1), valid_to=date(2026, 12, 31), source_ref="legacy:42",
+            source_sheet="pricing_master", source_row="42",
+        ))
+        edited = pricing.update_item(uow, item.id, PriceListItemUpdate(expected_version=item.version, unit_price=Decimal("1500"),
+                                                                      notes="Edited before activation"))
+    read = pricing.list_price_list_items(priya, pl.id).items[0]
+    assert (format(read.unit_price.amount, "f"), format(read.final_price.amount, "f")) == ("1500.0000", "1500.0000")  # type: ignore[union-attr]
+    assert (read.base_price_label, read.addon_price_label, read.price_basis, read.source_sheet, read.source_row) == (
+        "Board", "Lamination", "per sheet", "pricing_master", "42")
+    assert (read.moq.value, read.moq.uom, read.valid_from, read.valid_to, read.notes) == (  # type: ignore[union-attr]
+        Decimal("10.000000"), "sheets", date(2026, 2, 1), date(2026, 12, 31), "Edited before activation")
+    assert edited.version == read.version
+    assert [h.change_kind.value for h in pricing.item_history(priya, item.id)] == ["created", "edited_draft"]
+    # sales users see the price but not the breakdown and provenance (field guard)
+    meera_items = pricing.list_price_list_items(world.actor(keys.USERS.MEERA), pl.id).items[0]
+    assert meera_items.base_price is None and "base_price" in meera_items.redacted_fields
+
+
+def test_active_items_immutable_and_history_append_only(world: World) -> None:
+    """BUG-15 / FG-PRC-15 / LP-05.3: an active list's prices change only by supersede (the edit path is refused and the
+    database trigger blocks a direct UPDATE); retiring a price or a list keeps history; history is append-only."""
+    priya = world.actor(keys.USERS.PRIYA)
+    item_id = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
+    with pytest.raises(Conflict) as exc, UnitOfWork(priya) as uow:
+        current = pricing.get_item(uow, item_id)
+        pricing.update_item(uow, item_id, PriceListItemUpdate(expected_version=current.version, unit_price=Decimal(1)))
+    assert exc.value.code == "price_list_not_draft"
+    with pytest.raises(DBAPIError, match="immutable"), UnitOfWork(priya) as uow:
+        uow.session.execute(update(PriceListItem).where(PriceListItem.id == item_id).values(unit_price=Decimal(1)))
+    # retire the ash board price from 2026-11-01: resolves before, not from that day
+    ash = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "ASH_BOARD"))
+    with UnitOfWork(priya) as uow:
+        retired = pricing.retire_item(uow, ash, RetireItem(retire_from=date(2026, 11, 1), reason="Discontinued finish"))
+    assert retired.status.value == "retired" and retired.valid_to == date(2026, 10, 31)
+    gone = pricing.resolve_price(priya, currency="EUR", uom="pcs", product_id=world.ref("ASH_BOARD"))
+    assert gone.status == "not_found"
+    # retire the GBP list: it stops resolving, keeps its items, and writes list_retired history
+    gbp = world.ref(keys.PRICE_LIST_REFS.EXP_GBP)
+    with pytest.raises(ValidationFailed), UnitOfWork(priya) as uow:
+        pricing.retire_price_list(uow, gbp, PriceListCommand(expected_version=pricing.get_price_list(uow, gbp).version))
+    with UnitOfWork(priya) as uow:
+        pricing.retire_price_list(uow, gbp, PriceListCommand(expected_version=pricing.get_price_list(uow, gbp).version,
+                                                             reason="GBP price list replaced"))
+    detail = pricing.get_price_list(priya, gbp)
+    assert detail.status == PriceListStatus.RETIRED and detail.retired_at is not None and detail.allowed_transitions == []
+    assert pricing.resolve_price(priya, currency="GBP", uom="pcs", product_id=world.ref("OAK_TRAY")).status == "not_found"
+    gbp_item = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_GBP, "OAK_TRAY"))
+    assert [h.change_kind.value for h in pricing.item_history(priya, gbp_item)][-1] == "list_retired"
+    with pytest.raises(Conflict), UnitOfWork(priya) as uow:
+        pricing.update_price_list(uow, gbp, PriceListUpdate(expected_version=detail.version, name="x"))
+    with pytest.raises(DBAPIError, match="append-only|permission denied"), UnitOfWork(priya) as uow:
+        uow.session.execute(update(PriceListItemHistory).values(reason="tampered"))
+    with UnitOfWork(world.actor(keys.USERS.SAHIL)) as uow:
+        names = [r[0] for r in uow.session.execute(text(
+            "SELECT event_type FROM domain_event WHERE event_type LIKE 'pricing.%retired' ORDER BY seq")).all()]
+    assert names == ["pricing.price_list_item.retired", "pricing.price_list.retired"]
+
+
+def test_duplicate_list_copies_current_prices_as_a_draft(world: World) -> None:
+    priya = world.actor(keys.USERS.PRIYA)
+    with UnitOfWork(priya) as uow:
+        copy = pricing.duplicate_price_list(uow, world.ref(keys.PRICE_LIST_REFS.EXP_EUR), PriceListDuplicate(
+            code="EXP-EUR-2027", name="Export EUR 2027", valid_from=date(2027, 1, 1), valid_to=date(2027, 12, 31)))
+        copy_id = copy.id
+    detail = pricing.get_price_list(priya, copy_id)
+    assert (detail.status, detail.currency, detail.item_count, detail.valid_from) == (PriceListStatus.DRAFT, "EUR", 3, date(2027, 1, 1))
+    assert {t.action for t in detail.allowed_transitions} == {"activate", "retire"}
+    meera_caps = pricing.get_price_list(world.actor(keys.USERS.MEERA), copy_id).capabilities
+    assert not meera_caps["update"].allowed and meera_caps["update"].reason_code == "permission_denied"

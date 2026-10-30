@@ -27,6 +27,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -51,6 +52,9 @@ from app.core.db.base import (
 _CURRENCIES = "('INR','EUR','USD','GBP')"
 #: the deferrable unique constraint ``uow.defer_constraints`` names when lines are renumbered
 LINE_NO_CONSTRAINT = "uq_sales_quote_line_line_no"
+#: the deferred composite FK from a line's (quote_id, currency) to its quote (anti-relabel, AVOID-08 / Scenario E)
+LINE_CURRENCY_FK = "fk_sales_quote_line_quote_currency"
+QUOTE_ID_CURRENCY_KEY = "uq_sales_quote_id_currency"
 
 
 class Enquiry(TenantEntity, VersionMixin, BranchMixin, Base):
@@ -190,6 +194,15 @@ class Quote(TenantEntity, VersionMixin, BranchMixin, ArchivableMixin, Base):
     lost_reason_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_reason_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    #: the status an archived quote came from (``unarchive`` restores it)
+    archived_from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    #: lineage of a duplicate (the source quote) and of a restore (the revision copied into the working copy)
+    duplicated_from_quote_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales_quote.id", ondelete="RESTRICT", name="fk_sales_quote_duplicated_from_quote_id_sales_quote"),
+        nullable=True,
+    )
+    restored_from_revision_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # ---- persisted commercial result (BUG-03: one result for UI, API, PDF and tools) ----
     gross_subtotal_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=Decimal(0))
     discount_total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=Decimal(0))
@@ -225,6 +238,8 @@ class Quote(TenantEntity, VersionMixin, BranchMixin, ArchivableMixin, Base):
 
     __table_args__ = (
         UniqueConstraint("company_id", "quote_number", name="uq_sales_quote_number"),
+        #: target of the lines' deferred (quote_id, currency) FK: a header currency cannot change alone (anti-relabel)
+        UniqueConstraint("id", "currency", name=QUOTE_ID_CURRENCY_KEY),
         Index("ix_sales_quote_owner", "company_id", "owner_user_id", "status"),
         Index("ix_sales_quote_party", "company_id", "party_id", "status"),
         Index("ix_sales_quote_status", "company_id", "status", "valid_until"),
@@ -239,6 +254,7 @@ class Quote(TenantEntity, VersionMixin, BranchMixin, ArchivableMixin, Base):
         CheckConstraint("(status <> 'lost') OR lost_reason_code IS NOT NULL", name="lost_has_reason"),
         CheckConstraint("(status <> 'cancelled') OR cancelled_reason_code IS NOT NULL", name="cancelled_has_reason"),
         CheckConstraint("(deleted_at IS NULL) OR (status = 'draft' AND revision_no = 0)", name="deleted_draft_only"),
+        CheckConstraint("(status <> 'archived') OR archived_from_status IS NOT NULL", name="archived_has_origin"),
     )
 
 
@@ -276,6 +292,21 @@ class QuoteLine(TenantEntity, Base):
     remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
     internal_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     price_list_item_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: custom lines: the custom product quoted (FK RESTRICT; its spec is snapshotted into ``product_snapshot``)
+    custom_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales_custom_product.id", ondelete="RESTRICT", name="fk_sales_quote_line_custom_product_id", use_alter=True),
+        nullable=True,
+    )
+    #: price provenance: the currency and unit price the line was priced from, and the approved FX rate that
+    #: converted it (a line whose currency differs from its source currency must carry an FX rate)
+    source_currency: Mapped[str | None] = mapped_column(CHAR(3), nullable=True)
+    source_unit_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
+    fx_rate_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("pricing_fx_rate.id", ondelete="RESTRICT"), nullable=True
+    )
+    fx_rate: Mapped[Decimal | None] = mapped_column(Numeric(20, 10), nullable=True)
+    restored_from_revision_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
     product_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     packaging_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     media_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
@@ -292,9 +323,22 @@ class QuoteLine(TenantEntity, Base):
         CheckConstraint("discount_pct IS NULL OR (discount_pct >= 0 AND discount_pct <= 100)", name="discount_range"),
         CheckConstraint(f"currency IN {_CURRENCIES}", name="currency_enabled"),
         CheckConstraint(
-            "(line_type = 'catalog' AND product_id IS NOT NULL) OR (line_type = 'manual' AND product_id IS NULL) "
-            "OR (line_type = 'custom')",
+            "(line_type = 'catalog' AND product_id IS NOT NULL AND custom_product_id IS NULL) "
+            "OR (line_type = 'manual' AND product_id IS NULL AND custom_product_id IS NULL) "
+            "OR (line_type = 'custom' AND custom_product_id IS NOT NULL AND product_id IS NULL)",
             name="line_type_reference",
+        ),
+        CheckConstraint(
+            "source_currency IS NULL OR currency = source_currency OR fx_rate_id IS NOT NULL", name="no_currency_relabel"
+        ),
+        CheckConstraint("(fx_rate_id IS NULL) = (fx_rate IS NULL)", name="fx_rate_pair"),
+        ForeignKeyConstraint(
+            ["quote_id", "currency"],
+            ["sales_quote.id", "sales_quote.currency"],
+            name=LINE_CURRENCY_FK,
+            deferrable=True,
+            initially="DEFERRED",
+            ondelete="RESTRICT",
         ),
     )
 
@@ -367,8 +411,282 @@ class QuoteDispatch(IdMixin, TenantMixin, Base):
     __table_args__ = (Index("ix_sales_quote_dispatch_quote", "quote_id", "sent_at"),)
 
 
+class CustomProduct(TenantEntity, VersionMixin, BranchMixin, ArchivableMixin, Base):
+    """A custom (non-catalogue) product: the legacy custom-product library with every legacy field (spec 4.13).
+
+    ``custom_code`` (``CP-NNNN``) comes from the never-reset allocator ``sales.custom_product``. Costing lives in the
+    protected, versioned ``sales_custom_product_costing`` table and never in this row or its read models.
+    """
+
+    __tablename__ = "sales_custom_product"
+
+    custom_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    custom_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    base_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_product.id", ondelete="RESTRICT"), nullable=True
+    )
+    base_product_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    customer_specific_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    party_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("parties_party.id", ondelete="RESTRICT"), nullable=True
+    )
+    legacy_customer_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    inquiry_reference: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    product_name: Mapped[str] = mapped_column(String(300), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_category.id", ondelete="RESTRICT"), nullable=True
+    )
+    subcategory_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_subcategory.id", ondelete="RESTRICT"), nullable=True
+    )
+    dimensions_text: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    length_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    width_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    height_mm: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    thickness_mm: Mapped[Decimal | None] = mapped_column(Numeric(8, 3), nullable=True)
+    thickness_text: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    decor_no: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    decor_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    finish: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    shape: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    groove_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bowl_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    handle_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    packaging_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: CustomPackaging (carton/inner qty, packing type, unit weight g, carton dimensions, cbm) through Pydantic
+    packaging: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    quoted_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
+    quoted_currency: Mapped[str | None] = mapped_column(CHAR(3), nullable=True)
+    unit_code: Mapped[str] = mapped_column(String(20), nullable=False, default="pcs")
+    remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="inquiry")
+    dormant_from_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    status_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=False
+    )
+    promoted_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_product.id", ondelete="RESTRICT"), nullable=True
+    )
+    duplicated_from_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales_custom_product.id", ondelete="RESTRICT", name="fk_sales_custom_product_duplicated_from"),
+        nullable=True,
+    )
+    legacy_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    origin_ref: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "custom_code", name="uq_sales_custom_product_code"),
+        Index("ix_sales_custom_product_status", "company_id", "status"),
+        Index("ix_sales_custom_product_owner", "company_id", "owner_user_id", "status"),
+        Index("ix_sales_custom_product_party", "company_id", "party_id"),
+        Index("ix_sales_custom_product_category", "company_id", "category_id"),
+        CheckConstraint("custom_code ~ '^CP-[0-9]{4,}$'", name="custom_code_format"),
+        CheckConstraint("(quoted_price IS NULL) = (quoted_currency IS NULL)", name="quoted_price_pair"),
+        CheckConstraint("quoted_price IS NULL OR quoted_price >= 0", name="quoted_price_non_negative"),
+        CheckConstraint(f"quoted_currency IS NULL OR quoted_currency IN {_CURRENCIES}", name="quoted_currency_enabled"),
+        CheckConstraint(
+            "(length_mm IS NULL OR length_mm > 0) AND (width_mm IS NULL OR width_mm > 0) AND "
+            "(height_mm IS NULL OR height_mm > 0) AND (thickness_mm IS NULL OR thickness_mm > 0)",
+            name="dimensions_positive",
+        ),
+        CheckConstraint(
+            "(groove_count IS NULL OR groove_count >= 0) AND (bowl_count IS NULL OR bowl_count >= 0)",
+            name="counts_non_negative",
+        ),
+        CheckConstraint("custom_type <> 'modified_catalog' OR base_product_id IS NOT NULL", name="modified_catalog_has_base"),
+        CheckConstraint("(status = 'converted_to_standard') = (promoted_product_id IS NOT NULL)", name="converted_has_product"),
+        CheckConstraint("(status <> 'dormant') OR dormant_from_status IS NOT NULL", name="dormant_has_origin"),
+    )
+
+
+class CustomProductCosting(IdMixin, TenantMixin, Base):
+    """Protected, versioned costing of a custom product (guard ``pricing.cost.read``; reads are audited)."""
+
+    __tablename__ = "sales_custom_product_costing"
+    __append_only__ = True
+
+    custom_product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product.id", ondelete="RESTRICT"), nullable=False
+    )
+    cost_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    cost_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    cost_currency: Mapped[str] = mapped_column(CHAR(3), nullable=False)
+    components: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
+    basis_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("custom_product_id", "cost_version", name="uq_sales_custom_product_costing_version"),
+        CheckConstraint("cost_amount >= 0", name="cost_non_negative"),
+        CheckConstraint("cost_version > 0", name="cost_version_positive"),
+        CheckConstraint(f"cost_currency IN {_CURRENCIES}", name="cost_currency_enabled"),
+    )
+
+
+class CustomProductSpecRevision(TenantEntity, VersionMixin, Base):
+    """A specification of a custom product with its sample history and outcome (LP-08.5)."""
+
+    __tablename__ = "sales_custom_product_spec_revision"
+
+    custom_product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product.id", ondelete="RESTRICT"), nullable=False
+    )
+    revision_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    spec_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    sample_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales_sample.id", ondelete="RESTRICT", name="fk_sales_custom_product_spec_revision_sample", use_alter=True),
+        nullable=True,
+    )
+    sample_reference: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    sample_sent_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    outcome: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("custom_product_id", "revision_no", name="uq_sales_custom_product_spec_revision_no"),
+        CheckConstraint("revision_no > 0", name="revision_no_positive"),
+        CheckConstraint("(outcome = 'pending') = (decided_at IS NULL)", name="decision_recorded"),
+    )
+
+
+class CustomProductStatusHistory(IdMixin, TenantMixin, Base):
+    __tablename__ = "sales_custom_product_status_history"
+    __append_only__ = True
+
+    custom_product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product.id", ondelete="RESTRICT"), nullable=False
+    )
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+    from_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    to_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    #: the quote whose issue moved the product forward (system transitions)
+    quote_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_quote.id", ondelete="RESTRICT"), nullable=True
+    )
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (Index("ix_sales_custom_product_status_history_product", "custom_product_id", "occurred_at"),)
+
+
+class CustomProductPromotion(TenantEntity, VersionMixin, Base):
+    """Promotion of an approved custom product to a catalogue master product: the payload is bound to an approval
+    by its hash; execution is idempotent and records lineage on both sides."""
+
+    __tablename__ = "sales_custom_product_promotion"
+
+    custom_product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product.id", ondelete="RESTRICT"), nullable=False
+    )
+    spec_revision_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product_spec_revision.id", ondelete="RESTRICT"), nullable=False
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending_approval")
+    proposal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    executed_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_product.id", ondelete="RESTRICT"), nullable=True
+    )
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    executed_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    failure_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    __table_args__ = (
+        Index("ix_sales_custom_product_promotion_product", "custom_product_id", "status"),
+        CheckConstraint("(status = 'executed') = (executed_product_id IS NOT NULL)", name="executed_has_product"),
+    )
+
+
+class Sample(TenantEntity, VersionMixin, BranchMixin, Base):
+    """A sample sent to a customer (``SMP-YYYY-NNNN``) with lineage to a quote and/or a custom product."""
+
+    __tablename__ = "sales_sample"
+
+    sample_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    party_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("parties_party.id", ondelete="RESTRICT"), nullable=False
+    )
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=False
+    )
+    quote_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_quote.id", ondelete="RESTRICT"), nullable=True
+    )
+    custom_product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sales_custom_product.id", ondelete="RESTRICT"), nullable=True
+    )
+    spec_revision_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales_custom_product_spec_revision.id", ondelete="RESTRICT", name="fk_sales_sample_spec_revision_id"),
+        nullable=True,
+    )
+    product_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("catalogue_product.id", ondelete="RESTRICT"), nullable=True
+    )
+    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    unit_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="requested")
+    requested_on: Mapped[date] = mapped_column(Date, nullable=False)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dispatch_reference: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    #: the delivery challan that carried the sample (challans module; no FK across lanes yet)
+    challan_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_evidence_kind: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback_outcome: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    feedback_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    close_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "sample_number", name="uq_sales_sample_number"),
+        Index("ix_sales_sample_owner", "company_id", "owner_user_id", "status"),
+        Index("ix_sales_sample_party", "company_id", "party_id"),
+        Index("ix_sales_sample_quote", "company_id", "quote_id"),
+        Index("ix_sales_sample_custom_product", "company_id", "custom_product_id"),
+        CheckConstraint("sample_number ~ '^SMP-[0-9]{4}-[0-9]{4,}$'", name="sample_number_format"),
+        CheckConstraint("quantity > 0", name="quantity_positive"),
+        CheckConstraint("(status IN ('requested', 'cancelled')) OR dispatched_at IS NOT NULL", name="dispatched_recorded"),
+        CheckConstraint(
+            "(status NOT IN ('delivered', 'feedback_received')) OR delivered_at IS NOT NULL", name="delivered_recorded"
+        ),
+    )
+
+
 __all__ = [
+    "LINE_CURRENCY_FK",
     "LINE_NO_CONSTRAINT",
+    "QUOTE_ID_CURRENCY_KEY",
+    "CustomProduct",
+    "CustomProductCosting",
+    "CustomProductPromotion",
+    "CustomProductSpecRevision",
+    "CustomProductStatusHistory",
     "CustomerMessage",
     "Enquiry",
     "Quote",
@@ -376,4 +694,5 @@ __all__ = [
     "QuoteLine",
     "QuoteRevision",
     "QuoteStatusHistory",
+    "Sample",
 ]

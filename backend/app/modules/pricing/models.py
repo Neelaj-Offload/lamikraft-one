@@ -15,6 +15,7 @@ from typing import Any
 
 from sqlalchemy import (
     CHAR,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -196,4 +197,75 @@ class ProductCost(TenantEntity, Base):
     )
 
 
-__all__ = ["PriceList", "PriceListItem", "PriceListItemHistory", "ProductCost"]
+class FxRate(TenantEntity, VersionMixin, Base):
+    """A dated, sourced FX snapshot (1 ``base_currency`` = ``rate`` ``quote_currency``).
+
+    Proposed by one person and approved by another through the approvals engine (``pricing.fx_rate.approve``); only
+    an approved rate converts a price. One approved rate per (pair, date); rates are never invented or relabelled.
+    """
+
+    __tablename__ = "pricing_fx_rate"
+
+    base_currency: Mapped[str] = mapped_column(CHAR(3), nullable=False)
+    quote_currency: Mapped[str] = mapped_column(CHAR(3), nullable=False)
+    rate: Mapped[Decimal] = mapped_column(Numeric(20, 10), nullable=False)
+    rate_date: Mapped[date] = mapped_column(Date, nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    source_reference: Mapped[str] = mapped_column(String(200), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="proposed")
+    proposal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    proposed_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    proposed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        CheckConstraint("rate > 0", name="rate_positive"),
+        CheckConstraint("base_currency <> quote_currency", name="distinct_currencies"),
+        CheckConstraint(f"base_currency IN {_CURRENCIES}", name="base_currency_enabled"),
+        CheckConstraint(f"quote_currency IN {_CURRENCIES}", name="quote_currency_enabled"),
+        CheckConstraint(
+            "(status IN ('approved', 'rejected') AND decided_at IS NOT NULL) OR (status NOT IN ('approved', 'rejected'))",
+            name="decision_recorded",
+        ),
+        CheckConstraint("decided_by IS NULL OR decided_by IS DISTINCT FROM proposed_by", name="separation_of_duties"),
+        Index("ix_pricing_fx_rate_pair", "company_id", "base_currency", "quote_currency", "status", "rate_date"),
+    )
+
+
+#: one approved rate per pair and day (partial unique index; declared after the class to reference its columns)
+Index(
+    "uq_pricing_fx_rate_approved_day",
+    FxRate.company_id,
+    FxRate.base_currency,
+    FxRate.quote_currency,
+    FxRate.rate_date,
+    unique=True,
+    postgresql_where=FxRate.status == "approved",
+)
+
+
+class FxPolicyRow(TenantEntity, VersionMixin, Base):
+    """The company FX policy (one row per company; absent means the defaults of ``schemas.FxPolicy``)."""
+
+    __tablename__ = "pricing_fx_policy"
+
+    conversion_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    conversion_source_currency: Mapped[str] = mapped_column(CHAR(3), nullable=False, default="EUR")
+    max_rate_age_days: Mapped[int] = mapped_column(Integer, nullable=False, default=7)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", name="uq_pricing_fx_policy_company"),
+        CheckConstraint(f"conversion_source_currency IN {_CURRENCIES}", name="source_currency_enabled"),
+        CheckConstraint("max_rate_age_days >= 0 AND max_rate_age_days <= 90", name="max_age_range"),
+    )
+
+
+__all__ = ["FxPolicyRow", "FxRate", "PriceList", "PriceListItem", "PriceListItemHistory", "ProductCost"]
