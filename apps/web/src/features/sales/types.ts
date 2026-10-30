@@ -5,7 +5,7 @@
  * `QuoteSummary`, `QuoteDetail`, `QuoteLineRead`, `QuoteTotals`, `QuoteHistoryRead`,
  * `QuoteRevisionSummary`, `EnquiryRead`, `CustomerMessageRead`, `QuoteCreate`, `QuoteUpdate`,
  * `QuoteLineCreate`, `QuoteLineUpdate`, `QuoteTransition`, `QuotePreviewIn/Out`). The router is
- * still being written in that lane, so paths follow the lane brief's operationIds.
+ * is committed in that lane (D:\lk-wt\sales, router.py) and these types were checked against it.
  * INTERIM(api-generate): replace with `components["schemas"][...]`; `api.ts` and `parse.ts`
  * are the only places that touch the wire.
  *
@@ -216,6 +216,7 @@ export interface Enquiry {
   version: number;
   path: string;
   capabilities: Readonly<Record<string, Capability>>;
+  allowed_transitions: TransitionOption[];
 }
 
 export interface CustomerMessage {

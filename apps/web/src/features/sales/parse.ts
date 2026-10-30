@@ -288,6 +288,7 @@ export function parseEnquiry(raw: unknown): Enquiry | null {
     version: int(raw.version)!,
     path: safeAppPath(raw.path) ?? `/sales/enquiries/${encodeURIComponent(id)}`,
     capabilities: capabilities(raw.capabilities),
+    allowed_transitions: transitions(raw.allowed_transitions),
   };
 }
 
@@ -314,29 +315,38 @@ export function parseCustomerMessage(raw: unknown): CustomerMessage | null {
   };
 }
 
-/** `QuotePreviewOut{calculation, lines, warnings}` reduced to the live totals. */
+/** A DecimalStr from a `Money` (`{amount, currency}`), a `Quantity` (`{value, uom}`) or a bare DecimalStr. */
+function amountOf(value: unknown): string | null {
+  if (isObject(value)) return dec(value.amount ?? value.value);
+  return dec(value);
+}
+
+/**
+ * `QuotePreviewOut{calculation: CalculationResultOut, lines, warnings}` reduced to the live totals.
+ * Money fields are `{amount, currency}` objects (api-conventions §4); bare strings are accepted too.
+ */
 export function parsePreview(raw: unknown): QuotePreview {
   if (!isObject(raw) || !isObject(raw.calculation)) throw new SalesShapeError("The totals preview could not be read.");
   const c = raw.calculation;
   const surcharge = isObject(c.surcharge) ? c.surcharge : {};
   const minimum = isObject(c.minimum) ? c.minimum : {};
   const lineTotals: Record<string, string | null> = {};
-  for (const entry of arr(c.lines)) if (isObject(entry) && str(entry.line_key)) lineTotals[str(entry.line_key)!] = dec(entry.net);
+  for (const entry of arr(c.lines)) if (isObject(entry) && str(entry.line_key)) lineTotals[str(entry.line_key)!] = amountOf(entry.net);
   const recommended = arr(c.lines)
     .map((entry) => (isObject(entry) && isObject(entry.recommendation) ? str(entry.recommendation.label) : null))
     .find((label) => label && label.trim() !== "");
   return {
     currency: str(c.currency) ?? "",
-    applicable_subtotal: dec(c.applicable_subtotal) ?? "0",
-    discount_total: dec(c.discount_total) ?? "0",
+    applicable_subtotal: amountOf(c.applicable_subtotal) ?? "0",
+    discount_total: amountOf(c.discount_total) ?? "0",
     surcharge_applied: surcharge.applied === true,
-    surcharge_amount: dec(surcharge.amount) ?? "0",
+    surcharge_amount: amountOf(surcharge.amount) ?? "0",
     surcharge_label: str(surcharge.label) ?? "",
-    grand_total: dec(c.grand_total),
+    grand_total: amountOf(c.grand_total),
     totals_complete: c.totals_complete !== false,
     minimum_status: str(minimum.status) ?? "NOT_EVALUATED",
     recommendation: recommended ?? null,
     line_totals: lineTotals,
-    warnings: arr(raw.warnings).filter((warning): warning is string => typeof warning === "string"),
+    warnings: [...arr(raw.warnings), ...arr(c.warnings)].filter((warning, index, all): warning is string => typeof warning === "string" && all.indexOf(warning) === index),
   };
 }

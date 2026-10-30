@@ -12,7 +12,8 @@
  * - sales_list_quote_history     GET    /api/v1/sales/quotes/{quote_id}/history
  * - sales_list_quote_revisions   GET    /api/v1/sales/quotes/{quote_id}/revisions
  * - sales_download_quote_revision_pdf GET /api/v1/sales/quotes/{quote_id}/revisions/{n}/document.pdf
- * - sales_calculate_quote_preview POST  /api/v1/sales/quotes/preview
+ * - sales_delete_quote           DELETE /api/v1/sales/quotes/{quote_id}?expected_version= (never-issued drafts)
+ * - sales_calculate_quote_preview POST  /api/v1/sales/quotes/calculate
  * - enquiries and customer messages under /api/v1/sales/enquiries and /api/v1/sales/customer-messages
  * Commands that change a quote answer with the quote (`QuoteDetail`); if a response is not one,
  * the caller refetches.
@@ -164,6 +165,14 @@ export async function transitionQuote(
   return quoteOrNull(raw);
 }
 
+/** Soft-deletes a never-issued draft (`capabilities.delete`); the number stays reserved. */
+export async function deleteQuote(quote: Pick<QuoteDetail, "id" | "version">, idempotencyKey: string, client: ApiClient = api): Promise<void> {
+  await requestUntyped<unknown>(client, "delete", quotePath(quote.id), {
+    params: { query: { expected_version: quote.version } },
+    headers: idempotencyHeaders(idempotencyKey),
+  });
+}
+
 export async function fetchQuoteHistory(quoteId: string, signal?: AbortSignal, client: ApiClient = api): Promise<QuoteHistoryEntry[]> {
   return parseHistory(await requestUntyped<unknown>(client, "get", `${quotePath(quoteId)}/history`, { signal }));
 }
@@ -177,7 +186,7 @@ export async function previewQuote(
   signal?: AbortSignal,
   client: ApiClient = api,
 ): Promise<QuotePreview> {
-  return parsePreview(await requestUntyped<unknown>(client, "post", `${QUOTES_PATH}/preview`, { body: input, signal }));
+  return parsePreview(await requestUntyped<unknown>(client, "post", `${QUOTES_PATH}/calculate`, { body: input, signal }));
 }
 
 // ---- enquiries and customer messages ----------------------------------------------------------
@@ -215,9 +224,28 @@ export async function fetchCustomerMessages(
   return pageOf(raw, parseCustomerMessage);
 }
 
-export async function markMessageReplied(message: Pick<CustomerMessage, "id" | "version">, idempotencyKey: string, client: ApiClient = api): Promise<unknown> {
-  return requestUntyped(client, "post", `${MESSAGES_PATH}/${encodeURIComponent(message.id)}/replied`, {
-    body: { expected_version: message.version },
+export async function markMessageReplied(
+  message: Pick<CustomerMessage, "id" | "version">,
+  idempotencyKey: string,
+  client: ApiClient = api,
+): Promise<CustomerMessage | null> {
+  const raw = await requestUntyped<unknown>(client, "post", `${MESSAGES_PATH}/${encodeURIComponent(message.id)}/replied`, {
+    body: { expected_version: message.version, reply_ref_type: "manual" },
     headers: idempotencyHeaders(idempotencyKey),
   });
+  return parseCustomerMessage(raw);
+}
+
+/** Closes an enquiry with an outcome code (`allowed_transitions` offers `close` with a reason). */
+export async function closeEnquiry(
+  enquiry: Pick<Enquiry, "id" | "version">,
+  outcomeCode: string,
+  idempotencyKey: string,
+  client: ApiClient = api,
+): Promise<Enquiry | null> {
+  const raw = await requestUntyped<unknown>(client, "patch", `${ENQUIRIES_PATH}/${encodeURIComponent(enquiry.id)}`, {
+    body: { expected_version: enquiry.version, status: "closed", outcome_code: outcomeCode },
+    headers: idempotencyHeaders(idempotencyKey),
+  });
+  return parseEnquiry(raw);
 }
