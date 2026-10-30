@@ -85,13 +85,13 @@ export function BoardCanvas({ board, lines }: { board: Board; lines: readonly nu
   return (
     <figure className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="quiet" onPress={() => setZoom((z) => nextZoom(z, -1))} {...unavailableWhen(zoom === 1 ? m.canvas.fit : null)}>
+        <Button size="sm" variant="quiet" onPress={() => setZoom((z) => nextZoom(z, -1))} {...unavailableWhen(zoom === 1 ? m.canvas.fitted : null)}>
           {m.canvas.zoomOut}
         </Button>
-        <Button size="sm" variant="quiet" onPress={() => setZoom(1)} {...unavailableWhen(zoom === 1 ? m.canvas.fit : null)}>
+        <Button size="sm" variant="quiet" onPress={() => setZoom(1)} {...unavailableWhen(zoom === 1 ? m.canvas.fitted : null)}>
           {m.canvas.fit}
         </Button>
-        <Button size="sm" variant="quiet" onPress={() => setZoom((z) => nextZoom(z, 1))} {...unavailableWhen(zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1] ? m.canvas.zoom(zoom * 100) : null)}>
+        <Button size="sm" variant="quiet" onPress={() => setZoom((z) => nextZoom(z, 1))} {...unavailableWhen(zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1] ? m.canvas.maxZoom : null)}>
           {m.canvas.zoomIn}
         </Button>
         <span className="tabular text-sm text-ink-muted" aria-live="polite">

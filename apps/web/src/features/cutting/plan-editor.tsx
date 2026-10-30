@@ -12,7 +12,7 @@ import { Link } from "@/components/ui/link";
 import { NumberField } from "@/components/ui/number-field";
 import { ReasonDialog } from "@/components/ui/reason-dialog";
 import { ComboBox, Select } from "@/components/ui/select";
-import { Conflict, ErrorState, Loading } from "@/components/ui/states";
+import { Conflict, Loading } from "@/components/ui/states";
 import { fieldErrorClasses, inputClasses, linkClasses } from "@/components/ui/styles";
 import { TextArea, TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
@@ -44,6 +44,7 @@ import {
   type RowField,
 } from "./editor-model";
 import { cuttingMessages as m } from "./messages";
+import { QueryFailure } from "./query-failure";
 import { PlanStatusPill } from "./plan-list";
 import { Results } from "./results";
 import { GRAIN_RULES, MODES, type GrainRule, type Mode, type PlanDetail } from "./types";
@@ -69,7 +70,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     refetchInterval: (q) => calcPollInterval(q.state.data),
   });
   if (query.isPending) return <Loading label={m.list.loading} variant="detail" />;
-  if (query.isError) return <ErrorState error={query.error} what="the cut plan" onRetry={() => void query.refetch()} />;
+  if (query.isError) return <QueryFailure error={query.error} what="the cut plan" onRetry={() => void query.refetch()} />;
   return <PlanScreen key={query.data.id} plan={query.data} />;
 }
 

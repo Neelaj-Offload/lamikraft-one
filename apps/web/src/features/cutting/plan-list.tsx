@@ -10,7 +10,7 @@ import { LinkButton } from "@/components/ui/link";
 import { RadioGroup } from "@/components/ui/choice";
 import { SearchField } from "@/components/ui/search-field";
 import { Select } from "@/components/ui/select";
-import { EmptyState, ErrorState, Loading } from "@/components/ui/states";
+import { EmptyState, Loading } from "@/components/ui/states";
 import { linkClasses } from "@/components/ui/styles";
 import { queryKeys } from "@/lib/api/query-keys";
 import { formatDecimal } from "@/lib/format/money";
@@ -18,6 +18,7 @@ import { useSession } from "@/lib/session/context";
 import { fetchPlans, PLANS_PAGE_SIZE, type PlanListParams } from "./api";
 import { planListHref, type PlanListState } from "./list-state";
 import { cuttingMessages as m } from "./messages";
+import { QueryFailure } from "./query-failure";
 import { PLAN_STATUSES, type PlanStatus, type PlanSummary } from "./types";
 
 const STATUS_TONE: Record<string, Tone> = { draft: "neutral", calculated: "success", released: "info", archived: "neutral" };
@@ -130,7 +131,7 @@ export function PlanList({ state }: { state: PlanListState }) {
       {query.isPending ? (
         <Loading label={m.list.loading} />
       ) : query.isError ? (
-        <ErrorState error={query.error} what={`the ${m.list.loading}`} onRetry={() => void query.refetch()} />
+        <QueryFailure error={query.error} what={`the ${m.list.loading}`} onRetry={() => void query.refetch()} />
       ) : (
         <DataTable
           caption={m.list.caption}

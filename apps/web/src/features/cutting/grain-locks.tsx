@@ -6,7 +6,7 @@ import { Button, unavailableWhen } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { RelativeTime } from "@/components/ui/format";
 import { Link } from "@/components/ui/link";
-import { EmptyState, ErrorState, Loading } from "@/components/ui/states";
+import { EmptyState, Loading } from "@/components/ui/states";
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
 import { createCommandKeys, commandSignature } from "@/lib/api/command-keys";
@@ -15,6 +15,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { useOnline } from "@/lib/hooks";
 import { addGrainLock, fetchGrainLocks, removeGrainLock } from "./api";
 import { cuttingMessages as m } from "./messages";
+import { QueryFailure } from "./query-failure";
 import type { GrainLock, GrainLockList } from "./types";
 
 function columns(canManage: boolean, onRemove: (lock: GrainLock) => void, pending: string | null): DataTableColumn<GrainLock>[] {
@@ -64,7 +65,7 @@ export function GrainLocks() {
       {query.isPending ? (
         <Loading label={m.grain.loading} />
       ) : query.isError ? (
-        <ErrorState error={query.error} what={`the ${m.grain.loading}`} onRetry={() => void query.refetch()} />
+        <QueryFailure error={query.error} what={`the ${m.grain.loading}`} onRetry={() => void query.refetch()} />
       ) : (
         <GrainLockBody list={query.data} />
       )}

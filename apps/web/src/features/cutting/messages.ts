@@ -142,6 +142,8 @@ export const cuttingMessages = {
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fit: "Fit",
+    fitted: "The whole board is shown",
+    maxZoom: "Already at the largest zoom",
     zoom: (pct: number) => `${pct} %`,
     keys: "Tab moves between pieces; + and − zoom; arrow keys scroll.",
     piece: (sku: string, l: string, w: string) => `${sku}, ${l} × ${w} mm`,
