@@ -36,6 +36,11 @@ class AttemptKind(StrEnum):
     LOGIN = "login"
     DEMO_SIGN_IN = "demo_sign_in"
     TEST_SIGN_IN = "test_sign_in"
+    MFA = "mfa"
+    REAUTH = "reauth"
+    INVITE_ACCEPT = "invite_accept"
+    RESET_REQUEST = "reset_request"
+    RESET_COMPLETE = "reset_complete"
 
 
 class AttemptOutcome(StrEnum):
@@ -44,6 +49,7 @@ class AttemptOutcome(StrEnum):
     RATE_LIMITED = "rate_limited"
     ACCOUNT_LOCKED = "account_locked"
     LINK_INVALID = "link_invalid_or_used"
+    INVALID_CODE = "invalid_code"
 
 
 class DemoTokenSource(StrEnum):
@@ -74,6 +80,10 @@ class AuthSession(IdMixin, Base):
     idle_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     absolute_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     recent_auth_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: set when this session passed a TOTP or recovery-code check (sign-in, enrolment or step-up)
+    mfa_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: wrong codes entered while ``mfa_pending``; the session is revoked after five
+    mfa_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
     rotated_from_id: Mapped[uuid.UUID | None] = mapped_column(
