@@ -95,7 +95,7 @@ _PATTERNS: tuple[tuple[str, Language, CommandKind, re.Pattern[str]], ...] = (
     ("today_en", "en", "today_overview",
      re.compile(r"^(?:so\s+)?what(?:'s| is| should i| do i| must i)?\s*(?:handle|do|focus on|look at|take care of|need to do|on my plate|on today|up today)?\s*(?:today|this morning|now)?$")),
     ("today_hi", "hinglish", "today_overview",
-     re.compile(r"^(?:aaj|aj)\s+(?:kya|kya kya|kaunsa|konsa)?\s*(?:karna hai|karna|dekhna hai|dekhna|handle karna hai|handle karna|kaam hai|ka plan hai|ka kaam hai|ka plan|ka kaam)$")),
+     re.compile(r"^(?:aaj|aj)\s+(?:kya|kya kya|kaunsa|konsa)?\s*(?:karna hai|karna|dekhna hai|dekhna|handle karna hai|handle karna|kaam hai|ka plan hai|ka kaam hai|ka plan kya hai|ka kaam kya hai|ka plan|ka kaam)$")),
     # ---- help --------------------------------------------------------------------------------------------------
     ("help", "en", "help",
      re.compile(r"^(?:help|help me|what can you do|what can i say|commands|show commands|madad|madad karo|help karo|kya kar sakte ho)$")),
