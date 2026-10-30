@@ -14,9 +14,10 @@ from app.platform.authz.context import ActorContext
 from app.platform.authz.permissions import Scope
 from app.platform.files import service as files
 from app.platform.files.access import register_file_access, unregister_file_access
-from app.platform.files.limits import SlidingWindowLimiter, set_upload_limiter
+from app.platform.files.limits import set_upload_limiter
 from app.platform.files.models import FileObject, FilePurpose
 from app.platform.files.storage import LocalFsStorage
+from app.platform.identity.ratelimit import upload_limiter
 from app.platform.org import service as settings_service
 from app.platform.uow import UnitOfWork
 from app.seed.world import keys
@@ -181,15 +182,6 @@ def test_download_headers(api: ApiClient, people) -> None:  # type: ignore[no-un
     assert again.status_code == 304 and again.content == b""
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    strict=False,
-    reason=(
-        "contract question 2: RequestContextMiddleware on this branch appends 'no-store' to every response, so "
-        "browsers never reuse the ETag; main fixes it in c518507 (the header is added only when unset). "
-        "Remove this marker when the lane is merged."
-    ),
-)
 def test_download_cache_policy_is_exactly_private_with_etag(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
     """api-conventions §11: a private cache with an ETag, so the whole Cache-Control header must be that."""
     file_id = upload(api.as_(people["meera"].actor()), PNG, "tray.png").json()["id"]
@@ -357,9 +349,17 @@ def test_a_blob_is_removed_when_the_storing_unit_of_work_rolls_back(people, stor
     assert files.open_download(meera, stored.id).size_bytes == len(b"a,b\n1,2\n")
 
 
+def test_identity_installs_the_shared_upload_limiter(api: ApiClient) -> None:
+    """The upload limiter is identity's Postgres counter (shared by every worker), not a per-process window."""
+    from app.platform.files import limits
+
+    assert limits._limiter is not None
+    assert limits._limiter.__module__ == "app.platform.identity.ratelimit"
+
+
 def test_uploads_are_rate_limited_per_user(api: ApiClient, people, company) -> None:  # type: ignore[no-untyped-def]
     company_id, _ = company
-    set_upload_limiter(SlidingWindowLimiter(2, 600))
+    previous = set_upload_limiter(upload_limiter(limit=2))  # identity's Postgres counter with a small limit
     try:
         api.as_(people["meera"].actor())
         assert upload(api, image_bytes("PNG", (2, 2)), "a.png").status_code == 201
@@ -371,5 +371,5 @@ def test_uploads_are_rate_limited_per_user(api: ApiClient, people, company) -> N
         assert problem(r)["retry_after_seconds"] == int(r.headers["retry-after"])
         assert upload(api.as_(people["neha"].actor()), image_bytes("PNG", (4, 4)), "c.png").status_code == 201
     finally:
-        set_upload_limiter(None)
+        set_upload_limiter(previous)
     assert _count(company_id) == 3

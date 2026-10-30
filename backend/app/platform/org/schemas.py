@@ -4,55 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, time
-from decimal import Decimal
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
-from pydantic import (
-    BaseModel,
-    BeforeValidator,
-    Field,
-    PlainSerializer,
-    TypeAdapter,
-    ValidationError,
-    WithJsonSchema,
-)
+from pydantic import BaseModel, Field
 
-from app.core.money import DecimalStr
-
-#: money.py's own decimal parser (floats, booleans, blanks and non-finite values rejected), used through the
-#: public ``DecimalStr`` type rather than a private helper
-_DECIMAL = TypeAdapter(DecimalStr)
-_RATIO_PATTERN = r"^\d{1,10}(\.\d{1,10})?$"
-
-
-def _to_ratio(value: Any) -> Decimal:
-    try:
-        result: Decimal = _DECIMAL.validate_python(value)
-    except ValidationError as exc:
-        raise ValueError(exc.errors(include_url=False)[0]["msg"]) from None
-    if result <= 0:
-        raise ValueError("ratios (conversion factors) must be positive")
-    exponent = result.as_tuple().exponent
-    if isinstance(exponent, int) and exponent < -10:
-        raise ValueError("ratios carry at most 10 decimal places")
-    return result
-
-
-def _ratio_to_str(value: Decimal) -> str:
-    return format(value.normalize(), "f")
-
-
-#: A conversion factor (``uom_conversion.factor`` is NUMERIC(20,10)): a positive plain decimal string with up
-#: to 10 decimal places and no trailing zeros, e.g. "0.09290304" (sqft -> sqm) or "1000". ``DecimalStr`` stops at
-#: 6 decimal places, which cannot carry exact unit factors. Same rules and wire format as
-#: ``app.core.money.RatioStr`` on main (c518507); this lane branch predates it, and the integrator swaps this
-#: alias for the kernel type at merge (docs/lanes/platform.md, contract questions).
-RatioStr = Annotated[
-    Decimal,
-    BeforeValidator(_to_ratio),
-    PlainSerializer(_ratio_to_str, return_type=str, when_used="always"),
-    WithJsonSchema({"type": "string", "pattern": _RATIO_PATTERN, "examples": ["1000", "0.09290304"]}),
-]
+from app.core.money import RatioStr
 
 
 class Capability(BaseModel):
