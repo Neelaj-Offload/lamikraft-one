@@ -24,7 +24,8 @@ class Transition:
     #: the ``sales.quote.<verb>`` action the actor needs in scope over the quote
     permission_action: str
     requires_reason: bool = False
-    #: named guard evaluated by the service (``lines_present``, ``issue_allowed``, ``proposal_pending``)
+    #: named guard evaluated by the service (``lines_present``, ``issue_allowed``). ``withdraw_review`` has none: a
+    #: quote under review (pending, approved, expired or invalidated request) can always be pulled back to draft.
     guard: str | None = None
     #: the specific event emitted alongside ``sales.quote.status_changed``
     event: str | None = None
@@ -36,7 +37,7 @@ TRANSITIONS: dict[tuple[str, str], Transition] = {
     (t.from_status, t.action): t
     for t in (
         Transition(TransitionAction.SUBMIT_REVIEW, D, R, "transition", guard="lines_present", event="sales.quote.review_requested"),
-        Transition(TransitionAction.WITHDRAW_REVIEW, R, D, "transition", guard="proposal_pending", event="sales.quote.review_withdrawn"),
+        Transition(TransitionAction.WITHDRAW_REVIEW, R, D, "transition", event="sales.quote.review_withdrawn"),
         Transition(TransitionAction.MARK_SENT, D, S, "issue", guard="issue_allowed", event="sales.quote.issued", idempotency_required=True),
         Transition(TransitionAction.MARK_SENT, R, S, "issue", guard="issue_allowed", event="sales.quote.issued", idempotency_required=True),
         Transition(TransitionAction.MARK_WON, S, QuoteStatus.WON.value, "transition", event="sales.quote.won", idempotency_required=True),

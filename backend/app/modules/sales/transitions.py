@@ -12,7 +12,7 @@ import uuid
 from datetime import timedelta
 
 from app.core.clock import local_date
-from app.core.errors import Conflict, InvalidTransition, ValidationFailed
+from app.core.errors import Conflict, InvalidTransition, NotFound, ValidationFailed
 from app.modules.approvals import service as approvals
 from app.modules.approvals.service import TargetRef
 from app.modules.sales import documents, quotes
@@ -88,33 +88,48 @@ def review_facts(quote: Quote) -> dict[str, object]:
 
 # ---- per-action effects (run after the generic checks, before history/events) ------------------------
 def _submit_review(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
-    quote.status = QuoteStatus.INTERNAL_REVIEW.value
-    quote.updated_at = uow.now()
-    uow.flush()  # the proposal binds to the version *after* the status change
+    # The proposal binds to the version the quote has *after* this transition. The quote is not dirty yet (the
+    # submit flushes only the proposal), and status + review_proposal_id are written in one UPDATE by the
+    # transition's flush, so that version is exactly ``version + 1``. Binding to an intermediate version would
+    # make the approvals engine invalidate the proposal at decision time (target_changed).
     proposal = approvals.submit(
         uow,
         kind=REVIEW_KIND,
-        targets=[TargetRef("sales.quote", quote.id, quote.version)],
+        targets=[TargetRef("sales.quote", quote.id, quote.version + 1)],
         content=quotes.content_of(quote, lines),
         title=f"Review {quote.quote_number} · {quote.party_name}",
         summary=data.reason,
         facts=review_facts(quote),
         expires_in=REVIEW_EXPIRY,
     )
+    quote.status = QuoteStatus.INTERNAL_REVIEW.value
     quote.review_proposal_id = proposal.id
+    quote.updated_at = uow.now()
     return {"proposal_id": proposal.id}
+
+
+def _close_pending_review(uow: UnitOfWork, quote: Quote, *, reason: str) -> None:
+    """The requester withdraws their own pending request; anyone else (management) leaves it invalidated."""
+    proposal_id = quote.review_proposal_id
+    if proposal_id is not None:
+        try:
+            proposal = approvals.get(uow, proposal_id)
+        except NotFound:  # neither requester nor eligible approver: invalidated below
+            proposal = None
+        if proposal is not None and proposal.status == "pending" and proposal.requested_by == uow.actor.user_id:
+            approvals.withdraw(uow, proposal_id)
+            uow.flush()  # the session does not autoflush: the withdrawal must land before the pending lookup
+    approvals.invalidate_for_target(uow, "sales.quote", quote.id, reason=reason)
 
 
 def _withdraw_review(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], _data: QuoteTransition) -> dict[str, object]:
     proposal_id = quote.review_proposal_id
-    if proposal_id is not None:
-        proposal = approvals.get(uow, proposal_id)
-        if proposal.status == "pending":
-            approvals.withdraw(uow, proposal_id)
+    _close_pending_review(uow, quote, reason="review_withdrawn")
     quote.status = QuoteStatus.DRAFT.value
     quote.review_proposal_id = None
     quote.updated_at = uow.now()
-    return {"proposal_id": proposal_id}
+    # an approved review stays recorded (bound to its content hash); the event names the request being left
+    return {"proposal_id": proposal_id or quote.approved_proposal_id}
 
 
 def _issue(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
@@ -150,6 +165,8 @@ def _issue(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], data: QuoteTra
         note=data.note,
     )
     uow.add(dispatch)
+    # a review still pending when the quote is issued (a plain quote sent from internal_review) is moot
+    approvals.invalidate_for_target(uow, "sales.quote", quote.id, reason="target_issued")
     quote.revision_no = revision_no
     quote.issued_at = now
     quote.sent_at = now
@@ -179,11 +196,7 @@ def _lost(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTra
 
 
 def _cancel(uow: UnitOfWork, quote: Quote, _lines: list[QuoteLine], data: QuoteTransition) -> dict[str, object]:
-    if quote.review_proposal_id is not None:
-        proposal = approvals.get(uow, quote.review_proposal_id)
-        if proposal.status == "pending" and proposal.requested_by == uow.actor.user_id:
-            approvals.withdraw(uow, quote.review_proposal_id)
-    approvals.invalidate_for_target(uow, "sales.quote", quote.id, reason="target_cancelled")
+    _close_pending_review(uow, quote, reason="target_cancelled")
     quote.status = QuoteStatus.CANCELLED.value
     quote.cancelled_at = uow.now()
     quote.cancelled_reason_code = data.reason_code or "other"
@@ -205,8 +218,6 @@ EFFECTS = {
 def _guard(uow: UnitOfWork, quote: Quote, lines: list[QuoteLine], t: Transition) -> None:
     if t.guard == "lines_present" and not lines:
         raise Conflict("Add at least one line before requesting a review", code="no_lines")
-    if t.guard == "proposal_pending" and quote.review_proposal_id is None:
-        raise Conflict("No review is pending for this quote", code="no_pending_review")
     if t.guard == "issue_allowed":
         if not lines:
             raise Conflict("Add at least one line before issuing the quotation", code="no_lines")

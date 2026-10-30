@@ -105,7 +105,11 @@ TERMS_PLACEHOLDER = "Demo terms: prices exclude taxes; payment and delivery term
 
 
 def _d(value: Any) -> str | None:
-    return None if value is None else format(value, "f")
+    """Scale-independent decimal text for the content hash: ``16.5`` (just bound) and ``16.5000`` (loaded from
+    NUMERIC(18,4)) are the same content and must hash the same."""
+    if value is None:
+        return None
+    return format(Decimal(value).normalize(), "f")
 
 
 # =====================================================================================================
@@ -934,8 +938,6 @@ def allowed_transitions(uow: UnitOfWork, quote: Quote, lines: Sequence[QuoteLine
         if not repo.can(quote, t.permission_action):
             continue
         if t.guard == "lines_present" and not lines:
-            continue
-        if t.guard == "proposal_pending" and quote.review_proposal_id is None:
             continue
         out.append(TransitionRead(action=t.action, to_status=t.to_status, requires_reason=t.requires_reason))
     return out
