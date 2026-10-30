@@ -1,6 +1,7 @@
 # Build state
 
-**Checkpoint 0 — Slice 0 (bootstrap, contracts and spikes) verified 2026-10-23.** Slice 1 starting.
+**Checkpoint 1 — Slice 1 (shell, auth, briefing and the quote vertical path) merged on `main` 2026-10-30.** Slice 2 next.
+(Checkpoint 0 — Slice 0 — verified 2026-10-23.)
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
 "Next executable step". Nothing below is claimed as implemented unless it appears under **Implemented (verified)**
@@ -32,24 +33,10 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 | Python 3.14 no-build gate passed: `uv sync --locked --no-build` installs all **83** locked packages from wheels | `backend/uv.lock` (83 packages), `backend/.python-version` = 3.14; DECISIONS ADR-002 |
 | Contract documents written (pending integrator review): conventions, API conventions, permissions, events, fixtures, parallel work, AI routing, motion system; DECISIONS ADR-001…047; PARITY_MATRIX skeleton | `docs/architecture/*.md`, `docs/DECISIONS.md`, `docs/PARITY_MATRIX.md` |
 
-## 2. In progress — Slice 0 lanes (shared working tree, disjoint paths)
+## 2. In progress
 
-| Lane | Scope | State at checkpoint 0 |
-|---|---|---|
-| Integrator kernel | `backend/app/core/db/**`, `backend/app/platform/**` (authz, identity, org, events, jobs, numbering, idempotency, audit, system, approvals stub), `main.py`, `registry.py` with startup cross-validation, `worker.py`, Alembic baseline + helpers, `tests/conftest.py` (savepoint and `@committed` modes, `drain_events`) | kernel files present in the working tree (UoW with RLS GUCs, ScopedRepository, scope clause, ActorContext, permission/event/job/sequence defs, registry validation, CSRF/Origin middleware, route declarations); not yet verified |
-| Web scaffold | `apps/web/**`: Next 16.4 + React 19.3 + Tailwind 4 tokens (light and dark), Manrope, route manifest with coverage test, UI-preference cookie (`theme`, `motion`), Playwright config (127.0.0.1, `workers: 2`, fake-media flags) | scaffold, tokens, `routes.ts` + test and `ui-preferences.ts` + test present; not yet verified |
-| Dev tooling | `scripts/dev.mjs` (`setup`, `dev`, `check`, `test-api`, `test-e2e`, `api-generate`, `api-check`, `db-up`, `db-migrate`, `seed-demo`), CLI `lk env init --slot`, `lk db ensure-roles`, `lk db reparent`, `lk admin create-first`, `docker-compose.yml`, `.env.example`, `docs/runbooks/local-dev.md` | root `package.json` scripts and `backend/app/cli/**` present; Playwright Chromium install not yet confirmed |
-| PDF engine | `backend/app/core/documents/**` (ReportLab Platypus, embedded Noto fonts, layout and formatting helpers) and the ReportLab spike | fonts, `fonts.py`, `layout.py`, `format.py` present; spike not yet recorded |
-| Contract docs | this file, `PARITY_MATRIX.md`, `DECISIONS.md`, `docs/architecture/*.md` | written; awaiting integrator review |
-
-Slice-0 spikes (results in `docs/DECISIONS.md` ADR-048…051):
-
-| Spike | Checks | Result |
-|---|---|---|
-| PostgreSQL 17 (compose) | roles `lk_owner`/`lk_app`; `pg_trgm`, `btree_gist`; RLS fails closed as `lk_app`; 40-way barrier numbering | **verified** by `lk db status` and `tests/integration/test_platform_kernel.py` (`test_rls_fails_closed_without_tenant_guc`, `test_app_role_cannot_bypass_rls`, `test_concurrent_numbering_is_unique_and_gapless`); `pg_dump`/`pg_restore` round trip moves to Slice 5 (`lk backup`) |
-| ReportLab | € ₹ £ glyphs with embedded Noto; 150-row table with repeated header; Devanagari shaping | **verified** — `docs/evidence/slice-0/pdf-spike.md` (35 unit tests) |
-| Next 16 rewrites | `/api/*` rewrite to FastAPI; session cookie, CSRF and Origin through rewrites; 25 MB upload; SSE timing | rewrite **verified** (`GET /api/v1/health/ready` → 200 via `127.0.0.1:3000`); cookie/CSRF checks move to the Slice-1 platform lane, upload to Slice 2 files, SSE to Slice 3 (polling is the Slice-1 contract) |
-| Toolchain | TypeScript 5.9 + ESLint 9 + `openapi-typescript` generation from `backend/openapi.json` | **verified** — `npm run check` green (ruff, pytest unit+contract, heads=1, api:check, eslint, tsc, vitest 134 tests) |
+Nothing in flight. Slice 1 is merged on `main` (see section 9 for what it contains and its evidence). Slice-0 lanes
+and spikes are complete; their results are in `docs/DECISIONS.md` ADR-048…051 and `docs/evidence/slice-0/`.
 
 ## 3. Blocked
 
@@ -124,53 +111,60 @@ Filled at each checkpoint; one row per executed check.
 | 2026-10-23 | 0 | API suite | `npm run test:api` | 92 passed | console |
 | 2026-10-23 | 0 | check | `npm run check -- --keep-going` | 7/7 PASS | console |
 | 2026-10-23 | 0 | dev boot | `npm run dev`; `curl /api/v1/health/ready` on :8000 and via :3000 rewrite | 200 / 200; `/login` 200 | console |
+| 2026-10-30 | 1 | API suite on `main` 27502a8 | `npm run test:api` | 1063 passed | `D:\lk-wt\test-main-s1.log` |
+| 2026-10-30 | 1 | check on `main` 27502a8 | `npm run check -- --keep-going` | 7/7 PASS (unit+contract 481, vitest 410) | `D:\lk-wt\check-main-s1.log` |
+| 2026-10-30 | 1 | e2e on `lane/s1-merge` (= `main` 27502a8) | `npm run test:e2e -- --no-build --workers=1` on fresh `lk seed demo` | 70 passed, 113 skipped (project-scoped / opt-in) | `docs/lanes/merge-s1w2.md` |
+| 2026-10-30 | 1 | screenshots inspected | 24 PNGs at 1440/390 × light/dark | 3 defects found and fixed in c0d2c7e; re-checked live on slot 8 | `docs/evidence/slice-1/` |
+| 2026-10-30 | 1 | vitest after the screenshot fixes | `npx vitest run` | 411 passed | console |
 
 ## 8. Next executable step
 
-Slice 0 is committed. Run Slice 1 in worktree lanes (`D:\lk-wt\<lane>`, env slots 1–4) per `docs/PLAN.md`:
-wave 1 = platform, catalogue/parties/pricing/commercial, work (tasks/briefings); wave 2 = sales quotes + PDF,
-approvals/agents-demo, web shell/login/Today/Inbox/quote workspace.
+Slice 2 (complete legacy parity) per `docs/PLAN.md`, in waves of at most three lanes, starting from `main` at the
+Slice-1 checkpoint. Before the first Slice-2 wave:
+1. Re-run `npm run test:e2e` on `main` once the machine has memory to spare: the 2026-10-30 run after c0d2c7e
+   stopped in `next build` with an out-of-memory error (machine had 1.6 GB free of 15.7 GB). The same code passed
+   e2e on the merge branch earlier the same day; c0d2c7e changes only three components (vitest-covered, checked live).
+2. Decide the Next.js 16.4.0 security advisory: `next build`/`next dev` stop once and recommend an upgrade. It
+   changes lockfiles, so it waits for the owner (also on the Slice-6 `npm audit` list).
+3. Carry the open items below into the Slice-2 lane briefs.
 
-Environment notes (2026-10-23): Windows Application Control blocks the `uvicorn.exe` venv shim, so `scripts/dev.mjs`
-runs `python -m uvicorn`. Docker Desktop 4.82 can fail to start on stale AF_UNIX socket files in
-`%LOCALAPPDATA%\Dockerun` and `%LOCALAPPDATA%\docker-secrets-engine`; moving those folders aside fixes it
-(runbook). `next dev` 16.4.0 prints a security-advisory nudge and exits once; a retry continues. The advisory is
-tracked for the Slice-6 `npm audit` pass.
+Open items carried from Slice 1 (owners in brackets):
+- Rendered quote PDFs are rendered on demand from the immutable snapshot; storing them through
+  `platform/files.store_generated` needs a schema decision (revisions are append-only, file claims are per user). [sales + platform]
+- `lk seed demo` anchors on today but fixture times are absolute (D0 = 2026-10-12): seed with
+  `--anchor-date 2026-10-12` until fixture times are made relative. [fixtures]
+- Five web adapters still parse responses at runtime (`INTERIM(api-generate)`): openapi-typescript marks
+  server-defaulted fields required in request bodies. [web]
+- `tasks_issue` per-key advisory locks can deadlock if two handlers take keys in opposite orders (Postgres aborts
+  one; the job retries). Sort keys before locking. [work]
+- CSRF verifier in a threadpool; UOM CHECK constraints → foreign keys; `integration_status` registry; catalogue
+  test world still uses its own fake actor builder. [integrator / catalogue]
+- Approvals engine: `get` hides proposals from management who are neither requester nor approver; `withdraw` is
+  requester-only (sales invalidates instead). [approvals]
+- Enquiry outcome codes are free text; a catalogue is needed. Quote delete is a capability, not a transition. [sales]
+- Composer: Enter inserts a newline; decide whether Enter sends (Shift+Enter for newline). [web, design]
 
 ---
 
-## 9. Interim checkpoint — Slice 1 wave 1 merged (2026-10-27, session cut by usage limit)
+## 9. Checkpoint 1 — Slice 1 on `main` (2026-10-30)
 
-**On `main` (commit `33ba1ac`):** the five wave-1 lanes (identity `lane/s1w1-identity`, platform `lane/s1w1-platform`,
-catalogue `lane/s1w1-catalogue`, work `lane/s1w1-work`, web `lane/s1w1-web` at its fix-pass state) are merged after
-each lane's adversarial review and a completed fix pass (117 findings; every blocker and major fixed with regression
-tests; deferred minors are listed in each `docs/lanes/<lane>.md` "Fix pass (2026-10-27)" section). Migrations are one
-chain 0001 → 0002 → 0003 identity → 0004 platform → 0005 catalogue → 0006 work (`alembic heads` = 1). `openapi.json`
-and `schema.d.ts` regenerated (62 paths, 180 schemas).
+Merged in this order (lane reports under `docs/lanes/`): identity, platform, catalogue (parties, pricing, commercial),
+work (tasks, briefings), test-reconcile, integration backlog, sales, agents-demo, web (waves 1 and 2); the wave-2
+merge and its fixes are recorded in `docs/lanes/merge-s1w2.md`. Migration chain 0001 → 0009 (0007 ui recent records,
+0008 sales, 0009 agents), `alembic heads` = 1. `openapi.json` / `schema.d.ts` regenerated.
 
-**Verification on `main` after the merge:** `npm run test:api` → **708 passed, 1 failed, 1 xpassed**. The failure is
-`tests/integration/identity/test_seed.py::test_people_roles_managers_and_refs` (a `KeyError` on a membership id once
-the org and catalogue seeds run alongside the identity seed: integration drift, not a lane defect). `npm run check` and
-`lk seed demo` have not been run on the merged tree yet.
+What runs: password sign-in with CSRF, rate limits and lockout; demo sign-in links; role templates and overrides;
+numbering; settings; files (LocalFs); audit; UOM master and work calendar; catalogue read/search; parties; price
+lists with tier resolution and the commercial engine; enquiries and customer messages; quotes (header, lines,
+snapshots, totals, versions, review/approve/reject/send/won/cancel/delete-draft, issued revision, ReportLab PDF);
+approvals with `sales.quote.review`; tasks, issues, reminders, Inbox; deterministic briefings (Today, delta,
+rollover); the Demo assistant as a durable `agent.run` with polling, server-built cards and grounding (scenario C:
+"prepare Nordhaus's usual oak tray quote" → draft → "change it to 300"); web shell, login, Today, Inbox, quote
+list and workspace, review page, enquiries, customer messages, assistant composer — desktop and phone, light and
+dark.
 
-**Still running when the session stopped (work lands on their own branches; nothing is merged yet):**
-- sales lane `lane/s1w2-sales` (`D:\lk-wt\sales`, slot 6): quotes, enquiries, customer messages, approvals handler,
-  PDF, tools, seeds — brief in the session scratchpad `s1w1/sales-brief.md`.
-- agents-demo lane `lane/s1w2-agents` (`D:\lk-wt\agents`, slot 7): Demo orchestrator, `agent.run` job, polling API,
-  cards, grounding — brief `s1w1/agents-brief.md`.
-- web wave 2 on `lane/s1w1-web` (`D:\lk-wt\web`, slot 5): Today/Inbox bound to real APIs, quote list and workspace,
-  review page, enquiries, assistant composer, Playwright specs — brief `s1w1/web2-brief.md`.
-Both backend lanes were told to merge `lane/s1w1-catalogue` into their branches (wire-shape changes) and to reset
-their slot databases because migration 0005 was edited in place.
-
-**Next executable step:** (1) fix the one failing seed test on `main`; run `npm run check` and `npm run test:api` to
-green; (2) when the three lanes report, review their reports, merge in the order sales → agents → web, reparent
-`0007_sales` onto 0006 and `0008_agents` onto 0007, regenerate types, switch the work lane's fake sales readers/handler
-and the agents lane's fake sales tools to the real modules; (3) integrator backlog from the lane reports
-("Requests for the integrator" in each `docs/lanes/*.md`): uvicorn `--no-proxy-headers` and `LK_TRUSTED_PROXY_HOPS`
-in core settings; kernel `build_sections` per-section savepoint; platform's post-merge swaps (core `RatioStr`,
-`keys.py` fallbacks, download Cache-Control xfail, upload limiter); keys.py constants requested by catalogue and work;
-SourceReaders `identity.membership`, `identity.user_preference`, `ui.recent_record`, `search.recent`; PARITY_MATRIX
-test pointers; (4) `lk seed demo`, `npm run dev`, Playwright for scenario C at desktop and phone, axe in both themes,
-screenshots to `docs/evidence/slice-1/`; (5) update sections 1–4 and 7 of this file, PARITY_MATRIX statuses, and make
-the Slice-1 commit.
+Exit criteria (PLAN Slice 1): scenario C API + e2e desktop/phone — passed; scenario D engine + UI/API/PDF
+agreement — `tests/integration/documents/test_output_channels_agree.py` and `tests/integration/sales/test_quote_lines.py`; scenario F subset (IDOR
+matrix, 40-way numbering, optimistic 409) — passed; A subset and B subset — passed in `tests/integration/briefings`
+and `tasks`; keyboard journey and axe in both themes on all 24 manifest routes — passed; screenshots inspected and
+defects fixed — done (see section 7). PARITY_MATRIX: 40 rows implemented, 13 in progress, 647 planned (Slice 2–6).
