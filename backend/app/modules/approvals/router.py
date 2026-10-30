@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.core.http.authz_decl import authenticated
+from app.core.http.capabilities import Capability
 from app.core.http.deps import Actor
 from app.modules.approvals import service
 from app.modules.approvals.models import Proposal
@@ -24,11 +25,6 @@ class TargetOut(BaseModel):
     target_type: str
     target_id: uuid.UUID
     target_version: int | None
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
 
 
 class ProposalOut(BaseModel):

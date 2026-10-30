@@ -8,12 +8,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.http.capabilities import Capability
 from app.core.money import RatioStr
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
 
 
 # ---- settings ---------------------------------------------------------------------------------------------

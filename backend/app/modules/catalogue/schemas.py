@@ -10,6 +10,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 
+from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 from app.modules.catalogue.normalise import plain_decimal
 from app.platform.authz.redaction import Restricted
@@ -437,17 +438,6 @@ class SectionRead(BaseModel):
     key: str
     label: str
     path: str
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
-
-
-class TransitionRead(BaseModel):
-    action: str
-    to_status: str
-    requires_reason: bool
 
 
 class ProductDetail(BaseModel):

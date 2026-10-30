@@ -9,6 +9,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator
 
+from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode
 
 
@@ -132,11 +133,6 @@ class PartyUpdate(BaseModel):
 
 
 # ---- read models ----------------------------------------------------------------------------------
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
-
-
 class UserRef(BaseModel):
     id: uuid.UUID
     display_name: str | None
@@ -186,12 +182,6 @@ class PartySummary(BaseModel):
     primary_contact: str | None
     updated_at: datetime
     path: str
-
-
-class TransitionRead(BaseModel):
-    action: str
-    to_status: str
-    requires_reason: bool
 
 
 class PartyDetail(PartySummary):
