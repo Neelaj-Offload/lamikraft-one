@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.platform.identity.preferences import UiPreferences
 from app.platform.identity.schemas import (
@@ -81,3 +81,17 @@ class SessionBootstrap(BaseModel):
 
 class UiPoll(BaseModel):
     sections: dict[str, Any]
+
+
+# ---- recent records -------------------------------------------------------------------------------------
+class RecentRecordCreate(BaseModel):
+    """A detail record the user just opened, e.g. ``{"resource_type": "catalogue.product", "resource_id": ...}``."""
+
+    resource_type: str = Field(pattern=r"^[a-z][a-z_]*\.[a-z][a-z_]*$", max_length=60)
+    resource_id: uuid.UUID
+
+
+class RecentRecordRead(BaseModel):
+    resource_type: str
+    resource_id: uuid.UUID
+    opened_at: datetime

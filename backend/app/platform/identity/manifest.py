@@ -36,6 +36,7 @@ def _on_load() -> None:
     from app.platform.identity.actors import actor_for, actor_for_job
     from app.platform.identity.http import resolve_actor, verify_csrf
     from app.platform.identity.ratelimit import upload_limiter
+    from app.platform.identity.sources import register_readers
     from app.platform.jobs.runtime import register_actor_builder
 
     register_actor_resolver(resolve_actor)
@@ -43,6 +44,7 @@ def _on_load() -> None:
     register_member_actor_builder(actor_for)
     register_actor_builder(actor_for_job)
     set_upload_limiter(upload_limiter())  # Postgres-backed, shared by every worker (api-conventions §11)
+    register_readers()  # identity.membership, identity.user_preference (tasks onboarding checks)
     _warn_untrusted_client_addresses()
 
 

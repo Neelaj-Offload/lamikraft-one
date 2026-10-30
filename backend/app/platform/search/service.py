@@ -25,6 +25,7 @@ from app.platform.search.defs import SearchHit, SearchProvider
 from app.platform.search.models import QUERY_MAX_CHARS, RECENT_KEEP, SearchRecent
 from app.platform.search.schemas import RecentSearchRead, SearchGroupRead, SearchHitRead, SearchResults
 from app.platform.service import command, query
+from app.platform.sources import SourceFacts
 
 if TYPE_CHECKING:
     from app.platform.uow import UnitOfWork
@@ -249,3 +250,29 @@ def has_recent_search(uow: UnitOfWork, user_id: uuid.UUID) -> bool:
         .where(SearchRecent.company_id == uow.actor.company_id, SearchRecent.user_id == user_id)
     )
     return bool(count)
+
+
+def read_recent_search_facts(uow: UnitOfWork, user_id: uuid.UUID) -> SourceFacts | None:
+    """``search.recent`` SourceReader (source id = user id): how many recent searches the user has (onboarding
+    step "Use global search"). Personal: only the system and the user themself get facts."""
+    actor = uow.actor
+    if not (actor.is_system or actor.user_id == user_id) or actor.company_id is None:
+        return None
+    count, last = uow.session.execute(
+        select(func.count(), func.max(SearchRecent.searched_at)).where(
+            SearchRecent.company_id == actor.company_id, SearchRecent.user_id == user_id
+        )
+    ).one()
+    return SourceFacts(
+        source_type="search.recent",
+        source_id=user_id,
+        version=None,
+        label="Recent searches",
+        status="active",
+        owner_user_id=user_id,
+        branch_id=None,
+        required_permission="search.global.use",
+        canonical_path="/search",
+        updated_at=last,
+        facts={"count": int(count or 0)},
+    )
