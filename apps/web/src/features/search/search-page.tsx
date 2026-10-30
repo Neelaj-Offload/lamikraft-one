@@ -25,7 +25,7 @@ export interface SearchPageState {
 
 export function searchPageStateFrom(params: Record<string, string | string[] | undefined>): SearchPageState {
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
-  const raw = one(params.type);
+  const raw = one(params.type) || one(params.types);
   const type = /^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(raw) ? raw : null;
   const offset = Number.parseInt(one(params.offset) || "0", 10);
   return {
