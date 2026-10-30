@@ -680,6 +680,7 @@ def read_party_facts(uow: UnitOfWork, party_id: uuid.UUID) -> SourceFacts | None
         updated_at=party.updated_at,
         facts={
             "party_number": party.party_number,
+            "name": party.display_name,  # the name tasks/briefings titles use (work lane reader contract)
             "display_name": party.display_name,
             "legal_name": party.legal_name,
             "country_code": party.country_code,
