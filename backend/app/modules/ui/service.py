@@ -70,6 +70,16 @@ def area_readiness(installed: Iterable[str] | None = None) -> dict[str, bool]:
     return {a.key: not a.modules or any(m in names for m in a.modules) for a in NAV_AREAS}
 
 
+ASSISTANT_USE = "agents.assistant.use"
+
+
+def capability_flags(permission_keys: Iterable[str], installed: Iterable[str] | None = None) -> dict[str, bool]:
+    """The reserved capability flags of ``features`` (api-conventions §8): ``assistant`` when the agents module is
+    installed and the actor may use the assistant; ``voice`` stays false until push-to-talk ships (Slice 3)."""
+    names = frozenset(installed) if installed is not None else installed_module_names()
+    return {"assistant": "agents" in names and ASSISTANT_USE in set(permission_keys), "voice": False}
+
+
 def nav_for(permission_keys: Iterable[str], ready: dict[str, bool] | None = None) -> list[NavItem]:
     keys = list(permission_keys)
     ready = ready if ready is not None else area_readiness()
@@ -120,7 +130,7 @@ def bootstrap(uow: UnitOfWork) -> SessionBootstrap:
         permissions=profile.permissions,
         preferences=BootstrapPreferences(version=profile.preferences.version, ui=profile.preferences.ui),
         nav=nav_for((p.key for p in profile.permissions), ready),
-        features=ready,
+        features={**ready, **capability_flags(p.key for p in profile.permissions)},
         integration_modes=IntegrationModes(ai=settings.ai_mode, whatsapp=settings.whatsapp_mode, email=settings.email_mode),
         sections=build_sections(uow),
         session=profile.session,

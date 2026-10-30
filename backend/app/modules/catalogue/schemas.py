@@ -599,6 +599,16 @@ class ProductCandidate(BaseModel):
     match: Literal["product_key", "display_sku", "exact_name", "tokens"]
 
 
+class ResolveProductInput(BaseModel):
+    """Input of the ``resolve_product`` agent tool (no identity fields; the actor comes from the server)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)] = Field(
+        description="Product key, SKU, or words of the product name (decor, finish, family)"
+    )
+
+
 class ProductResolution(BaseModel):
     """``unique``: one product matched; ``ambiguous``: several (ask the user, never pick); ``not_found``."""
 

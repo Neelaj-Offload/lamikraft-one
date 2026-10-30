@@ -28,7 +28,7 @@ def all_areas(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pretend every area's module is installed so navigation reflects permissions alone."""
     from app.modules.ui import service as ui_service
 
-    monkeypatch.setattr(ui_service, "installed_module_names", lambda: ALL_AREA_MODULES | {"ui", "identity"})
+    monkeypatch.setattr(ui_service, "installed_module_names", lambda: ALL_AREA_MODULES | {"ui", "identity", "agents"})
 
 
 @pytest.fixture
@@ -68,7 +68,8 @@ def test_sales_persona_bootstrap(client: TestClient, world: SeedContext, probe_s
     assert "sales.quote.delete" not in grants and not any(k.startswith("identity.") for k in grants)
     assert [n["key"] for n in body["nav"]] == ["today", "inbox", "sales", "products", "operations", "settings"]
     assert body["nav"][2] == {"key": "sales", "path": "/sales", "label": "Sales"}
-    assert body["features"] == dict.fromkeys(EVERY_AREA, True)
+    assert body["features"] == {**dict.fromkeys(EVERY_AREA, True), "assistant": "agents.assistant.use" in grants, "voice": False}
+    assert body["features"]["assistant"] is True  # Meera may use the assistant (agents installed)
     assert body["preferences"]["version"] == 0 and body["preferences"]["ui"]["theme"] == "system"
     assert body["integration_modes"] == {"ai": "demo", "whatsapp": "demo", "email": "demo"}
     assert body["sections"]["probe_counts"] == {"user_id": str(world.refs["MEERA"])}
@@ -132,6 +133,7 @@ def test_nav_hides_areas_that_are_not_implemented(
     assert [n["key"] for n in body["nav"]] == ["today", "inbox", "sales", "products", "settings"]
     assert body["features"] == {
         "today": True, "inbox": True, "sales": True, "products": True, "operations": False, "finance": False, "settings": True,
+        "assistant": False, "voice": False,  # no agents module installed: no assistant even for an admin
     }
 
 

@@ -1,0 +1,20 @@
+[
+  {"text": "Prepare Nordhaus's usual oak tray quote", "kind": "prepare_usual_quote", "party": "Nordhaus", "product": "oak tray", "quantity": null, "currency": null, "language": "en"},
+  {"text": "Prepare Nordhaus’s usual oak tray quote for 300 pcs", "kind": "prepare_usual_quote", "party": "Nordhaus", "product": "oak tray", "quantity": "300", "currency": null, "language": "en"},
+  {"text": "make Berg's regular maple trivet quote in GBP", "kind": "prepare_usual_quote", "party": "Berg", "product": "maple trivet", "quantity": null, "currency": "GBP", "language": "en"},
+  {"text": "Prepare the usual oak tray quote for Nordhaus", "kind": "prepare_usual_quote", "party": "Nordhaus", "product": "oak tray", "quantity": null, "currency": null, "language": "en"},
+  {"text": "repeat Thornbury's last ash board order as a quote", "kind": "prepare_usual_quote", "party": "Thornbury", "product": "ash board", "quantity": null, "currency": null, "language": "en"},
+  {"text": "Nordhaus ka usual oak tray quote bana do", "kind": "prepare_usual_quote", "party": "Nordhaus", "product": "oak tray", "quantity": null, "currency": null, "language": "hinglish"},
+  {"text": "Maison ka wahi maple trivet quote taiyar karo 1,200", "kind": "prepare_usual_quote", "party": "Maison", "product": "maple trivet", "quantity": "1200", "currency": null, "language": "hinglish"},
+  {"text": "change it to 300", "kind": "change_quantity", "quantity": "300", "language": "en"},
+  {"text": "Set the quantity to three hundred", "kind": "change_quantity", "quantity": "300", "language": "en"},
+  {"text": "make the quantity two hundred and forty", "kind": "change_quantity", "quantity": "240", "language": "en"},
+  {"text": "qty 1,00,000", "kind": "change_quantity", "quantity": "100000", "language": "en"},
+  {"text": "isko 300 kar do", "kind": "change_quantity", "quantity": "300", "language": "hinglish"},
+  {"text": "isko teen sau kar do", "kind": "change_quantity", "quantity": "300", "language": "hinglish"},
+  {"text": "what is on my screen?", "kind": "screen_question", "language": "en"},
+  {"text": "explain this panel", "kind": "screen_question", "language": "en"},
+  {"text": "hello there", "kind": null},
+  {"text": "open the second item", "kind": null},
+  {"text": "delete all quotes", "kind": null}
+]

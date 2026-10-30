@@ -4,6 +4,91 @@
  */
 
 export interface paths {
+    "/api/v1/agents/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Conversation */
+        post: operations["agents_create_conversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Conversation */
+        get: operations["agents_get_conversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/conversations/{conversation_id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Turn */
+        post: operations["agents_create_turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["agents_get_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Run */
+        post: operations["agents_cancel_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approvals/proposals": {
         parameters: {
             query?: never;
@@ -1775,6 +1860,16 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** BriefingPin */
+        BriefingPin: {
+            /**
+             * Pin Id
+             * Format: uuid
+             */
+            pin_id: string;
+            /** Version */
+            version?: number | null;
+        };
         /** BriefingPreferences */
         BriefingPreferences: {
             /**
@@ -1950,6 +2045,40 @@ export interface components {
          * @enum {string}
          */
         Channel: "email" | "phone" | "whatsapp" | "web" | "other";
+        /** ClarificationCard */
+        ClarificationCard: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "clarification";
+            /** Options */
+            options: components["schemas"]["ClarificationOption"][];
+            /**
+             * Provider Label
+             * @default Demo
+             */
+            provider_label: string;
+            /** Question */
+            question: string;
+            /** Slot */
+            slot: string;
+            /**
+             * Tainted
+             * @default false
+             */
+            tainted: boolean;
+        };
+        /** ClarificationOption */
+        ClarificationOption: {
+            action: components["schemas"]["OptionAction"];
+            /** Detail */
+            detail?: string | null;
+            /** Label */
+            label: string;
+            /** Ref */
+            ref: string;
+        };
         /** CommercialSnapshot */
         CommercialSnapshot: {
             /** Currency */
@@ -2087,6 +2216,55 @@ export interface components {
             /** Phone */
             phone: string | null;
         };
+        /**
+         * ConversationChannel
+         * @enum {string}
+         */
+        ConversationChannel: "web" | "voice" | "whatsapp";
+        /** ConversationCreate */
+        ConversationCreate: {
+            /** @default web */
+            channel: components["schemas"]["ConversationChannel"];
+            /** Title */
+            title?: string | null;
+        };
+        /** ConversationOut */
+        ConversationOut: {
+            channel: components["schemas"]["ConversationChannel"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /** Mode */
+            mode: string;
+            /** Provider Label */
+            provider_label: string;
+            /** Runs */
+            runs: components["schemas"]["RunSummary"][];
+            status: components["schemas"]["ConversationStatus"];
+            /** Title */
+            title: string | null;
+            /** Turns */
+            turns: components["schemas"]["TurnOut"][];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ConversationStatus
+         * @enum {string}
+         */
+        ConversationStatus: "active" | "archived";
         /**
          * CostSourceKind
          * @enum {string}
@@ -2341,6 +2519,22 @@ export interface components {
          * @enum {string}
          */
         DispatchChannel: "manual" | "email" | "whatsapp" | "post" | "other";
+        /**
+         * DraftContext
+         * @description The user's unsaved form input: never persisted from context, re-validated by the receiving service.
+         */
+        DraftContext: {
+            /** Dirty Fields */
+            dirty_fields?: string[];
+            /** Form Key */
+            form_key: string;
+            /** Record Ref */
+            record_ref?: string | null;
+            /** Values */
+            values?: {
+                [key: string]: unknown;
+            };
+        };
         /** EnquiryCreate */
         EnquiryCreate: {
             /** Body */
@@ -2442,6 +2636,31 @@ export interface components {
             status?: "closed" | null;
             /** Subject */
             subject?: string | null;
+        };
+        /** ErrorCard */
+        ErrorCard: {
+            /** Code */
+            code: string;
+            /** Direct Controls */
+            direct_controls?: components["schemas"]["RecordLink"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "error";
+            /** Message */
+            message: string;
+            /**
+             * Provider Label
+             * @default Demo
+             */
+            provider_label: string;
+            recoverable_draft?: components["schemas"]["RecordLink"] | null;
+            /**
+             * Tainted
+             * @default false
+             */
+            tainted: boolean;
         };
         /** ExplainView */
         ExplainView: {
@@ -3121,6 +3340,28 @@ export interface components {
             body: string;
             /** Expected Version */
             expected_version: number;
+        };
+        /**
+         * OptionAction
+         * @description What the client posts as the next turn when the user picks this option (``TurnCreate.selected_option``).
+         */
+        OptionAction: {
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Kind
+             * @default select_option
+             * @constant
+             */
+            kind: "select_option";
+            /** Label */
+            label: string;
+            /** Slot */
+            slot: string;
+            /** Value */
+            value: string;
         };
         /**
          * OrderValueRecommendationRead
@@ -4542,6 +4783,11 @@ export interface components {
             /** Subcategory Source */
             subcategory_source: string | null;
         };
+        /**
+         * ProviderName
+         * @enum {string}
+         */
+        ProviderName: "demo" | "anthropic" | "gemini";
         /** Quantity */
         Quantity: {
             /** Uom */
@@ -4707,6 +4953,56 @@ export interface components {
             /** Won At */
             won_at: string | null;
         };
+        /** QuoteDraftCard */
+        QuoteDraftCard: {
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Currency */
+            currency: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "quote_draft";
+            /** Lines */
+            lines: components["schemas"]["QuoteLineCard"][];
+            /** Party Id */
+            party_id: string | null;
+            /** Party Label */
+            party_label: string | null;
+            /**
+             * Preview Only
+             * @default false
+             */
+            preview_only: boolean;
+            /**
+             * Provider Label
+             * @default Demo
+             */
+            provider_label: string;
+            /** Quote Id */
+            quote_id: string | null;
+            /** Quote Number */
+            quote_number: string | null;
+            /**
+             * Requires Confirmation
+             * @default false
+             */
+            requires_confirmation: boolean;
+            review?: components["schemas"]["RecordLink"] | null;
+            /** Status */
+            status: string;
+            /**
+             * Tainted
+             * @default false
+             */
+            tainted: boolean;
+            totals: components["schemas"]["QuoteTotalsCard"] | null;
+            /** Version */
+            version?: number | null;
+        };
         /** QuoteHistoryRead */
         QuoteHistoryRead: {
             /** Action */
@@ -4732,6 +5028,31 @@ export interface components {
             reason_code: string | null;
             /** To Status */
             to_status: string;
+        };
+        /** QuoteLineCard */
+        QuoteLineCard: {
+            /** Line Id */
+            line_id?: string | null;
+            /** Line No */
+            line_no?: number | null;
+            /** Line Total */
+            line_total?: string | null;
+            /** Price List Code */
+            price_list_code?: string | null;
+            /** Price List Item Id */
+            price_list_item_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Product Key */
+            product_key?: string | null;
+            /** Product Name */
+            product_name?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /** Unit Price */
+            unit_price?: string | null;
+            /** Uom */
+            uom?: string | null;
         };
         /** QuoteLineCreate */
         QuoteLineCreate: {
@@ -5041,6 +5362,32 @@ export interface components {
             /** Totals Complete */
             totals_complete: boolean;
         };
+        /** QuoteTotalsCard */
+        QuoteTotalsCard: {
+            /** Applicable Subtotal */
+            applicable_subtotal?: string | null;
+            /** Currency */
+            currency: string;
+            /** Discount Total */
+            discount_total?: string | null;
+            /** Grand Total */
+            grand_total?: string | null;
+            /** Gross Subtotal */
+            gross_subtotal?: string | null;
+            /** Minimum Status */
+            minimum_status?: string | null;
+            /** Notes */
+            notes?: string[];
+            /** Recommended Quantity */
+            recommended_quantity?: number | null;
+            /** Surcharge */
+            surcharge?: string | null;
+            /**
+             * Surcharge Applied
+             * @default false
+             */
+            surcharge_applied: boolean;
+        };
         /**
          * QuoteTransition
          * @description One request for every state-machine action. Unknown or not-allowed actions are 409 ``invalid_transition``.
@@ -5089,6 +5436,34 @@ export interface components {
             remarks?: string | null;
             /** Validity Days */
             validity_days?: number | null;
+        };
+        /** ReceiptCard */
+        ReceiptCard: {
+            /** Action */
+            action: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "receipt";
+            /**
+             * Provider Label
+             * @default Demo
+             */
+            provider_label: string;
+            record?: components["schemas"]["RecordLink"] | null;
+            /** Summary */
+            summary: string;
+            /**
+             * Tainted
+             * @default false
+             */
+            tainted: boolean;
         };
         /** RecentProduct */
         RecentProduct: {
@@ -5208,6 +5583,59 @@ export interface components {
             /** Reason Code */
             reason_code: string;
         };
+        /** RecordLink */
+        RecordLink: {
+            /** Label */
+            label: string;
+            /** Path */
+            path: string;
+            /** Resource Id */
+            resource_id?: string | null;
+            /** Resource Type */
+            resource_type?: string | null;
+        };
+        /** RecordLinkCard */
+        RecordLinkCard: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "record_link";
+            /** Label */
+            label: string;
+            /** Ordinal */
+            ordinal?: number | null;
+            /** Path */
+            path: string;
+            /**
+             * Provider Label
+             * @default Demo
+             */
+            provider_label: string;
+            /** Resource Id */
+            resource_id?: string | null;
+            /** Resource Type */
+            resource_type?: string | null;
+            /**
+             * Tainted
+             * @default false
+             */
+            tainted: boolean;
+        };
+        /** RecordRef */
+        RecordRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Role */
+            role?: string | null;
+            /** Type */
+            type: string;
+            /** Version */
+            version?: number | null;
+        };
         /** RefreshSnapshots */
         RefreshSnapshots: {
             /** Expected Version */
@@ -5307,6 +5735,17 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** RouteContext */
+        RouteContext: {
+            /** Area */
+            area?: string | null;
+            /** Params */
+            params?: {
+                [key: string]: string;
+            };
+            /** Path */
+            path: string;
+        };
         /** RuleSetDetail */
         RuleSetDetail: {
             /** Activated At */
@@ -5368,6 +5807,119 @@ export interface components {
          * @enum {string}
          */
         RuleSetStatus: "draft" | "active" | "retired";
+        /**
+         * RunDetail
+         * @description The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.
+         */
+        RunDetail: {
+            /** After Seq */
+            after_seq: number;
+            /** Cards */
+            cards: (components["schemas"]["QuoteDraftCard"] | components["schemas"]["ClarificationCard"] | components["schemas"]["ErrorCard"] | components["schemas"]["RecordLinkCard"] | components["schemas"]["ReceiptCard"])[];
+            /** Done */
+            done: boolean;
+            /** Last Seq */
+            last_seq: number;
+            run: components["schemas"]["RunSummary"];
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /** Text */
+            text: string | null;
+        };
+        /**
+         * RunStatus
+         * @enum {string}
+         */
+        RunStatus: "queued" | "running" | "succeeded" | "failed" | "budget_exceeded" | "cancelled";
+        /** RunSummary */
+        RunSummary: {
+            /** Assistant Turn Id */
+            assistant_turn_id: string | null;
+            /** Channel */
+            channel: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Elapsed Ms */
+            elapsed_ms: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mode */
+            mode: string;
+            /** Model Route */
+            model_route: string | null;
+            provider: components["schemas"]["ProviderName"];
+            /** Provider Label */
+            provider_label: string;
+            /** Request Type */
+            request_type: string | null;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["RunStatus"];
+            /** Step Budget */
+            step_budget: number;
+            /** Step Count */
+            step_count: number;
+            /** Tainted */
+            tainted: boolean;
+            /** Time Budget Seconds */
+            time_budget_seconds: number;
+            /** Tool Call Count */
+            tool_call_count: number;
+            trigger: components["schemas"]["RunTrigger"];
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+        };
+        /**
+         * RunTrigger
+         * @enum {string}
+         */
+        RunTrigger: "user_turn" | "clarification_answer";
+        /** ScreenContext */
+        ScreenContext: {
+            briefing_pin?: components["schemas"]["BriefingPin"] | null;
+            /** Captured At */
+            captured_at?: string | null;
+            draft?: components["schemas"]["DraftContext"] | null;
+            /** Filters */
+            filters?: {
+                [key: string]: unknown;
+            };
+            focus?: components["schemas"]["RecordRef"] | null;
+            /** Records */
+            records?: components["schemas"]["RecordRef"][];
+            route?: components["schemas"]["RouteContext"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Selection */
+            selection?: string[];
+            viewport?: components["schemas"]["Viewport"] | null;
+            /** Visible Items */
+            visible_items?: components["schemas"]["VisibleItem"][];
+        };
         /** SearchGroupRead */
         SearchGroupRead: {
             /** Group */
@@ -5432,6 +5984,16 @@ export interface components {
             title: string;
             /** Total */
             total: number;
+        };
+        /**
+         * SelectedOption
+         * @description A ClarificationCard option the user chose; must have been offered by the previous assistant turn.
+         */
+        SelectedOption: {
+            /** Slot */
+            slot: string;
+            /** Value */
+            value: string;
         };
         /** SessionBootstrap */
         SessionBootstrap: {
@@ -5717,6 +6279,40 @@ export interface components {
             /** Width Mm Source */
             width_mm_source: string | null;
         };
+        /**
+         * StepKind
+         * @enum {string}
+         */
+        StepKind: "route" | "tool_call" | "tool_result" | "card" | "text" | "handoff";
+        /** StepOut */
+        StepOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Error Code */
+            error_code: string | null;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            } | null;
+            /** Is Error */
+            is_error: boolean;
+            kind: components["schemas"]["StepKind"];
+            /** Model Route */
+            model_route: string | null;
+            /** Name */
+            name: string;
+            /** Output */
+            output: {
+                [key: string]: unknown;
+            } | null;
+            /** Seq */
+            seq: number;
+        };
         /** StockAttributesRead */
         StockAttributesRead: {
             /** Hsn Sac */
@@ -5989,6 +6585,73 @@ export interface components {
             /** To Status */
             to_status: string;
         };
+        /** TurnAccepted */
+        TurnAccepted: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            status: components["schemas"]["RunStatus"];
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+        };
+        /** TurnCreate */
+        TurnCreate: {
+            /** Client Utterance Id */
+            client_utterance_id?: string | null;
+            context?: components["schemas"]["ScreenContext"] | null;
+            selected_option?: components["schemas"]["SelectedOption"] | null;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
+        /** TurnOut */
+        TurnOut: {
+            /** Cards */
+            cards: (components["schemas"]["QuoteDraftCard"] | components["schemas"]["ClarificationCard"] | components["schemas"]["ErrorCard"] | components["schemas"]["RecordLinkCard"] | components["schemas"]["ReceiptCard"])[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            role: components["schemas"]["TurnRole"];
+            /** Run Id */
+            run_id: string | null;
+            /** Selected Option */
+            selected_option: {
+                [key: string]: unknown;
+            } | null;
+            /** Seq */
+            seq: number;
+            /** Text */
+            text: string;
+        };
+        /**
+         * TurnRole
+         * @enum {string}
+         */
+        TurnRole: "user" | "assistant";
         /** UiPoll */
         UiPoll: {
             /** Sections */
@@ -6092,6 +6755,31 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** Viewport */
+        Viewport: {
+            /** Height */
+            height: number;
+            /** Width */
+            width: number;
+        };
+        /** VisibleItem */
+        VisibleItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** List Key */
+            list_key: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Ref */
+            ref: string;
+            /** Type */
+            type: string;
+            /** Version */
+            version?: number | null;
+        };
         /** VoicePreferences */
         VoicePreferences: {
             /**
@@ -6161,6 +6849,169 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    agents_create_conversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_get_conversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_create_turn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TurnCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TurnAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_get_run: {
+        parameters: {
+            query?: {
+                after_seq?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_cancel_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approvals_list_proposals: {
         parameters: {
             query?: {

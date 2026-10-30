@@ -177,8 +177,9 @@ navigation renders only authorised, implemented areas.
 - one readiness flag per navigation area (`today`, `inbox`, `sales`, `products`, `operations`, `finance`,
   `settings`): true when one of the area's modules is installed (`app/modules/ui/service.py::area_readiness`);
 - two capability flags, reserved names: `assistant` (typed commands to the agent can be sent) and `voice`
-  (push-to-talk can be offered). The ui module does not emit them yet (they arrive with the agents lane); a
-  missing key means false, and the web reads `capabilities{assistant,voice}` first, then these keys in
+  (push-to-talk can be offered). The ui module emits both (`app/modules/ui/service.py::capability_flags`):
+  `assistant` is true when the agents module is installed and the actor holds `agents.assistant.use`; `voice` is
+  false until push-to-talk ships (Slice 3). A missing key means false, and the web reads `capabilities{assistant,voice}` first, then these keys in
   `features` (`apps/web/src/lib/session/parse.ts`). Whoever implements the assistant or voice adds the key here,
   never a new top-level field.
 

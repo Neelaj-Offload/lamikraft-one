@@ -9,6 +9,7 @@ from typing import Any
 
 from app.modules.catalogue.policies import POLICIES
 from app.modules.catalogue.search import PRODUCT_SEARCH
+from app.modules.catalogue.tools import TOOLS
 from app.platform.manifest import ModuleManifest
 from app.seed.context import SeedContext, SeedDef
 
@@ -38,6 +39,7 @@ MANIFEST = ModuleManifest(
     policies=list(POLICIES),
     routers=[_router],
     search_providers=[PRODUCT_SEARCH],
+    tools=list(TOOLS),
     seeds=[SeedDef(name="catalogue.world", order=30, run=_seed, slice_no=1)],
     on_load=_on_load,
 )
