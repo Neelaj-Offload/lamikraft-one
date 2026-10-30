@@ -36,7 +36,7 @@ module = event module = API route segment = operationId prefix.
 | Module | Owns (tables) | First slice |
 |---|---|---|
 | `org` | `company`, `branch`, `team`, `team_member`, `setting`, `setting_revision`, `currency` (global reference, RLS-exempt), `uom`, `uom_alias`, `uom_conversion`, `work_calendar`, `work_shift`, `work_holiday`, `work_assignment` | 0/1 |
-| `identity` | `app_user` (global, RLS-exempt), `membership`, `membership_branch`, `membership_role`, `role`, `role_permission`, `permission` (catalogue synced from code, RLS-exempt), `user_permission_override`, `delegation`, `user_absence`, `access_request`, `invitation`, `password_reset`, `auth_session`, `auth_attempt`, `rate_limit_counter`, `mfa_factor`, `mfa_recovery_code`, `user_preference` (user-level, RLS-exempt) | 0/1 (MFA, invitations, delegation, access requests: 2) |
+| `identity` | `app_user` (global, RLS-exempt), `membership`, `membership_branch`, `membership_role`, `role`, `role_permission`, `permission` (catalogue synced from code, RLS-exempt), `legacy_permission_alias` (global reference data, RLS-exempt), `user_permission_override`, `delegation`, `user_absence`, `access_request`, `invitation`, `password_reset`, `auth_session`, `auth_attempt`, `rate_limit_counter`, `mfa_factor`, `mfa_recovery_code`, `user_preference` (user-level, RLS-exempt) | 0/1 (MFA, invitations, delegation, access requests: 2) |
 | `authz` | no tables: ActorContext, ScopedRepository, ResourcePolicy registry, scope clause, field-guard registry, redaction | 0 |
 | `events` | `domain_event` (outbox, RLS-exempt), `event_consumption` | 0 |
 | `jobs` | `job`, `job_schedule`, `worker_heartbeat` (RLS-exempt) | 0 |
@@ -119,7 +119,7 @@ and `apps/web/src/features/<feature>/**`.
   global tables), `__append_only__` (trigger rejects UPDATE/DELETE: audit, ledgers, issued revisions,
   status histories, consent log), `__audited__` (automatic audit diff).
 - RLS, triggers, append-only and CHECK constraints are created **only** through migration helpers in
-  `backend/migrations/helpers.py` (`tenant_table`, `enable_tenant_rls`, `append_only`, enum CHECK helper).
+  `backend/migrations/helpers.py` (`tenant_table`, `enable_tenant_rls`, `append_only`, `immutable_columns`, enum CHECK helper).
   A contract test compares `pg_policies`/`pg_trigger` with the model flags.
 - RLS-exempt tables (exhaustive list, extended only by integrator PR): `company`, `app_user`, `permission`,
   `user_preference`, `auth_session`, `auth_attempt`, `rate_limit_counter`, `password_reset`, `mfa_factor`,

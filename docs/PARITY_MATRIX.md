@@ -9,6 +9,12 @@ recorded in `docs/BUILD_STATE.md`.
 
 Checkpoint 0 (2026-10-12): every row is **planned**.
 
+Checkpoint 1 (2026-10-30, integration lane `lane/s1-integration`, pending its merge): 40 slice-1 rows whose
+named pytest tests all pass on that branch moved to **implemented**; 13 rows whose tests pass but whose scope is
+larger (slice 1→2, or a persisted part owned by a lane not yet merged: FG-QUO-10, FG-QLN-10, SEC-05) moved to
+**in progress**. Rows named by Playwright or vitest, and rows whose named test does not exist yet or fails (the
+briefings scenario tests, see `docs/lanes/integration.md`), stay **planned**.
+
 **Legend**
 - *New home*: backend path under `backend/app/` (`platform/<name>` kernel, `modules/<name>` domain) and web route under
   `apps/web/src/app/(app)` (detail routes use UUIDs; `/go/[type]/[key]` resolves business keys).
@@ -50,7 +56,7 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 | PERM-14 | `manage_categories` (admin) | `catalogue.taxonomy.manage` | 2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_taxonomy_writes_require_manage_key` |
 | PERM-15 | Fixed roles `admin`, `management`, `sales`, `operations` | system role templates (+ employee base, finance, production, procurement, warehouse, catalogue) | 1 | planned | `tests/contract/test_legacy_permission_parity.py::test_management_has_no_destructive_or_identity_keys` |
 | PERM-16 | Role is an unvalidated string | `role` rows with key CHECK; membership needs ≥1 role; unknown keys rejected | 1→2 | planned | `tests/integration/authz/test_role_validation.py::test_unknown_key_scope_cycle_and_escalation_rejected` |
-| PERM-17 | Effective permissions = role defaults ∪ grant − revoke | resolution with revoke always winning; `user_permission_override` | 1 | planned | `tests/unit/authz/test_permission_resolution.py::test_revoke_wins_and_scope_is_max` |
+| PERM-17 | Effective permissions = role defaults ∪ grant − revoke | resolution with revoke always winning; `user_permission_override` | 1 | implemented | `tests/unit/authz/test_permission_resolution.py::test_revoke_wins_and_scope_is_max` |
 | PERM-18 | `/auth/me` returns resolved permissions for UI hiding | `GET /api/v1/session/bootstrap` permissions + per-record `capabilities` | 1 | planned | `tests/integration/ui/test_session_bootstrap.py::test_permissions_and_capabilities_match_server_rules` |
 | PERM-19 | §3.3 admin-only areas enforced by role check | permission keys per area, enforced in services | 1→2 | planned | `tests/contract/test_route_authz_matrix.py::test_every_route_denies_unauthorised_personas` |
 | PERM-20 | §3.3 quote create/update/lines/revise/status/duplicate for admin/sales/management | `sales.quote.*` with scope via `ScopedRepository` | 1→2 | planned | `tests/integration/sales/test_quote_idor.py::test_quote_idor_matrix` |
@@ -58,10 +64,10 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 | PERM-22 | §3.3 quote delete: admin + delete_quotes + draft | `sales.quote.delete` + never-issued draft rule | 1 | planned | `tests/integration/sales/test_quote_delete.py::test_delete_requires_permission_and_draft_never_issued` |
 | PERM-23 | §3.3 challans, search, activity, notes, optimiser open to any login | `challans.*`, `search.global.use`, `collab` parent rules, `cutting.*` | 2 | planned | `tests/contract/test_route_authz_matrix.py::test_every_route_denies_unauthorised_personas` |
 | PERM-24 | §3.3 override/export/costing/edit/manage enforced in the UI only | server enforcement for every key | 1→2 | planned | `tests/contract/test_route_authz_matrix.py::test_every_route_denies_unauthorised_personas` |
-| PERM-25 | §3.4 JWT login, 24 h, `Authorization: Bearer` | opaque server sessions in HttpOnly cookie | 1 | planned | `tests/integration/identity/test_session_cookie_csrf.py::test_cookie_flags_rotation_and_revocation` |
-| PERM-26 | §3.4 `?auth=` query token for downloads | cookie-authenticated downloads; query tokens ignored | 1 | planned | `tests/integration/identity/test_session_cookie_csrf.py::test_query_tokens_ignored` |
+| PERM-25 | §3.4 JWT login, 24 h, `Authorization: Bearer` | opaque server sessions in HttpOnly cookie | 1 | implemented | `tests/integration/identity/test_login.py::test_successful_sign_in_sets_session_cookies`, `tests/integration/identity/test_sessions.py::test_sign_in_rotates_the_browser_session`, `tests/integration/identity/test_sessions.py::test_revocation_and_deactivation_apply_on_the_next_request` |
+| PERM-26 | §3.4 `?auth=` query token for downloads | cookie-authenticated downloads; query tokens ignored | 1 | implemented | `tests/integration/identity/test_sessions.py::test_tokens_never_come_from_the_url` |
 | PERM-27 | §3.4 change-password; admin reset returns a 12-char temporary password | self-service change (S1); one-time reset link, never a password (S2) | 1→2 | planned | `tests/integration/identity/test_invitation_and_reset.py::test_admin_reset_never_returns_password` |
-| PERM-28 | §3.4 fixed bootstrap admin re-synced from env on every boot | no bootstrap; `lk admin create-first` once | 1 | planned | `tests/integration/identity/test_no_bootstrap_credentials.py::test_startup_creates_no_users_and_cli_refuses_second_admin` |
+| PERM-28 | §3.4 fixed bootstrap admin re-synced from env on every boot | no bootstrap; `lk admin create-first` once | 1 | implemented | `tests/integration/identity/test_cli.py::test_create_first_refuses_when_an_admin_exists_anywhere`, `tests/integration/identity/test_access_sync.py::test_api_startup_repairs_template_drift_without_the_cli` |
 | PERM-29 | §3.4 no lockout, rate limit, password policy, MFA, refresh, revocation, login audit | rate limits + lockout (S1), password policy (S1), TOTP MFA for admins (S2), revocation (S1), auth audit (S1) | 1→2 | planned | `tests/integration/identity/test_login_security.py::test_generic_errors_lockout_and_rate_limits` |
 
 ## 2. Legacy modules (spec §5)
@@ -70,24 +76,24 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 
 | ID | Legacy item | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| LM-01 | Login | `platform/identity` login service · `/login` | 1 | planned | `tests/integration/identity/test_login_security.py::test_login_success_creates_session` |
-| LM-02 | `me`: profile, resolved permissions, overrides | `GET /api/v1/identity/me` + session bootstrap · `/settings/profile` | 1 | planned | `tests/integration/identity/test_profile.py::test_me_returns_profile_and_effective_permissions` |
-| LM-03 | Change own password | `POST /api/v1/identity/me/password` (current password required; other sessions revoked) | 1 | planned | `tests/integration/identity/test_profile.py::test_change_password_revokes_other_sessions` |
+| LM-01 | Login | `platform/identity` login service · `/login` | 1 | implemented | `tests/integration/identity/test_login.py::test_successful_sign_in_sets_session_cookies` |
+| LM-02 | `me`: profile, resolved permissions, overrides | `GET /api/v1/identity/me` + session bootstrap · `/settings/profile` | 1 | implemented | `tests/integration/identity/test_profile.py::test_me_returns_profile_and_effective_permissions` |
+| LM-03 | Change own password | `POST /api/v1/identity/me/password` (current password required; other sessions revoked) | 1 | implemented | `tests/integration/identity/test_profile.py::test_change_password_revokes_other_sessions` |
 | LM-04 | Admin list/create/update (name, role, active) users | `platform/identity` admin API · `/settings/users` (S1: CLI and seed only) | 2 | planned | `tests/integration/identity/test_user_admin.py::test_list_create_update_users` |
 | LM-05 | Admin reset password (temporary password) | admin-issued one-time reset link (24 h, shown once) | 2 | planned | `tests/integration/identity/test_invitation_and_reset.py::test_admin_reset_never_returns_password` |
 | LM-06 | Cannot delete self | deactivation; last-admin guard; no self-escalation | 2 | planned | `tests/integration/identity/test_deactivation.py::test_last_admin_guard_and_no_self_deactivation` |
 | LM-07 | Hard delete of users; ids remain on records, names denormalised | users never hard-deleted; deactivation keeps attribution ("Name (inactive)") | 2 | planned | `tests/integration/identity/test_deactivation.py::test_deactivation_keeps_attribution_and_revokes_sessions` |
-| LM-08 | Per-user permission overrides | `user_permission_override` API (S1) · `/settings/users/[userId]` overrides UI (S2) | 1→2 | planned | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
+| LM-08 | Per-user permission overrides | `user_permission_override` API (S1) · `/settings/users/[userId]` overrides UI (S2) | 1→2 | in progress | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
 | LM-09 | Read-only role matrix | role simulator `GET /api/v1/identity/access/effective` · `/settings/roles/simulate` | 2 | planned | `tests/integration/authz/test_role_simulator.py::test_effective_permissions_with_sources` |
 
 ### 2.2 Product catalogue (§5.2)
 
 | ID | Legacy item | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| LM-10 | Product listing: free-text search across key, SKU, name, category, subcategory, decor, finish; filters category, subcategory, status, brand, decor, thickness; limit/skip | `modules/catalogue/search.py` `search_products` · `/products` | 1 | planned | `tests/integration/catalogue/test_product_list.py::test_search_and_filters_apply_before_pagination` |
-| LM-11 | List enrichment: specs, EUR price, computed MOQ, primary image, decor fallback | catalogue list DTO + `pricing.display_prices` + engine recommendation | 1→2 | planned | `tests/integration/catalogue/test_product_list.py::test_rows_enriched_without_n_plus_one` |
+| LM-10 | Product listing: free-text search across key, SKU, name, category, subcategory, decor, finish; filters category, subcategory, status, brand, decor, thickness; limit/skip | `modules/catalogue/search.py` `search_products` · `/products` | 1 | implemented | `tests/integration/catalogue/test_product_list.py::test_search_and_filters_apply_before_pagination` |
+| LM-11 | List enrichment: specs, EUR price, computed MOQ, primary image, decor fallback | catalogue list DTO + `pricing.display_prices` + engine recommendation | 1→2 | in progress | `tests/integration/catalogue/test_product_list.py::test_price_columns_require_pricing_price_read`, `tests/integration/catalogue/test_product_list.py::test_rows_enriched_without_n_plus_one` |
 | LM-12 | Every search logged to `search_history` | `platform/search` `search_recent` (last 10 per user) | 2 | planned | `tests/integration/search/test_recent_searches.py::test_last_ten_kept_per_user` |
-| LM-13 | Product detail: product, pricing rows, packaging, specs, media, EUR price, MOQ, primary image | `GET /api/v1/catalogue/products/{id}` · `/products/[productId]` | 1→2 | planned | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
+| LM-13 | Product detail: product, pricing rows, packaging, specs, media, EUR price, MOQ, primary image | `GET /api/v1/catalogue/products/{id}` · `/products/[productId]` | 1→2 | in progress | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
 | LM-14 | Product stats (by status, without pricing, updated 7 days, per category) | `GET /api/v1/catalogue/products/stats` · `/products` home | 2 | planned | `tests/integration/catalogue/test_product_stats.py::test_stats_count_distinct_products` |
 | LM-15 | Recent products (latest updated, with domestic price) | `GET /api/v1/catalogue/products/recent` · `/products` home | 2 | planned | `tests/integration/catalogue/test_product_stats.py::test_recent_products_with_origin_and_actor` |
 | LM-16 | Admin create product | `catalogue.create_product` · `/products/new` | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_create_with_all_sections` |
@@ -150,7 +156,7 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 | LM-58 | List search by number/customer/country, status filter, scope mine/all, pagination | `GET /api/v1/sales/quotes` · `/sales/quotes` | 1 | planned | `tests/integration/sales/test_quote_list.py::test_filters_scope_and_paging_totals` |
 | LM-59 | Admin delete of draft quotes (removes lines and revisions) | soft delete of never-issued drafts; number never reused | 1 | planned | `tests/integration/sales/test_quote_delete.py::test_soft_delete_keeps_number_reserved` |
 | LM-60 | Internal notes on quotes | `platform/collab` note on `sales.quote` | 2 | planned | `tests/integration/collab/test_internal_notes.py::test_autosave_conflict_409_and_parent_update_required` |
-| LM-61 | Dynamic MOQ (advisory) | engine order-value recommendation, labelled separately from product MOQ | 1 | planned | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
+| LM-61 | Dynamic MOQ (advisory) | engine order-value recommendation, labelled separately from product MOQ | 1 | implemented | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
 
 ### 2.6 Custom products (§5.6)
 
@@ -233,15 +239,15 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 
 | ID | Legacy fields | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| FG-PRD-01 | `product_key` (PK, unique) | `catalogue_product.product_key` unique per company, immutable (trigger), UUID `id` for URLs | 1 | planned | `tests/integration/catalogue/test_product_crud.py::test_product_key_immutable_api_and_db_trigger` |
+| FG-PRD-01 | `product_key` (PK, unique) | `catalogue_product.product_key` unique per company, immutable (trigger), UUID `id` for URLs | 1 | implemented | `tests/integration/catalogue/test_product_crud.py::test_product_key_immutable_api_and_db_trigger` |
 | FG-PRD-02 | `display_sku` (non-unique) | `display_sku` NOT NULL, non-unique; completeness flags shared SKUs (info) | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_display_sku_non_unique_preserved` |
 | FG-PRD-03 | `product_name` | `product_name` NOT NULL (defaults to key on import) | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_master_fields_round_trip` |
 | FG-PRD-04 | `brand` | `brand` text (brand registry is future scope) | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_master_fields_round_trip` |
-| FG-PRD-05 | `category`, `subcategory` (free text) | FKs `category_id`, `subcategory_id` (composite FK) + `*_source` text | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
+| FG-PRD-05 | `category`, `subcategory` (free text) | FKs `category_id`, `subcategory_id` (composite FK) + `*_source` text | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
 | FG-PRD-06 | `product_type`, `variant_group` | same columns; configurator "family" filter uses `variant_group` | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_master_fields_round_trip` |
 | FG-PRD-07 | `unit_of_sale` | UOM code via `uom_alias` (source text kept) | 1 | planned | `tests/unit/catalogue/test_uom_aliases.py::test_unit_text_maps_or_flags_uom_unknown` |
 | FG-PRD-08 | `size_mm` | `catalogue_product_dimension(kind=master_size)` + effective size columns NUMERIC(12,3) | 1 | planned | `tests/unit/catalogue/test_parse_dimension.py::test_parse_dimension_cases` |
-| FG-PRD-09 | `decor_no`, `decor_name` | text `decor_no` (+ `decor_no_source`), `decor_name`; leading zeros kept | 1 | planned | `tests/unit/catalogue/test_normalise_identifier.py::test_normalise_identifier` |
+| FG-PRD-09 | `decor_no`, `decor_name` | text `decor_no` (+ `decor_no_source`), `decor_name`; leading zeros kept | 1 | implemented | `tests/unit/catalogue/test_normalise_identifier.py::test_normalise_identifier`, `tests/unit/catalogue/test_normalise_identifier.py::test_120_0_becomes_120_and_0120_stays_distinct` |
 | FG-PRD-10 | `decor_primary`, `decor_options` | `decor_primary`, `decor_options` text[] + `decor_options_text`; form inputs exist | 1→2 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_decor_fields_round_trip` |
 | FG-PRD-11 | `finish`, `shape` | same columns | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_master_fields_round_trip` |
 | FG-PRD-12 | `status` (active, inactive, under_development) | enum CHECK + label aliases on import | 1 | planned | `tests/unit/imports/test_value_rules.py::test_status_aliases` |
@@ -265,7 +271,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-PRC-07 | `price_basis` | `price_basis` (legacy text) | 1 | planned | `tests/integration/pricing/test_price_lists.py::test_item_fields_round_trip` |
 | FG-PRC-08 | `yield_qty_per_board` | same (guarded) | 1 | planned | `tests/integration/pricing/test_price_lists.py::test_item_fields_round_trip` |
 | FG-PRC-09 | `thickness_mm` | same NUMERIC(8,3) | 1 | planned | `tests/integration/pricing/test_price_lists.py::test_item_fields_round_trip` |
-| FG-PRC-10 | `moq` | `moq` + `moq_unit_code` (product MOQ, distinct from order-value recommendation) | 1 | planned | `tests/unit/commercial/test_engine.py::test_product_moq_distinct_from_recommendation` |
+| FG-PRC-10 | `moq` | `moq` + `moq_unit_code` (product MOQ, distinct from order-value recommendation) | 1 | implemented | `tests/unit/commercial/test_engine.py::test_product_moq_distinct_from_recommendation` |
 | FG-PRC-11 | `unit_of_sale` | `unit_code` (no automatic unit conversion of prices) | 1 | planned | `tests/integration/pricing/test_price_resolution.py::test_unit_mismatch_unavailable_with_hint` |
 | FG-PRC-12 | `price_notes` | `notes` | 1 | planned | `tests/integration/pricing/test_price_lists.py::test_item_fields_round_trip` |
 | FG-PRC-13 | `valid_from`, `valid_to` | item and list validity; no overlap (btree_gist EXCLUDE + service check) | 1→2 | planned | `tests/integration/pricing/test_price_lists.py::test_overlap_rejected_at_activation` |
@@ -287,7 +293,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-PKG-08 | `packaging_notes`, `fragile_notes` | same | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_packaging_fields_round_trip` |
 | FG-PKG-09 | `packaging_status`, `notes` | same | 1 | planned | `tests/integration/catalogue/test_product_fields_round_trip.py::test_packaging_fields_round_trip` |
 | FG-PKG-10 | One row per product (unique `product_key`) | `catalogue_product_packaging` PK `product_id` | 1 | planned | `tests/integration/catalogue/test_product_crud.py::test_packaging_one_row_per_product` |
-| FG-PKG-11 | MOQ, configurator and summary read only `carton_qty`/`unit_weight_g`/`packing_type` | all readers use canonical columns; packaging summary "450g · 24/ctn · Poly bag" | 1 | planned | `tests/integration/sales/test_configurator.py::test_packaging_summary_from_canonical_fields` |
+| FG-PKG-11 | MOQ, configurator and summary read only `carton_qty`/`unit_weight_g`/`packing_type` | all readers use canonical columns; packaging summary "450g · 24/ctn · Poly bag" | 1 | implemented | `tests/integration/catalogue/test_seed_world.py::test_oak_tray_fixture_fields` |
 
 ### 3.5 `specifications` (§4.5)
 
@@ -324,9 +330,9 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 
 | ID | Legacy fields | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| FG-TAX-01 | `id`, `category`, `subcategory` (unique pair) | `catalogue_category` + `catalogue_subcategory` (unique name keys) | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_unique_name_keys` |
-| FG-TAX-02 | `display_order` | same; ties by name | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_crud_reorder_and_activation` |
-| FG-TAX-03 | `is_active` | NOT NULL DEFAULT true; inactive parent hides children | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default` |
+| FG-TAX-01 | `id`, `category`, `subcategory` (unique pair) | `catalogue_category` + `catalogue_subcategory` (unique name keys) | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_duplicate_name_keys_conflict` |
+| FG-TAX-02 | `display_order` | same; ties by name | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_tree_follows_display_order` |
+| FG-TAX-03 | `is_active` | NOT NULL DEFAULT true; inactive parent hides children | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default`, `tests/integration/catalogue/test_taxonomy.py::test_inactive_parent_hides_its_children` |
 | FG-TAX-04 | `product_count` | `legacy_product_count` provenance; live counts computed | 2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_live_counts_computed` |
 | FG-TAX-05 | `description` | same | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_crud_reorder_and_activation` |
 | FG-TAX-06 | `source_catalog_page_start/end` | same text columns | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_crud_reorder_and_activation` |
@@ -362,7 +368,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-QUO-07 | `payment_terms`, `validity_days` (30) | same; `quote_date`, `valid_until` | 1 | planned | `tests/integration/sales/test_quote_header.py::test_valid_until_from_issue_date` |
 | FG-QUO-08 | `remarks`, `min_invoice_note` | same (printed); min-invoice note from rule template | 1 | planned | `tests/integration/documents/test_quote_pdf.py::test_layout_unicode_pagination_and_totals` |
 | FG-QUO-09 | `brand` ("LK") | same | 1 | planned | `tests/integration/sales/test_quote_header.py::test_header_fields_round_trip_with_party_snapshot` |
-| FG-QUO-10 | `surcharge_applied` (toggle; not persisted in totals) | `surcharge_requested` toggle + persisted `surcharge_applied`, `surcharge_amount` | 1 | planned | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
+| FG-QUO-10 | `surcharge_applied` (toggle; not persisted in totals) | `surcharge_requested` toggle + persisted `surcharge_applied`, `surcharge_amount` | 1 | in progress | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
 | FG-QUO-11 | `created_by`, `created_by_name` | `created_by` FK (names from users, historical people on migration) | 1→5 | planned | `tests/integration/sales/test_quote_csv.py::test_line_counts_names_totals_and_escaping` |
 | FG-QUO-12 | `assigned_to`, `assigned_to_name` | `owner_user_id` (migration: owner = assigned_to else created_by) | 1→5 | planned | `tests/integration/migration/test_quotes.py::test_owner_from_assigned_to_else_created_by` |
 | FG-QUO-13 | `updated_by` | `updated_by` + audit log | 1 | planned | `tests/integration/audit/test_audit_append_only.py::test_update_delete_rejected_and_security_events_recorded` |
@@ -384,7 +390,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-QLN-07 | `unit_of_sale` | `unit_code` with integer-UOM quantity rule | 1 | planned | `tests/integration/sales/test_quote_lines.py::test_integer_uom_rejects_fractions` |
 | FG-QLN-08 | `default_price`, `quoted_price`, `override_reason` | `default_unit_price`, `unit_price`, `override_reason` + by/at; discounts | 1 | planned | `tests/integration/sales/test_quote_lines.py::test_override_requires_permission_and_reason_for_sales` |
 | FG-QLN-09 | `currency` | line currency with deferred FK `(quote_id, currency)` + anti-relabel CHECK | 1 | planned | `tests/integration/sales/test_currency_change.py::test_db_rejects_currency_relabel` |
-| FG-QLN-10 | `moq` | `product_moq` + `recommended_qty` + advisories | 1 | planned | `tests/unit/commercial/test_engine.py::test_product_moq_distinct_from_recommendation` |
+| FG-QLN-10 | `moq` | `product_moq` + `recommended_qty` + advisories | 1 | in progress | `tests/unit/commercial/test_engine.py::test_product_moq_distinct_from_recommendation` |
 | FG-QLN-11 | `quantity`, `line_total` | `quantity` NUMERIC(18,6); `line_gross`, `line_discount`, `line_net` | 1 | planned | `tests/unit/commercial/test_engine.py::test_engine_properties` |
 | FG-QLN-12 | `packaging_summary` | `packaging_snapshot` + derived summary | 1 | planned | `tests/integration/sales/test_configurator.py::test_packaging_summary_from_canonical_fields` |
 | FG-QLN-13 | `image_url`, `image_id` | `media_snapshot` referencing `file_object` ids | 1→2 | planned | `tests/integration/sales/test_quote_lines.py::test_media_snapshot_survives_media_soft_delete` |
@@ -465,8 +471,8 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-SRH-01 | `search_history` (user_id, query, results_count, searched_at; last 10) | `search_recent` (last 10 per user, clear control) | 2 | planned | `tests/integration/search/test_recent_searches.py::test_last_ten_kept_per_user` |
 | FG-MSC-01 | `revision_history` (cleared, never written) | not migrated; reported as skipped | 5 | planned | `tests/integration/migration/test_dry_run.py::test_skipped_collections_reported` |
 | FG-MSC-02 | Legacy `products` collection (cleared only) | not migrated; reported as skipped | 5 | planned | `tests/integration/migration/test_dry_run.py::test_skipped_collections_reported` |
-| FG-REL-01 | taxonomy 1–* products (by text) | FK category/subcategory, composite FK | 1 | planned | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
-| FG-REL-02 | product 1–* pricing, 1–1 packaging, 1–1 specs, 1–* media | FKs with RESTRICT; price items by list | 1→2 | planned | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
+| FG-REL-01 | taxonomy 1–* products (by text) | FK category/subcategory, composite FK | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
+| FG-REL-02 | product 1–* pricing, 1–1 packaging, 1–1 specs, 1–* media | FKs with RESTRICT; price items by list | 1→2 | in progress | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
 | FG-REL-03 | quote lines snapshot-reference products or custom products | snapshot + FK RESTRICT (blocks unsafe rollback) | 1→2 | planned | `tests/integration/imports/test_rollback.py::test_rollback_blocked_when_referenced_or_later_edited` |
 | FG-REL-04 | challans have no FK to products or quotes | optional product/custom/SO links; document-only for legacy | 2→4 | planned | `tests/integration/challans/test_challan_crud.py::test_lines_with_product_lookup_and_uom_rules` |
 
@@ -477,26 +483,26 @@ download is cookie-authenticated and ignores query tokens.
 
 | ID | Legacy endpoint (access) | New endpoint | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| API-01 | `POST /auth/login` (public) | `POST /api/v1/identity/login` | 1 | planned | `tests/integration/identity/test_login_security.py::test_login_success_creates_session` |
+| API-01 | `POST /auth/login` (public) | `POST /api/v1/identity/login` | 1 | implemented | `tests/integration/identity/test_login.py::test_successful_sign_in_sets_session_cookies` |
 | API-02 | `GET /auth/me` | `GET /api/v1/identity/me` + `GET /api/v1/session/bootstrap` | 1 | planned | `tests/integration/ui/test_session_bootstrap.py::test_permissions_and_capabilities_match_server_rules` |
-| API-03 | `POST /auth/change-password` | `POST /api/v1/identity/me/password` | 1 | planned | `tests/integration/identity/test_profile.py::test_change_password_revokes_other_sessions` |
+| API-03 | `POST /auth/change-password` | `POST /api/v1/identity/me/password` | 1 | implemented | `tests/integration/identity/test_profile.py::test_change_password_revokes_other_sessions` |
 | API-04 | `GET/POST /users` (admin) | `GET /api/v1/identity/users`, `POST /api/v1/identity/invitations` | 2 | planned | `tests/integration/identity/test_user_admin.py::test_list_create_update_users` |
 | API-05 | `PUT/DELETE /users/{id}` (admin) | `PATCH /api/v1/identity/users/{id}`, `POST .../deactivate`, `.../reactivate` | 2 | planned | `tests/integration/identity/test_deactivation.py::test_deactivation_keeps_attribution_and_revokes_sessions` |
 | API-06 | `POST /users/{id}/reset-password` | `POST /api/v1/identity/users/{id}/password-reset` (link, never a password) | 2 | planned | `tests/integration/identity/test_invitation_and_reset.py::test_admin_reset_never_returns_password` |
 | API-07 | `GET /admin/permissions/defaults` | `GET /api/v1/identity/roles`, `GET /api/v1/identity/permissions` | 1→2 | planned | `tests/integration/authz/test_role_simulator.py::test_effective_permissions_with_sources` |
-| API-08 | `GET /admin/permissions/users` | `GET /api/v1/identity/users/{id}/permission-overrides` | 1 | planned | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
-| API-09 | `PUT /admin/permissions/users/{id}` | `PUT/DELETE /api/v1/identity/users/{id}/permission-overrides/{key}` | 1 | planned | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
-| API-10 | `GET /products` (search, filters, limit, skip) | `GET /api/v1/catalogue/products` (Page; filters before paging) | 1 | planned | `tests/integration/catalogue/test_product_list.py::test_search_and_filters_apply_before_pagination` |
+| API-08 | `GET /admin/permissions/users` | `GET /api/v1/identity/users/{id}/permission-overrides` | 1 | implemented | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
+| API-09 | `PUT /admin/permissions/users/{id}` | `PUT/DELETE /api/v1/identity/users/{id}/permission-overrides/{key}` | 1 | implemented | `tests/integration/authz/test_overrides.py::test_grant_and_revoke_with_reason_and_epoch_bump` |
+| API-10 | `GET /products` (search, filters, limit, skip) | `GET /api/v1/catalogue/products` (Page; filters before paging) | 1 | implemented | `tests/integration/catalogue/test_product_list.py::test_search_and_filters_apply_before_pagination` |
 | API-11 | `GET /products/stats` | `GET /api/v1/catalogue/products/stats` | 2 | planned | `tests/integration/catalogue/test_product_stats.py::test_stats_count_distinct_products` |
 | API-12 | `GET /products/recent` | `GET /api/v1/catalogue/products/recent` | 2 | planned | `tests/integration/catalogue/test_product_stats.py::test_recent_products_with_origin_and_actor` |
-| API-13 | `GET /products/{key}` | `GET /api/v1/catalogue/products/{id}`; `GET /api/v1/catalogue/products/lookup?key=` | 1 | planned | `tests/integration/catalogue/test_product_detail.py::test_lookup_by_key_with_special_characters` |
+| API-13 | `GET /products/{key}` | `GET /api/v1/catalogue/products/{id}`; `GET /api/v1/catalogue/products/lookup?key=` | 1 | implemented | `tests/integration/catalogue/test_product_detail.py::test_lookup_by_key_with_special_characters` |
 | API-14 | `POST /products` (admin) | `POST /api/v1/catalogue/products` | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_create_with_all_sections` |
 | API-15 | `PUT /products/{key}` (admin) | `PATCH /api/v1/catalogue/products/{id}` | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_update_sections_with_version_conflict_409` |
 | API-16 | `DELETE /products/{key}` (admin) | `POST /api/v1/catalogue/products/{id}/archive` / `restore` | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_archive_restore_and_no_hard_delete_via_ui` |
 | API-17 | `GET/POST /products/{key}/pricing` | `GET /api/v1/pricing/products/{id}/prices`; price-list item endpoints | 1→2 | planned | `tests/integration/pricing/test_price_lists.py::test_item_create_and_supersede_with_history` |
 | API-18 | `GET/PUT /products/{key}/packaging` | `PUT /api/v1/catalogue/products/{id}/packaging` (GET via detail) | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_packaging_put_canonicalises_aliases` |
 | API-19 | `GET/PUT /products/{key}/specifications` | `PUT /api/v1/catalogue/products/{id}/specification` | 2 | planned | `tests/integration/catalogue/test_product_crud.py::test_specification_put_parses_dimensions` |
-| API-20 | `GET /categories` | `GET /api/v1/catalogue/categories?include_inactive=` | 1→2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default` |
+| API-20 | `GET /categories` | `GET /api/v1/catalogue/categories?include_inactive=` | 1→2 | in progress | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default` |
 | API-21 | `GET /categories/hierarchy` | `GET /api/v1/catalogue/categories` (nested subcategories) | 2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_hierarchy_respects_inactive_parent` |
 | API-22 | `GET /categories/validate` | `GET /api/v1/catalogue/taxonomy/validation` | 2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_validation_report` |
 | API-23 | `GET /brands`, `/decors`, `/thicknesses` | `GET /api/v1/catalogue/products/facets?dims=brand,decor_no,thickness_mm` | 2 | planned | `tests/integration/catalogue/test_facets.py::test_facets_exclude_self_and_count_scoped_rows` |
@@ -558,10 +564,10 @@ download is cookie-authenticated and ignores query tokens.
 |---|---|---|---|---|---|
 | UI-01 | `ProtectedRoute` checks only "logged in"; no route gating | route manifest with required permission; server bootstrap renders only authorised, implemented areas; PermissionDenied view | 1 | planned | `e2e/scenarios/a-today-scope.spec.ts::restricted_user_navigation_and_direct_urls` |
 | UI-02 | Sidebar filtered by role (cosmetic) | sidebar Today, Inbox, Sales, Products, Operations, Finance, Settings from effective permissions | 1 | planned | `src/lib/nav.test.ts::nav_filters_by_permission_and_slice` |
-| UI-03 | Token in `localStorage`, axios Bearer | HttpOnly session cookie; no token in JS | 1 | planned | `tests/integration/identity/test_session_cookie_csrf.py::test_cookie_flags_rotation_and_revocation` |
+| UI-03 | Token in `localStorage`, axios Bearer | HttpOnly session cookie; no token in JS | 1 | implemented | `tests/integration/identity/test_login.py::test_successful_sign_in_sets_session_cookies`, `tests/integration/identity/test_sessions.py::test_sign_in_rotates_the_browser_session` |
 | UI-04 | Any 401 hard-redirects to `/login` | `session_expired` → `/login?next=` (relative paths only) | 1 | planned | `e2e/auth/auth-flows.spec.ts::expired_session_redirects_with_safe_next` |
-| UI-05 | Session restore via `/auth/me` | `GET /api/v1/session/bootstrap` in the `(app)` layout | 1 | planned | `tests/integration/ui/test_session_bootstrap.py::test_permissions_and_capabilities_match_server_rules` |
-| UI-06 | Logout client-only | server logout revokes the session | 1 | planned | `tests/integration/identity/test_session_cookie_csrf.py::test_logout_revokes_immediately` |
+| UI-05 | Session restore via `/auth/me` | `GET /api/v1/session/bootstrap` in the `(app)` layout | 1 | implemented | `tests/integration/ui/test_bootstrap.py::test_sales_persona_bootstrap` |
+| UI-06 | Logout client-only | server logout revokes the session | 1 | implemented | `tests/integration/identity/test_sessions.py::test_logout_revokes_and_clears_cookies` |
 | UI-07 | Fixed sidebar, collapsible, not persisted | 208 px sidebar, 64 px icon rail, state persisted in preferences; phone bottom nav Today/Inbox/Work/More | 1 | planned | `e2e/responsive/n-shell.spec.ts::shell_at_three_viewports` |
 | UI-08 | Header global search (`/`, 300 ms debounce, grouped, Enter → product search) | search dialog (`/`, Ctrl/Cmd+K, 250 ms, grouped, recent, Enter → canonical URL, "See all") | 2 | planned | `e2e/scenarios/g-imports-search.spec.ts::slash_search_finds_custom_product_name` |
 | UI-09 | Dark-mode toggle persisted | light/dark/system theme via preferences + `lk_ui` cookie (no flash) | 1 | planned | `src/lib/ui-preferences.test.ts` |
@@ -600,14 +606,14 @@ download is cookie-authenticated and ignores query tokens.
 | UI-32 | First 8 categories as quick filters | category chips on `/products` home | 2 | planned | `e2e/catalogue/product-list.spec.ts::category_chips_filter` |
 | UI-33 | No charts; no pipeline KPIs | no chart library; no fabricated metrics | 1 | planned | `e2e/responsive/n-no-fabricated-metrics.spec.ts::empty_tenant_shows_no_figures` |
 | UI-34 | Product list filters URL-synced (search debounce, category, thickness, status) | URL-synced filters incl. size, finish, decor, has_image, has_price | 1→2 | planned | `e2e/catalogue/product-list.spec.ts::filters_paging_and_deep_links_survive_reload` |
-| UI-35 | Product list columns (thumbnail, SKU, name, category, decor, dims, thickness, EUR price, MOQ, status) | same columns; price and recommendation only with `pricing.price.read` | 1 | planned | `tests/integration/catalogue/test_product_list.py::test_price_columns_require_pricing_price_read` |
+| UI-35 | Product list columns (thumbnail, SKU, name, category, decor, dims, thickness, EUR price, MOQ, status) | same columns; price and recommendation only with `pricing.price.read` | 1 | implemented | `tests/integration/catalogue/test_product_list.py::test_price_columns_require_pricing_price_read`, `tests/integration/catalogue/test_product_list.py::test_rows_enriched_without_n_plus_one` |
 | UI-36 | No pagination (limit 100) | server pagination 25/50/100 with real totals; mobile card view | 1 | planned | `tests/integration/catalogue/test_product_list.py::test_thickness_filter_paginates_before_limit` |
 | UI-37 | "Add Product" for admins | shown only with `catalogue.product.create` | 2 | planned | `e2e/catalogue/product-form.spec.ts::create_button_requires_capability` |
 | UI-38 | Detail header with admin Edit/Delete (confirm) | `RecordHeader` with capability-driven actions; archive with confirm dialog | 2 | planned | `e2e/catalogue/product-form.spec.ts::archive_restore_with_confirm` |
-| UI-39 | Overview tab (EUR price, MOQ, dims, thickness, info, key specs, primary image, EUR/USD export price summary, classification) | overview tab with resolved prices per currency list (no relabelled conversions) | 1 | planned | `tests/integration/catalogue/test_product_detail.py::test_overview_prices_only_from_real_lists` |
-| UI-40 | Pricing tab (needs `view_costing`) | pricing tab needs `pricing.price_list.read` | 1→2 | planned | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
-| UI-41 | Packaging tab (hidden from sales) | packaging tab with `catalogue.product.read` (deliberate change: sales see packaging) | 1 | planned | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
-| UI-42 | Specifications tab (hidden from sales) | specifications tab with `catalogue.product.read` | 1 | planned | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
+| UI-39 | Overview tab (EUR price, MOQ, dims, thickness, info, key specs, primary image, EUR/USD export price summary, classification) | overview tab with resolved prices per currency list (no relabelled conversions) | 1 | implemented | `tests/integration/catalogue/test_product_detail.py::test_overview_prices_only_from_real_lists` |
+| UI-40 | Pricing tab (needs `view_costing`) | pricing tab needs `pricing.price_list.read` | 1→2 | in progress | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
+| UI-41 | Packaging tab (hidden from sales) | packaging tab with `catalogue.product.read` (deliberate change: sales see packaging) | 1 | implemented | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
+| UI-42 | Specifications tab (hidden from sales) | specifications tab with `catalogue.product.read` | 1 | implemented | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
 | UI-43 | Documents tab (grouped; admin upload/delete; preview; download) | media tab (drop zone + button, primary toggle, preview, download, delete with reason, restore) | 2 | planned | `e2e/catalogue/media.spec.ts::upload_preview_download_delete_restore` |
 | UI-44 | Costing, Operations, History tabs (design brief, not built) | History tab (S2), Material 3D view (S2), costing via `pricing.cost.read` (S2), Operations tab (S4) | 2→4 | planned | `e2e/catalogue/product-form.spec.ts::history_tab_shows_versions` |
 | UI-45 | Product form: all master/spec/packaging fields | full form with sections Master, Taxonomy, Decor, Specifications, Packaging | 2 | planned | `e2e/catalogue/product-form.spec.ts::create_with_all_sections_and_server_errors` |
@@ -677,10 +683,10 @@ download is cookie-authenticated and ignores query tokens.
 
 | ID | Legacy rule | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| BR-01 | Minimum order value EUR 5,000 at quote level | rule set `quote_commercial` v1 threshold (EUR only) | 1 | planned | `tests/unit/commercial/test_engine.py::test_minimum_order_meets_below_not_evaluated` |
-| BR-02 | Surcharge EUR 400 when EUR, 0 < subtotal < 5,000 and toggled; render-time, not persisted | engine surcharge persisted with reason codes | 1 | planned | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
-| BR-03 | Dynamic MOQ `ceil(5000 / EUR price)` rounded up to `carton_qty`; advisory | order-value recommendation (216 at EUR 24, carton 24), advisory only | 1 | planned | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
-| BR-04 | Price = first/last EUR row (price_type ignored) | deterministic tier/currency/unit/date resolution | 1 | planned | `tests/integration/pricing/test_price_resolution.py::test_legacy_multi_eur_rows_resolved_by_price_type` |
+| BR-01 | Minimum order value EUR 5,000 at quote level | rule set `quote_commercial` v1 threshold (EUR only) | 1 | implemented | `tests/unit/commercial/test_engine.py::test_minimum_order_meets_below_not_evaluated` |
+| BR-02 | Surcharge EUR 400 when EUR, 0 < subtotal < 5,000 and toggled; render-time, not persisted | engine surcharge persisted with reason codes | 1 | implemented | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
+| BR-03 | Dynamic MOQ `ceil(5000 / EUR price)` rounded up to `carton_qty`; advisory | order-value recommendation (216 at EUR 24, carton 24), advisory only | 1 | implemented | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
+| BR-04 | Price = first/last EUR row (price_type ignored) | deterministic tier/currency/unit/date resolution | 1 | implemented | `tests/integration/pricing/test_price_resolution.py::test_legacy_multi_eur_rows_resolved_by_price_type` |
 | BR-05 | Override: admin/management free, sales must note, operations none | `sales.quote_price.override` + reason waiver via `sales.quote_price.approve`; operations lacks the key | 1 | planned | `tests/integration/sales/test_quote_lines.py::test_override_requires_permission_and_reason_for_sales` |
 | BR-06 | Customer type stored, does not change prices | customer-type price-list tier | 1→2 | planned | `tests/integration/pricing/test_price_resolution.py::test_tier_order_agreement_type_standard` |
 | BR-07 | Quote number `{brand}-{quote}-{YYYY}-{seq:04}` → LK-QT-2026-0001 | sequence `sales.quote`, never reset by default | 1 | planned | `tests/integration/sales/test_quote_numbering.py::test_concurrent_quote_numbers_unique_gapless` |
@@ -702,12 +708,12 @@ Each bug has a named regression test (PLAN legacy-parity rule 4).
 | BUG-02 | Duplicated quotes show total 0; `assigned_to` not set | duplicate computes real totals in the same transaction; owner per policy | 2 | planned | `tests/integration/sales/test_quote_duplicate.py::test_duplicate_real_totals_reference_cleared_owner_policy` |
 | BUG-03 | Surcharge totals disagree between UI and PDF; PDF note printed with flag off | one persisted engine result read by UI, API, PDF, print, CSV | 1 | planned | `tests/integration/documents/test_output_channels_agree.py::test_api_pdf_csv_print_totals_identical` |
 | BUG-04 | Quote CSV "Total Lines" always 0; "Created By" exports an id; no totals | CSV from persisted `line_count`, names from users, totals columns | 2 | planned | `tests/integration/sales/test_quote_csv.py::test_line_counts_names_totals_and_escaping` |
-| BUG-05 | Decor fallback `"120.0".rstrip('.0')` → `"12"` | `normalise_identifier` (`^\d+\.0+$` rule with warning; `0120` distinct) | 1→2 | planned | `tests/unit/catalogue/test_normalise_identifier.py::test_120_0_becomes_120_and_0120_stays_distinct` |
+| BUG-05 | Decor fallback `"120.0".rstrip('.0')` → `"12"` | `normalise_identifier` (`^\d+\.0+$` rule with warning; `0120` distinct) | 1→2 | in progress | `tests/unit/catalogue/test_normalise_identifier.py::test_normalise_identifier`, `tests/unit/catalogue/test_normalise_identifier.py::test_120_0_becomes_120_and_0120_stays_distinct` |
 | BUG-06 | Thickness filter applied after skip/limit; products without specs pass | one WHERE for items and count; thickness requires a spec row | 1 | planned | `tests/integration/catalogue/test_product_list.py::test_thickness_filter_paginates_before_limit` |
-| BUG-07 | Categories created in admin UI invisible (`is_active` never set) | `is_active NOT NULL DEFAULT true` | 1→2 | planned | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default` |
+| BUG-07 | Categories created in admin UI invisible (`is_active` never set) | `is_active NOT NULL DEFAULT true` | 1→2 | in progress | `tests/integration/catalogue/test_taxonomy.py::test_created_category_active_by_default` |
 | BUG-08 | Custom-product search/activity/duplicate use non-existent `name`; completeness checks `description` | `product_name` everywhere; completeness checks real fields | 2 | planned | `tests/integration/search/test_custom_product_name.py::test_global_search_finds_custom_product_name` |
 | BUG-09 | MOQ ignores `master_carton_qty` (and other alias names) | canonical packaging columns with alias reconciliation | 1→2 | planned | `tests/unit/catalogue/test_packaging_aliases.py::test_carton_qty_alias_pair` |
-| BUG-10 | EUR price selection ambiguous (last EUR row wins regardless of price_type) | deterministic resolution; ambiguity reported, never guessed | 1 | planned | `tests/integration/pricing/test_price_resolution.py::test_legacy_multi_eur_rows_resolved_by_price_type` |
+| BUG-10 | EUR price selection ambiguous (last EUR row wins regardless of price_type) | deterministic resolution; ambiguity reported, never guessed | 1 | implemented | `tests/integration/pricing/test_price_resolution.py::test_legacy_multi_eur_rows_resolved_by_price_type` |
 | BUG-11 | Optimiser: overproduction unused; "MaxRects" is guillotine without pruning; rough leftovers; wasted packer call; constants in code | own MaxRects with pruning + guillotine with cut tree; bounded overproduction; predicted offcuts; settings | 2 | planned | `tests/unit/cutting/test_packer_properties.py::test_no_overlap_with_gap` |
 | BUG-12 | Media import always inserts; orphan pricing/packaging/spec rows written | media dedupe; orphans quarantined then released by recheck | 2 | planned | `tests/integration/imports/test_quarantine.py::test_orphan_rows_quarantined_then_released_by_recheck` |
 | BUG-13 | Numbering racy: quote read-then-increment, challan max + 1, custom count + 1 | atomic allocator with issued-number registry | 1→2 | planned | `tests/integration/numbering/test_concurrent_numbering.py::test_unique_gapless_rollback_consumes_none` |
@@ -724,8 +730,8 @@ Each gap has an IDOR or permission test (PLAN legacy-parity rule 5).
 | SEC-01 | Permissions mostly cosmetic (override, export, costing, edit products, manage users, import not enforced) | service-enforced keys; route declarations; route matrix | 1→2 | planned | `tests/contract/test_route_authz_matrix.py::test_every_route_denies_unauthorised_personas` |
 | SEC-02 | Quote IDOR on line edit/delete, revise, status, duplicate, PDF, CSV; CSV dumps all quotes | parent-scoped children; scoped exports; 404 outside scope | 1→2 | planned | `tests/integration/sales/test_quote_idor.py::test_quote_idor_matrix` |
 | SEC-03 | Challans, search, activity, notes, optimiser need only a login; notes overwritable by anyone | module keys; notes need parent `update`; search/activity parent-filtered | 2 | planned | `tests/integration/security/test_isolation_matrix.py::test_restricted_user_sees_no_sentinel_anywhere` |
-| SEC-04 | JWT in query strings (`?auth=`); 24 h, no revocation | cookie sessions; query tokens ignored; immediate revocation; fragment tokens for links | 1 | planned | `tests/integration/identity/test_session_cookie_csrf.py::test_query_tokens_ignored` |
-| SEC-05 | Hard-coded bootstrap admin re-applied on restart; default JWT secret; CORS `*` with credentials; no rate limit/lockout/password policy; demo credentials published | no bootstrap; first-admin CLI; startup refuses placeholders and wildcard origins; same-origin, no CORS; rate limits, lockout, password policy; passwordless demo links | 1 | planned | `tests/integration/identity/test_no_bootstrap_credentials.py::test_startup_creates_no_users_and_cli_refuses_second_admin` |
+| SEC-04 | JWT in query strings (`?auth=`); 24 h, no revocation | cookie sessions; query tokens ignored; immediate revocation; fragment tokens for links | 1 | implemented | `tests/integration/identity/test_sessions.py::test_tokens_never_come_from_the_url`, `tests/integration/identity/test_sessions.py::test_revocation_and_deactivation_apply_on_the_next_request` |
+| SEC-05 | Hard-coded bootstrap admin re-applied on restart; default JWT secret; CORS `*` with credentials; no rate limit/lockout/password policy; demo credentials published | no bootstrap; first-admin CLI; startup refuses placeholders and wildcard origins; same-origin, no CORS; rate limits, lockout, password policy; passwordless demo links | 1 | in progress | `tests/integration/identity/test_cli.py::test_create_first_refuses_when_an_admin_exists_anywhere`, `tests/integration/identity/test_cli.py::test_create_first_enforces_the_password_policy`, `tests/integration/identity/test_login.py::test_lockout_after_five_failures_with_backoff`, `tests/integration/identity/test_login.py::test_ip_rate_limit_thirty_per_ten_minutes` |
 | SEC-06 | Unescaped user input into `$regex` (ReDoS, injection) | `escape_like` ILIKE + pg_trgm; architecture test bans regex operators | 1→2 | planned | `tests/unit/core/test_escape_like.py::test_metacharacters_match_literally` |
 | SEC-07 | Role strings unvalidated; users hard-deleted; no audit of price/role/permission changes | validated roles; deactivation; append-only audit with diffs | 1→2 | planned | `tests/integration/audit/test_audit_append_only.py::test_update_delete_rejected_and_security_events_recorded` |
 | SEC-08 | Third-party scripts (Emergent loader, PostHog) on every page | none; nonce CSP; e2e check | 1 | planned | `e2e/security/no-third-party-scripts.spec.ts::no_external_scripts_and_csp_present` |
@@ -735,7 +741,7 @@ Each gap has an IDOR or permission test (PLAN legacy-parity rule 5).
 | ID | Legacy debt | Correction | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
 | DEBT-01 | One 4.3k-line `server.py`; no routers/services/repositories; `Dict[str, Any]` bodies | modular monolith; typed Pydantic schemas (`extra="forbid"` on writes); layering test | 0→1 | planned | `tests/contract/test_architecture_rules.py::test_layering_and_decorated_services` |
-| DEBT-02 | N+1 queries (configurator enrichment, challan counts, summary, recent products) | batched queries; query-count assertions | 1→2 | planned | `tests/integration/catalogue/test_product_list.py::test_rows_enriched_without_n_plus_one` |
+| DEBT-02 | N+1 queries (configurator enrichment, challan counts, summary, recent products) | batched queries; query-count assertions | 1→2 | in progress | `tests/integration/catalogue/test_product_list.py::test_rows_enriched_without_n_plus_one` |
 | DEBT-03 | No transactions; totals recomputation can drift | one UoW per command; totals in the same transaction | 0→1 | planned | `tests/integration/sales/test_quote_totals.py::test_totals_persisted_and_lines_renumbered_atomically` |
 | DEBT-04 | Overlapping packaging names; free-text dimensions/thickness on lines and custom products | canonical packaging; numeric mm with source text | 1→2 | planned | `tests/unit/catalogue/test_parse_dimension.py::test_parse_dimension_cases` |
 | DEBT-05 | PDFs in core Helvetica (Latin-1): € ₹ and non-Latin names fail; fixed rows truncate text | ReportLab + embedded Noto; wrapping cells; repeated headers | 0→1 | planned | `tests/integration/documents/test_pdf_unicode_pagination.py::test_long_document_paginates_with_glyphs` |
@@ -802,7 +808,7 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 
 | ID | Gap | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
-| GAP-01 | Customer/vendor master, contacts, addresses | `modules/parties` | 1→2 | planned | `tests/integration/parties/test_parties.py::test_party_contacts_addresses_roles_scope` |
+| GAP-01 | Customer/vendor master, contacts, addresses | `modules/parties` | 1→2 | in progress | `tests/integration/parties/test_parties.py::test_create_allocates_the_next_number_and_emits_created`, `tests/integration/parties/test_parties.py::test_update_reports_changed_field_names_and_checks_versions`, `tests/integration/parties/test_parties.py::test_sales_users_see_only_their_own_parties`, `tests/integration/parties/test_parties.py::test_company_scope_and_visible_but_forbidden` |
 | GAP-02 | Price lists per customer / customer type | `modules/pricing` tiers | 2 | planned | `tests/integration/pricing/test_price_resolution.py::test_tier_order_agreement_type_standard` |
 | GAP-03 | Multi-currency with FX rates | `pricing_fx_rate` with approval | 2 | planned | `tests/integration/sales/test_currency_change.py::test_currency_change_with_approved_fx` |
 | GAP-04 | Tax codes, HSN master | HSN/SAC on products and lines; tax profiles (S5); no fabricated GST rules | 1→5 | planned | `tests/integration/finance/test_issuance_gate.py::test_draft_allowed_issue_blocked_without_verified_tax_profile` |
@@ -919,17 +925,17 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-B2 | No manufactured versions; replay and out-of-order handled | tasks + briefings | 1 | planned | `tests/integration/briefings/test_no_manufactured_versions.py::test_replay_and_immaterial_change_create_no_version` |
 | SCN-B3 | Active spoken briefing never reorders | pins | 3 | planned | `tests/integration/briefings/test_voice_pin_no_reorder.py::test_pinned_order_and_ordinal_resolution` |
 | SCN-B4 | Snoozed/handled state survives reload and channel switching | item states | 1→3 | planned | `tests/integration/briefings/test_snooze_persists_across_reload_and_whatsapp.py::test_snooze_reload_and_whatsapp_sync` |
-| SCN-B5 | Midnight, weekend and shift boundaries explicit | workcal | 1→2 | planned | `tests/integration/workcal/test_midnight_rollover.py::test_rollover_at_0400` |
+| SCN-B5 | Midnight, weekend and shift boundaries explicit | workcal | 1→2 | planned | `tests/integration/briefings/test_versions_and_actions.py::test_midnight_rollover` |
 | SCN-B6 | AI outage behaves explicitly | fallback | 1→3 | planned | `tests/integration/briefings/test_ai_outage_template_text.py::test_standard_wording_label` |
 | SCN-C1 | "Prepare Nordhaus's usual oak tray quote" resolves customer/product from fixtures, current EUR export price snapshotted, 240 × 24 = 5,760, reviewable draft | sales tools + Demo orchestrator | 1 | planned | `tests/integration/sales/test_nordhaus_quote_path.py::test_scenario_c_nordhaus_repeat_quote` |
 | SCN-C2 | Correctly scoped next-action item | tasks | 1 | planned | `tests/integration/tasks/test_agent_quote_draft_creates_scoped_next_action.py::test_review_task_for_meera_only` |
 | SCN-C3 | Catalogue changes cannot mutate the draft's snapshot | snapshots | 1 | planned | `tests/integration/sales/test_quote_lines.py::test_catalog_line_snapshot_immune_to_catalogue_change` |
 | SCN-C4 | Same path via text, voice and WhatsApp demo | agents, voice, channels | 3 | planned | `tests/integration/agents/test_agent_c_whatsapp_text_and_voice_note.py::test_same_draft_every_channel` |
 | SCN-C5 | E2E desktop and phone | web | 1 | planned | `e2e/scenarios/c-nordhaus-quote.spec.ts::prepare_review_and_preview` |
-| SCN-D1 | EUR 24, carton 24 → recommended 216 | engine | 1 | planned | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
-| SCN-D2 | EUR 4,800: off → 4,800; on → 5,200; 5,000 → no surcharge | engine | 1 | planned | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
+| SCN-D1 | EUR 24, carton 24 → recommended 216 | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
+| SCN-D2 | EUR 4,800: off → 4,800; on → 5,200; 5,000 → no surcharge | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
 | SCN-D3 | All output channels agree | documents | 1→2 | planned | `tests/integration/documents/test_output_channels_agree.py::test_api_pdf_csv_print_totals_identical` |
-| SCN-D4 | Missing/zero price and non-EUR cases do not fabricate results | engine | 1 | planned | `tests/unit/commercial/test_engine.py::test_missing_zero_price_and_non_eur` |
+| SCN-D4 | Missing/zero price and non-EUR cases do not fabricate results | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_missing_zero_price_and_non_eur` |
 | SCN-E1 | Currency switch resolves the right list or performs an approved dated conversion; relabel impossible | currency change | 2 | planned | `tests/integration/sales/test_currency_change.py::test_currency_change_with_approved_fx` |
 | SCN-E2 | Restricted costing redacted from custom products, model context and exports | field guards | 2→3 | planned | `tests/integration/security/test_costing_redaction.py::test_costing_absent_without_pricing_cost_read` |
 | SCN-F1 | Sales user cannot alter another owner's line, revision, status, notes, PDF, CSV or duplicate via guessed ids | IDOR matrix | 1→2 | planned | `tests/integration/sales/test_quote_idor.py::test_quote_idor_matrix` |
