@@ -290,3 +290,97 @@ web: vitest                      PASS   361 passed in 22 files
 - Contract question (carried): name the assistant/voice capability flags in api-conventions §8 (the web reads
   `capabilities{assistant,voice}`, falling back to the same keys in `features`), and fix the Explain response
   shape in briefing.md §16 (the web accepts string or `{text|label|code}` reasons).
+
+## Wave 2 (Slice 1): Today, Inbox, review page, sales area, assistant, e2e specs
+
+Status: **done with concerns** (see "Concerns"). Branch `lane/s1w1-web`. Commits, in order:
+`92f47d1` (Today on the briefings API; composer as the command bar), `dfec344` (Inbox on the tasks API, task
+drawer), `66b7c75` (preferences send `expected_version`), `4c74704` (approval review page), `d839d49` (assistant
+adapter aligned with the committed agents API), `a968bb3` (sales area), `dc13d62` (vitest), `5c3261e` (e2e specs).
+`apps/web/src/lib/api/schema.d.ts` is not committed; every new endpoint goes through `requestUntyped` with
+hand-written types and runtime parsers.
+
+### Routes
+
+| route | status | notes |
+|---|---|---|
+| `/today` | done | briefings API (today, item actions with Idempotency-Key + `briefing_version` + `item_fingerprint`, snooze, explain, acknowledge), "N updates · Show" from the ui poll, fallback, non-working day, empty state; the command bar is the assistant composer |
+| `/inbox`, `/inbox/approvals`, `/inbox/exceptions`, `/inbox/conversations` | done | tasks API tabs with real counts, keyset cursor in the URL, task drawer (`?task=`) with transitions from `allowed_transitions`, assign to me, snooze; approval rows open the review page |
+| `/inbox/approvals/[proposalId]` (+ `/approvals/[proposalId]` alias) | done | facts, the quote under review with persisted totals and "what changed", Approve / Reject (with reason) sent with `content_hash` + `expected_version`; staleness 409s reload and say so; controls from `capabilities` (separation of duties explained) |
+| `/sales` | done | hub: the areas this role can read; New quote with `sales.quote.create` |
+| `/sales/quotes` | done | `q`, status, scope mine/all and offset pages in the URL; `DataTable` with the phone list; persisted grand total per row |
+| `/sales/quotes/new` | done | customer picker (parties search, 250 ms debounce), brand, currency (defaults to the customer's on the server), price type, incoterm, validity, reference, remarks, surcharge; `?enquiry=` prefills the customer and links the enquiry |
+| `/sales/quotes/[quoteId]` | done | workspace: terms form (dirty fields + `expected_version`; a 409 refetches and three-way merges: their changes adopted, my edits kept, overlapping fields named, Reload / Keep mine), lines (catalog line via product search, priced on the server; manual line with presets; quantity and price `NumberField`s; override reason appears when the price differs from the list; remove), **server totals only** (saved totals, or the `POST /sales/quotes/calculate` preview while a line edit is pending), commands **only** from `allowed_transitions` (plus Delete from `capabilities.delete` on drafts) with a reason dialog when `requires_reason`, review banner with the review link, status history, issued revisions with a real `<a href>` to the PDF, context rail (customer snapshot, enquiry and message links), composer dock |
+| `/sales/enquiries` | done | list with `q`, status and offset in the URL |
+| `/sales/enquiries/[enquiryId]` | done | detail (customer text shown as plain text), Create a quote, Close with an outcome when `allowed_transitions` offers `close` |
+| `/sales/customer-messages` | done | waiting / replied / all, Mark replied only when `allowed_transitions` offers it, 409 reloads |
+
+Assistant (`src/features/assistant/`): the composer on Today and docked on the quote workspace. It sends `text`, the
+§4.1 screen context (route pattern and params, focus record and version, visible items with stable refs `i1…` for
+the focused list, selection, filters, dirty draft fields; at most 50 items and 16 KB, trimmed in a fixed order) and
+`client_utterance_id`; polls `GET /agents/runs/{id}?after_seq=` every 500 ms; renders `QuoteDraftCard`,
+`ClarificationCard` (an option posts the next turn with `selected_option {slot, value}`), `ErrorCard` (recoverable
+draft and direct controls), `RecordLinkCard` and `ReceiptCard`; shows the Demo badge from `integration_modes.ai` and
+the cards' `provider_label`; Stop cancels; AI down, not configured and not allowed say so calmly. No voice control
+(Slice 3).
+
+### API adapter files to adjust after `npm run api:generate`
+
+Each feature has one adapter (wire types, parse, calls), marked `INTERIM(api-generate)`:
+- `src/features/sales/{types,parse,api}.ts` and `pickers.ts` (parties `GET /parties/parties`, catalogue
+  `GET /catalogue/products`); checked against the `D:\lk-wt\sales` router and schemas (the preview path is
+  `/quotes/calculate`; `CalculationResultOut` money is `{amount, currency}`).
+- `src/features/assistant/{types,parse,api}.ts`; checked against the `D:\lk-wt\agents` router, schemas and cards
+  (`RunDetail{run, steps, done, text, cards}`, cancel returns `RunSummary`, `SelectedOption{slot, value}` with
+  `extra=forbid`).
+- `src/features/approvals/api.ts`, `src/features/briefing/{types,parse,api}.ts`, `src/features/inbox/{types,api}.ts`,
+  `src/lib/session/{types,parse}.ts`.
+
+### Tests
+
+Vitest: 405 passed in 26 files (361 in 22 at the start of the wave). Added this wave:
+- `features/sales/sales.test.tsx`: commands only from `allowed_transitions`, the transition body, header dirty
+  fields and the 409 three-way merge, line override and clear rules, the calculate preview request and Money parsing,
+  money formatting from strings, workspace and list server renders (including the PDF `<a href>`).
+- `features/assistant/assistant.test.tsx`: screen-context limits and trimming, restricted draft fields, parsing and
+  rendering of all five card kinds, run merge without duplicate cards, the turn body.
+- The earlier wave-2 `approvals`, `briefing`, `inbox` and `preferences` tests.
+
+e2e specs written, **not run** (lane rules): `e2e/scenario-c.spec.ts` (desktop and phone), `e2e/keyboard.spec.ts`,
+`e2e/axe-sweep.spec.ts` (every manifest route, both themes; `@axe-core/playwright` 4.13.0 is installed), and the
+helper `e2e/support/world.ts` (test sign-in by fixture key; ids and figures from `/_test/fixtures`).
+
+Gate (`npm run check -- --keep-going`, 2026-10-30):
+
+```
+backend: ruff check              PASS
+backend: pytest unit + contract  PASS   72 passed
+alembic heads == 1               PASS
+api:check                        PASS   backend/openapi.json matches the app
+web: lint                        PASS
+web: typecheck                   PASS
+web: vitest                      PASS   405 passed in 26 files
+```
+
+### Requests for the integrator
+1. **routes.ts**: this wave appended `sales-quotes`, `sales-quote-new`, `sales-quote`, `sales-enquiries`,
+   `sales-enquiry` and `sales-customer-messages` (plus the earlier review and alias routes); please keep them.
+2. **`/_test/fixtures` facts**: the e2e specs read expected figures and business keys from `facts.expected`
+   (`keys.EXPECTED`: `SCENARIO_C_TOTAL`, `SCENARIO_C_QTY`), `facts.quotes` (`keys.QUOTES`: `SCENARIO_C_NEW`,
+   `NORDHAUS_DRAFT`, `MAISON_OVERRIDE`) and `facts.enquiries` (`keys.ENQUIRIES`), and ids from `refs` by business
+   key. The seed does not publish those sections yet; please add them, or adjust `e2e/support/world.ts`. Until then
+   scenario C fails with a message naming the missing key, and the axe sweep skips the dynamic routes.
+3. Scenario C creates a quote on each project run. Desktop asserts the exact `SCENARIO_C_NEW` number; phone reads the
+   number from the card. Run it on a freshly seeded e2e database with the clock at D0.
+4. After `api:generate`, swap the adapters listed above to `components["schemas"]` types.
+5. Contract notes: quote Delete is `DELETE /sales/quotes/{id}` and is not part of `allowed_transitions`, so the web
+   offers it from `capabilities.delete` on drafts. Enquiry outcome codes are free-form; the web offers `quoted`,
+   `no_response`, `not_feasible`, `duplicate` and `other`. A catalogue of outcome codes would help.
+
+### Concerns
+- Playwright was not run (lane rules), so the end-to-end journeys, axe results and keyboard focus order are
+  unverified.
+- No live API smoke run this wave: the screens were checked by server-render tests against payloads shaped like the
+  committed backend schemas, not against a running backend.
+- The machine was short of memory during this session (the first `tsc` run ran out of memory). The web gates needed
+  `NODE_OPTIONS=--max-old-space-size=3072`.
