@@ -221,9 +221,9 @@ def download_quote_revision_pdf(actor: Actor, quote_id: uuid.UUID, revision_no: 
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"inline; filename=\"{filename}\"; filename*=UTF-8''{urlquote(filename)}",
-            "X-Content-Type-Options": "nosniff",
+            # X-Content-Type-Options: nosniff and Cache-Control: no-store come from the request-context middleware
+            # (it appends them to every response; setting them here too duplicated the headers)
             "Content-Security-Policy": "sandbox",
-            "Cache-Control": "private, max-age=0, must-revalidate",
             "ETag": f'"{expected}"',
             "X-Document-SHA256": service.sha256_of(pdf),
         },
