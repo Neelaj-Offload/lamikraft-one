@@ -57,6 +57,32 @@ export const queryKeys = {
     enquiry: (enquiryId: string) => ["sales", "enquiry", { enquiry_id: enquiryId }] as const,
     messages: (params: { status?: string | null; offset?: number | null }) =>
       ["sales", "customer-messages", compact({ status: params.status ?? null, offset: params.offset ?? null })] as const,
+    // commercial-2 lane (Slice 2): revisions compare, currency preview, settings, custom products, samples
+    quoteCompare: (quoteId: string, from: number, to: number | null) =>
+      ["sales", "quote-compare", compact({ quote_id: quoteId, from, to })] as const,
+    currencyPreview: (quoteId: string, currency: string) => ["sales", "currency-preview", { quote_id: quoteId, currency }] as const,
+    quoteSettings: () => ["sales", "quote-settings"] as const,
+    customProducts: (params: { q?: string | null; status?: string | null; scope?: string | null; offset?: number | null }) =>
+      ["sales", "custom-products", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, scope: params.scope ?? null, offset: params.offset ?? null })] as const,
+    customProduct: (customProductId: string) => ["sales", "custom-product", { custom_product_id: customProductId }] as const,
+    customProductHistory: (customProductId: string) => ["sales", "custom-product-history", { custom_product_id: customProductId }] as const,
+    customProductCosting: (customProductId: string) => ["sales", "custom-product-costing", { custom_product_id: customProductId }] as const,
+    samples: (params: { q?: string | null; status?: string | null; offset?: number | null }) =>
+      ["sales", "samples", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, offset: params.offset ?? null })] as const,
+    sample: (sampleId: string) => ["sales", "sample", { sample_id: sampleId }] as const,
+  },
+  // commercial-2 lane (Slice 2): price lists, item history, FX rates and policy
+  pricing: {
+    all: () => ["pricing"] as const,
+    priceLists: (params: { q?: string | null; status?: string | null; offset?: number | null }) =>
+      ["pricing", "price-lists", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, offset: params.offset ?? null })] as const,
+    priceList: (priceListId: string) => ["pricing", "price-list", { price_list_id: priceListId }] as const,
+    priceListItems: (priceListId: string, params: { q?: string | null; offset?: number | null; history?: boolean | null }) =>
+      ["pricing", "price-list-items", compact({ price_list_id: priceListId, q: params.q?.trim() ?? null, offset: params.offset ?? null, history: params.history ?? null })] as const,
+    itemHistory: (itemId: string) => ["pricing", "item-history", { item_id: itemId }] as const,
+    fxRates: (params: { status?: string | null; offset?: number | null }) =>
+      ["pricing", "fx-rates", compact({ status: params.status ?? null, offset: params.offset ?? null })] as const,
+    fxPolicy: () => ["pricing", "fx-policy"] as const,
   },
   parties: {
     all: () => ["parties"] as const,

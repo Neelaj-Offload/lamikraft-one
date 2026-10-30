@@ -8,6 +8,8 @@ const AREAS = [
   { href: "/sales/quotes", title: m.hub.quotes, hint: m.hub.quotesHint, permission: "sales.quote.read" },
   { href: "/sales/enquiries", title: m.hub.enquiries, hint: m.hub.enquiriesHint, permission: "sales.enquiry.read" },
   { href: "/sales/customer-messages", title: m.hub.messages, hint: m.hub.messagesHint, permission: "sales.customer_message.read" },
+  { href: "/sales/custom-products", title: m.hub.customProducts, hint: m.hub.customProductsHint, permission: "sales.custom_product.read" },
+  { href: "/sales/samples", title: m.hub.samples, hint: m.hub.samplesHint, permission: "sales.sample.read" },
 ] as const;
 
 /** The sales hub: the areas this role can read, and New quote when it may create one. */

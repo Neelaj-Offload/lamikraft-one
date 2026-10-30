@@ -26,6 +26,7 @@ import { useSession } from "@/lib/session/context";
 import { formatDate } from "@/lib/format/time";
 import { salesMessages as m } from "@/messages/sales";
 import { deleteQuote, fetchQuote, fetchQuoteHistory, fetchQuoteRevisions, transitionQuote, updateQuoteHeader } from "./api";
+import { CompareRevisions, ExtendValidityDialog, MoreActions, RestoreRevisionButton } from "./quote-more";
 import { QuoteStatusPill } from "./quote-list";
 import { QuoteLines } from "./quote-lines";
 import { INCOTERMS, PRICE_TYPES, type QuoteDetail } from "./types";
@@ -33,6 +34,7 @@ import { useQuoteCommand } from "./use-quote-command";
 import {
   commandButtons,
   dirtyHeaderFields,
+  isEditable,
   headerChanges,
   headerFormOf,
   mergeHeaderConflict,
@@ -54,7 +56,7 @@ export function QuoteWorkspace({ quoteId }: { quoteId: string }) {
 
 function Workspace({ quote }: { quote: QuoteDetail }) {
   const commands = useQuoteCommand(quote.id);
-  const editable = quote.status === "draft" && quote.capabilities.update?.allowed === true;
+  const editable = isEditable(quote);
   const [header, setHeader] = useState<{ base: HeaderForm; form: HeaderForm; version: number } | null>(null);
 
   useScreenContribution({
@@ -103,6 +105,8 @@ function Workspace({ quote }: { quote: QuoteDetail }) {
       <QuoteLines quote={quote} editable={editable} commands={commands} />
 
       <Commands quote={quote} commands={commands} />
+
+      <MoreActions quote={quote} commands={commands} />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Revisions quote={quote} />
@@ -323,6 +327,7 @@ function Commands({ quote, commands }: { quote: QuoteDetail; commands: ReturnTyp
   const router = useRouter();
   const titleId = useId();
   const [asking, setAsking] = useState<CommandButton | null>(null);
+  const [extending, setExtending] = useState(false);
   const buttons = commandButtons(quote);
 
   const perform = async (button: CommandButton, reason: string | null) => {
@@ -366,7 +371,13 @@ function Commands({ quote, commands }: { quote: QuoteDetail; commands: ReturnTyp
               variant={button.variant}
               isPending={commands.pending === button.action}
               pendingLabel={m.workspace.saving}
-              onPress={() => (button.requiresReason || button.action === "delete" ? setAsking(button) : void perform(button, null))}
+              onPress={() =>
+                button.action === "extend_validity"
+                  ? setExtending(true)
+                  : button.requiresReason || button.action === "delete" || button.action === "discard_revision"
+                    ? setAsking(button)
+                    : void perform(button, null)
+              }
               {...unavailableWhen(commands.offline)}
             >
               {button.label}
@@ -387,6 +398,7 @@ function Commands({ quote, commands }: { quote: QuoteDetail; commands: ReturnTyp
         onOpenChange={(open) => (open ? null : setAsking(null))}
         onConfirm={(_, note) => (asking ? void perform(asking, note || null) : undefined)}
       />
+      <ExtendValidityDialog quote={quote} commands={commands} isOpen={extending} onOpenChange={setExtending} />
     </section>
   );
 }
@@ -427,14 +439,18 @@ function Revisions({ quote }: { quote: QuoteDetail }) {
                   ) : null}
                 </span>
               </div>
-              {/* A real link: the PDF streams from the API (inline, sandboxed), not a page. */}
-              <a href={revision.document_path} className={linkClasses} type="application/pdf">
-                {m.workspace.pdf(revision.revision_no)}
-              </a>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* A real link: the PDF streams from the API (inline, sandboxed), not a page. */}
+                <a href={revision.document_path} className={linkClasses} type="application/pdf">
+                  {m.workspace.pdf(revision.revision_no)}
+                </a>
+                <RestoreRevisionButton quote={quote} revisionNo={revision.revision_no} />
+              </div>
             </li>
           ))}
         </ul>
       )}
+      {query.data && query.data.length > 0 ? <CompareRevisions quote={quote} revisions={query.data.map((r) => r.revision_no)} /> : null}
     </section>
   );
 }

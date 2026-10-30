@@ -161,6 +161,11 @@ export interface QuoteDetail extends QuoteSummary {
   apply_minimum_surcharge: boolean;
   lost_reason_code: string | null;
   cancelled_reason_code: string | null;
+  /** Slice 2: the status an archived quote came from, lineage, and whether a sent quote's validity has passed */
+  archived_from_status?: string | null;
+  duplicated_from_quote_id?: string | null;
+  restored_from_revision_no?: number | null;
+  is_expired?: boolean;
   lines: QuoteLine[];
   totals: QuoteTotals;
   content_hash: string;
@@ -301,6 +306,8 @@ export interface QuoteTransitionRequest {
   reason_code?: string;
   sent_to?: string;
   note?: string;
+  /** extend_validity: the new last day (YYYY-MM-DD) */
+  valid_until?: string;
 }
 
 export interface PreviewLineRequest {

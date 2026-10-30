@@ -202,6 +202,10 @@ export function parseQuoteDetail(raw: unknown): QuoteDetail {
     apply_minimum_surcharge: body.apply_minimum_surcharge === true,
     lost_reason_code: str(body.lost_reason_code),
     cancelled_reason_code: str(body.cancelled_reason_code),
+    archived_from_status: str(body.archived_from_status),
+    duplicated_from_quote_id: str(body.duplicated_from_quote_id),
+    restored_from_revision_no: int(body.restored_from_revision_no),
+    is_expired: body.is_expired === true,
     lines: arr(body.lines)
       .map(line)
       .filter((entry): entry is QuoteLine => entry !== null)
