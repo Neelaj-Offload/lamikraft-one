@@ -119,12 +119,12 @@ def test_delta_is_clamped_to_the_change_window_and_paged(world: FakeWorld) -> No
             assert first.next_cursor is None
 
 
-def test_mark_handled_is_not_offered_when_the_check_cannot_verify(world: FakeWorld) -> None:
+def test_mark_handled_is_not_offered_when_the_check_cannot_verify(world: FakeWorld, monkeypatch: pytest.MonkeyPatch) -> None:
     """Spec major 2: without the identity/ui/search readers the onboarding steps offer no mark-handled."""
     steps = [i for i in today(world, keys.USERS.ARJUN).items if i.kind == "onboarding_step"]
     assert steps and all("mark_handled" in {a.action for a in i.allowed_actions} for i in steps)
     for source_type in ("identity.user_preference", "ui.recent_record", "search.recent"):
-        sources._READERS.pop(source_type, None)  # world.uninstall restores them
+        monkeypatch.delitem(sources._READERS, source_type)  # the real readers come back at teardown
     steps = [i for i in today(world, keys.USERS.ARJUN).items if i.kind == "onboarding_step"]
     assert steps and all("mark_handled" not in {a.action for a in i.allowed_actions} for i in steps)
 

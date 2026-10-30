@@ -20,6 +20,7 @@ from app.modules.tasks.models import ChangeLog, Issue, Task, TaskCandidate, Task
 from app.modules.tasks.rules import consumer
 from app.platform.events.models import DomainEvent
 from app.platform.identity.models import Membership
+from app.platform.search import service as search
 from app.seed.world import keys
 from tests.integration.briefings.world import EnquiryRec, FakeWorld, MessageRec, d0, ist
 
@@ -167,7 +168,7 @@ def test_onboarding_step_completes_only_when_the_source_confirms(world: FakeWorl
     step = issue_of(world, issue_keys.onboarding_key(world.refs[keys.USERS.ARJUN], "global_search"))
     with world.uow(keys.USERS.ARJUN) as uow, pytest.raises(NotComplete):
         tasks.mark_issue_handled(uow, step.id)
-    world.user_facts[keys.USERS.ARJUN] = {"count": 1}
+    search.record_recent(world.actor(keys.USERS.ARJUN), "oak tray")  # the real search.recent fact
     with world.uow(keys.USERS.ARJUN) as uow:
         assert tasks.mark_issue_handled(uow, step.id).outcome == "completed"
 

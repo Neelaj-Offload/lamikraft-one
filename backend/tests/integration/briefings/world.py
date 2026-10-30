@@ -14,20 +14,21 @@ nothing is registered at import):
   permissions.md §10), and three SeedDefs that emit the sales history at its fixture times (order 50: quotes
   and enquiries up to D-3; order 56: the two customer messages of D-1 evening; order 76: the D0 morning
   reviews and the agent draft). Their records reference the real party ids from the seeded refs.
-- identity readers not merged yet: ``identity.membership`` (role templates for onboarding) and the
-  onboarding completion readers ``identity.user_preference``, ``ui.recent_record`` and ``search.recent``.
+
+The identity, ui and search readers (``identity.membership``, ``identity.user_preference``, ``ui.recent_record``,
+``search.recent``) are the real modules'; tests that need an onboarding step done record the real fact (a saved
+preference, an opened record, a recent search).
 
 Switching to the real world when sales (and the identity readers) merge: delete ``fake_sales_seeds`` and the
 build_* history methods, the sales readers/handler (``read_quote``, ``read_message``, ``read_enquiry``,
-``_quote_version``, ``_can_decide``) and their entries in ``FAKE_READERS``/``FAKE_HANDLERS``/``install``; then
-the identity fakes the same way. Every test reads ids from ``world.refs`` (fixture keys) and expected text from
+``_quote_version``, ``_can_decide``) and their entries in ``FAKE_READERS``/``FAKE_HANDLERS``/``install``. Every test reads ids from ``world.refs`` (fixture keys) and expected text from
 ``app.seed.world.keys.EXPECTED``.
 """
 
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
@@ -61,8 +62,7 @@ def d0(hh: int, mm: int = 0) -> datetime:
 
 QUOTE_CLOSED = frozenset({"won", "lost", "cancelled", "archived", "deleted"})
 #: source types the world registers a fake reader for while installed (everything else is the real module's)
-FAKE_READERS = ("sales.quote", "sales.customer_message", "sales.enquiry", "identity.membership",
-                "identity.user_preference", "ui.recent_record", "search.recent")
+FAKE_READERS = ("sales.quote", "sales.customer_message", "sales.enquiry")
 #: approval kinds the world registers a fake handler for while installed
 FAKE_HANDLERS = ("sales.quote.review",)
 #: the last real seed ``bare_world`` runs (identity 10, org 12: company, people and calendar)
@@ -112,7 +112,6 @@ class EnquiryRec:
     version: int = 1
 
 
-ROLE_TEMPLATE = {p.key: p.role_template for p in keys.PEOPLE.values()}
 CONTACTS = {"NORDHAUS": "Lena Brandt", "MAISON": "Camille Laurent", "BERG": "Erik Lindqvist", "THORNBURY": "Oliver Hart"}
 
 
@@ -128,8 +127,6 @@ class FakeWorld:
         self.quotes: dict[str, QuoteRec] = {}
         self.messages: dict[str, MessageRec] = {}
         self.enquiries: dict[str, EnquiryRec] = {}
-        #: onboarding completion facts per user key (fake identity/ui/search readers)
-        self.user_facts: dict[str, dict[str, Any]] = {}
         self.approved: list[uuid.UUID] = []
         self.ctx: SeedContext | None = None
         self._saved: tuple[Any, dict[str, Any], dict[str, Any]] | None = None
@@ -139,7 +136,7 @@ class FakeWorld:
         import copy
 
         other = FakeWorld(clock)
-        for name in ("refs", "quotes", "messages", "enquiries", "user_facts", "approved"):
+        for name in ("refs", "quotes", "messages", "enquiries", "approved"):
             setattr(other, name, copy.deepcopy(getattr(self, name)))
         other.company_id, other.branch_ho, other.branch_fac = self.company_id, self.branch_ho, self.branch_fac
         if self.ctx is not None:
@@ -264,30 +261,6 @@ class FakeWorld:
                     return k
         return None
 
-    def read_membership(self, _uow: UnitOfWork, membership_id: uuid.UUID) -> SourceFacts | None:
-        key = self._membership_key(membership_id)
-        if key is None:
-            return None
-        return SourceFacts(
-            source_type="identity.membership", source_id=membership_id, version=1, label=keys.PEOPLE[key].name,
-            status="active", owner_user_id=self.refs[key], branch_id=self.branch_ho, required_permission="identity.user.read",
-            canonical_path=f"/settings/users/{self.refs[key]}", facts={"role_templates": [ROLE_TEMPLATE[key]]},
-        )
-
-    def _user_reader(self, source_type: str, fact: str) -> Callable[[UnitOfWork, uuid.UUID], SourceFacts | None]:
-        def read(_uow: UnitOfWork, user_id: uuid.UUID) -> SourceFacts | None:
-            person = self.key_of(user_id)
-            if person is None:
-                return None
-            facts = self.user_facts.get(person, {})
-            return SourceFacts(
-                source_type=source_type, source_id=user_id, version=1, label=source_type, status="active",
-                owner_user_id=user_id, branch_id=None, required_permission="org.directory.read", canonical_path="/me",
-                facts={fact: facts.get(fact, 0)},
-            )
-
-        return read
-
     # ---- install / uninstall (fixture-scoped) ---------------------------------------------------------
     def install(self) -> None:
         """Register the fake readers and handler, remembering what they replace (restored by ``uninstall``)."""
@@ -305,10 +278,6 @@ class FakeWorld:
         sources.register_reader("sales.quote", self.read_quote)
         sources.register_reader("sales.customer_message", self.read_message)
         sources.register_reader("sales.enquiry", self.read_enquiry)
-        sources.register_reader("identity.membership", self.read_membership)
-        sources.register_reader("identity.user_preference", self._user_reader("identity.user_preference", "briefing_saved"))
-        sources.register_reader("ui.recent_record", self._user_reader("ui.recent_record", "count"))
-        sources.register_reader("search.recent", self._user_reader("search.recent", "count"))
         approvals.register_handler(
             ApprovalHandler(
                 kind="sales.quote.review",

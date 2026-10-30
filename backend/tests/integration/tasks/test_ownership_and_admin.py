@@ -172,9 +172,9 @@ def test_immaterial_party_update_creates_no_change(world: FakeWorld) -> None:
     assert families.material_party_fields(["addresses.shipping", "notes", "tags"]) == ["addresses.shipping"]
 
 
-def test_onboarding_role_template_without_an_identity_reader(world: FakeWorld) -> None:
+def test_onboarding_role_template_without_an_identity_reader(world: FakeWorld, monkeypatch: pytest.MonkeyPatch) -> None:
     """Spec major 2: with no identity.membership reader the sales template is still found from grants."""
-    sources._READERS.pop("identity.membership", None)  # world.uninstall restores it
+    monkeypatch.delitem(sources._READERS, "identity.membership")  # the real reader comes back at teardown
     with world.uow() as uow:
         roles = families.member_role_keys(uow, world.refs[keys.USERS.ARJUN], world.refs[f"{keys.USERS.ARJUN}_MEMBERSHIP"], SourceCache())
         template = families.onboarding_template_for(uow, world.refs[f"{keys.USERS.ARJUN}_MEMBERSHIP"], SourceCache(),
