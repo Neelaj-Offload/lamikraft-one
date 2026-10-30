@@ -74,6 +74,17 @@ export const queryKeys = {
     all: () => ["agents"] as const,
     run: (runId: string) => ["agents", "run", { run_id: runId }] as const,
   },
+  // cutting (Slice 2 wave 2, lane cutting)
+  cutting: {
+    all: () => ["cutting"] as const,
+    allPlans: () => ["cutting", "plans"] as const,
+    plans: (params: { q?: string | null; status?: string | null; scope?: string | null; offset?: number | null }) =>
+      ["cutting", "plans", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, scope: params.scope ?? null, offset: params.offset ?? null })] as const,
+    allPlanDetails: () => ["cutting", "plan"] as const,
+    plan: (planId: string) => ["cutting", "plan", { plan_id: planId }] as const,
+    grainLocks: () => ["cutting", "grain-locks"] as const,
+    products: (q: string) => ["cutting", "products", compact({ q: q.trim() })] as const,
+  },
 } as const;
 
 /** Prefixes a mutation invalidates; one table so screens never guess (frontend_verification §5). */

@@ -299,6 +299,47 @@ export const routes = [
     requiredPermission: "sales.",
     access: "session",
   },
+  // cutting (Slice 2 wave 2, lane cutting): the sheet optimiser
+  {
+    id: "operations-cutting",
+    path: "/operations/cutting",
+    label: "Cut plans",
+    area: "operations",
+    navGroup: "context",
+    mobileTab: "work",
+    requiredPermission: "cutting.",
+    access: "session",
+  },
+  {
+    id: "operations-cutting-new",
+    path: "/operations/cutting/new",
+    label: "New cut plan",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "cutting.",
+    access: "session",
+  },
+  {
+    id: "operations-cutting-grain-locks",
+    path: "/operations/cutting/grain-locks",
+    label: "Grain locks",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "cutting.",
+    access: "session",
+  },
+  {
+    id: "operations-cutting-plan",
+    path: "/operations/cutting/[planId]",
+    label: "Cut plan",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "cutting.",
+    access: "session",
+  },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];
