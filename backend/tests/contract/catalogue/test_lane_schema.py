@@ -39,6 +39,7 @@ from app.platform.tools import FORBIDDEN_INPUT_FIELDS
 from app.platform.uow import UnitOfWork
 from app.registry import get_registry
 
+
 class SystemCustomerType(StrEnum):
     """The built-in customer types; parties reference ``parties_customer_type`` by FK since Slice 2 (SC-13), price
     lists still carry the CHECK until the pricing lane moves them to the FK."""

@@ -28,6 +28,7 @@ from app.modules.catalogue.models import (
     Category,
     Product,
     ProductDimension,
+    ProductMedia,
     ProductPackaging,
     ProductSpecification,
     Subcategory,
@@ -57,6 +58,7 @@ from app.modules.catalogue.schemas import (
     DimensionKind,
     DimensionRead,
     FacetValue,
+    MediaThumb,
     NotEvaluated,
     PackagingIn,
     PackagingRead,
@@ -115,6 +117,29 @@ _PRICE_COLUMNS: list[PriceColumnsProvider] = []
 def register_price_columns(provider: PriceColumnsProvider) -> None:
     """Install the price-column provider (the commercial manifest's ``on_load``; one provider, last wins)."""
     _PRICE_COLUMNS[:] = [provider]
+
+
+#: (uow) -> SELECT of product ids that have a current active price in any list (registered by a module that depends
+#: on pricing, like the price columns); absent -> the price completeness rule and ``has_price`` are not evaluated
+PricePresenceProvider = Callable[[UnitOfWork], Select[Any]]
+_PRICE_PRESENCE: list[PricePresenceProvider] = []
+
+
+def register_price_presence(provider: PricePresenceProvider) -> None:
+    _PRICE_PRESENCE[:] = [provider]
+
+
+def _priced_ids(uow: UnitOfWork) -> Select[Any] | None:
+    if not _PRICE_PRESENCE or not uow.actor.can(PRICE_READ):
+        return None
+    return _PRICE_PRESENCE[0](uow)
+
+
+def price_columns(
+    uow: UnitOfWork, product_ids: Sequence[uuid.UUID], currencies: Sequence[str], price_type: str | None
+) -> tuple[dict[uuid.UUID, list[ProductPriceColumn]] | None, list[str]]:
+    """Public alias of the batch price-column read (recent products, exports)."""
+    return _price_columns(uow, product_ids, currencies, price_type)
 
 
 def _price_columns(
@@ -800,7 +825,9 @@ def update_product(uow: UnitOfWork, product_id: uuid.UUID, data: ProductUpdate) 
 _P2 = aliased(Product)
 
 #: one SQL definition per completeness rule; True means the product FAILS the rule
-RULES: dict[CompletenessRule, tuple[str, str, ColumnElement[bool]]] = {
+M = ProductMedia
+_LIVE_IMAGE = and_(M.product_id == P.id, M.deleted_at.is_(None), M.media_type == "image", M.ingest_status == "stored")
+STATIC_RULES: dict[CompletenessRule, tuple[str, str, ColumnElement[bool]]] = {
     CompletenessRule.NO_DECOR: ("warning", "No decor number", and_(P.decor_no.is_(None), P.decor_primary.is_(None))),
     CompletenessRule.NO_SPECIFICATION: ("warning", "No specification", S.product_id.is_(None)),
     CompletenessRule.NO_THICKNESS: ("warning", "No thickness", S.thickness_mm.is_(None)),
@@ -829,11 +856,32 @@ RULES: dict[CompletenessRule, tuple[str, str, ColumnElement[bool]]] = {
             _P2.archived_at.is_(None),
         ),
     ),
+    CompletenessRule.NO_IMAGE: ("warning", "No stored image", ~exists().where(_LIVE_IMAGE)),
+    CompletenessRule.NO_PRIMARY_IMAGE: (
+        "warning", "No primary image", ~exists().where(_LIVE_IMAGE, M.is_primary.is_(True))
+    ),
+    CompletenessRule.MEDIA_INGEST_FAILED: (
+        "info",
+        "Media whose import could not be stored",
+        exists().where(M.product_id == P.id, M.deleted_at.is_(None), M.ingest_status == "failed"),
+    ),
 }
-#: rules that need data this slice does not hold yet (product media arrives in Slice 2)
-NOT_EVALUATED = [
-    NotEvaluated(code="no_primary_image", reason="product media is not available until Slice 2"),
-]
+
+
+def rules(uow: UnitOfWork) -> dict[CompletenessRule, tuple[str, str, ColumnElement[bool]]]:
+    """Every rule this actor can evaluate (``no_active_price`` needs a price provider and ``pricing.price.read``)."""
+    out = dict(STATIC_RULES)
+    priced = _priced_ids(uow)
+    if priced is not None:
+        out[CompletenessRule.NO_ACTIVE_PRICE] = ("warning", "No current active price", P.id.not_in(priced))
+    return out
+
+
+def _not_evaluated(uow: UnitOfWork) -> list[NotEvaluated]:
+    if _priced_ids(uow) is None:
+        return [NotEvaluated(code="no_active_price", reason="needs pricing.price.read")]
+    return []
+
 
 
 def _joined(stmt: Select[Any]) -> Select[Any]:
@@ -909,8 +957,30 @@ def _conditions(uow: UnitOfWork, f: ProductFilters) -> _Conditions:
     if f.brand:
         by["brand"] = func.lower(P.brand) == f.brand.strip().lower()
     if f.issue:
-        by["issue"] = RULES[f.issue][2]
+        rule = rules(uow).get(f.issue)
+        if rule is None:
+            raise ValidationFailed(
+                "This completeness rule is not available to you",
+                errors=[{"loc": ["query", "issue"], "msg": "rule not evaluated", "code": "rule_not_evaluated"}],
+            )
+        by["issue"] = rule[2]
+    if f.has_image is not None:
+        has = exists().where(_LIVE_IMAGE)
+        by["has_image"] = has if f.has_image else ~has
+    if f.has_price is not None:
+        priced = _priced_ids(uow)
+        if priced is None:
+            raise ValidationFailed(
+                "Filtering by price needs pricing.price.read",
+                errors=[{"loc": ["query", "has_price"], "msg": "not available", "code": "permission_denied"}],
+            )
+        by["has_price"] = P.id.in_(priced) if f.has_price else P.id.not_in(priced)
     return _Conditions(base, by)
+
+
+def list_conditions(uow: UnitOfWork, filters: ProductFilters) -> list[ColumnElement[bool]]:
+    """The list's WHERE clause (scope, archive state and every filter) for exports that share it."""
+    return _conditions(uow, filters).all()
 
 
 def _order(f: ProductFilters, sort: ProductSort) -> list[Any]:
@@ -1020,9 +1090,29 @@ def list_products(
         _joined(_summary_select()).where(*where).order_by(*_order(filters, sort)).limit(limit).offset(offset)
     ).all()
     columns, redacted = _price_columns(uow, [r[0].id for r in rows], [price_currency], price_type)
-    return Page[ProductSummary](
-        items=[_summary_row(r, columns, redacted) for r in rows], total=int(total), limit=limit, offset=offset
-    )
+    thumbs = primary_images(uow, [r[0].id for r in rows])
+    items = [_summary_row(r, columns, redacted) for r in rows]
+    for item in items:
+        item.primary_image = thumbs.get(item.id)
+    return Page[ProductSummary](items=items, total=int(total), limit=limit, offset=offset)
+
+
+def primary_images(uow: UnitOfWork, product_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, MediaThumb]:
+    """The live primary image of each product, in one query (list thumbnails, LM-11)."""
+    if not product_ids:
+        return {}
+    rows = uow.session.execute(
+        select(ProductMedia.product_id, ProductMedia.id, ProductMedia.file_id, ProductMedia.alt_text).where(
+            ProductMedia.product_id.in_(list(product_ids)),
+            ProductMedia.is_primary.is_(True),
+            ProductMedia.deleted_at.is_(None),
+            ProductMedia.file_id.is_not(None),
+        )
+    ).all()
+    return {
+        pid: MediaThumb(media_id=mid, file_id=fid, url=f"/api/v1/files/{fid}/content", alt_text=alt)
+        for pid, mid, fid, alt in rows
+    }
 
 
 def _facet(
@@ -1139,11 +1229,16 @@ def product_stats(uow: UnitOfWork, *, recent_limit: int = 10) -> ProductStats:
         .order_by(P.updated_at.desc(), P.id.desc())
         .limit(max(1, min(recent_limit, 50)))
     ).all()
+    priced = _priced_ids(uow)
+    without_price = (
+        uow.session.scalar(select(func.count(P.id)).where(live, P.id.not_in(priced))) if priced is not None else None
+    )
     return ProductStats(
         total=sum(by_status.values()),
         by_status={s.value: by_status.get(s.value, 0) for s in ProductStatus},
         archived=int(archived),
         updated_last_7_days=int(recent_count),
+        without_active_price=int(without_price) if without_price is not None else None,
         by_category=by_category,
         recently_changed=[
             RecentProduct(
@@ -1166,12 +1261,13 @@ def completeness_summary(uow: UnitOfWork) -> CompletenessSummary:
     conds = _conditions(uow, ProductFilters())
     where = conds.all()
     total = uow.session.scalar(_joined(select(func.count(P.id))).where(*where)) or 0
+    active = rules(uow)
     counts = uow.session.execute(
-        _joined(select(*[func.count(P.id).filter(rule).label(code.value) for code, (_s, _l, rule) in RULES.items()])).where(
+        _joined(select(*[func.count(P.id).filter(rule).label(code.value) for code, (_s, _l, rule) in active.items()])).where(
             *where
         )
     ).one()
-    warning_rules = [rule for (sev, _l, rule) in RULES.values() if sev == "warning"]
+    warning_rules = [rule for (sev, _l, rule) in active.values() if sev == "warning"]
     incomplete = uow.session.scalar(_joined(select(func.count(P.id))).where(*where, or_(*warning_rules))) or 0
     return CompletenessSummary(
         total_products=int(total),
@@ -1184,22 +1280,23 @@ def completeness_summary(uow: UnitOfWork) -> CompletenessSummary:
                 count=int(getattr(counts, code.value)),
                 filter_path=f"/products?issue={code.value}",
             )
-            for code, (severity, label, _rule) in RULES.items()
+            for code, (severity, label, _rule) in active.items()
         ],
-        not_evaluated=list(NOT_EVALUATED),
+        not_evaluated=_not_evaluated(uow),
     )
 
 
 def _completeness_for(uow: UnitOfWork, product_id: uuid.UUID) -> CompletenessRead:
+    active = rules(uow)
     row = uow.session.execute(
-        _joined(select(*[rule.label(code.value) for code, (_s, _l, rule) in RULES.items()])).where(P.id == product_id)
+        _joined(select(*[rule.label(code.value) for code, (_s, _l, rule) in active.items()])).where(P.id == product_id)
     ).one()
     missing = [
         CompletenessIssue(code=code, severity=severity, label=label)  # type: ignore[arg-type]
-        for code, (severity, label, _rule) in RULES.items()
+        for code, (severity, label, _rule) in active.items()
         if getattr(row, code.value)
     ]
-    evaluated = [code for code, (severity, _l, _r) in RULES.items() if severity == "warning"]
+    evaluated = [code for code, (severity, _l, _r) in active.items() if severity == "warning"]
     failed = [m for m in missing if m.severity == "warning"]
     passed = len(evaluated) - len(failed)
     return CompletenessRead(
@@ -1207,7 +1304,7 @@ def _completeness_for(uow: UnitOfWork, product_id: uuid.UUID) -> CompletenessRea
         checks_evaluated=len(evaluated),
         checks_passed=passed,
         missing=missing,
-        not_evaluated=list(NOT_EVALUATED),
+        not_evaluated=_not_evaluated(uow),
     )
 
 
@@ -1236,7 +1333,32 @@ def _sections(uow: UnitOfWork, product: Product) -> list[SectionRead]:
     # resolved selling prices for pricing.price.read holders are in the overview (``prices``)
     if uow.actor.can(PRICE_LIST_READ):
         sections.append(SectionRead(key="pricing", label="Pricing", path=f"{base}/pricing"))
+    sections.append(SectionRead(key="media", label="Media", path=f"{base}/media"))
+    sections.append(SectionRead(key="history", label="History", path=f"{base}/history"))
     return sections
+
+
+def _capabilities(uow: UnitOfWork, product: Product) -> dict[str, Capability]:
+    """update/archive/restore from the product policy plus the archive state; media management needs
+    ``catalogue.media.manage`` (own scope may still only delete its own uploads, checked per media item)."""
+    decided = uow.repo(Product).capabilities(product, ["update", "archive"])
+    archived = product.archived_at is not None
+    update = Capability(**decided["update"])
+    if update.allowed and archived:
+        update = Capability(allowed=False, reason_code="product_archived")
+    can_archive = Capability(**decided["archive"])
+    archive = can_archive if not archived else Capability(allowed=False, reason_code="product_archived")
+    restore = can_archive if archived else Capability(allowed=False, reason_code="product_not_archived")
+    media = uow.actor.can("catalogue.media.manage")
+    return {
+        "update": update,
+        "archive": archive,
+        "restore": restore,
+        "manage_media": Capability(
+            allowed=media and not archived,
+            reason_code=None if media and not archived else ("product_archived" if media else "permission_denied"),
+        ),
+    }
 
 
 def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
@@ -1380,13 +1502,23 @@ def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
         updated_at=product.updated_at,
         archived_at=product.archived_at,
         path=product_path(product.id),
-        capabilities={
-            action: Capability(**decision)
-            for action, decision in uow.repo(Product).capabilities(product, ["update"]).items()
-        },
+        capabilities=_capabilities(uow, product),
+        primary_image=primary_images(uow, [product.id]).get(product.id),
+        media_count=int(
+            uow.session.scalar(
+                select(func.count(ProductMedia.id)).where(
+                    ProductMedia.product_id == product.id, ProductMedia.deleted_at.is_(None)
+                )
+            )
+            or 0
+        ),
         prices=overview_prices,
         redacted_fields=redacted,
     )
+
+
+def product_detail(uow: UnitOfWork, product: Product) -> ProductDetail:
+    return _detail(uow, product)
 
 
 @query(READ)

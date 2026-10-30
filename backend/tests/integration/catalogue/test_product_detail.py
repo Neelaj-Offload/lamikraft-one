@@ -52,12 +52,13 @@ def test_detail_returns_all_field_groups_with_section_guards(world: World) -> No
     # sales hold pricing.price.read (resolved prices in the overview) but not pricing.price_list.read: no pricing tab
     assert [(s.key, s.path) for s in detail.sections] == [
         ("overview", base), ("specifications", f"{base}/specifications"), ("packaging", f"{base}/packaging"),
+        ("media", f"{base}/media"), ("history", f"{base}/history"),
     ]
     for persona in (keys.USERS.SAHIL, keys.USERS.ANANYA):  # management and finance hold pricing.price_list.read
         guarded = catalogue.get_product(world.actor(persona), world.ref("OAK_TRAY"))
-        assert [(s.key, s.path) for s in guarded.sections][-1] == ("pricing", f"{base}/pricing")
+        assert ("pricing", f"{base}/pricing") in [(s.key, s.path) for s in guarded.sections]
     kabir = catalogue.get_product(world.actor(keys.USERS.KABIR), world.ref("OAK_TRAY"))  # warehouse: no prices
-    assert [s.key for s in kabir.sections] == ["overview", "specifications", "packaging"]
+    assert [s.key for s in kabir.sections] == ["overview", "specifications", "packaging", "media", "history"]
     assert kabir.prices is None and kabir.redacted_fields == ["prices"]
     by_key = catalogue.get_product_by_key(world.actor(keys.USERS.MEERA), f"  {keys.PRODUCTS.OAK_TRAY} ")
     assert by_key.id == detail.id
@@ -74,18 +75,20 @@ def test_detail_capabilities_come_from_the_product_policy(world: World) -> None:
 def test_completeness_is_computed_from_actual_fields(world: World) -> None:
     meera = world.actor(keys.USERS.MEERA)
     oak = catalogue.get_product(meera, world.ref("OAK_TRAY"))
-    assert _missing(oak) == {"no_hsn_sac"} and oak.completeness.score_pct == 100  # hsn_sac awaits the owner (info)
+    media = {"no_image", "no_primary_image"}  # no product has media yet (Slice 2 rules)
+    assert _missing(oak) == {"no_hsn_sac"} | media  # hsn_sac awaits the owner (info)
+    assert oak.completeness.checks_passed == oak.completeness.checks_evaluated - 2
     walnut = catalogue.get_product(meera, world.ref("WALNUT_BOARD"))
-    assert _missing(walnut) == {"no_hsn_sac", "no_carton_qty", "no_unit_weight"}  # palletised, no carton data
-    assert walnut.completeness.checks_passed == walnut.completeness.checks_evaluated - 2
+    assert _missing(walnut) == {"no_hsn_sac", "no_carton_qty", "no_unit_weight"} | media  # palletised, no carton data
+    assert walnut.completeness.checks_passed == walnut.completeness.checks_evaluated - 4
     bare_id, _ = make_product(world, "TST-BARE", spec=False)
     bare = catalogue.get_product(meera, bare_id)
     assert {"no_specification", "no_thickness", "no_packaging", "no_carton_qty", "no_size", "no_decor"} <= _missing(bare)
-    assert [n.code for n in bare.completeness.not_evaluated] == ["no_primary_image"]  # media arrive in Slice 2
+    assert "no_active_price" in _missing(bare) and bare.completeness.not_evaluated == []
 
     summary = catalogue.completeness_summary(meera)
     counts = {r.code.value: r.count for r in summary.rules}
-    assert summary.total_products == 5 and summary.complete_products == 3
+    assert summary.total_products == 5 and summary.complete_products == 0  # none has an image yet
     assert counts["no_carton_qty"] == 2 and counts["no_specification"] == 1 and counts["no_hsn_sac"] == 5
     filtered = catalogue.list_products(meera, ProductFilters(issue=CompletenessRule.NO_CARTON_QTY))
     assert sorted(p.product_key for p in filtered.items) == sorted([keys.PRODUCTS.WALNUT_BOARD, "TST-BARE"])

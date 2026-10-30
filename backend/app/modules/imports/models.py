@@ -23,7 +23,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Uuid,
-    text,
+    column,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -129,7 +129,7 @@ class ImportJob(TenantEntity, VersionMixin, Base):
             "uq_imports_job_one_writer",
             "company_id",
             unique=True,
-            postgresql_where=text("status = 'committing'"),
+            postgresql_where=column("status") == "committing",
         ),
         CheckConstraint("file_sha256 ~ '^[0-9a-f]{64}$'", name="sha256_format"),
         CheckConstraint("file_format IN ('csv','xlsx')", name="file_format_values"),

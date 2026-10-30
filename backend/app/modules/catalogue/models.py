@@ -25,7 +25,8 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    text,
+    and_,
+    column,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -334,14 +335,14 @@ class TaxonomyAlias(IdMixin, TenantMixin, TimestampMixin, Base):
             "company_id",
             "alias_key",
             unique=True,
-            postgresql_where=text("subcategory_id IS NULL"),
+            postgresql_where=column("subcategory_id").is_(None),
         ),
         Index(
             "uq_catalogue_taxonomy_alias_subcategory",
             "category_id",
             "alias_key",
             unique=True,
-            postgresql_where=text("subcategory_id IS NOT NULL"),
+            postgresql_where=column("subcategory_id").is_not(None),
         ),
     )
 
@@ -392,14 +393,14 @@ class ProductMedia(TenantEntity, VersionMixin, Base):
             "uq_catalogue_product_media_primary",
             "product_id",
             unique=True,
-            postgresql_where=text("is_primary AND deleted_at IS NULL"),
+            postgresql_where=and_(column("is_primary"), column("deleted_at").is_(None)),
         ),
         Index(
             "uq_catalogue_product_media_file",
             "product_id",
             "file_id",
             unique=True,
-            postgresql_where=text("deleted_at IS NULL AND file_id IS NOT NULL"),
+            postgresql_where=and_(column("deleted_at").is_(None), column("file_id").is_not(None)),
         ),
         Index(
             "uq_catalogue_product_media_source",
@@ -407,7 +408,7 @@ class ProductMedia(TenantEntity, VersionMixin, Base):
             "media_type",
             "source_url_key",
             unique=True,
-            postgresql_where=text("deleted_at IS NULL AND source_url_key IS NOT NULL"),
+            postgresql_where=and_(column("deleted_at").is_(None), column("source_url_key").is_not(None)),
         ),
         Index("ix_catalogue_product_media_product", "company_id", "product_id"),
         Index("ix_catalogue_product_media_file_id", "file_id"),

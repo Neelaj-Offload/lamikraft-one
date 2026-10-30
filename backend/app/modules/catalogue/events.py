@@ -11,7 +11,20 @@ from pydantic import BaseModel
 
 PRODUCT_CREATED = "catalogue.product.created"
 PRODUCT_UPDATED = "catalogue.product.updated"
+PRODUCT_ARCHIVED = "catalogue.product.archived"
+PRODUCT_RESTORED = "catalogue.product.restored"
+MEDIA_UPLOADED = "catalogue.media.uploaded"
+MEDIA_DELETED = "catalogue.media.deleted"
+MEDIA_RESTORED = "catalogue.media.restored"
+MEDIA_PRIMARY_CHANGED = "catalogue.media.primary_changed"
 CATEGORY_CREATED = "catalogue.category.created"
+CATEGORY_RENAMED = "catalogue.category.renamed"
+CATEGORY_UPDATED = "catalogue.category.updated"
+CATEGORY_DELETED = "catalogue.category.deleted"
+SUBCATEGORY_RENAMED = "catalogue.subcategory.renamed"
+SUBCATEGORY_UPDATED = "catalogue.subcategory.updated"
+SUBCATEGORY_DELETED = "catalogue.subcategory.deleted"
+TAXONOMY_REASSIGNED = "catalogue.taxonomy.reassigned"
 SUBCATEGORY_CREATED = "catalogue.subcategory.created"
 
 #: changed_groups vocabulary (events.md §3.4)
@@ -34,6 +47,29 @@ class ProductUpdatedPayload(BaseModel):
     product_key: str
     changed_groups: list[str]
     changed_fields: list[str]
+    origin: str | None = None
+
+
+class ProductKeyPayload(BaseModel):
+    """``catalogue.product.archived`` / ``.restored``."""
+
+    product_id: uuid.UUID
+    product_key: str
+    origin: str | None = None
+
+
+class MediaPayload(BaseModel):
+    media_id: uuid.UUID
+    product_id: uuid.UUID
+    media_type: str
+    origin: str | None = None
+
+
+class ReassignedPayload(BaseModel):
+    from_category_id: uuid.UUID
+    from_subcategory_id: uuid.UUID | None
+    to_category_id: uuid.UUID
+    to_subcategory_id: uuid.UUID | None
     origin: str | None = None
 
 

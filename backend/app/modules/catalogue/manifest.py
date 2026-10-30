@@ -32,6 +32,11 @@ def _on_load() -> None:
 
     register_reader("catalogue.product", read_product_facts)
 
+    from app.modules.catalogue.media import file_access
+    from app.platform.files.access import register_file_access
+
+    register_file_access("catalogue.product_media", file_access)
+
 
 MANIFEST = ModuleManifest(
     name="catalogue",
