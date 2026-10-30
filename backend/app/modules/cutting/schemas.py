@@ -324,6 +324,10 @@ class Areas(BaseModel):
     efficiency_usable_pct: DecimalStr
     efficiency_raw_pct: DecimalStr
     scrap_pct: DecimalStr
+    #: display values in m² (three places); the mm² values above are exact and reconcile
+    raw_area_m2: DecimalStr
+    placed_area_m2: DecimalStr
+    scrap_area_m2: DecimalStr
 
 
 class PlacementRead(BaseModel):

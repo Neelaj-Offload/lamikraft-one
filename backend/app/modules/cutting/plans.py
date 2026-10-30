@@ -98,6 +98,7 @@ SETTING_FIELDS = (
     "max_boards_per_group",
 )
 _PCT = Decimal("0.01")
+_M2 = Decimal("0.001")
 
 
 class Errors:
@@ -426,6 +427,9 @@ def _area_fields(r: Mapping[str, Any]) -> dict[str, Any]:
         "efficiency_usable_pct": Decimal(r["efficiency_usable_pct"]).quantize(_PCT),
         "efficiency_raw_pct": Decimal(r["efficiency_raw_pct"]).quantize(_PCT),
         "scrap_pct": Decimal(r["scrap_pct"]).quantize(_PCT),
+        "raw_area_m2": (Decimal(r["raw_area_mm2"]) / 1_000_000).quantize(_M2),
+        "placed_area_m2": (Decimal(r["placed_area_mm2"]) / 1_000_000).quantize(_M2),
+        "scrap_area_m2": (Decimal(r["scrap_area_mm2"]) / 1_000_000).quantize(_M2),
     }
 
 
