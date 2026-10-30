@@ -535,3 +535,8 @@ def validation_report(uow: UnitOfWork) -> TaxonomyValidation:
     for item in items:
         counts[item.code] = counts.get(item.code, 0) + 1
     return TaxonomyValidation(counts=counts, items=items)
+
+
+def reference_counts(uow: UnitOfWork, target: str, row_id: uuid.UUID) -> list[ReferenceCount]:
+    """Non-cascading FK references to ``target.id`` per referencing table (import rollback, demo reset)."""
+    return _reference_counts(uow, target, row_id)

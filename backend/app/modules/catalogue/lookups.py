@@ -12,7 +12,6 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import and_, func, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.csv_safe import write_csv
 from app.core.http.pagination import MAX_LIMIT, Page
@@ -118,13 +117,15 @@ def find_lookup(uow: UnitOfWork, lookup_type: str, key_1: str, key_2: str) -> Lo
 
 def upsert_lookup(uow: UnitOfWork, values: dict[str, Any]) -> tuple[uuid.UUID, bool]:
     """Insert or update one row by (type, key_1, key_2); returns (id, inserted). Used by the import workbench."""
-    now = uow.now()
-    stmt = pg_insert(L).values(
-        id=uuid.uuid7(), company_id=uow.actor.company_id, created_at=now, updated_at=now, **values
-    )
-    stmt = stmt.on_conflict_do_update(
-        constraint="uq_catalogue_lookup_reference_key",
-        set_={k: stmt.excluded[k] for k in ("value_1", "value_2", "notes", "source_extra", "updated_at")},
-    ).returning(L.id, (L.created_at == now).label("inserted"))
-    row = uow.session.execute(stmt).one()
-    return row[0], bool(row[1])
+    row = find_lookup(uow, values["lookup_type"], values["key_1"], values["key_2"])
+    if row is None:
+        row = LookupReference(id=uuid.uuid7(), company_id=uow.actor.company_id, **values)
+        uow.add(row)
+        uow.flush()
+        return row.id, True
+    for name in ("value_1", "value_2", "notes", "source_extra"):
+        if name in values:
+            setattr(row, name, values[name])
+    row.updated_at = uow.now()
+    uow.flush()
+    return row.id, False
