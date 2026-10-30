@@ -52,7 +52,7 @@ def new_message(world: FakeWorld, key: str, party: str, at: datetime) -> Message
     world.messages[key] = m
     world.refs[key] = m.id
     world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {
-        "message_id": str(m.id), "party_id": str(world.parties[party].id), "contact_id": None, "channel": "email",
+        "message_id": str(m.id), "party_id": str(world.refs[party]), "contact_id": None, "channel": "email",
         "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None, "quote_id": None}, version=1)
     world.drain()
     return m
@@ -109,14 +109,11 @@ def test_acknowledged_unchanged_items_are_not_realerted(world: FakeWorld) -> Non
     again = today(world, keys.USERS.MEERA)
     assert "changes_since_last_visit" not in {s.code for s in again.sections} and again.up_to_date
     world.at(d0(9, 20))
-    berg = world.parties["BERG"]
-    berg.version += 1
-    world.emit(keys.USERS.PRIYA, "parties.party.updated", berg.id,
-               {"party_id": str(berg.id), "party_number": berg.number, "changed_fields": ["contacts"]}, version=berg.version)
+    world.change_party_contacts(keys.USERS.PRIYA, "BERG", phone="+46 31 700 00 00")  # real parties.party.updated
     world.drain()
     v2 = today(world, keys.USERS.MEERA)
     changes = [i for i in v2.items if i.section == "changes_since_last_visit"]
-    assert v2.version == 2 and [i.issue_id for i in changes] == [issue(world, issue_keys.party_info_key(berg.id))]
+    assert v2.version == 2 and [i.issue_id for i in changes] == [issue(world, issue_keys.party_info_key(world.refs["BERG"]))]
     with world.uow(keys.USERS.MEERA) as uow:
         assert service.acknowledge(uow, v1.briefing_id, version=2).accepted  # type: ignore[arg-type]
         older = service.acknowledge(uow, v1.briefing_id, version=1)  # type: ignore[arg-type]
@@ -268,7 +265,7 @@ def test_engine_failure_falls_back_to_tasks_and_last_successful(world: FakeWorld
     from app.modules.briefings.engine import collect
 
     v1 = today(world, keys.USERS.MEERA)
-    world.overrides[keys.USERS.MEERA] = {"sales.customer_message.read": None}
+    world.override(keys.USERS.MEERA, {"sales.customer_message.read": None})
 
     def broken(self, cutoff):  # type: ignore[no-untyped-def]
         raise RuntimeError("engine fault")
@@ -301,7 +298,8 @@ def test_delta_since_yesterday_is_source_linked_and_filtered(world: FakeWorld) -
     group = next(g for g in delta.groups if g.issue_id == maison)
     change = group.changes[0]
     assert change.after == {"changed_fields": ["addresses.shipping"]} and change.actor is not None and change.actor.name == "Priya Nair"
-    assert change.source is not None and change.source.label == keys.PARTY_NAMES["MAISON"]
+    # the source label is the real parties reader's "P-NNNNN · name"
+    assert change.source is not None and change.source.label == f"{keys.PARTIES.MAISON} · {keys.PARTY_NAMES['MAISON']}"
     with world.uow(keys.USERS.KABIR) as uow:
         assert service.get_delta(uow, since="last_ack").groups == []
 
@@ -335,7 +333,7 @@ def test_issue_ids_are_stable_across_regenerations(world: FakeWorld) -> None:
     """A permission change that leaves the visible items unchanged writes no version and signals no update
     (spec review 1); one that changes them writes a permission_change version with the same issue ids."""
     v1 = today(world, keys.USERS.MEERA)
-    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None}  # irrelevant to every item
+    world.override(keys.USERS.MEERA, {"catalogue.product.read": None})  # irrelevant to every item
     same = today(world, keys.USERS.MEERA)
     assert (same.version, same.latest_version, same.updates_available) == (1, 1, 0)
     assert same.overview is not None and same.overview.sentence == v1.overview.sentence  # type: ignore[union-attr]
@@ -343,7 +341,7 @@ def test_issue_ids_are_stable_across_regenerations(world: FakeWorld) -> None:
         assert service.briefing_section(uow)["updates_available"] == 0
         latest = uow.session.scalars(select(BriefingVersion).where(BriefingVersion.briefing_id == v1.briefing_id)).all()
     assert [v.version for v in latest] == [1]
-    world.overrides[keys.USERS.MEERA] = {"catalogue.product.read": None, "parties.party.read": None}  # hides the Maison change
+    world.override(keys.USERS.MEERA, {"catalogue.product.read": None, "parties.party.read": None})  # hides the Maison change
     v2 = today(world, keys.USERS.MEERA)
     assert v2.version == 2
     assert [i.issue_id for i in v2.items] == [i.issue_id for i in v1.items if i.family != "sales.customer_changes"]

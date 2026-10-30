@@ -126,7 +126,7 @@ def test_rule_does_not_recreate_a_dismissed_obligation(world: FakeWorld) -> None
         tasks.transition_task(uow, berg, action="dismiss", reason_code="handled_outside_system")
     world.at(d0(9, 30))
     m = world.messages[keys.MESSAGES.BERG]
-    world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {"message_id": str(m.id), "party_id": str(world.parties["BERG"].id),
+    world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {"message_id": str(m.id), "party_id": str(world.refs["BERG"]),
                "contact_id": None, "channel": "email", "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None,
                "quote_id": None}, version=m.version)
     world.drain()
@@ -139,7 +139,7 @@ def test_assign_checks_scope_and_the_assignees_access(world: FakeWorld) -> None:
     tid = kabir_task(world)
     with world.uow(keys.USERS.ARJUN) as uow, pytest.raises(NotFound):  # not visible: 404
         tasks.assign_task(uow, tid, assignee_user_id=world.refs[keys.USERS.ARJUN])
-    world.overrides[keys.USERS.KABIR] = {"tasks.task.assign": None}
+    world.override(keys.USERS.KABIR, {"tasks.task.assign": None})
     with world.uow(keys.USERS.KABIR) as uow, pytest.raises(Forbidden):  # visible but forbidden: 403
         tasks.assign_task(uow, tid, assignee_user_id=world.refs[keys.USERS.RAVI])
     with world.uow(keys.USERS.RAVI) as uow:

@@ -27,7 +27,7 @@ def test_review_task_for_meera_only(world: FakeWorld) -> None:
     world.at(d0(9, 10))
     q = world._quote("Q_SCENARIO_C", keys.QUOTES.SCENARIO_C_NEW, "NORDHAUS", keys.USERS.MEERA, "draft", "5760.00", "EUR", d0(9, 10))
     world.emit_quote(keys.USERS.MEERA, "sales.quote.created", "Q_SCENARIO_C", agent=True, quote_number=q.number,
-                     owner_user_id=str(world.refs[keys.USERS.MEERA]), party_id=str(world.parties["NORDHAUS"].id))
+                     owner_user_id=str(world.refs[keys.USERS.MEERA]), party_id=str(world.refs["NORDHAUS"]))
     world.drain()
     review = issue(world, issue_keys.quote_review_key(q.id))
     with world.uow() as uow:

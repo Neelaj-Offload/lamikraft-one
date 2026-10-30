@@ -62,7 +62,7 @@ def test_sahil_overdue_item_changes_the_second_clause(world: FakeWorld) -> None:
 def test_revoked_price_approval_removes_two_decisions(world: FakeWorld) -> None:
     """A-09: without sales.quote_price.approve Sahil is no longer eligible for the two price overrides."""
     first = today(world, keys.USERS.SAHIL)
-    world.overrides[keys.USERS.SAHIL] = {"sales.quote_price.approve": None}
+    world.override(keys.USERS.SAHIL, {"sales.quote_price.approve": None})
     view = today(world, keys.USERS.SAHIL)
     assert view.overview is not None and view.overview.sentence == keys.EXPECTED.SAHIL_A09_SENTENCE
     assert view.version == 2 and view.briefing_id == first.briefing_id

@@ -67,13 +67,13 @@ def test_manual_assignment_survives_rederivation_and_source_events(world: FakeWo
     m.version += 1
     world.at(d0(9, 30))
     world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {
-        "message_id": str(m.id), "party_id": str(world.parties["BERG"].id), "contact_id": None, "channel": "email",
+        "message_id": str(m.id), "party_id": str(world.refs["BERG"]), "contact_id": None, "channel": "email",
         "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None, "quote_id": None}, version=m.version)
     world.drain()
     (kept,) = [t for t in open_tasks(world, key) if t.kind == "reply_needed"]
     assert (kept.assignee_user_id, kept.owner_user_id, kept.queue_code) == (
         world.refs[keys.USERS.SAHIL], world.refs[keys.USERS.MEERA], None)
-    world.overrides[keys.USERS.SAHIL] = {"sales.customer_message.read": None}
+    world.override(keys.USERS.SAHIL, {"sales.customer_message.read": None})
     with world.uow() as uow:
         consumer.rederive_open(uow)
     (back,) = [t for t in open_tasks(world, key) if t.kind == "reply_needed"]
@@ -100,7 +100,7 @@ def test_naming_an_owner_needs_assign_scope_over_that_owner(world: FakeWorld) ->
 
 def test_inbox_counts_need_task_read(world: FakeWorld) -> None:
     """Review minor 13."""
-    world.overrides[keys.USERS.KABIR] = {"tasks.task.read": None}
+    world.override(keys.USERS.KABIR, {"tasks.task.read": None})
     with world.uow(keys.USERS.KABIR) as uow, pytest.raises(Forbidden):
         tasks.inbox_counts(uow)
 
@@ -158,13 +158,14 @@ def test_deactivation_rehomes_work_and_cancels_reminders(world: FakeWorld) -> No
 
 def test_immaterial_party_update_creates_no_change(world: FakeWorld) -> None:
     """Spec minor 7: a notes-only party update writes no change row and no briefing version."""
-    maison = world.parties["MAISON"]
+    maison = world.refs["MAISON"]
     with world.uow() as uow:
         before = uow.session.scalar(select(func.count()).select_from(ChangeLog))
-    maison.version += 1
     world.at(d0(9, 0))
-    world.emit(keys.USERS.PRIYA, "parties.party.updated", maison.id, {"party_id": str(maison.id), "party_number": maison.number,
-               "changed_fields": ["notes"]}, version=maison.version)
+    # the parties module has no notes field: the event carries the party's current version, so the rule re-reads a
+    # party that is up to date with the event and only the changed fields decide
+    world.emit(keys.USERS.PRIYA, "parties.party.updated", maison, {"party_id": str(maison), "party_number": keys.PARTIES.MAISON,
+               "changed_fields": ["notes"]}, version=world.party_version("MAISON"))
     world.drain()
     with world.uow() as uow:
         assert uow.session.scalar(select(func.count()).select_from(ChangeLog)) == before
@@ -199,14 +200,15 @@ def test_reply_closes_through_origin_message_link_only(world: FakeWorld) -> None
 def test_member_actor_is_cached_per_transaction(world: FakeWorld) -> None:
     """Review minor 11: reconciliation evaluates each member's context once per transaction."""
     calls: list[uuid.UUID] = []
+    from app.platform.authz import actors
+
     with world.uow() as uow:
-        original = world._builder
+        original = actors._builder  # identity's real member-actor builder
+        assert original is not None
 
         def counting(company_id: uuid.UUID, user_id: uuid.UUID, channel: str):  # type: ignore[no-untyped-def]
             calls.append(user_id)
-            return original(company_id, user_id, channel)
-
-        from app.platform.authz import actors
+            return original(company_id, user_id, channel)  # type: ignore[arg-type]
 
         actors.register_member_actor_builder(counting)
         try:

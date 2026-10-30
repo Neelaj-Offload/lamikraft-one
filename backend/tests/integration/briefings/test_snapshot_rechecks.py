@@ -42,7 +42,7 @@ def test_older_version_is_rechecked_after_a_revoke(world: FakeWorld) -> None:
     """Review blocker 1: ?version=1 after a revoke shows only what Meera may still open, no overview counts."""
     v1 = today(world, keys.USERS.MEERA)
     assert any(i.title.startswith("Reply to") for i in v1.items) and any(i.money for i in v1.items)
-    world.overrides[keys.USERS.MEERA] = dict(REVOKED)
+    world.override(keys.USERS.MEERA, dict(REVOKED))
     v2 = today(world, keys.USERS.MEERA)
     assert v2.version == 2
     old = today(world, keys.USERS.MEERA, version=1)
@@ -65,7 +65,7 @@ def test_permission_change_version_ends_the_live_pin(world: FakeWorld) -> None:
     v1 = today(world, keys.USERS.MEERA)
     with world.uow(keys.USERS.MEERA) as uow:
         pin = service.create_pin(uow, v1.briefing_id, PinCreate(kind="voice"))  # type: ignore[arg-type]
-    world.overrides[keys.USERS.MEERA] = dict(REVOKED)
+    world.override(keys.USERS.MEERA, dict(REVOKED))
     after = today(world, keys.USERS.MEERA)
     assert after.pin is None and after.version == 2
     with world.uow(keys.USERS.MEERA) as uow:

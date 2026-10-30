@@ -179,22 +179,24 @@ def test_enquiries_open_and_close(world: FakeWorld) -> None:
     e = EnquiryRec(uuid.uuid7(), "ENQ-2026-0003", "BERG", keys.USERS.MEERA, d0(10, 0), "email")
     world.enquiries["ENQ_NEW"] = e
     world.emit(keys.USERS.MEERA, "sales.enquiry.received", e.id, {"enquiry_id": str(e.id), "enquiry_number": e.number,
-               "party_id": str(world.parties["BERG"].id), "channel": "email", "owner_user_id": str(world.refs[keys.USERS.MEERA])}, version=1)
+               "party_id": str(world.refs["BERG"]), "channel": "email", "owner_user_id": str(world.refs[keys.USERS.MEERA])}, version=1)
     world.drain()
     (task,) = tasks_of(world, issue_of(world, issue_keys.enquiry_key(e.id)).id)
     assert (task.kind, task.state, task.assignee_user_id) == ("enquiry_reply", "open", world.refs[keys.USERS.MEERA])
     assert task.due_at == ist(2026, 10, 13, 18, 30)  # next working day after receipt
 
 
-def _message(world: FakeWorld, key: str, assignee: str, at: datetime, *, origin: str | None = None) -> MessageRec:
+def _message(world: FakeWorld, key: str, assignee: str, at: datetime, *, origin: str | None = None,
+             received_by_system: bool = False) -> MessageRec:
     world.at(at)
     m = MessageRec(uuid.uuid7(), "BERG", "Erik Lindqvist", assignee, at)
     world.messages[key] = m
-    payload = {"message_id": str(m.id), "party_id": str(world.parties["BERG"].id), "contact_id": None, "channel": "email",
+    payload = {"message_id": str(m.id), "party_id": str(world.refs["BERG"]), "contact_id": None, "channel": "email",
                "assignee_user_id": str(world.refs[assignee]), "enquiry_id": None, "quote_id": None}
     if origin:
         payload["origin"] = origin
-    world.emit(assignee, "sales.customer_message.received", m.id, payload, version=1)
+    # an inbound message for a deactivated assignee is recorded by the system (no member actor exists for them)
+    world.emit(None if received_by_system else assignee, "sales.customer_message.received", m.id, payload, version=1)
     world.drain()
     return m
 
@@ -204,13 +206,13 @@ def test_team_lead_fallback_then_queue(world: FakeWorld) -> None:
     with world.uow() as uow:
         meera = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[keys.USERS.MEERA])).one()
         meera.status = "deactivated"
-    m = _message(world, "MSG_FALLBACK", keys.USERS.MEERA, d0(10, 0))
+    m = _message(world, "MSG_FALLBACK", keys.USERS.MEERA, d0(10, 0), received_by_system=True)
     (task,) = tasks_of(world, issue_of(world, issue_keys.message_key(m.id)).id)
     assert (task.owner_user_id, task.assignee_user_id, task.queue_code) == (world.refs[keys.USERS.SAHIL],) * 2 + (None,)
     with world.uow() as uow:
         sahil = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[keys.USERS.SAHIL])).one()
         sahil.status = "deactivated"
-    m2 = _message(world, "MSG_QUEUE", keys.USERS.MEERA, d0(10, 5))
+    m2 = _message(world, "MSG_QUEUE", keys.USERS.MEERA, d0(10, 5), received_by_system=True)
     (queued,) = tasks_of(world, issue_of(world, issue_keys.message_key(m2.id)).id)
     assert (queued.owner_user_id, queued.assignee_user_id, queued.queue_code) == (None, None, "sales")
     # the queue is never silent: a triage obligation for queue managers (admins) until it is empty
@@ -239,7 +241,7 @@ def test_access_change_rechecks_approval_eligibility(world: FakeWorld) -> None:
     """The visibility consistency job: revoking sales.quote_price.approve removes Sahil from override approvals."""
     with world.uow(keys.USERS.SAHIL) as uow:
         before = briefings.get_today(uow)
-    world.overrides[keys.USERS.SAHIL] = {"sales.quote_price.approve": None}
+    world.override(keys.USERS.SAHIL, {"sales.quote_price.approve": None})
     world.at(d0(9, 0))
     membership = world.refs[f"{keys.USERS.SAHIL}_MEMBERSHIP"]
     world.emit(keys.USERS.PRIYA, "identity.permission_override.changed", membership,

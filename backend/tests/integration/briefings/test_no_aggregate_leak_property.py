@@ -32,7 +32,7 @@ REVOCABLE = (
 @settings(max_examples=16, deadline=None, derandomize=True, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(person=st.sampled_from((keys.USERS.MEERA, keys.USERS.SAHIL, keys.USERS.PRIYA)), revoked=st.sets(st.sampled_from(REVOCABLE)))
 def test_overview_numbers_equal_visible_counts(world: FakeWorld, person: str, revoked: set[str]) -> None:
-    world.overrides = {person: dict.fromkeys(revoked)}
+    world.set_overrides({person: dict.fromkeys(revoked)})
     user_id = world.refs[person]
     with world.uow(person) as uow:
         cal = user_calendar(uow, user_id)
