@@ -153,7 +153,9 @@ def test_last_world_exposes_refs(world: SeedContext) -> None:
     summary = last_world()
     assert summary is not None
     assert summary["company_id"] == str(world.company_id)
-    assert summary["refs"] == {k: str(v) for k, v in world.refs.items()}
+    # every fixture key, plus the same ids by business key (quote and enquiry numbers) for the e2e specs
+    assert {k: str(v) for k, v in world.refs.items()}.items() <= summary["refs"].items()
+    assert set(summary["refs"]) - set(world.refs) <= {*vars(keys.QUOTES).values(), *vars(keys.ENQUIRIES).values()}
 
 
 def test_refuses_to_seed_into_a_non_demo_company(db: None) -> None:
