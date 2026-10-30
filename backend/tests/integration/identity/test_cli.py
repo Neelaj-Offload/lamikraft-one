@@ -16,8 +16,8 @@ from app.platform.uow import UnitOfWork
 from app.seed.context import SeedContext
 from app.seed.world import keys
 from tests.integration.identity.fixtures import (
-    enrol_mfa,
     TEST_PASSWORD,
+    enrol_mfa,
     login,
     make_member,
     make_tenant,

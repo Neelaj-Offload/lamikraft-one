@@ -5,7 +5,14 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.integration.identity.fixtures import TEST_PASSWORD, Tenant, csrf_headers, login, login_admin, make_member
+from tests.integration.identity.fixtures import (
+    TEST_PASSWORD,
+    Tenant,
+    csrf_headers,
+    login,
+    login_admin,
+    make_member,
+)
 
 pytestmark = pytest.mark.db
 

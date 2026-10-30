@@ -65,6 +65,9 @@ def list_entries(
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
 ) -> CursorPage[AuditEntryRead]:
+    from app.platform.authz.stepup import require_step_up
+
+    require_step_up(uow, "audit.log.read")  # MFA flag (permissions.md §6): an MFA-verified session
     limit = max(1, min(limit, MAX_LIMIT))
     for name, value in (("occurred_from", occurred_from), ("occurred_to", occurred_to)):
         if value is not None and value.tzinfo is None:

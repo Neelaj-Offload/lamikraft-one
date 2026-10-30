@@ -13,8 +13,8 @@ from app.platform.authz.policy import ResourcePolicy, scope_clause
 from app.platform.events.models import DomainEvent
 from app.platform.identity import delegation as delegation_service
 from app.platform.identity.models import Membership
-from app.platform.uow import UnitOfWork
 from app.platform.sources import read as read_source
+from app.platform.uow import UnitOfWork
 from tests.integration.identity.fixtures import (
     TEST_PASSWORD,
     Tenant,
