@@ -214,10 +214,11 @@ def _qty(value: Any) -> Decimal:
 
 
 def _uom(line: Mapping[str, Any]) -> str:
+    """The unit of a basis/card line: sales ``BasisLine.unit_code``, a ``Quantity.uom`` or a card ``uom``."""
     quantity = line.get("quantity")
     if isinstance(quantity, Mapping) and quantity.get("uom"):
         return str(quantity["uom"])
-    return str(line.get("uom") or "pcs")
+    return str(line.get("unit_code") or line.get("uom") or "pcs")
 
 
 def _line_matches(line: Mapping[str, Any], words: str | None) -> bool:
@@ -280,8 +281,8 @@ def _plan_usual_quote(intent: RequestIntent, results: Results, context: Mapping[
     usual = results.last_ok("find_usual_order")
     if usual is None:
         return _tool("find_usual_order", {"party_id": party_id})
-    lines = list(usual.get("lines") or [])
-    if not usual.get("quote_id") or not lines:
+    lines = [line for line in usual.get("lines") or [] if line.get("product_id")]  # catalog lines only
+    if usual.get("status") == "none" or not usual.get("quote_id") or not lines:
         return _final(f"Demo: {party_label} has no previous won quote to repeat, so there is no usual order to draft.")
     line = _pick_line(lines, intent.product_words, results.last_ok("resolve_product"))
     if line is None:
@@ -312,7 +313,7 @@ def _plan_usual_quote(intent: RequestIntent, results: Results, context: Mapping[
             "party_id": party_id,
             "currency": currency,
             "lines": [{"product_id": str(line["product_id"]), "quantity": str(quantity), "quantity_source": quantity_source,
-                       "uom": _uom(line)}],
+                       "unit_code": _uom(line)}],
         })
     return _final(f"Demo: draft {draft.get('quote_number')} for {party_label} is ready to review; the figures are on the card.")
 
@@ -348,16 +349,26 @@ def _plan_change_quantity(intent: RequestIntent, results: Results, context: Mapp
             })
         return _final("Demo: the line is updated; the recalculated figures are on the card.")
     if results.last_ok("calculate_quote") is None:
-        item_id = line.get("price_list_item_id")
-        if not item_id:
+        if not line.get("price_list_item_id"):
             return _final("Demo: the focused line has no price-list item to recalculate from.")
+        # the whole draft is recalculated (the other lines keep their record quantities) so the totals are complete
+        calc_lines = []
+        for other in lines or [line]:
+            if not other.get("price_list_item_id"):
+                continue
+            focused = str(other.get("line_id")) == str(line.get("line_id"))
+            calc_lines.append({
+                "line_key": str(other["line_id"]), "price_list_item_id": str(other["price_list_item_id"]),
+                "quantity": quantity if focused else str(_qty(other["quantity"])),
+                "quantity_source": "user_turn" if focused else "record",
+            })
+        card = context.get("last_quote_card") or {}
         return _tool("calculate_quote", {
-            "currency": str(context.get("last_quote_card", {}).get("currency") or "EUR"),
-            "surcharge_requested": bool(context.get("last_quote_card", {}).get("apply_minimum_surcharge", False)),
-            "lines": [{"line_key": str(line["line_id"]), "price_list_item_id": str(item_id), "quantity": quantity,
-                       "quantity_source": "user_turn"}],
+            "currency": str(card.get("currency") or "EUR"),
+            "surcharge_requested": bool((card.get("totals") or {}).get("surcharge_applied", False)),
+            "lines": calc_lines,
         })
-    return _final("Demo: recalculated the line as a preview; the figures are on the card.")
+    return _final("Demo: recalculated the draft; the figures are on the card.")
 
 
 def _plan_screen_question(*_: Any) -> _Step:

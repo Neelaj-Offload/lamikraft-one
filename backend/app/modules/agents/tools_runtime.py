@@ -133,7 +133,8 @@ def execute_tool(ctx: ToolContext, name: str, raw_input: Mapping[str, Any]) -> T
     if grounded.price_override is not None and not ctx.actor.can(PRICE_OVERRIDE_PERMISSION):
         return _error(name, grounded.data, "permission_denied", f"You do not hold {PRICE_OVERRIDE_PERMISSION}.", 403, started)
     needs_key = tool.requires_idempotency or tool.effect in ("draft", "propose")
-    actor = ctx.actor.with_(
+    actor = ctx.actor.with_(  # the member's permissions; actor type agent so writes carry origin "agent"
+        actor_type="agent",
         agent_run_id=ctx.run_id,
         idempotency_key=f"agent:{ctx.run_id}:{ctx.step_seq}" if needs_key else None,
     )

@@ -48,7 +48,7 @@ def test_guessed_id_rejected_by_provenance(world: World, sales_tools: fake_sales
 def test_quantity_needs_provenance_and_must_match_its_source(world: World, sales_tools: fake_sales.FakeSalesStore) -> None:
     nordhaus, oak = world.ref("NORDHAUS"), world.ref("OAK_TRAY")
     known = {nordhaus, oak}
-    line = {"product_id": str(oak), "uom": "pcs"}
+    line = {"product_id": str(oak), "unit_code": "pcs"}
     missing = execute_tool(_tool_ctx(world, known_ids=known, user_text="quote 240"), "draft_quote",
                            {"party_id": str(nordhaus), "currency": "EUR", "lines": [{**line, "quantity": "240"}]})
     assert missing.is_error and missing.error_code == "quantity_provenance"
@@ -71,11 +71,11 @@ def test_prices_are_never_model_inputs(world: World, sales_tools: fake_sales.Fak
     nordhaus, oak = world.ref("NORDHAUS"), world.ref("OAK_TRAY")
     ctx = _tool_ctx(world, known_ids={nordhaus, oak}, user_text="quote 240 at 26")
     priced = execute_tool(ctx, "draft_quote", {"party_id": str(nordhaus), "currency": "EUR",
-                                               "lines": [{"product_id": str(oak), "uom": "pcs", "quantity": "240",
+                                               "lines": [{"product_id": str(oak), "unit_code": "pcs", "quantity": "240",
                                                           "quantity_source": "user_turn", "unit_price": "26.0000"}]})
     assert priced.is_error and priced.error_code == "price_not_model_input"
     bad_override = execute_tool(ctx, "draft_quote", {"party_id": str(nordhaus), "currency": "EUR", "price_override": {"value": "26"},
-                                                     "lines": [{"product_id": str(oak), "uom": "pcs", "quantity": "240", "quantity_source": "user_turn"}]})
+                                                     "lines": [{"product_id": str(oak), "unit_code": "pcs", "quantity": "240", "quantity_source": "user_turn"}]})
     assert bad_override.is_error and bad_override.error_code == "price_not_model_input"
     assert sales_tools.calls == []
 
@@ -115,7 +115,7 @@ def test_budget_exceeded_ends_the_run_with_an_error_card(meera: Assistant, monke
     assert tool_calls(detail) == ["resolve_party", "find_usual_order"]
     card = cards_of(detail, "error")[0]
     assert card["code"] == "budget_exceeded" and card["recoverable_draft"] is None
-    assert not [q for q in fake_sales.STORE.quotes.values() if q.status == "draft"]
+    assert not fake_sales.drafts()
 
 
 def test_budget_error_card_keeps_the_recoverable_draft(meera: Assistant, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -242,4 +242,4 @@ def test_duplicate_client_utterance_replays_the_same_run(meera: Assistant) -> No
     assert first.status_code == 202 and second.status_code == 202
     assert second.json()["run_id"] == first.json()["run_id"] and second.json()["replayed"] is True
     drain()
-    assert len([q for q in fake_sales.STORE.quotes.values() if q.status == "draft"]) == 1
+    assert len(fake_sales.drafts()) == 1

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from app.core.errors import NotConfigured
+from app.core.errors import AppError, NotConfigured
 from app.core.logging import get_logger
 from app.modules.agents import cards as card_builders
 from app.modules.agents import context as ctx_mod
@@ -46,6 +46,7 @@ from app.modules.agents.tools_runtime import (
     execute_tool,
 )
 from app.platform.authz.context import ActorContext
+from app.platform.authz.redaction import redact
 from app.platform.uow import UnitOfWork
 
 log = get_logger("lk.agents.run")
@@ -61,6 +62,9 @@ SYSTEM_PROMPT = (
 DRAFT_TOOLS = ("draft_quote", "revise_draft_line")
 BRIEFINGS_SERVICE = "app.modules.briefings.service"
 SALES_SERVICE = "app.modules.sales.service"
+SALES_SCHEMAS = "app.modules.sales.schemas"
+#: step name of the follow-up line update applied through ``sales.service.update_line_command`` (not a ToolDef)
+APPLY_LINE_UPDATE = "sales.update_line"
 TODAY_PATH = "/today"
 
 
@@ -138,6 +142,8 @@ def _build_state(actor: ActorContext, run_id: uuid.UUID) -> RunState:
         refs = ctx_mod.ground_screen_context(uow, screen) + ctx_mod.refs_from_cards(last_cards)
         service.add_object_context(uow, run, refs)
         known = {r.resource_id for r in refs} | uuids_in(last_cards)
+        # figures on the previous turn's cards were built from tool outputs: they are referenced record values
+        record_values = decimals_in(last_cards)
         clarification_values: set[Decimal] = set()
         if turn.selected_option:
             known |= uuids_in(turn.selected_option)
@@ -149,7 +155,8 @@ def _build_state(actor: ActorContext, run_id: uuid.UUID) -> RunState:
             run_id=run.id, conversation_id=run.conversation_id, actor=actor, user_text=turn.text,
             selected_option=turn.selected_option, screen=screen, refs=refs, last_cards=last_cards,
             provenance=Provenance(
-                known_ids=frozenset(known), user_text=turn.text, clarification_values=frozenset(clarification_values),
+                known_ids=frozenset(known), user_text=turn.text, record_values=frozenset(record_values),
+                clarification_values=frozenset(clarification_values),
                 can_override_price=actor.can(PRICE_OVERRIDE_PERMISSION),
             ),
             messages=messages,
@@ -227,7 +234,7 @@ def _party_label(state: RunState) -> str | None:
 def _draft_link(state: RunState) -> RecordLink | None:
     for name in DRAFT_TOOLS:
         outcome = state.last_ok(name)
-        if outcome and outcome.output_for_user and outcome.output_for_user.get("quote_id"):
+        if outcome and outcome.output_for_user and (outcome.output_for_user.get("quote_id") or outcome.output_for_user.get("id")):
             card = card_builders.quote_draft_card(outcome.output_for_user, provider_label=state.provider_label, tainted=state.tainted)
             return card.review
     last = state.last_quote_card
@@ -304,12 +311,19 @@ def _build_cards(state: RunState) -> tuple[list[Card], str | None, str | None]:
     if calc and calc.output_for_user and state.last_quote_card is not None:
         base = QuoteDraftCard.model_validate(state.last_quote_card)
         quantity = str((calc.input.get("lines") or [{}])[0].get("quantity", ""))
-        cards.append(card_builders.quote_preview_card(
+        preview = card_builders.quote_preview_card(
             calc.output_for_user, provider_label=label, tainted=tainted, base=base, quantity=quantity,
+        )
+        detail = _apply_line_update(state, base, _changed_lines(base, calc.input))
+        if detail is None:  # not installed, stale version or refused: the preview stands, nothing was written
+            cards.append(preview)
+            return cards, None, None
+        draft = card_builders.quote_draft_card(detail, provider_label=label, tainted=tainted, party_label=base.party_label)
+        cards.append(draft)
+        cards.append(card_builders.receipt_card(
+            "update_line", "Line quantity applied to the draft through the sales service.", state_now(state),
+            provider_label=label, tainted=tainted, record=draft.review,
         ))
-        applied = _apply_line_update(state, base, calc.input)
-        if applied is not None:
-            cards.append(applied)
         return cards, None, None
     if last is not None and last.output_for_user is not None:
         status = str(last.output_for_user.get("status") or "")
@@ -331,25 +345,70 @@ def state_now(state: RunState) -> Any:
     return _tx(state.actor, state.run_id, lambda uow, run: uow.now())
 
 
-def _apply_line_update(state: RunState, base: QuoteDraftCard, calc_input: Mapping[str, Any]) -> Card | None:
-    """Seam: apply the recalculated quantity to the draft through ``sales.service.update_line`` when installed."""
+def _changed_lines(base: QuoteDraftCard, calc_input: Mapping[str, Any]) -> list[tuple[uuid.UUID, Decimal]]:
+    """(line id, new quantity) for the recalculated lines whose quantity differs from the draft card."""
+    current = {str(line.line_id): Decimal(line.quantity) for line in base.lines if line.line_id and line.quantity is not None}
+    changes: list[tuple[uuid.UUID, Decimal]] = []
+    for line in calc_input.get("lines") or []:
+        key, quantity = str(line.get("line_key")), Decimal(str(line.get("quantity")))
+        if key in current and current[key] != quantity:
+            changes.append((uuid.UUID(key), quantity))
+    return changes
+
+
+def _apply_line_update(
+    state: RunState, base: QuoteDraftCard, changes: list[tuple[uuid.UUID, Decimal]]
+) -> dict[str, Any] | None:
+    """Seam: apply the recalculated quantities to the draft through ``sales.service.update_line_command`` (as the
+    member with actor type ``agent``, optimistic on the card's version, idempotent per step). Recorded as a
+    ``sales.update_line`` call/result step pair. Returns the persisted ``QuoteDetail`` for the user, or ``None``
+    when the sales module is not installed or the update was refused (the preview card then stands)."""
     sales = ctx_mod.optional_module(SALES_SERVICE)
-    update_line = getattr(sales, "update_line", None) if sales is not None else None
-    if update_line is None or not base.quote_id or not base.lines:
+    schemas = ctx_mod.optional_module(SALES_SCHEMAS)
+    update_line = getattr(sales, "update_line_command", None) if sales is not None else None
+    line_update = getattr(schemas, "QuoteLineUpdate", None) if schemas is not None else None
+    if update_line is None or line_update is None or not base.quote_id or not changes or base.version is None:
         return None
-    line = (calc_input.get("lines") or [{}])[0]
-    line_id = line.get("line_key")
+    quote_id, version = base.quote_id, base.version
+    step_input = {
+        "quote_id": str(quote_id), "expected_version": version,
+        "lines": [{"line_id": str(line_id), "quantity": str(quantity), "quantity_source": "user_turn"} for line_id, quantity in changes],
+    }
+    seq = _tx(state.actor, state.run_id, lambda uow, run: service.append_step(
+        uow, run, kind="tool_call", name=APPLY_LINE_UPDATE, input=step_input, model_route="server").seq)
+    actor = state.actor.with_(actor_type="agent", agent_run_id=state.run_id, idempotency_key=f"agent:{state.run_id}:{seq}")
+    clock = Stopwatch()
+    error: AppError | None = None
+    for_model: dict[str, Any] | None = None
+    for_user: dict[str, Any] | None = None
     try:
-        with UnitOfWork(state.actor.with_(agent_run_id=state.run_id, idempotency_key=f"agent:{state.run_id}:apply")) as uow:
-            update_line(uow, base.quote_id, uuid.UUID(str(line_id)), quantity=Decimal(str(line.get("quantity"))))
-            at = uow.now()
-    except Exception as exc:  # the preview stands; the user applies the change in the workspace
-        log.warning("agents.apply_line_update_failed", run_id=str(state.run_id), error=str(exc)[:200])
-        return None
-    return card_builders.receipt_card(
-        "update_line", "Line quantity applied to the draft through the sales service.", at,
-        provider_label=state.provider_label, tainted=state.tainted, record=base.review,
-    )
+        with UnitOfWork(actor) as uow:
+            detail: Any = None
+            for line_id, quantity in changes:
+                detail, _ = update_line(uow, quote_id, line_id, line_update(expected_version=version, quantity=quantity))
+                version = detail.version
+            for_model = redact(detail, actor, for_model=True).model_dump(mode="json")
+            for_user = redact(detail, actor).model_dump(mode="json")
+    except AppError as exc:  # stale version, permission, not a draft: the preview stands
+        error = exc
+        log.info("agents.apply_line_update_refused", run_id=str(state.run_id), code=exc.code)
+
+    def record(uow: UnitOfWork, run: Run) -> None:
+        if error is not None:
+            service.append_step(
+                uow, run, kind="tool_result", name=APPLY_LINE_UPDATE, is_error=True, error_code=error.code,
+                output={"name": APPLY_LINE_UPDATE, "ok": False, "error": {"code": error.code, "message": error.detail}},
+                model_route="server", duration_ms=clock.elapsed_ms,
+            )
+            return
+        service.append_step(
+            uow, run, kind="tool_result", name=APPLY_LINE_UPDATE,
+            output={"name": APPLY_LINE_UPDATE, "ok": True, "output": for_model}, model_route="server", duration_ms=clock.elapsed_ms,
+        )
+        service.add_object_context(uow, run, ctx_mod.typed_refs_from_output(for_model))
+
+    _tx(state.actor, state.run_id, record)
+    return for_user
 
 
 # ---- finish ----------------------------------------------------------------------------------------------------

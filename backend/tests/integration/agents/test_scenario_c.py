@@ -14,6 +14,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.modules.agents import context as agents_context
 from app.modules.agents.models import AiCallLog, ObjectContext, Run
 from app.modules.parties import service as parties
 from app.modules.parties.schemas import PartyCreate
@@ -44,7 +45,7 @@ def _assert_scenario_c_card(card: dict, world: World) -> None:
     assert totals["minimum_status"] == "MEETS" and totals["surcharge_applied"] is False
     assert totals["recommended_quantity"] == int(keys.EXPECTED.SCENARIO_D_RECOMMENDED_QTY)
     assert card["review"]["path"] == f"/sales/quotes/{card['quote_id']}"
-    draft = fake_sales.STORE.quotes[uuid.UUID(card["quote_id"])]
+    draft = fake_sales.quote_view(card["quote_id"])
     assert draft.owner_user_id == world.user_id(keys.USERS.MEERA) and draft.status == "draft" and draft.origin == "agent"
 
 
@@ -119,7 +120,7 @@ def test_agent_c_ambiguous_customer_asks_one_question(meera: Assistant, world: W
     values = {o["action"]["value"] for o in card["options"]}
     assert values == {str(world.ref("NORDHAUS")), str(other)}
     assert all(o["action"]["kind"] == "select_option" and o["action"]["slot"] == "party" for o in card["options"])
-    assert not [q for q in fake_sales.STORE.quotes.values() if q.status == "draft"], "no draft before the choice"
+    assert not fake_sales.drafts(), "no draft before the choice"
 
     chosen = next(o for o in card["options"] if o["action"]["value"] == str(world.ref("NORDHAUS")))
     second = meera.say("", selected_option={"slot": "party", "value": chosen["action"]["value"]})
@@ -135,11 +136,8 @@ def test_agent_c_option_must_have_been_offered(meera: Assistant, world: World) -
     assert response.status_code == 422 and response.json()["code"] == "option_not_offered"
 
 
-def test_agent_c_followup_change_it_to_300_uses_object_context(meera: Assistant, world: World) -> None:
-    first = meera.say(SCENARIO_C_TEXT)
-    card = first["cards"][0]
-    line_id, quote_id = card["lines"][0]["line_id"], card["quote_id"]
-    context = {
+def _quote_screen(quote_id: str, line_id: str) -> dict:
+    return {
         "schema_version": 1,
         "route": {"path": "/sales/quotes/[quoteId]", "params": {"quoteId": quote_id}, "area": "sales"},
         "focus": {"type": "sales.quote_line", "id": line_id, "version": 1},
@@ -147,30 +145,42 @@ def test_agent_c_followup_change_it_to_300_uses_object_context(meera: Assistant,
         "visible_items": [{"ref": "i1", "list_key": "quote_lines", "ordinal": 1, "type": "sales.quote_line", "id": line_id, "version": 1}],
         "selection": ["i1"],
     }
-    second = meera.say("change it to 300", context=context)
+
+
+def test_agent_c_followup_change_it_to_300_uses_object_context(meera: Assistant, world: World) -> None:
+    """Sales ships no revise tool: the engine recalculates (calculate_quote) and the change is applied through
+    ``sales.service.update_line_command``; the card shows the persisted figures (300 x 24.0000 = EUR 7,200.00)."""
+    first = meera.say(SCENARIO_C_TEXT)
+    card = first["cards"][0]
+    line_id, quote_id = card["lines"][0]["line_id"], card["quote_id"]
+    assert card["version"] == 1
+    second = meera.say("change it to 300", context=_quote_screen(quote_id, line_id))
     assert second["run"]["status"] == "succeeded", second
-    assert tool_calls(second) == ["revise_draft_line"]
+    assert tool_calls(second) == ["calculate_quote", "sales.update_line"]
+    assert all(not s["is_error"] for s in second["steps"])
+    calc = next(s for s in second["steps"] if s["kind"] == "tool_call" and s["name"] == "calculate_quote")
+    assert calc["input"]["lines"][0]["quantity_source"] == "user_turn" and calc["input"]["lines"][0]["line_key"] == line_id
     revised = cards_of(second, "quote_draft")[0]
-    assert revised["quote_id"] == quote_id and Decimal(revised["lines"][0]["quantity"]) == Decimal("300")
+    assert revised["preview_only"] is False and revised["quote_id"] == quote_id and revised["version"] == 2
+    assert Decimal(revised["lines"][0]["quantity"]) == Decimal("300")
     assert Decimal(revised["lines"][0]["line_total"]) == Decimal("7200.00")
     assert Decimal(revised["totals"]["grand_total"]) == Decimal("7200.00")
-    assert cards_of(second, "receipt")[0]["action"] == "revise_draft_line"
-    step = next(s for s in second["steps"] if s["kind"] == "tool_call" and s["name"] == "revise_draft_line")
-    assert step["input"]["quantity_source"] == "user_turn" and step["input"]["line_id"] == line_id
+    assert cards_of(second, "receipt")[0]["action"] == "update_line"
+    view = fake_sales.quote_view(quote_id)
+    assert view.version == 2 and view.status == "draft"
     with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
         run = uow.session.get(Run, uuid.UUID(second["run"]["id"]))
         context_rows = list(uow.session.scalars(select(ObjectContext).where(ObjectContext.run_id == run.id)))
+        # sales registers no sales.quote_line reader: the line comes in through the card, the quote through the screen
         assert {(c.resource_type, str(c.resource_id), c.origin) for c in context_rows} >= {
-            ("sales.quote_line", line_id, "screen"), ("sales.quote", quote_id, "screen"), ("sales.quote", quote_id, "card"),
+            ("sales.quote", quote_id, "screen"), ("sales.quote", quote_id, "card"), ("sales.quote_line", line_id, "card"),
         }
 
 
-def test_agent_c_followup_preview_when_no_revise_tool(meera: Assistant, world: World) -> None:
+def test_agent_c_followup_is_a_preview_when_sales_service_is_absent(meera: Assistant, monkeypatch: pytest.MonkeyPatch) -> None:
     first = meera.say(SCENARIO_C_TEXT)
-    from app.registry import get_registry
-
-    registry = get_registry()
-    registry.tools[:] = [t for t in registry.tools if t.name != "revise_draft_line"]
+    original = agents_context.optional_module
+    monkeypatch.setattr(agents_context, "optional_module", lambda path: None if path.startswith("app.modules.sales") else original(path))
     second = meera.say("change it to 300")
     assert second["run"]["status"] == "succeeded", second
     assert tool_calls(second) == ["calculate_quote"]
@@ -178,3 +188,35 @@ def test_agent_c_followup_preview_when_no_revise_tool(meera: Assistant, world: W
     assert preview["preview_only"] is True and preview["quote_id"] == first["cards"][0]["quote_id"]
     assert Decimal(preview["totals"]["grand_total"]) == Decimal("7200.00")
     assert Decimal(preview["lines"][0]["quantity"]) == Decimal("300")
+    assert fake_sales.quote_view(preview["quote_id"]).version == 1, "nothing written"
+
+
+def test_agent_c_followup_stale_card_keeps_the_preview(meera: Assistant, world: World) -> None:
+    """The draft changed after the card was shown: the optimistic update is refused and nothing is overwritten."""
+    first = meera.say(SCENARIO_C_TEXT)
+    card = first["cards"][0]
+    with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:  # someone edits the draft in the workspace meanwhile
+        fake_sales.FAKE_SALES_SERVICE.update_line_command(
+            uow, uuid.UUID(card["quote_id"]), uuid.UUID(card["lines"][0]["line_id"]),
+            fake_sales.FAKE_SALES_SCHEMAS.QuoteLineUpdate(expected_version=1, quantity="250"),
+        )
+    second = meera.say("change it to 300")
+    assert second["run"]["status"] == "succeeded", second
+    result = next(s for s in second["steps"] if s["kind"] == "tool_result" and s["name"] == "sales.update_line")
+    assert result["is_error"] and result["error_code"] == "version_conflict"
+    assert cards_of(second, "quote_draft")[0]["preview_only"] is True and not cards_of(second, "receipt")
+
+
+def test_agent_c_followup_revise_tool_seam(meera: Assistant, world: World) -> None:
+    """Optional seam: when a ``revise_draft_line`` tool is installed the plan uses it instead."""
+    first = meera.say(SCENARIO_C_TEXT)
+    fake_sales.register(optional=True)
+    card = first["cards"][0]
+    second = meera.say("change it to 300", context=_quote_screen(card["quote_id"], card["lines"][0]["line_id"]))
+    assert second["run"]["status"] == "succeeded", second
+    assert tool_calls(second) == ["revise_draft_line"]
+    revised = cards_of(second, "quote_draft")[0]
+    assert Decimal(revised["totals"]["grand_total"]) == Decimal("7200.00")
+    assert cards_of(second, "receipt")[0]["action"] == "revise_draft_line"
+    step = next(s for s in second["steps"] if s["kind"] == "tool_call" and s["name"] == "revise_draft_line")
+    assert step["input"]["quantity_source"] == "user_turn" and step["input"]["line_id"] == card["lines"][0]["line_id"]

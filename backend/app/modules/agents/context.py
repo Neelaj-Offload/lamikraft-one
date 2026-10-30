@@ -85,6 +85,22 @@ def ground_screen_context(uow: UnitOfWork, context: ScreenContext | None) -> lis
     return refs
 
 
+#: a bare ``id`` is typed by the shape of the object that carries it (sales ``QuoteDetail`` / ``QuoteLineRead`` /
+#: ``PartyRef``); first match wins
+_ID_SHAPES: tuple[tuple[str, str], ...] = (
+    ("quote_number", "sales.quote"),
+    ("line_key", "sales.quote_line"),
+    ("party_number", "parties.party"),
+)
+
+
+def _id_resource_type(obj: Mapping[str, Any]) -> str | None:
+    for marker, resource_type in _ID_SHAPES:
+        if marker in obj:
+            return resource_type
+    return None
+
+
 def typed_refs_from_output(output: Any, *, origin: str = "tool") -> list[ContextRef]:
     """Object-context rows for the typed ids a tool output carries (``party_id`` -> parties.party ...)."""
     refs: dict[tuple[str, uuid.UUID], ContextRef] = {}
@@ -94,6 +110,8 @@ def typed_refs_from_output(output: Any, *, origin: str = "tool") -> list[Context
         if isinstance(current, Mapping):
             for key, value in current.items():
                 resource_type = FIELD_RESOURCE_TYPES.get(str(key))
+                if key == "id" and resource_type is None:
+                    resource_type = _id_resource_type(current)
                 if resource_type and isinstance(value, (str, uuid.UUID)):
                     try:
                         rid = value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))

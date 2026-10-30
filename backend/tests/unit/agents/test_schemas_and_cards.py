@@ -103,3 +103,48 @@ def test_clarification_options_are_exactly_the_candidates() -> None:
     options = cards.party_options(candidates)
     assert [o.action.value for o in options] == [str(c["party_id"]) for c in candidates]
     assert all(o.action.kind == "select_option" and o.action.slot == "party" for o in options)
+
+
+def test_quote_draft_card_reads_the_sales_quote_detail_shape() -> None:
+    """``draft_quote`` returns sales ``QuoteDetail``: ``id``, ``party{}``, ``version``, ``QuoteLineRead`` lines with a
+    ``product_snapshot`` and ``unit_code``, persisted ``totals`` and the engine ``calculation``."""
+    quote_id, line_id, product_id, party_id = uuid.uuid7(), uuid.uuid7(), uuid.uuid7(), uuid.uuid7()
+    money = lambda a: {"amount": a, "currency": "EUR"}  # noqa: E731
+    output = {
+        "id": str(quote_id), "quote_number": "LK-QT-2026-0009", "status": "draft", "currency": "EUR", "version": 3,
+        "party": {"id": str(party_id), "party_number": "P-00001", "display_name": "Nordhaus Interiors GmbH", "country_code": "DE"},
+        "lines": [{"id": str(line_id), "line_no": 1, "line_key": str(line_id), "line_type": "catalog", "product_id": str(product_id),
+                   "description": "Oak tray", "quantity": "240", "unit_code": "pcs", "unit_price": "24.0000", "line_total": "5760.00",
+                   "price_list_item_id": str(uuid.uuid7()),
+                   "product_snapshot": {"product_id": str(product_id), "product_key": "LK-OT-0450", "display_sku": "OT-0450", "product_name": "Oak tray"}}],
+        "totals": {"currency": "EUR", "gross_subtotal": money("5760.00"), "surcharge": money("0.00"), "surcharge_applied": False,
+                   "grand_total": money("5760.00"), "minimum": {"status": "MEETS"}},
+        "calculation": {
+            "currency": "EUR", "gross_subtotal": money("5760.00"), "discount_total": money("0.00"), "applicable_subtotal": money("5760.00"),
+            "grand_total": money("5760.00"), "minimum": {"status": "MEETS"}, "surcharge": {"applied": False, "amount": money("0.00")},
+            "lines": [{"line_key": str(line_id), "recommendation": {"quantity": {"value": "216", "uom": "pcs"}}}], "warnings": [],
+        },
+        "capabilities": {"update": {"allowed": True}},
+    }
+    card = cards.quote_draft_card(output, provider_label="Demo", tainted=False)
+    assert card.quote_id == quote_id and card.version == 3 and card.party_id == party_id
+    assert card.party_label == "Nordhaus Interiors GmbH"
+    line = card.lines[0]
+    assert line.line_id == line_id and line.product_key == "LK-OT-0450" and line.uom == "pcs" and line.line_total == Decimal("5760.00")
+    assert card.totals is not None and card.totals.grand_total == Decimal("5760.00") and card.totals.recommended_quantity == 216
+    assert card.review is not None and card.review.path == f"/sales/quotes/{quote_id}"
+
+
+def test_bare_ids_are_typed_by_the_shape_that_carries_them() -> None:
+    from app.modules.agents.context import typed_refs_from_output
+
+    quote_id, line_id, party_id = uuid.uuid7(), uuid.uuid7(), uuid.uuid7()
+    refs = typed_refs_from_output({
+        "id": str(quote_id), "quote_number": "LK-QT-2026-0009",
+        "party": {"id": str(party_id), "party_number": "P-00001", "display_name": "Nordhaus"},
+        "lines": [{"id": str(line_id), "line_key": str(line_id)}],
+        "owner": {"id": str(uuid.uuid7()), "display_name": "Meera"},  # untyped: not object context
+    })
+    assert {(r.resource_type, r.resource_id) for r in refs} == {
+        ("sales.quote", quote_id), ("parties.party", party_id), ("sales.quote_line", line_id),
+    }

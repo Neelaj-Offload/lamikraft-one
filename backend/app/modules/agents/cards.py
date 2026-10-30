@@ -1,9 +1,10 @@
 """Server-built cards (ai-routing.md section 5): Pydantic models with a ``kind`` discriminator, built from tool
 outputs, never from model text. Every card carries the provider label ("Demo") and the run's taint marker.
 
-Builders are defensive about the sales tool output shapes (the sales module lands in parallel): they read the
-documented fields (``quote_id``, ``quote_number``, ``status``, ``party_id``, ``currency``, ``lines``, ``totals``)
-and leave anything missing as ``None`` rather than inventing a figure.
+Builders read the sales module's ``QuoteDetail`` (``draft_quote`` output: ``id``, ``quote_number``, ``status``,
+``party{id, display_name}``, ``currency``, ``version``, ``lines[QuoteLineRead]``, ``totals``, ``calculation``) and
+stay tolerant of the older documented aliases (``quote_id``, ``party_id``, ``line_id``, ``uom``); anything missing
+is left as ``None`` rather than inventing a figure.
 """
 
 from __future__ import annotations
@@ -70,6 +71,8 @@ class QuoteDraftCard(CardBase):
     quote_id: uuid.UUID | None
     quote_number: str | None
     status: str
+    #: the quote's row version when the card was built (``expected_version`` for a follow-up line update)
+    version: int | None = None
     party_id: uuid.UUID | None
     party_label: str | None
     currency: str
@@ -186,7 +189,7 @@ def _totals_from_calculation(calc: Mapping[str, Any]) -> QuoteTotalsCard:
         discount_total=_dec(calc.get("discount_total")),
         applicable_subtotal=_dec(calc.get("applicable_subtotal")),
         surcharge=_dec(surcharge.get("amount")),
-        surcharge_applied=bool(surcharge.get("applied")),
+        surcharge_applied=bool(surcharge.get("applied") or calc.get("surcharge_applied")),
         grand_total=_dec(calc.get("grand_total")),
         minimum_status=minimum.get("status"),
         recommended_quantity=recommended,
@@ -216,13 +219,17 @@ def _totals_from_persisted(totals: Mapping[str, Any], currency: str) -> QuoteTot
 
 
 def _line(raw: Mapping[str, Any]) -> QuoteLineCard:
-    product = raw.get("product") if isinstance(raw.get("product"), Mapping) else {}
+    product: Mapping[str, Any] = {}
+    for key in ("product", "product_snapshot"):  # QuoteLineRead carries the frozen product_snapshot
+        if isinstance(raw.get(key), Mapping):
+            product = raw[key]
+            break
     return QuoteLineCard(
         line_id=_uuid(raw.get("line_id") or raw.get("id")),
         line_no=raw.get("line_no"),
         product_id=_uuid(raw.get("product_id") or product.get("product_id") or product.get("id")),
         product_key=raw.get("product_key") or product.get("product_key"),
-        product_name=raw.get("product_name") or product.get("product_name") or product.get("name"),
+        product_name=raw.get("product_name") or product.get("product_name") or product.get("name") or raw.get("description"),
         quantity=_dec(raw.get("quantity")),
         uom=_uom(raw.get("quantity"), raw.get("uom") or raw.get("unit_code")),
         unit_price=_dec(raw.get("unit_price")),
@@ -235,11 +242,18 @@ def _line(raw: Mapping[str, Any]) -> QuoteLineCard:
 def quote_draft_card(
     output: Mapping[str, Any], *, provider_label: str, tainted: bool, party_label: str | None = None
 ) -> QuoteDraftCard:
-    """QuoteDraftCard from a ``draft_quote`` / ``revise_draft_line`` output (persisted totals from the tool)."""
+    """QuoteDraftCard from a ``draft_quote`` output or a sales ``QuoteDetail`` (persisted totals, never recomputed)."""
     quote_id = _uuid(output.get("quote_id") or output.get("id"))
     currency = str(output.get("currency") or (output.get("totals") or {}).get("currency") or "")
+    party = output.get("party") if isinstance(output.get("party"), Mapping) else {}
+    calculation = output.get("calculation")
     totals_raw = output.get("totals")
-    totals = _totals_from_persisted(totals_raw, currency) if isinstance(totals_raw, Mapping) else None
+    if isinstance(calculation, Mapping):  # the persisted engine result: totals, minimum and the recommendation
+        totals = _totals_from_calculation(calculation)
+    elif isinstance(totals_raw, Mapping):
+        totals = _totals_from_persisted(totals_raw, currency)
+    else:
+        totals = None
     capabilities = {
         k: Capability(**v) if isinstance(v, Mapping) else Capability(allowed=bool(v))
         for k, v in (output.get("capabilities") or {}).items()
@@ -250,8 +264,9 @@ def quote_draft_card(
         quote_id=quote_id,
         quote_number=output.get("quote_number"),
         status=str(output.get("status") or "draft"),
-        party_id=_uuid(output.get("party_id")),
-        party_label=output.get("party_name") or output.get("party_label") or party_label,
+        version=output.get("version") if isinstance(output.get("version"), int) else None,
+        party_id=_uuid(output.get("party_id") or party.get("id")),
+        party_label=output.get("party_name") or output.get("party_label") or party.get("display_name") or party_label,
         currency=currency,
         lines=[_line(line) for line in output.get("lines") or []],
         totals=totals,
@@ -295,6 +310,7 @@ def quote_preview_card(
         quote_id=base.quote_id if base else None,
         quote_number=base.quote_number if base else None,
         status=base.status if base else "preview",
+        version=base.version if base else None,
         party_id=base.party_id if base else None,
         party_label=base.party_label if base else None,
         currency=str(calc.get("currency") or (base.currency if base else "")),
