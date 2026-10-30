@@ -300,6 +300,7 @@ def list_categories(uow: UnitOfWork, *, include_inactive: bool = False) -> list[
                 effective_active=s.is_active and cat.is_active,
                 description=s.description,
                 product_count=int(sub_counts.get(s.id, 0)),
+                version=s.version,
             )
             for s in subcategories
             if s.category_id == cat.id and (include_inactive or s.is_active)
@@ -315,6 +316,7 @@ def list_categories(uow: UnitOfWork, *, include_inactive: bool = False) -> list[
                 source_catalog_page_end=cat.source_catalog_page_end,
                 product_count=int(cat_counts.get(cat.id, 0)),
                 subcategories=subs,
+                version=cat.version,
             )
         )
     return out

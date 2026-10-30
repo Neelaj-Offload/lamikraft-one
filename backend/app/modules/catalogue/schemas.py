@@ -571,6 +571,7 @@ class SubcategoryRead(BaseModel):
     effective_active: bool
     description: str | None
     product_count: int
+    version: int = 1
 
 
 class CategoryRead(BaseModel):
@@ -583,6 +584,7 @@ class CategoryRead(BaseModel):
     source_catalog_page_end: str | None
     product_count: int
     subcategories: list[SubcategoryRead]
+    version: int = 1
 
 
 class ProductFilters(BaseModel):

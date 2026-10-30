@@ -61,10 +61,36 @@ export const queryKeys = {
   parties: {
     all: () => ["parties"] as const,
     search: (q: string) => ["parties", "search", compact({ q: q.trim() })] as const,
+    // catalogue lane (Slice 2): party list/detail and customer types
+    list: (params: Record<string, string | number | boolean | null | undefined>) => ["parties", "list", compact(params)] as const,
+    party: (partyId: string) => ["parties", "party", { party_id: partyId }] as const,
+    customerTypes: () => ["parties", "customer-types"] as const,
   },
   catalogue: {
     all: () => ["catalogue"] as const,
     productSearch: (q: string) => ["catalogue", "product-search", compact({ q: q.trim() })] as const,
+    // catalogue lane (Slice 2): products, taxonomy, media, completeness, lookups
+    products: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "products", compact(params)] as const,
+    facets: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "facets", compact(params)] as const,
+    stats: () => ["catalogue", "stats"] as const,
+    product: (productId: string) => ["catalogue", "product", { product_id: productId }] as const,
+    media: (productId: string, includeDeleted: boolean) => ["catalogue", "media", { product_id: productId, include_deleted: includeDeleted }] as const,
+    history: (productId: string) => ["catalogue", "history", { product_id: productId }] as const,
+    categories: (includeInactive: boolean) => ["catalogue", "categories", { include_inactive: includeInactive }] as const,
+    completeness: () => ["catalogue", "completeness"] as const,
+    lookups: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "lookups", compact(params)] as const,
+    lookupTypes: () => ["catalogue", "lookup-types"] as const,
+  },
+  // catalogue lane (Slice 2): import workbench
+  imports: {
+    all: () => ["imports"] as const,
+    types: () => ["imports", "types"] as const,
+    jobs: (params: Record<string, string | number | boolean | null | undefined>) => ["imports", "jobs", compact(params)] as const,
+    job: (jobId: string) => ["imports", "job", { job_id: jobId }] as const,
+    preview: (jobId: string) => ["imports", "preview", { job_id: jobId }] as const,
+    rows: (jobId: string, params: Record<string, string | number | boolean | null | undefined>) => ["imports", "rows", { job_id: jobId, ...compact(params) }] as const,
+    issues: (jobId: string, params: Record<string, string | number | boolean | null | undefined>) => ["imports", "issues", { job_id: jobId, ...compact(params) }] as const,
+    demoReset: () => ["imports", "demo-reset"] as const,
   },
   search: {
     all: () => ["search"] as const,
@@ -86,6 +112,10 @@ export const invalidationMap = {
   "sales.quote_changed": [queryKeys.sales.all(), queryKeys.briefings.today()],
   "sales.quote_transition": [queryKeys.sales.all(), queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "sales.message_replied": [queryKeys.sales.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  // catalogue lane (Slice 2)
+  "catalogue.changed": [queryKeys.catalogue.all()],
+  "imports.changed": [queryKeys.imports.all(), queryKeys.catalogue.all()],
+  "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

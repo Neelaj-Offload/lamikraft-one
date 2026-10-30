@@ -299,6 +299,19 @@ export const routes = [
     requiredPermission: "sales.",
     access: "session",
   },
+  // catalogue lane (Slice 2 wave 1): products, taxonomy, completeness, imports, lookups, parties, customer types
+  { id: "products-new", path: "/products/new", label: "New product", area: "products", navGroup: null, mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "product", path: "/products/[productId]", label: "Product", area: "products", navGroup: null, mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "product-section", path: "/products/[productId]/[section]", label: "Product", area: "products", navGroup: null, mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "products-taxonomy", path: "/products/taxonomy", label: "Taxonomy", area: "products", navGroup: "context", mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "products-completeness", path: "/products/completeness", label: "Completeness", area: "products", navGroup: "context", mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "settings-imports", path: "/settings/imports", label: "Imports", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-import-new", path: "/settings/imports/new", label: "New import", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-import", path: "/settings/imports/[jobId]", label: "Import", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-lookups", path: "/settings/lookups", label: "Lookup reference", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "catalogue.", access: "session" },
+  { id: "settings-customer-types", path: "/settings/customer-types", label: "Customer types", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "parties.", access: "session" },
+  { id: "sales-parties", path: "/sales/parties", label: "Customers and suppliers", area: "sales", navGroup: "context", mobileTab: "work", requiredPermission: "parties.", access: "session" },
+  { id: "sales-party", path: "/sales/parties/[partyId]", label: "Party", area: "sales", navGroup: null, mobileTab: "work", requiredPermission: "parties.", access: "session" },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];
