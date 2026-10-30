@@ -118,7 +118,7 @@ describe("matchRoute", () => {
 
   it("returns null for unknown paths", () => {
     expect(matchRoute("/nope")).toBeNull();
-    expect(matchRoute("/sales/quotes")).toBeNull();
+    expect(matchRoute("/sales/nope/deeper")).toBeNull();
   });
 
   it("compiles dynamic, catch-all and optional catch-all segments", () => {

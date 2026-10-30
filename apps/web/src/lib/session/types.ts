@@ -105,6 +105,13 @@ export interface SessionCapabilities {
   voice: boolean;
 }
 
+/** Configured provider modes (ui/schemas.py `IntegrationModes`), for truthful Demo labels. */
+export interface IntegrationModes {
+  ai: "demo" | "live";
+  whatsapp: "demo" | "live";
+  email: "demo" | "smtp";
+}
+
 export interface SessionBootstrap {
   user: SessionUser;
   membership: SessionMembership;
@@ -119,9 +126,13 @@ export interface SessionBootstrap {
   greeting_period: GreetingPeriod | null;
   permissions: EffectivePermission[];
   ui: UiPreferencesState;
+  /** `preferences.version`: sent as `expected_version` with every preference change (0 if absent). */
+  preferences_version: number;
   nav: NavEntry[];
   features: FeatureReadiness;
   capabilities: SessionCapabilities;
+  /** Null when the server did not send `integration_modes`. */
+  integration_modes: IntegrationModes | null;
   integrations: SectionValue<IntegrationStatus[]>;
   inbox_counts: SectionValue<InboxCounts>;
   briefing: SectionValue<BriefingState>;

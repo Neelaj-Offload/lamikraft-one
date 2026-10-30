@@ -1,12 +1,68 @@
 /**
- * INTERIM hand-written types for `GET /api/v1/briefings/today` (BriefingView) and the briefing
- * item endpoints, derived from docs/design/source/briefing.md §16 (API), §2 (briefings_items
- * columns), §5 (sections, uncertainty flags), §9 (actions) and §11 (fallback). The work lane
- * builds these endpoints in the same wave.
+ * Today's data, in two layers:
  *
- * INTERIM(api-generate): replace with `components["schemas"]["BriefingView"]` and friends from
- * src/lib/api/schema.d.ts when the briefings module merges; keep field names aligned with it.
+ * 1. `Wire*` types: the generated briefings API types (`components["schemas"]` from
+ *    src/lib/api/schema.d.ts: `BriefingView`, `ItemView`, `ActionView`, `ExplainView`,
+ *    `ItemActionRequest`, `ItemActionResult`; `InboxItem` for the fallback task list).
+ * 2. The view model the Today components render (`BriefingView`, `BriefingItem`, ...).
+ *    `parse.ts` is the single adapter between the two; nothing else reads the wire shape.
  */
+
+import type { components } from "@/lib/api/schema";
+
+type Schemas = components["schemas"];
+
+// ---------------------------------------------------------------------------------------------
+// Wire (briefings/schemas.py)
+
+export type WirePersonRef = Schemas["PersonRef"];
+
+export type WireSourceRef = Schemas["SourceRefView"];
+
+export type WireRecommendation = Schemas["RecommendationView"];
+
+export type WireAction = Schemas["ActionView"];
+
+export type WireItemState = Schemas["ItemStateView"];
+
+export type WireMoney = Schemas["Money"];
+
+export type WireItem = Schemas["ItemView"];
+
+export type WireSection = Schemas["SectionView"];
+
+export type WireOverview = Schemas["OverviewView"];
+
+export type WireAck = Schemas["AckView"];
+
+export type WireInboxItem = Schemas["InboxItem"];
+
+export type WireLastSuccessful = Schemas["LastSuccessfulView"];
+
+export type WireFallback = Schemas["FallbackView"];
+
+export type WireBriefingView = Schemas["BriefingView"];
+
+/** tasks/schemas.py `DismissalReasonCode`: the only reasons a dismissal accepts. */
+export const DISMISSAL_REASON_CODES = [
+  "handled_outside_system",
+  "not_applicable",
+  "duplicate",
+  "customer_withdrew",
+  "no_action_needed",
+] as const;
+export type DismissalReasonCode = (typeof DISMISSAL_REASON_CODES)[number];
+
+export type WireItemActionRequest = Schemas["ItemActionRequest"];
+
+export type WireExplain = Schemas["ExplainView"];
+
+export type WireItemActionResult = Schemas["ItemActionResult"];
+
+export type WireAcknowledgeRequest = Schemas["AcknowledgeRequest"];
+
+// ---------------------------------------------------------------------------------------------
+// View model (what the Today components render)
 
 export type SectionCode =
   | "needs_you_now"
@@ -21,8 +77,12 @@ export type BriefingStatus = "ready" | "fallback";
 export type PriorityBand = "P1" | "P2" | "P3" | "P4";
 export type DueKind = "hard" | "soft" | "none";
 export type ChangeKind = "new" | "changed" | "unchanged";
-/** `demo`: the deterministic demo adapter phrased the text; `unavailable`: template wording. */
-export type AiStatus = "ok" | "unavailable" | "demo";
+/**
+ * `not_used`: the deterministic template wrote the text by design (Slice 1, the only value the
+ * server sends today); `demo`: the Demo adapter phrased it; `unavailable`: the model was down
+ * and the template text stands in ("Standard wording").
+ */
+export type AiStatus = "not_used" | "ok" | "unavailable" | "demo";
 
 export interface PersonRef {
   id: string;
@@ -62,6 +122,9 @@ export type BriefingActionCode =
   | "dismiss"
   | "explain";
 
+/** Where a command is carried out: the briefings endpoint, or the approvals review page. */
+export type ActionVia = "briefings" | "approvals";
+
 export interface ReasonOption {
   code: string;
   label: string;
@@ -73,11 +136,14 @@ export interface BriefingAction {
   /** Server label such as "Review quote"; the web falls back to its own copy. */
   label: string | null;
   primary: boolean;
-  /** Navigational actions (open, review, prepare result) carry the canonical URL. */
+  /** Navigational actions (open, review, assign) carry the in-app URL. */
   href: string | null;
   requires_reason: boolean;
-  /** Allowed reason codes for dismiss/reject, from the server's enum. */
+  /** Allowed reason codes for dismiss, from the server's enum. */
   reasons?: ReasonOption[];
+  via: ActionVia | (string & {});
+  /** Snooze: the latest instant the server accepts (bounded by the deadline). */
+  max_until: string | null;
 }
 
 export interface ProposalRef {
@@ -89,12 +155,12 @@ export interface ProposalRef {
 export interface UncertaintyFlag {
   /** STALE_STOCK_DATA, MISSING_PRICE, FX_UNAVAILABLE, ESTIMATE, DEMO_DATA, ... */
   code: string;
-  /** Server-rendered text such as "No warehouse update since yesterday 18:10". */
+  /** Server-rendered text, or the web's copy for the code. */
   label: string | null;
 }
 
 export interface BriefingItem {
-  /** briefings_items row id (stable within a version). */
+  /** The issue id: a briefing lists each issue once, so it identifies the row too. */
   id: string;
   /** Stable across versions; actions address the issue. */
   issue_id: string;
@@ -106,6 +172,10 @@ export interface BriefingItem {
   title: string;
   /** Template text with the facts, e.g. "240 oak trays. EUR 5,760. Ready for review." */
   summary_text: string | null;
+  /** Server-rendered deadline text in the user's zone ("Due today, 6:30 pm"), when it sent one. */
+  due_label: string | null;
+  /** Rule reasons as text ("Expires today"), from the priority engine. */
+  reasons: string[];
   fact_at: string | null;
   due_at: string | null;
   due_kind: DueKind;
@@ -121,7 +191,7 @@ export interface BriefingItem {
   fingerprint: string;
   /** Delegated work: "For Ravi". */
   on_behalf_of: PersonRef | null;
-  /** Snooze overlay for the full list's "Snoozed" filter. */
+  /** Snooze overlay for the full list's "Snoozed" group. */
   snoozed_until: string | null;
 }
 
@@ -134,7 +204,7 @@ export interface BriefingSection {
 export interface BriefingOverview {
   /** Server-computed in the user's zone: "Good morning, Meera." */
   greeting: string;
-  /** One factual sentence from a backend template; the client never composes it. */
+  /** One factual sentence from a backend template (`sentence`); the client never composes it. */
   text: string;
   text_source: "template" | "llm";
   facts: Record<string, unknown>;
@@ -168,18 +238,21 @@ export interface LastSuccessfulBriefing {
 export interface BriefingFallback {
   /** When generation failed. */
   error_at: string;
+  error_code: string;
   tasks: FallbackTask[];
   last_successful: LastSuccessfulBriefing | null;
 }
 
 export interface BriefingAck {
+  briefing_id: string | null;
   version: number;
   acknowledged_at: string;
   method: "viewed" | "explicit" | "voice" | "whatsapp";
 }
 
 export interface BriefingView {
-  briefing_id: string;
+  /** Null only for a fallback written before any briefing existed today. */
+  briefing_id: string | null;
   work_date: string;
   day_type: DayType;
   /**
@@ -191,23 +264,25 @@ export interface BriefingView {
   generated_at: string;
   data_as_of: string;
   ai_status: AiStatus;
-  /** Null only when `status` is `fallback` (no overview was generated). */
+  /** Null when `status` is `fallback`, or when permissions changed since it was generated. */
   overview: BriefingOverview | null;
   sections: BriefingSection[];
   items: BriefingItem[];
   /** At most five, in display order. */
   initial_item_ids: string[];
   pending_updates: number;
+  /** The newest version of this briefing on the server (the one on screen may be older). */
+  latest_version: number | null;
+  /** The person acknowledged the latest version (nothing new since "Mark as seen"). */
+  up_to_date: boolean;
+  /** Items the person snoozed; shown in the full list only. */
+  snoozed: BriefingItem[];
   last_ack: BriefingAck | null;
   partial_families: PartialFamily[];
   fallback: BriefingFallback | null;
 }
 
-/**
- * `GET /api/v1/briefings/items/{issue_id}/explain` (briefing.md §9 "Explain": reason codes as
- * deterministic text, the rule version, the recommendation reason and the sources). The shape
- * is not fixed by §16 yet, so `parseExplanation` reads it defensively.
- */
+/** The `explain` action's `explanation`: deterministic text, reasons, rule version, sources. */
 export interface BriefingExplanation {
   text: string;
   reasons: string[];

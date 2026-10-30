@@ -1,55 +1,98 @@
 /**
- * INTERIM hand-written types for `GET /api/v1/tasks/inbox?tab=&cursor=` (keyset page,
- * api-conventions §9 `CursorPage{items,next_cursor,limit}`), derived from
- * docs/design/source/briefing.md §2 (tasks_tasks) and §16 (Tasks and Inbox). Built by the work
- * lane in the same wave.
+ * The Inbox (tasks module, backend/app/modules/tasks/{router,schemas}.py).
  *
- * INTERIM(api-generate): replace with the generated schema types when the tasks module merges.
+ * `Wire*` types are the generated API types (`components["schemas"]`, src/lib/api/schema.d.ts,
+ * from `npm run api:generate`); `api.ts` is the only reader of the wire shapes.
  */
 
-export const INBOX_TABS = ["tasks", "approvals", "exceptions", "snoozed", "done"] as const;
+import type { components } from "@/lib/api/schema";
+
+type Schemas = components["schemas"];
+
+/** tasks/schemas.py `InboxTab`. */
+export const INBOX_TABS = ["tasks", "approvals", "conversations", "exceptions"] as const;
 export type InboxTab = (typeof INBOX_TABS)[number];
 
 export type TaskState = "open" | "in_progress" | "done" | "dismissed" | "cancelled" | "expired";
 export type DueKind = "hard" | "soft" | "none";
 
-export interface InboxPerson {
-  id: string;
-  display_name: string;
-}
+// ---------------------------------------------------------------------------------------------
+// Wire
+
+export type WireCapability = Schemas["Capability"];
+
+export type WireSourceRef = Schemas["SourceRef"];
+
+export type WireInboxItem = Schemas["InboxItem"];
+
+export type WireInboxPage = Schemas["InboxPage"];
+
+export type WireInboxCounts = Schemas["InboxCounts"];
+
+export type WireAllowedTransition = Schemas["AllowedTransition"];
+
+export type WireTaskDetail = Schemas["TaskDetail"];
+
+export type WireTaskTransition = Schemas["TaskTransition"];
+
+// ---------------------------------------------------------------------------------------------
+// View model
 
 export interface InboxSource {
   type: string;
   id: string;
-  /** "Quote LK-QT-2026-0041" */
+  /** "LK-QT-2026-0005 · Maison Atelier SARL" */
   label: string;
   href: string | null;
 }
 
+export interface Capability {
+  allowed: boolean;
+  reason_code: string | null;
+}
+
 export interface InboxItem {
   id: string;
+  issue_id: string;
   kind: string;
   family: string;
+  tab: InboxTab;
   title: string;
-  summary: string | null;
   state: TaskState;
   due_at: string | null;
   due_kind: DueKind;
   overdue: boolean;
+  blocked: boolean;
+  owner_user_id: string | null;
+  assignee_user_id: string | null;
+  queue_code: string | null;
   snoozed_until: string | null;
   source: InboxSource | null;
-  /** Canonical screen for the task or its record. */
-  href: string | null;
-  assignee: InboxPerson | null;
-  owner: InboxPerson | null;
-  on_behalf_of: InboxPerson | null;
-  updated_at: string;
+  /** The approval proposal this task asks to decide, when it is one (approvals tab). */
+  proposal_id: string | null;
+  capabilities: Readonly<Record<string, Capability>>;
+  version: number;
 }
 
 export interface InboxPage {
   items: InboxItem[];
   next_cursor: string | null;
   limit: number;
-  /** Per-tab counts over the visible set, when the server includes them. */
-  counts: Partial<Record<InboxTab, number>> | null;
+}
+
+export type InboxCounts = Partial<Record<InboxTab, number>>;
+
+export interface TaskTransitionOption {
+  action: "complete" | "dismiss" | "start";
+  to_status: string;
+  requires_reason: boolean;
+}
+
+export interface TaskDetail extends InboxItem {
+  facts: Readonly<Record<string, unknown>>;
+  completion_check: string;
+  dismissal_reason_code: string | null;
+  closed_at: string | null;
+  created_at: string;
+  allowed_transitions: TaskTransitionOption[];
 }

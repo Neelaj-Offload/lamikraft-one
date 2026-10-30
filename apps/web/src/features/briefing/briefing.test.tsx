@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { meeraBriefing, testItem } from "@/lib/test-support/briefing";
+import { meeraBriefing, meeraBriefingWire, testItem } from "@/lib/test-support/briefing";
 import { countTags, nestedInteractive, render, renderInSession, textOf } from "@/lib/test-support/render";
 import { createApiClient } from "@/lib/api/client";
-import { snoozeItem, runItemAction, snoozeUntil } from "./api";
+import { acknowledgeBriefing, snoozeItem, runItemAction, snoozeUntil } from "./api";
 import { BriefingHeader } from "./briefing-header";
 import { BriefingItemRow, dueLabel } from "./briefing-item-row";
 import { BriefingSection, FallbackView, FullListToggle, UpdatesBanner } from "./briefing-sections";
-import { CommandBar } from "./command-bar";
 import {
   briefingChange,
   hasMoreThanInitial,
@@ -69,17 +68,19 @@ describe("Today view-model", () => {
   it("picks one primary control and offers only supported server actions", () => {
     const item = meeraBriefing().items[0]!;
     expect(primaryAction(item)?.action).toBe("open");
-    // assign is offered by the server but has no client flow yet, so it is not shown.
+    // assign without a task link has nowhere to go, so it is not shown.
     expect(secondaryActions(item).map((a) => a.action)).toEqual(["snooze", "mark_handled", "explain"]);
     const noHref = testItem({
       id: "x",
       section: "needs_you_now",
       allowed_actions: [
-        { action: "review", label: null, primary: true, href: null, requires_reason: false },
-        { action: "approve", label: null, primary: false, href: null, requires_reason: false },
+        { action: "review", label: null, primary: true, href: null, requires_reason: false, via: "briefings", max_until: null },
+        { action: "approve", label: null, primary: false, href: null, requires_reason: false, via: "approvals", max_until: null },
+        { action: "mark_handled", label: null, primary: false, href: null, requires_reason: false, via: "briefings", max_until: null },
       ],
     });
-    expect(primaryAction(noHref)?.action).toBe("approve");
+    // review without a link and approve (decided on the review page) are never offered.
+    expect(primaryAction(noHref)?.action).toBe("mark_handled");
     expect(primaryAction(testItem({ id: "y", section: "coming_next" }))).toBeNull();
   });
 
@@ -101,35 +102,72 @@ describe("Today view-model", () => {
     expect(dueLabel({ ...item, overdue: true }, NOW, IST)).toMatch(/^Overdue · Due Today/);
     expect(dueLabel({ ...item, due_kind: "soft" }, NOW, IST)).toMatch(/^Target Today/);
     expect(dueLabel({ ...item, due_kind: "none" }, NOW, IST)).toBeNull();
+    // The server's own text wins when it sends one.
+    expect(dueLabel({ ...item, due_label: "Due today, 11:59 pm" }, NOW, IST)).toBe("Due today, 11:59 pm");
   });
 });
 
-describe("parseBriefingView", () => {
-  it("accepts the briefing and keeps server order", () => {
-    const view = parseBriefingView(JSON.parse(JSON.stringify(meeraBriefing())));
-    expect(view.items.map((i) => i.id)).toEqual(["i1", "i2", "i3", "i4", "i5", "i6"]);
-    expect(view.items[0]!.allowed_actions[0]).toMatchObject({ action: "open", primary: true, href: "/sales/quotes/q38" });
+describe("parseBriefingView (briefings/schemas.py BriefingView)", () => {
+  it("maps the wire view: issue ids, sections, initial view, sentence and update counts", () => {
+    const view = parseBriefingView(meeraBriefingWire());
+    expect(view.items.map((i) => i.id)).toEqual(["w1", "w2", "w3"]);
+    expect(view.sections).toEqual([
+      { code: "needs_you_now", total: 2, item_ids: ["w1", "w2"] },
+      { code: "plan_for_today", total: 1, item_ids: ["w3"] },
+    ]);
+    expect(view.initial_item_ids).toEqual(["w1", "w2", "w3"]);
+    expect(view.overview).toMatchObject({ greeting: "Good morning, Meera.", text: "Two customer replies need attention and one quote expires today." });
+    expect(view).toMatchObject({ version: 2, latest_version: 3, pending_updates: 1, up_to_date: false, ai_status: "not_used" });
+    const first = view.items[0]!;
+    expect(first).toMatchObject({ priority_band: "P1", summary_text: "LK-QT-2026-0006 · EUR 5,700.00", due_label: "Due today, 11:59 pm", reasons: ["Expires today"] });
+    expect(first.recommendation).toMatchObject({ reason_text: "The quote expires at the end of today.", effect_text: "Keeps the offer open.", alternatives: ["Snooze", "Dismiss with reason"] });
+    expect(first.uncertainty_flags).toEqual([{ code: "DEMO_DATA", label: "Demo data" }]);
+  });
+
+  it("maps actions: resource paths become app routes, dismiss gets the server's reason codes", () => {
+    const view = parseBriefingView(meeraBriefingWire());
+    const [first, decision] = view.items;
+    const byAction = Object.fromEntries(first!.allowed_actions.map((a) => [a.action, a]));
+    expect(byAction.open!.href).toBe("/sales/quotes/0192a000-0000-7000-8000-000000000038");
+    expect(byAction.assign!.href).toBe("/inbox?task=0192a000-0000-7000-8000-0000000000f1");
+    expect(byAction.snooze!.max_until).toBe("2026-10-12T12:00:00Z");
+    expect(byAction.dismiss!.reasons!.map((r) => r.code)).toEqual([
+      "handled_outside_system",
+      "not_applicable",
+      "duplicate",
+      "customer_withdrew",
+      "no_action_needed",
+    ]);
+    // Decisions are taken on the review page: approve/reject (via approvals) are not row actions.
+    expect(decision!.allowed_actions.map((a) => a.action)).toEqual(["open", "review", "explain"]);
+    expect(decision!.allowed_actions[1]!.href).toBe("/inbox/approvals/0192a000-0000-7000-8000-0000000000a5");
+    expect(primaryAction(decision!)?.action).toBe("open");
   });
 
   it("reports missing fields instead of rendering half a briefing", () => {
-    const raw = JSON.parse(JSON.stringify(meeraBriefing()));
-    delete raw.overview;
+    const raw = JSON.parse(JSON.stringify(meeraBriefingWire()));
+    delete raw.version;
     delete raw.items[1].fingerprint;
     expect(() => parseBriefingView(raw)).toThrow(BriefingShapeError);
     try {
       parseBriefingView(raw);
     } catch (error) {
-      expect((error as BriefingShapeError).problems).toEqual(expect.arrayContaining(["overview", "items[1].fingerprint"]));
+      expect((error as BriefingShapeError).problems).toEqual(expect.arrayContaining(["version", "items[1].fingerprint"]));
     }
   });
 
+  it("keeps a ready briefing whose overview was withheld (permissions changed)", () => {
+    const raw = { ...meeraBriefingWire(), overview: null };
+    expect(parseBriefingView(raw).overview).toBeNull();
+  });
+
   it("drops off-site links and caps the initial view at five", () => {
-    const raw = JSON.parse(JSON.stringify(meeraBriefing()));
-    raw.items[0].source_refs[0].href = "https://evil.example/q";
-    raw.items[0].allowed_actions[0].href = "//evil.example";
-    raw.items[1].source_refs = [{ type: "x", id: "b", label: "Backslash", href: "/\\evil.example/phish" }];
-    raw.items[1].allowed_actions = [{ action: "open", primary: true, href: "/\t/evil.example" }];
-    raw.initial_item_ids = ["i1", "i2", "i3", "i4", "i5", "i6"];
+    const raw = JSON.parse(JSON.stringify(meeraBriefingWire()));
+    raw.items[0].source_refs[0].path = "https://evil.example/q";
+    raw.items[0].allowed_actions[0].path = "//evil.example";
+    raw.items[1].source_refs = [{ type: "x", id: "b", label: "Backslash", path: "/\\evil.example/phish" }];
+    raw.items[1].allowed_actions = [{ action: "open", via: "briefings", path: "/\t/evil.example" }];
+    raw.initial_view = ["w1", "w2", "w3", "w4", "w5", "w6"];
     const view = parseBriefingView(raw);
     expect(view.items[0]!.source_refs[0]!.href).toBeNull();
     expect(view.items[0]!.allowed_actions[0]!.href).toBeNull();
@@ -139,52 +177,83 @@ describe("parseBriefingView", () => {
   });
 
   it("requires the fallback block when the status is fallback", () => {
-    const raw = { ...JSON.parse(JSON.stringify(meeraBriefing())), status: "fallback", fallback: null };
+    const raw = { ...meeraBriefingWire(), status: "fallback", fallback_detail: null };
     expect(() => parseBriefingView(raw)).toThrow(BriefingShapeError);
   });
 
   it("reads an engine-failure fallback without a version or overview (briefing.md §11)", () => {
     const view = parseBriefingView({
+      briefing_id: null,
+      work_date: "2026-10-12",
       status: "fallback",
       version: null,
       overview: null,
       sections: [],
       items: [],
-      fallback: { error_at: "2026-10-12T03:32:00Z", tasks: [{ id: "t1", title: "Reply to Nordhaus" }], last_successful: null },
+      fallback_detail: {
+        error_code: "engine_failed",
+        failed_at: "2026-10-12T03:32:00Z",
+        tasks: [{ id: "t1", title: "Reply to Nordhaus", source_refs: [{ type: "sales.customer_message", id: "m1", label: "Message", path: "/sales/customer-messages" }] }],
+        last_successful: null,
+      },
     });
-    expect(view).toMatchObject({ status: "fallback", version: null, overview: null });
+    expect(view).toMatchObject({ status: "fallback", version: null, overview: null, briefing_id: null });
+    expect(view.fallback).toMatchObject({ error_at: "2026-10-12T03:32:00Z", error_code: "engine_failed" });
     expect(view.fallback?.tasks.map((task) => task.title)).toEqual(["Reply to Nordhaus"]);
-    // A ready briefing still needs both.
-    expect(() => parseBriefingView({ ...JSON.parse(JSON.stringify(meeraBriefing())), version: null })).toThrow(BriefingShapeError);
+    expect(view.fallback?.tasks[0]!.source?.href).toBe("/sales/customer-messages");
+    // A ready briefing still needs its version.
+    expect(() => parseBriefingView({ ...meeraBriefingWire(), version: null })).toThrow(BriefingShapeError);
   });
 });
 
-describe("item commands", () => {
-  it("send the Idempotency-Key, briefing version and item fingerprint", async () => {
+describe("item commands (POST briefings/items/{issue_id}/actions)", () => {
+  it("send the action, Idempotency-Key, briefing version and item fingerprint; nothing else", async () => {
     const seen: Request[] = [];
     const client = createApiClient({
       baseUrl: "http://127.0.0.1:3050",
       getCsrfToken: () => "csrf",
       fetch: async (request) => {
         seen.push(request.clone());
-        return Response.json({ ok: true });
+        return Response.json({ action: "mark_handled", issue_id: "issue-i1", outcome: "completed" });
       },
     });
     const item = meeraBriefing().items[0]!;
     await runItemAction({ item, action: "mark_handled", briefingVersion: 3, idempotencyKey: "key-1" }, client);
     await snoozeItem({ item, until: "2026-10-12T04:25:00Z", briefingVersion: 3, idempotencyKey: "key-2" }, client);
+    await runItemAction({ item, action: "dismiss", reasonCode: "duplicate", note: "  same as 0005 ", briefingVersion: 3, idempotencyKey: "key-3" }, client);
+    await runItemAction({ item, action: "dismiss", reasonCode: "price_too_high", briefingVersion: 3, idempotencyKey: "key-4" }, client);
 
-    expect(new URL(seen[0]!.url).pathname).toBe("/api/v1/briefings/items/issue-i1/actions/mark_handled");
+    for (const request of seen) expect(new URL(request.url).pathname).toBe("/api/v1/briefings/items/issue-i1/actions");
     expect(seen[0]!.headers.get("Idempotency-Key")).toBe("key-1");
     expect(seen[0]!.headers.get("X-CSRF-Token")).toBe("csrf");
-    expect(await seen[0]!.json()).toEqual({ briefing_version: 3, item_fingerprint: "fp-i1-1" });
-    expect(new URL(seen[1]!.url).pathname).toBe("/api/v1/briefings/items/issue-i1/snooze");
-    expect(await seen[1]!.json()).toEqual({ until: "2026-10-12T04:25:00Z", briefing_version: 3, item_fingerprint: "fp-i1-1" });
+    expect(await seen[0]!.json()).toEqual({ action: "mark_handled", briefing_version: 3, item_fingerprint: "fp-i1-1" });
+    expect(await seen[1]!.json()).toEqual({ action: "snooze", until: "2026-10-12T04:25:00Z", briefing_version: 3, item_fingerprint: "fp-i1-1" });
+    expect(await seen[2]!.json()).toEqual({ action: "dismiss", reason_code: "duplicate", note: "same as 0005", briefing_version: 3, item_fingerprint: "fp-i1-1" });
+    // A code outside the server's enum is never sent.
+    expect(await seen[3]!.json()).toEqual({ action: "dismiss", briefing_version: 3, item_fingerprint: "fp-i1-1" });
   });
 
-  it("computes snooze instants in UTC", () => {
+  it("acknowledges the version on screen explicitly", async () => {
+    const seen: Request[] = [];
+    const client = createApiClient({
+      baseUrl: "http://127.0.0.1:3050",
+      getCsrfToken: () => "csrf",
+      fetch: async (request) => {
+        seen.push(request.clone());
+        return Response.json({ accepted: true });
+      },
+    });
+    await acknowledgeBriefing("b-1", 2, "key-ack", client);
+    expect(new URL(seen[0]!.url).pathname).toBe("/api/v1/briefings/b-1/acknowledge");
+    expect(seen[0]!.headers.get("Idempotency-Key")).toBe("key-ack");
+    expect(await seen[0]!.json()).toEqual({ version: 2, method: "explicit" });
+  });
+
+  it("computes snooze instants in UTC, capped at the server's max_until", () => {
     expect(snoozeUntil("1h", NOW)).toBe("2026-10-12T04:25:00Z");
     expect(snoozeUntil("24h", NOW)).toBe("2026-10-13T03:25:00Z");
+    expect(snoozeUntil("24h", NOW, "2026-10-12T12:00:00Z")).toBe("2026-10-12T12:00:00Z");
+    expect(snoozeUntil("1h", NOW, "2026-10-12T12:00:00Z")).toBe("2026-10-12T04:25:00Z");
   });
 });
 
@@ -202,22 +271,6 @@ describe("Today components", () => {
     expect(html).toMatch(/<h1[^>]*>Good morning, Meera\.<\/h1>/);
     expect(textOf(html)).toContain("Two customer replies need attention.");
     expect(textOf(html)).toContain("Standard wording");
-  });
-
-  it("CommandBar: labelled input, no push-to-talk without the voice capability", () => {
-    const html = render(<CommandBar />);
-    expect(textOf(html)).toContain("Ask about your day, or tell me what to do");
-    expect(html).toContain("<textarea");
-    expect(html).not.toContain("Hold to talk");
-    // Unavailable: Send is disabled and says why.
-    expect(textOf(html)).toContain("The assistant isn't switched on for this workspace yet.");
-    expect(html).toMatch(/<button[^>]*\sdisabled=""/);
-  });
-
-  it("CommandBar: push-to-talk appears only with a voice control", () => {
-    const html = render(<CommandBar onSubmit={noop} voice={{ onPressStart: noop, onPressEnd: noop, isRecording: false }} />);
-    expect(html).toContain('aria-label="Hold to talk"');
-    expect(html).not.toMatch(/<textarea[^>]*\sdisabled=""/);
   });
 
   it("BriefingItemRow: status, problem, recommendation, evidence and one primary control", () => {
@@ -272,6 +325,7 @@ describe("Today components", () => {
       <FallbackView
         fallback={{
           error_at: "2026-10-12T03:32:00Z",
+          error_code: "engine_failed",
           tasks: [
             {
               id: "t1",

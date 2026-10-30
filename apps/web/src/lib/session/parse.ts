@@ -13,6 +13,7 @@ import type {
   FeatureReadiness,
   InboxCounts,
   IntegrationMode,
+  IntegrationModes,
   IntegrationStatus,
   NavEntry,
   PermissionScope,
@@ -61,16 +62,27 @@ function readSection<T>(raw: Json, key: string, parse: (value: Json) => T | null
   return parsed === null ? { status: "unavailable" } : { status: "ok", value: parsed };
 }
 
+/** Tabs whose open items make up the Inbox badge; `exceptions` overlaps them (overdue items). */
+const COUNTED_TABS = ["tasks", "approvals", "conversations"] as const;
+
+/**
+ * The tasks module's `inbox_counts` section is flat (`InboxCounts{tasks, approvals,
+ * conversations, exceptions}`, tasks/schemas.py). The earlier `{total, tabs}` shape is still
+ * read. The badge total counts each open item once: exceptions are overdue items that already
+ * sit in another tab, so they are not added again.
+ */
 function parseInboxCounts(value: Json): InboxCounts | null {
-  const total = count(value.total);
-  if (total === null) return null;
   const tabs: Record<string, number> = {};
-  const rawTabs = isObject(value.tabs) ? value.tabs : {};
+  const rawTabs = isObject(value.tabs) ? value.tabs : value;
   for (const [tab, n] of Object.entries(rawTabs)) {
+    if (tab === "total" || tab === "status") continue;
     const parsed = count(n);
     if (parsed !== null) tabs[tab] = parsed;
   }
-  return { total, tabs };
+  const explicit = count(value.total);
+  if (explicit !== null) return { total: explicit, tabs };
+  if (!COUNTED_TABS.some((tab) => tab in tabs)) return null;
+  return { total: COUNTED_TABS.reduce((sum, tab) => sum + (tabs[tab] ?? 0), 0), tabs };
 }
 
 function parseBriefingState(value: Json): BriefingState | null {
@@ -126,10 +138,49 @@ function parseFeatures(raw: unknown): FeatureReadiness {
   return Object.fromEntries(Object.entries(features).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"));
 }
 
-/** INTERIM: `capabilities{assistant,voice}`, else the same keys in `features`; false when absent. */
-function parseCapabilities(raw: Json): SessionCapabilities {
+/** The permission that gates the assistant API (permissions.md §7.5). */
+export const ASSISTANT_PERMISSION = "agents.assistant.use";
+
+/**
+ * INTERIM: `capabilities{assistant,voice}`, else the same keys in `features`; false when absent.
+ * The assistant is also available when the user holds `agents.assistant.use` (the server
+ * gates every agents route with it). Voice stays off in Slice 1.
+ */
+function parseCapabilities(raw: Json, permissions: readonly EffectivePermission[]): SessionCapabilities {
   const source = isObject(raw.capabilities) ? raw.capabilities : isObject(raw.features) ? raw.features : {};
-  return { assistant: bool(source.assistant), voice: bool(source.voice) };
+  const permitted = permissions.some((permission) => permission.key === ASSISTANT_PERMISSION);
+  return { assistant: bool(source.assistant) || permitted, voice: bool(source.voice) };
+}
+
+const AI_MODES: readonly IntegrationModes["ai"][] = ["demo", "live"];
+
+/** `integration_modes{ai, whatsapp, email}` from the bootstrap (ui/schemas.py `IntegrationModes`). */
+function parseIntegrationModes(raw: unknown): IntegrationModes | null {
+  if (!isObject(raw)) return null;
+  const ai = AI_MODES.find((mode) => mode === raw.ai);
+  if (!ai) return null;
+  return {
+    ai,
+    whatsapp: raw.whatsapp === "live" ? "live" : "demo",
+    email: raw.email === "smtp" ? "smtp" : "demo",
+  };
+}
+
+/**
+ * The integrations list: the `integrations` section when a module provides one, otherwise
+ * derived from `integration_modes`, so Demo labels are truthful either way.
+ */
+function integrationsFrom(raw: Json, modes: IntegrationModes | null): SectionValue<IntegrationStatus[]> {
+  const section = readSection(raw, "integrations", parseIntegrations);
+  if (section.status === "ok" || !modes) return section;
+  return {
+    status: "ok",
+    value: [
+      { key: "ai", label: "Assistant", mode: modes.ai },
+      { key: "whatsapp", label: "WhatsApp", mode: modes.whatsapp },
+      { key: "email", label: "Email", mode: modes.email === "smtp" ? "live" : "demo" },
+    ],
+  };
 }
 
 export function parseBootstrap(raw: unknown): SessionBootstrap {
@@ -158,6 +209,7 @@ export function parseBootstrap(raw: unknown): SessionBootstrap {
   if (serverNow !== null && Number.isNaN(Date.parse(serverNow))) problems.push("server_now");
 
   const companyIsDemo = bool(company.is_demo);
+  const integrationModes = parseIntegrationModes(raw.integration_modes);
   const greeting = raw.greeting_period;
 
   const bootstrap: SessionBootstrap = {
@@ -192,10 +244,12 @@ export function parseBootstrap(raw: unknown): SessionBootstrap {
     greeting_period: greeting === "morning" || greeting === "afternoon" || greeting === "evening" ? greeting : null,
     permissions,
     ui: parseUi(raw.ui_preferences ?? (isObject(raw.preferences) ? raw.preferences.ui : undefined)),
+    preferences_version: isObject(raw.preferences) ? (count(raw.preferences.version) ?? 0) : 0,
     nav: parseNav(raw.nav),
     features: parseFeatures(raw.features),
-    capabilities: parseCapabilities(raw),
-    integrations: readSection(raw, "integrations", parseIntegrations),
+    capabilities: parseCapabilities(raw, permissions),
+    integration_modes: integrationModes,
+    integrations: integrationsFrom(raw, integrationModes),
     inbox_counts: readSection(raw, "inbox_counts", parseInboxCounts),
     briefing: readSection(raw, "briefing", parseBriefingState),
     csrf_token: str(raw.csrf_token),

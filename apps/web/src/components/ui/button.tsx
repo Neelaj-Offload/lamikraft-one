@@ -15,6 +15,11 @@ type ButtonAction =
 
 type ButtonAvailability = { isDisabled?: false; disabledReason?: undefined } | { isDisabled: true; disabledReason: string };
 
+/** Spread into a Button: disabled with its reason when one is given, else nothing. */
+export function unavailableWhen(reason: string | null | undefined) {
+  return reason ? ({ isDisabled: true, disabledReason: reason } as const) : ({} as const);
+}
+
 type BaseProps = Omit<RacButtonProps, "onPress" | "type" | "isDisabled" | "className" | "children" | "style">;
 
 export type ButtonProps = BaseProps &

@@ -1,7 +1,7 @@
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/api/query-keys";
 import { serverGetJson } from "@/lib/session/server";
-import { cursorFrom, INBOX_PATH, parseInboxPage } from "./api";
+import { cursorFrom, INBOX_PAGE_SIZE, INBOX_PATH, parseInboxPage, taskIdFrom } from "./api";
 import { InboxView } from "./inbox-view";
 import type { InboxTab } from "./types";
 
@@ -13,10 +13,12 @@ export type InboxSearchParams = Promise<Record<string, string | string[] | undef
  * unreadable response prefetches nothing, and the client fetches again and reports it.
  */
 export async function InboxPage({ tab, searchParams }: { tab: InboxTab; searchParams: InboxSearchParams }) {
-  const cursor = cursorFrom((await searchParams).cursor);
+  const params = await searchParams;
+  const cursor = cursorFrom(params.cursor);
+  const taskId = taskIdFrom(params.task);
 
   const queryClient = new QueryClient();
-  const query = new URLSearchParams({ tab });
+  const query = new URLSearchParams({ tab, limit: String(INBOX_PAGE_SIZE) });
   if (cursor) query.set("cursor", cursor);
   const raw = await serverGetJson(`${INBOX_PATH}?${query.toString()}` as `/api/v1/${string}`);
   if (raw !== null) {
@@ -29,7 +31,7 @@ export async function InboxPage({ tab, searchParams }: { tab: InboxTab; searchPa
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <InboxView tab={tab} cursor={cursor} />
+      <InboxView tab={tab} cursor={cursor} taskId={taskId} />
     </HydrationBoundary>
   );
 }
