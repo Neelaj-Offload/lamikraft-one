@@ -36,6 +36,14 @@ def _origin_of(value: str | None) -> str | None:
     return f"{parts.scheme}://{parts.netloc}"
 
 
+#: headers every response carries unless the route set them (lower-case names, as ASGI sends them)
+_DEFAULT_HEADERS: tuple[tuple[bytes, bytes], ...] = (
+    (b"x-content-type-options", b"nosniff"),
+    (b"referrer-policy", b"no-referrer"),
+    (b"cache-control", b"no-store"),
+)
+
+
 class RequestContextMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -54,15 +62,14 @@ class RequestContextMiddleware:
 
         async def send_wrapper(message):  # type: ignore[no-untyped-def]
             if message["type"] == "http.response.start":
-                extra = [
-                    (b"x-request-id", request_id.encode()),
-                    (b"x-content-type-options", b"nosniff"),
-                    (b"referrer-policy", b"no-referrer"),
-                ]
                 headers = list(message.get("headers", []))
-                # Default to no-store; responses that set their own policy (file downloads with ETag) keep it.
-                if not any(k.lower() == b"cache-control" for k, _ in headers):
-                    extra.append((b"cache-control", b"no-store"))
+                present = {k.lower() for k, _ in headers}
+                extra = [(b"x-request-id", request_id.encode())]
+                # Security defaults, each only when the route has not set its own (a download chooses its
+                # Cache-Control; a route that sets nosniff itself must not get the header twice).
+                for name, value in _DEFAULT_HEADERS:
+                    if name not in present:
+                        extra.append((name, value))
                 message["headers"] = headers + extra
             await send(message)
 

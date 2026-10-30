@@ -164,6 +164,29 @@ def test_immaterial_party_update_creates_no_change(world: FakeWorld) -> None:
     assert families.material_party_fields(["addresses.shipping", "notes", "tags"]) == ["addresses.shipping"]
 
 
+def test_real_party_rename_and_currency_change_create_a_change_row(world: FakeWorld) -> None:
+    """The rule reads the parties module's own field names: a rename (display_name) and a currency change
+    (default_currency) through ``parties.update_party`` are material and reach Meera as one FYI change."""
+    from app.modules.parties import service as parties
+    from app.modules.parties.schemas import PartyUpdate
+
+    nordhaus = world.refs[keys.PARTY_REFS.NORDHAUS]
+    with world.uow() as uow:
+        before = uow.session.scalar(select(func.count()).select_from(ChangeLog).where(ChangeLog.ref_id == nordhaus))
+    world.at(d0(9, 15))
+    with world.uow(keys.USERS.PRIYA) as uow:
+        current = parties.get_party(uow, nordhaus)
+        parties.update_party(uow, nordhaus, PartyUpdate(expected_version=current.version, display_name="Nordhaus Interiors",
+                                                        default_currency="USD"))
+    world.drain()
+    with world.uow() as uow:
+        rows = list(uow.session.scalars(select(ChangeLog).where(ChangeLog.ref_id == nordhaus, ChangeLog.event_type == "parties.party.updated")))
+        issue = uow.session.scalars(select(Issue).where(Issue.issue_key == issue_keys.party_info_key(nordhaus))).one()
+    assert len(rows) == before + 1
+    assert rows[-1].after == {"changed_fields": ["default_currency", "display_name"]}
+    assert issue.title == "Nordhaus Interiors currency and name updated"
+
+
 def test_onboarding_role_template_without_an_identity_reader(world: FakeWorld, monkeypatch: pytest.MonkeyPatch) -> None:
     """Spec major 2: with no identity.membership reader the sales template is still found from grants."""
     monkeypatch.delitem(sources._READERS, "identity.membership")  # the real reader comes back at teardown

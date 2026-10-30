@@ -48,10 +48,11 @@ _CHANGED_FIELD_LABELS = {
     "addresses.shipping": "shipping address",
     "addresses.billing": "billing address",
     "contacts": "contacts",
-    "name": "name",
+    "display_name": "name",
+    "legal_name": "legal name",
     "owner_user_id": "account owner",
     "payment_terms": "payment terms",
-    "currency": "currency",
+    "default_currency": "currency",
 }
 
 
@@ -599,8 +600,9 @@ def humanize_changed_fields(fields: list[str]) -> str:
 
 
 #: party fields whose change is worth telling the account owner about (B-02: anything else, such as
-#: notes or tags, creates no change row and no briefing version)
-MATERIAL_PARTY_FIELDS = ("addresses", "contacts", "name", "owner_user_id", "payment_terms", "currency")
+#: notes or tags, creates no change row and no briefing version). The names are the parties module's own
+#: ``changed_fields`` (``parties.service.update_party``): ``display_name``, ``legal_name``, ``default_currency``.
+MATERIAL_PARTY_FIELDS = ("addresses", "contacts", "display_name", "legal_name", "owner_user_id", "payment_terms", "default_currency")
 
 
 def material_party_fields(changed: list[str]) -> list[str]:

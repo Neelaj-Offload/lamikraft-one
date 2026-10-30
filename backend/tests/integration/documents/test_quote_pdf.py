@@ -122,7 +122,8 @@ def test_pdf_download_headers_and_scope(sales_client: TestClient, sales_world: S
     assert r.headers["content-disposition"].startswith("inline;") and f"{keys.QUOTES.BERG_EXPIRING}-r1.pdf" in r.headers["content-disposition"]
     assert "filename*=UTF-8''" in r.headers["content-disposition"]
     assert r.headers["x-content-type-options"] == "nosniff" and r.headers["content-security-policy"] == "sandbox"
-    assert r.headers["cache-control"] == "no-store"
+    assert r.headers["cache-control"] == "private, no-store"  # the route's own policy, not the middleware default
+    assert r.headers.get_list("x-content-type-options") == ["nosniff"] and len(r.headers.get_list("cache-control")) == 1
     with sales_world.uow(MEERA) as uow:
         _snapshot, sha = sales.revision_document(uow, berg, 1)
     assert hashlib.sha256(r.content).hexdigest() == sha == r.headers["x-document-sha256"]
