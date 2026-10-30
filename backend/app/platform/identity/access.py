@@ -174,6 +174,8 @@ class AccessSnapshot:
     branch_ids: frozenset[uuid.UUID]
     team_peer_user_ids: frozenset[uuid.UUID]
     valid_until: datetime | None = None
+    #: delegable key -> user ids of delegators whose records this member may reach (never extra keys)
+    delegated: Mapping[str, frozenset[uuid.UUID]] = MappingProxyType({})
 
     @classmethod
     def build(
@@ -183,6 +185,7 @@ class AccessSnapshot:
         branch_ids: Iterable[uuid.UUID],
         team_peer_user_ids: Iterable[uuid.UUID],
         valid_until: datetime | None,
+        delegated: Mapping[str, Iterable[uuid.UUID]] | None = None,
     ) -> AccessSnapshot:
         return cls(
             permissions=MappingProxyType(dict(permissions)),
@@ -190,6 +193,7 @@ class AccessSnapshot:
             branch_ids=frozenset(branch_ids),
             team_peer_user_ids=frozenset(team_peer_user_ids),
             valid_until=valid_until,
+            delegated=MappingProxyType({k: frozenset(v) for k, v in (delegated or {}).items() if v}),
         )
 
 

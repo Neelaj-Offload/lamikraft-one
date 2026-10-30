@@ -16,6 +16,7 @@ from tests.integration.identity.fixtures import (
     Tenant,
     csrf_headers,
     login,
+    login_admin,
     make_member,
     system,
 )
@@ -47,7 +48,7 @@ def _override_events(tenant: Tenant) -> list[DomainEvent]:
 def test_grant_and_revoke_with_reason_and_epoch_bump(client: TestClient, tenant: Tenant) -> None:
     admin = make_member(tenant, ["admin"], password=TEST_PASSWORD)
     target = make_member(tenant, ["sales"], password=TEST_PASSWORD)
-    assert login(client, admin.email).status_code == 200
+    login_admin(client, admin)
 
     listed = client.get(_url(target.user_id))
     assert listed.status_code == 200, listed.text
@@ -97,7 +98,7 @@ def test_grant_and_revoke_with_reason_and_epoch_bump(client: TestClient, tenant:
 def test_override_api_validation_and_authority(client: TestClient, tenant: Tenant) -> None:
     admin = make_member(tenant, ["admin"], password=TEST_PASSWORD)
     target = make_member(tenant, ["sales"], password=TEST_PASSWORD)
-    assert login(client, admin.email).status_code == 200
+    login_admin(client, admin)
     headers = csrf_headers(client)
     no_scope = client.put(_url(target.user_id, "sales.quote.read"), json={"effect": "grant", "reason": "x"}, headers=headers)
     assert no_scope.status_code == 422
@@ -120,14 +121,15 @@ def test_override_api_validation_and_authority(client: TestClient, tenant: Tenan
 def test_override_changes_need_a_recent_password_sign_in(client: TestClient, tenant: Tenant, frozen_clock) -> None:  # type: ignore[no-untyped-def]
     admin = make_member(tenant, ["admin"], password=TEST_PASSWORD)
     target = make_member(tenant, ["sales"])
-    assert login(client, admin.email).status_code == 200
+    login_admin(client, admin)
     frozen_clock.advance(minutes=11)
     body = {"effect": "revoke", "reason": "No exports"}
     r = client.put(_url(target.user_id, "sales.quote.export"), json=body, headers=csrf_headers(client))
     assert r.status_code == 401 and r.json()["code"] == "reauth_required"
     assert client.get(_url(target.user_id)).status_code == 200  # reading needs no step-up
-    # signing in again with the password (a live session: the CSRF token is needed) refreshes recent authentication
-    again = client.post("/api/v1/identity/session", json={"email": admin.email, "password": TEST_PASSWORD}, headers=csrf_headers(client))
-    assert again.status_code == 200
+    # confirming the password again (step-up re-authentication) refreshes recent authentication
+    again = client.post("/api/v1/identity/session/reauthentication", json={"password": TEST_PASSWORD}, headers=csrf_headers(client))
+    assert again.status_code == 200, again.text
+    assert again.json()["auth_strength"] == "mfa"
     r = client.put(_url(target.user_id, "sales.quote.export"), json=body, headers=csrf_headers(client))
     assert r.status_code == 200, r.text

@@ -24,9 +24,9 @@ from app.core.errors import AppError
 from app.platform.authz.context import ActorContext, AuthStrength
 from app.platform.identity import sessions
 from app.platform.identity.actors import build_member_actor, tenant_scope
-from app.platform.identity.auth_models import AuthMethod, AuthSession
+from app.platform.identity.auth_models import AuthMethod, AuthSession, SessionStage
 from app.platform.identity.config import trusted_proxy_hops
-from app.platform.identity.errors import SessionExpired
+from app.platform.identity.errors import MfaEnrollmentRequired, MfaVerificationRequired, SessionExpired
 from app.platform.identity.preferences import UiPreferences, ui_cookie_value
 from app.platform.identity.sessions import CSRF_COOKIE, CSRF_HEADER, UI_COOKIE, ClientInfo, IssuedSession
 from app.platform.identity.tokens import matches, sha256
@@ -37,8 +37,16 @@ if TYPE_CHECKING:
 _STRENGTH: dict[str, AuthStrength] = {
     AuthMethod.PASSWORD.value: "password",
     AuthMethod.DEMO_LINK.value: "demo_link",
-    AuthMethod.TEST_SUPPORT.value: "password",
+    # test-support sessions (LK_ENV=test only) stand in for a full browser sign-in, MFA included, so e2e journeys
+    # can reach administration screens without driving an authenticator
+    AuthMethod.TEST_SUPPORT.value: "mfa",
 }
+
+
+def strength_of(row: AuthSession) -> AuthStrength:
+    if row.mfa_verified_at is not None:
+        return "mfa"
+    return _STRENGTH.get(row.auth_method, "password")
 UI_COOKIE_MAX_AGE = 400 * 24 * 3600
 
 
@@ -97,8 +105,7 @@ def client_info(request: Request) -> ClientInfo:
     )
 
 
-def resolve_actor(request: Request) -> ActorContext | None:
-    """Session cookie → ActorContext (None when no session cookie or an unknown token)."""
+def _session_actor(request: Request, *, allowed_stages: frozenset[str]) -> ActorContext | None:
     token = request.cookies.get(sessions.session_cookie_name())
     if not token or len(token) > 512:
         return None
@@ -109,7 +116,13 @@ def resolve_actor(request: Request) -> ActorContext | None:
         if row.company_id is None:
             raise SessionExpired()
         now = get_clock(row.company_id).now()
-        if not sessions.is_live(row, now):
+        if not sessions.is_open(row, now):
+            raise SessionExpired()
+        if row.stage not in allowed_stages:
+            if row.stage == SessionStage.MFA_PENDING.value:
+                raise MfaVerificationRequired()
+            if row.stage == SessionStage.MFA_ENROLLMENT_REQUIRED.value:
+                raise MfaEnrollmentRequired()
             raise SessionExpired()
         with tenant_scope(session, row.company_id, row.user_id):
             actor = build_member_actor(
@@ -119,7 +132,7 @@ def resolve_actor(request: Request) -> ActorContext | None:
                 channel="web",
                 now=now,
                 session_id=row.id,
-                auth_strength=_STRENGTH.get(row.auth_method, "password"),
+                auth_strength=strength_of(row),
                 recent_auth_at=row.recent_auth_at,
             )
             if actor is None or actor.membership_id != row.membership_id:
@@ -128,8 +141,35 @@ def resolve_actor(request: Request) -> ActorContext | None:
     return actor
 
 
+_ACTIVE = frozenset({SessionStage.ACTIVE.value})
+_ENROLLING = frozenset({SessionStage.ACTIVE.value, SessionStage.MFA_ENROLLMENT_REQUIRED.value})
+
+
+def resolve_actor(request: Request) -> ActorContext | None:
+    """Session cookie → ActorContext (None when no session cookie or an unknown token).
+
+    A session still waiting for its MFA code is 401 ``mfa_verification_required``; one that must enrol first is
+    401 ``mfa_enrollment_required`` (only the enrolment endpoints accept it, see :func:`resolve_enrolling_actor`).
+    """
+    return _session_actor(request, allowed_stages=_ACTIVE)
+
+
+def resolve_enrolling_actor(request: Request) -> ActorContext:
+    """The actor of an active session or of one that must enrol MFA before anything else (401 otherwise)."""
+    from app.core.errors import Unauthenticated
+
+    actor = _session_actor(request, allowed_stages=_ENROLLING)
+    if actor is None:
+        raise Unauthenticated()
+    return actor.with_(
+        request_id=getattr(request.state, "request_id", None),
+        correlation_id=getattr(request.state, "correlation_id", None),
+    )
+
+
 def verify_csrf(request: Request) -> bool:
-    """X-CSRF-Token must match the live session's CSRF secret; requests without a live session pass."""
+    """X-CSRF-Token must match the open session's CSRF secret (any stage, so MFA steps are protected too);
+    requests without an open session pass (sign-in, public link endpoints)."""
     token = request.cookies.get(sessions.session_cookie_name())
     if not token or len(token) > 512:
         return True
@@ -137,7 +177,7 @@ def verify_csrf(request: Request) -> bool:
         row = session.scalars(select(AuthSession).where(AuthSession.token_hash == sha256(token))).first()
         if row is None or row.company_id is None:
             return True
-        if not sessions.is_live(row, get_clock(row.company_id).now()):
+        if not sessions.is_open(row, get_clock(row.company_id).now()):
             return True
         stored = bytes(row.csrf_hash)
     return matches(request.headers.get(CSRF_HEADER), stored)

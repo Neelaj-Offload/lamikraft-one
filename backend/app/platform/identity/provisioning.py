@@ -417,16 +417,14 @@ def _company(uow: UnitOfWork) -> Company:
 
 # ---- roles -----------------------------------------------------------------------------------------
 def _role_grants(uow: UnitOfWork, role_ids: Iterable[uuid.UUID]) -> dict[str, Scope]:
-    grants: dict[str, Scope] = {}
-    rows = uow.session.execute(
-        select(RolePermission.permission_key, RolePermission.scope).where(
-            RolePermission.role_id.in_(list(role_ids)), RolePermission.effect == "grant"
-        )
-    ).all()
-    for key, label in rows:
-        scope = Scope.parse(label)
-        grants[key] = max(grants.get(key, scope), scope)
-    return grants
+    """What the roles grant after inheritance and deny (the union at the maximum scope)."""
+    from app.platform.identity import role_resolution
+
+    company_id = uow.actor.company_id
+    if company_id is None:
+        return {}
+    nodes = role_resolution.load_roles(uow.session, company_id)
+    return role_resolution.union(nodes, list(role_ids))
 
 
 def _check_role_grants_within_actor(uow: UnitOfWork, roles: Sequence[Role]) -> None:
@@ -768,6 +766,41 @@ def deactivate_membership(
     return True
 
 
+def reactivate_membership(uow: UnitOfWork, membership_id: uuid.UUID, *, origin: str | None = None) -> bool:
+    """``deactivated`` (or ``suspended``) → ``active``: roles and history are kept; emits ``reactivated``."""
+    _require(uow, "identity.user.manage")
+    lock_access(uow)
+    membership = _membership(uow, membership_id)
+    _not_self(uow, membership)
+    if membership.status == ACTIVE:
+        return False
+    if membership.status not in (DEACTIVATED, SUSPENDED):
+        raise Conflict(f"A {membership.status} membership cannot be reactivated", code="invalid_transition")
+    user = uow.session.get(AppUser, membership.user_id)
+    if user is None or user.status in ("historical", "disabled"):
+        raise Conflict("This account cannot be reactivated", code="invalid_transition")
+    previous = membership.status
+    membership.status = ACTIVE
+    membership.deactivated_at = None
+    membership.deactivated_by = None
+    membership.deactivation_reason = None
+    if user.status == INVITED and user.password_hash is not None:
+        user.status = ACTIVE
+    uow.flush()
+    payload: dict[str, object] = {"membership_id": str(membership.id), "user_id": str(membership.user_id)}
+    if origin:
+        payload["origin"] = origin
+    uow.emit("identity.membership.reactivated", aggregate_id=membership.id, aggregate_version=membership.version, payload=payload)
+    access_changed(uow, [membership.id], ["status"], origin=origin)
+    uow.audit(
+        "identity.membership.reactivated",
+        resource_type="identity.membership",
+        resource_id=membership.id,
+        changes={"status": {"from": previous, "to": ACTIVE}},
+    )
+    return True
+
+
 __all__ = [
     "ACTIVE",
     "INVITED",
@@ -789,6 +822,7 @@ __all__ = [
     "lock_access",
     "membership_for_user",
     "provision_membership",
+    "reactivate_membership",
     "remove_team_member",
     "resolve_permissions",
     "roles_by_key",

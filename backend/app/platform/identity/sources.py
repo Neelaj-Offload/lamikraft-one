@@ -108,3 +108,6 @@ def register_readers() -> None:
 
     register_reader("identity.membership", read_membership_facts)
     register_reader("identity.user_preference", read_user_preference_facts)
+    from app.platform.identity.availability import read_absence_facts
+
+    register_reader("identity.absence", read_absence_facts)

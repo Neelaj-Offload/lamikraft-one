@@ -150,3 +150,58 @@ def world(db: None) -> SeedContext:
 
     ACCESS_CACHE.clear()
     return run_demo_seed(slice_max=1)
+
+
+# ---- MFA helpers (Slice 2) -----------------------------------------------------------------------------------
+def totp_code(secret: str, *, step_offset: int = 0) -> str:
+    """The authenticator code for the frozen business clock (``step_offset`` 30-second steps later)."""
+    from datetime import timedelta
+
+    from app.core.clock import get_clock
+    from app.platform.identity import mfa
+
+    return mfa.code_at(secret, get_clock().now() + timedelta(seconds=30 * step_offset))
+
+
+def enrol_mfa(client: TestClient) -> tuple[str, list[str]]:
+    """Enrol an authenticator for the signed-in (or enrolment-required) session; returns (secret, recovery codes).
+
+    Moves the frozen clock one step so the confirming code is never a replay of an earlier test step.
+    """
+    from app.core.clock import get_clock
+
+    started = client.post("/api/v1/identity/me/mfa/totp", headers=csrf_headers(client))
+    assert started.status_code == 200, started.text
+    secret = started.json()["secret"]
+    clock = get_clock()
+    if hasattr(clock, "advance"):
+        clock.advance(seconds=30)
+    confirmed = client.post(
+        "/api/v1/identity/me/mfa/totp/confirmation", json={"code": totp_code(secret)}, headers=csrf_headers(client)
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    return secret, confirmed.json()["recovery_codes"]
+
+
+def login_admin(client: TestClient, member: Member, password: str = TEST_PASSWORD) -> str:
+    """Sign an administrator in the Slice-2 way: password, then the enrolment the role requires. Returns the
+    TOTP secret (an already enrolled admin is not supported here; use ``verify_code``)."""
+    r = login(client, member.email, password)
+    assert r.status_code == 200, r.text
+    assert r.json()["stage"] == "mfa_enrollment_required", r.json()
+    secret, _codes = enrol_mfa(client)
+    return secret
+
+
+def verify_code(client: TestClient, code: str):  # type: ignore[no-untyped-def]
+    return client.post("/api/v1/identity/session/verification", json={"code": code}, headers=csrf_headers(client))
+
+
+@pytest.fixture
+def demo_outbox(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+    """Redirect the demo mail outbox to a temporary folder; yields that folder."""
+    from app.platform.identity import mail
+
+    folder = tmp_path / "mail"
+    monkeypatch.setattr(mail, "outbox_dir", lambda: folder)
+    return folder

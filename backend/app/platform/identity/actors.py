@@ -38,8 +38,6 @@ from app.platform.identity.models import (
     Membership,
     MembershipBranch,
     MembershipRole,
-    Role,
-    RolePermission,
     UserPermissionOverride,
     UserPreference,
 )
@@ -94,30 +92,35 @@ def resolve_time_zone(*candidates: str | None) -> str:
 
 
 def load_access(
-    session: Session, company_id: uuid.UUID, membership_id: uuid.UUID, user_id: uuid.UUID, *, now: datetime
+    session: Session,
+    company_id: uuid.UUID,
+    membership_id: uuid.UUID,
+    user_id: uuid.UUID,
+    *,
+    now: datetime,
+    with_delegations: bool = True,
 ) -> AccessSnapshot:
-    """Uncached resolution for one membership (the caller has bound the tenant)."""
-    role_rows = session.execute(
-        select(Role.role_key, RolePermission.permission_key, RolePermission.scope)
-        .join(RolePermission, RolePermission.role_id == Role.id)
-        .where(
-            Role.company_id == company_id,
-            Role.archived_at.is_(None),
-            RolePermission.effect == "grant",
-            (Role.role_key == "employee")
-            | Role.id.in_(select(MembershipRole.role_id).where(MembershipRole.membership_id == membership_id)),
-        )
-    ).all()
-    per_role: dict[str, dict[str, Scope]] = {}
-    for role_key, key, label in role_rows:
-        per_role.setdefault(role_key, {})[key] = Scope.parse(label)
-    assigned = list(
-        session.scalars(
-            select(Role.role_key)
-            .join(MembershipRole, MembershipRole.role_id == Role.id)
-            .where(MembershipRole.membership_id == membership_id, Role.archived_at.is_(None))
-        )
-    )
+    """Uncached resolution for one membership (the caller has bound the tenant).
+
+    Roles resolve with inheritance and deny (:mod:`role_resolution`), then per-user grants and revokes, then
+    active delegations add record reach for delegable keys both people hold (never keys).
+    """
+    from app.platform.identity import role_resolution
+
+    nodes = role_resolution.load_roles(session, company_id)
+    assigned_ids = [
+        rid
+        for rid in session.scalars(select(MembershipRole.role_id).where(MembershipRole.membership_id == membership_id))
+        if rid in nodes and not nodes[rid].archived
+    ]
+    role_ids = list(assigned_ids)
+    employee = role_resolution.employee_role_id(nodes)
+    if employee is not None and employee not in role_ids:
+        role_ids.append(employee)
+    role_grants = [
+        {k: src.scope for k, src in role_resolution.role_effective(nodes, rid).items()} for rid in role_ids
+    ]
+    assigned = [nodes[rid].role_key for rid in assigned_ids]
     overrides = [
         Override(key=o.permission_key, effect=o.effect, scope=Scope.parse(o.scope) if o.scope else None, expires_at=o.expires_at)
         for o in session.scalars(
@@ -126,7 +129,7 @@ def load_access(
             )
         )
     ]
-    permissions = resolve_permissions(per_role.values(), overrides, now=now)
+    permissions = resolve_permissions(role_grants, overrides, now=now)
     branch_ids = set(
         session.scalars(
             select(MembershipBranch.branch_id)
@@ -145,7 +148,15 @@ def load_access(
             .distinct()
         )
     )
-    return AccessSnapshot.build(permissions, assigned, branch_ids, peers, next_expiry(overrides, now=now))
+    valid_until = next_expiry(overrides, now=now)
+    delegated: dict[str, set[uuid.UUID]] = {}
+    if with_delegations:
+        from app.platform.identity.delegation import active_delegations_for
+
+        delegated, boundary = active_delegations_for(session, company_id, membership_id, permissions, now=now)
+        if boundary is not None and (valid_until is None or boundary < valid_until):
+            valid_until = boundary
+    return AccessSnapshot.build(permissions, assigned, branch_ids, peers, valid_until, delegated)
 
 
 def cached_access(
@@ -201,6 +212,7 @@ def build_member_actor(
         branch_ids=access.branch_ids,
         team_peer_user_ids=access.team_peer_user_ids,
         permissions=access.permissions,
+        delegated=access.delegated,
         session_id=session_id,
         auth_strength=auth_strength,
         recent_auth_at=recent_auth_at,

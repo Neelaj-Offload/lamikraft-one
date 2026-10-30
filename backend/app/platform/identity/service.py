@@ -31,12 +31,12 @@ from app.platform.identity.auth_models import (
     AuthSession,
     DemoSignInToken,
     DemoTokenSource,
+    SessionStage,
 )
 from app.platform.identity.errors import (
     InvalidCredentials,
     LinkInvalidOrUsed,
     PasswordPolicyViolation,
-    ReauthRequired,
     TooManyAttempts,
 )
 from app.platform.identity.models import (
@@ -259,6 +259,7 @@ def login(email: str, password: str, client: ClientInfo) -> SignedIn:
             method=AuthMethod.PASSWORD,
             client=client,
             now=now,
+            stage=sign_in_stage(uow, user_id, target.membership_id),
         )
         _attempt(
             uow,
@@ -272,6 +273,18 @@ def login(email: str, password: str, client: ClientInfo) -> SignedIn:
         )
         uow.audit("auth.login.succeeded", resource_type="identity.user", resource_id=user_id, ip=client.audit_ip, user_agent=client.user_agent)
         return SignedIn(issued, _session_info(uow, issued), _preferences(uow, user_id))
+
+
+def sign_in_stage(uow: UnitOfWork, user_id: uuid.UUID, membership_id: uuid.UUID) -> SessionStage:
+    """After a correct password: verify a code when the user has an authenticator; enrol one first when the
+    member's access requires MFA (security policy); otherwise the session is active at once."""
+    from app.platform.identity import mfa
+
+    if mfa.confirmed_factor(uow.session, user_id) is not None:
+        return SessionStage.MFA_PENDING
+    if mfa.member_requires_mfa(uow, membership_id, user_id):
+        return SessionStage.MFA_ENROLLMENT_REQUIRED
+    return SessionStage.ACTIVE
 
 
 def _session_info(uow: UnitOfWork, issued: IssuedSession) -> SessionInfo:
@@ -290,6 +303,7 @@ def _session_info(uow: UnitOfWork, issued: IssuedSession) -> SessionInfo:
             absolute_expires_at=issued.absolute_expires_at,
         ),
         csrf_token=issued.csrf_token,
+        stage=issued.stage,
     )
 
 
@@ -420,6 +434,8 @@ def _consume_demo_token(uow: UnitOfWork, token: str, client: ClientInfo) -> Sign
     user = uow.session.get(AppUser, row.user_id)
     if membership is None or user is None or membership.status != "active" or user.status != "active":
         return None
+    from app.platform.identity import mfa
+
     issued = sessions.create_session(
         uow.session,
         user_id=user.id,
@@ -428,6 +444,8 @@ def _consume_demo_token(uow: UnitOfWork, token: str, client: ClientInfo) -> Sign
         method=AuthMethod.DEMO_LINK,
         client=client,
         now=now,
+        # demo members are fictional and passwordless: no forced enrolment, but an authenticator they set up is used
+        stage=SessionStage.MFA_PENDING if mfa.confirmed_factor(uow.session, user.id) else SessionStage.ACTIVE,
     )
     row.used_at = now
     row.session_id = issued.session_id
@@ -777,20 +795,10 @@ USER_READ = "identity.user.read"
 
 
 def _require_recent_auth(uow: UnitOfWork, key: str) -> None:
-    """Enforce the ``RA`` flag (permissions.md §6): a password sign-in within the last 10 minutes.
+    """Enforce the ``MFA`` and ``RA`` flags of ``key`` (permissions.md §6) through :mod:`app.platform.authz.stepup`."""
+    from app.platform.authz.stepup import require_step_up
 
-    MFA (the ``MFA`` flag) is required for admins from Slice 2 and is not enforced here.
-    """
-    from app.registry import get_registry
-
-    actor = uow.actor
-    if actor.is_system:
-        return
-    perm = get_registry().permissions.get(key)
-    if perm is None or not perm.requires_recent_auth:
-        return
-    if actor.recent_auth_at is None or uow.now() - actor.recent_auth_at > sessions.RECENT_AUTH_WINDOW:
-        raise ReauthRequired()
+    require_step_up(uow, key)
 
 
 def _member_of_user(uow: UnitOfWork, user_id: uuid.UUID) -> Membership:
@@ -934,6 +942,7 @@ def change_password(actor: ActorContext, current_password: str, new_password: st
             method=AuthMethod.PASSWORD,
             client=client,
             now=now,
+            mfa_verified=actor.auth_strength == "mfa",
         )
         others = sessions.revoke_all(uow.session, user_id=user_id, now=now, reason="password_changed", keep=issued.session_id)
         uow.audit(
