@@ -29,7 +29,7 @@ def test_quote_message_and_enquiry_facts(sales_world: SalesWorld) -> None:
     assert berg.owner_user_id == w.user_id(keys.USERS.MEERA) and berg.branch_id == w.branch_id and berg.required_permission == "sales.quote.read"
     assert berg.canonical_path == f"/sales/quotes/{w.ref('Q_BERG_EXPIRING')}" and berg.is_closed is False
     assert berg.deadlines == {"valid_until_end": datetime(2026, 10, 12, 18, 30, tzinfo=UTC)}  # end of 2026-10-12 IST
-    assert berg.money[0].amount == "5700.0000" and berg.money[0].currency == "EUR"
+    assert berg.money[0].amount == "5700.00" and berg.money[0].currency == "EUR"
     assert berg.facts["quote_number"] == keys.QUOTES.BERG_EXPIRING and berg.facts["party_name"] == keys.PARTY_NAMES["BERG"]
     assert berg.facts["valid_until"] == "2026-10-12" and berg.facts["revision_no"] == 1 and berg.facts["has_price_override"] is False
     assert won is not None and won.is_closed and won.deadlines == {} and won.version == 4

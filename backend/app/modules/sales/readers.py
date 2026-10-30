@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 
 from app.core.errors import AppError, NotFound
+from app.core.money import quantize_money
 from app.modules.sales.common import company_zone, contact_of, enquiry_path, message_path, quote_path
 from app.modules.sales.models import CustomerMessage, Enquiry, Quote
 from app.modules.sales.schemas import CLOSED_STATUSES, EnquiryStatus
@@ -47,7 +48,12 @@ def read_quote_facts(uow: UnitOfWork, quote_id: uuid.UUID) -> SourceFacts | None
         end = valid_until_end(q.valid_until, zone)  # type: ignore[arg-type]
         if end is not None:
             deadlines["valid_until_end"] = end
-    money = [MoneyFact(amount=format(q.grand_total_amount, "f"), currency=q.currency)] if q.grand_total_amount is not None else []
+    # the grand total in the currency's minor units ("5700.00"), the same text the API Money shape carries
+    money = (
+        [MoneyFact(amount=format(quantize_money(q.grand_total_amount, q.currency), "f"), currency=q.currency)]
+        if q.grand_total_amount is not None
+        else []
+    )
     return SourceFacts(
         source_type="sales.quote",
         source_id=q.id,
