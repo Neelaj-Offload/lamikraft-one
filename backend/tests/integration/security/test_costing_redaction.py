@@ -15,7 +15,12 @@ from app.core.errors import Forbidden
 from app.modules.pricing import service as pricing
 from app.modules.pricing.schemas import ProductCostCreate
 from app.modules.sales import service as sales
-from app.modules.sales.schemas import CostingCreate, CustomProductCreate, CustomProductFilters, QuoteLineCreate
+from app.modules.sales.schemas import (
+    CostingCreate,
+    CustomProductCreate,
+    CustomProductFilters,
+    QuoteLineCreate,
+)
 from app.platform.audit.models import AuditLog
 from app.platform.events.models import DomainEvent
 from app.platform.search import service as search
