@@ -596,7 +596,10 @@ async function testE2e(argv) {
   installShutdown(supervisor, () => lock.release());
   try {
     const base = settings();
-    const testDb = base.dbName.endsWith('_test') ? base.dbName : `${base.dbName}_test`;
+    // Own database, rebuilt and seeded at D0 on every run: sharing lk_wt<N>_test with the pytest suite
+    // left e2e rows behind that broke the next `npm run test:api`, and a reused database accumulates
+    // quotes across runs.
+    const testDb = `${base.dbName.replace(/_test$/, '')}_e2e`;
     const apiUrl = `http://127.0.0.1:${base.e2eApiPort}`;
     const webUrl = `http://127.0.0.1:${base.e2eWebPort}`;
     const overrides = {
@@ -617,8 +620,10 @@ async function testE2e(argv) {
     };
     info(`e2e: database ${testDb}, api ${apiUrl}, web ${webUrl} (lock ${lock.path})`);
     await servicesUp();
+    await lkOrThrow(['db', 'drop', '--yes'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'create'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'migrate'], { env: childEnv(overrides) });
+    await lkOrThrow(['seed', 'demo', '--anchor-date', '2026-10-12'], { env: childEnv(overrides) });
     await assertPortsFree([
       ['e2e api', base.e2eApiPort],
       ['e2e web', base.e2eWebPort],

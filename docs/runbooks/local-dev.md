@@ -105,7 +105,7 @@ answers `/`, then prints the URL to open (`http://127.0.0.1:3000` for slot 0).
 | `npm run dev` | Daily start (above) |
 | `npm run check` | `ruff check`, `pytest tests/unit tests/contract`, `lk db heads` is exactly 1, `api:check`, web `lint`, `typecheck` and vitest; stops at the first failure and prints a table. `npm run check -- --keep-going` runs every step. |
 | `npm run test:api` | The whole pytest suite with `LK_ENV=test` against `lk_wt<N>_test`; extra arguments go to pytest (`npm run test:api -- -k quotes`). |
-| `npm run test:e2e` | Takes the machine-wide e2e lock, migrates the test database, builds the web app, starts API, worker and web on the e2e ports with `LK_ENV=test`, runs Playwright, then stops them. `-- --no-build` reuses the last build; other arguments go to Playwright. |
+| `npm run test:e2e` | Takes the machine-wide e2e lock, rebuilds its own database `lk_wt<N>_e2e` (drop, create, migrate, `lk seed demo --anchor-date 2026-10-12`), builds the web app, starts API, worker and web on the e2e ports with `LK_ENV=test`, runs Playwright, then stops them. `-- --no-build` reuses the last build; other arguments go to Playwright. |
 | `npm run api:generate` | Writes `backend/openapi.json` (sorted, indented, trailing newline) and regenerates the web client types (`npm run gen:api -w apps/web`). |
 | `npm run api:check` | Fails if `backend/openapi.json` differs from what the app exports. |
 | `npm run db:up` | Starts PostgreSQL and waits until it is healthy; `-- --s3` also starts MinIO. |
