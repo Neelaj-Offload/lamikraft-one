@@ -119,6 +119,18 @@ def test_test_support_handlers_refuse_outside_the_test_environment(development_e
 def test_auth_tokens_are_never_query_parameters() -> None:
     from app.main import create_app
 
+    # Slice 2: list filters (q, status, role, offset ...) are fine; anything that could carry a credential is not.
+    # Link tokens travel in JSON bodies (read from the URL fragment by the page), never in a query string.
+    banned = {"token", "t", "auth", "password", "secret", "otp", "csrf", "recovery_code"}
     for (method, path), op in _operations(create_app().openapi()).items():
-        if path.startswith(("/api/v1/identity", "/api/v1/session", "/api/v1/ui", "/api/v1/_test")):
-            assert not [p for p in op.get("parameters", []) if p.get("in") == "query"], f"{method} {path}"
+        names = {p.get("name", "").lower() for p in op.get("parameters", []) if p.get("in") == "query"}
+        assert not names & banned, f"{method} {path}: {sorted(names & banned)}"
+        if path.startswith(("/api/v1/session", "/api/v1/ui", "/api/v1/_test")) or path in (
+            "/api/v1/identity/session",
+            "/api/v1/identity/session/verification",
+            "/api/v1/identity/invitations/preview",
+            "/api/v1/identity/invitations/acceptance",
+            "/api/v1/identity/password-resets",
+            "/api/v1/identity/password-resets/completion",
+        ):
+            assert not names, f"{method} {path}"
