@@ -254,6 +254,20 @@ describe("QuoteWorkspace (server render)", () => {
     expect(text).toContain("This quote can't be edited in its current status.");
   });
 
+  it("shows the terms of a non-draft quote as a read-only record, not disabled inputs", () => {
+    const html = renderQuote(
+      testQuoteWire({
+        status: "in_review",
+        capabilities: { update: { allowed: false, reason_code: "not_draft" } },
+        transitions: [],
+      }),
+    );
+    const terms = html.slice(html.indexOf("Price type"), html.indexOf("Lines"));
+    expect(terms).toMatch(/^Price type<\/dt><dd/);
+    expect(terms).not.toMatch(/<(input|textarea|select)\b/);
+    expect(textOf(terms)).toContain("Not added");
+  });
+
   it("explains the review a quote needs before it can be sent", () => {
     const text = textOf(renderQuote(testQuoteWire({ overridden: true })));
     expect(text).toContain("Needs approval before sending: price override.");

@@ -51,13 +51,13 @@ export function QuoteDraftCardView({ card }: { card: QuoteDraftCard }) {
               <th scope="col" className="py-1 text-start font-semibold">
                 {m.cards.line}
               </th>
-              <th scope="col" className="py-1 text-end font-semibold">
+              <th scope="col" className="py-1 ps-3 text-end font-semibold">
                 {m.cards.quantity}
               </th>
-              <th scope="col" className="py-1 text-end font-semibold">
+              <th scope="col" className="py-1 ps-3 text-end font-semibold">
                 {m.cards.unitPrice}
               </th>
-              <th scope="col" className="py-1 text-end font-semibold">
+              <th scope="col" className="py-1 ps-3 text-end font-semibold">
                 {m.cards.lineTotal}
               </th>
             </tr>
@@ -69,13 +69,13 @@ export function QuoteDraftCardView({ card }: { card: QuoteDraftCard }) {
                   <span className="block text-ink">{line.label}</span>
                   {line.product_key ? <span className="block font-mono text-xs text-ink-muted">{line.product_key}</span> : null}
                 </th>
-                <td className="py-1.5 text-end">
+                <td className="whitespace-nowrap py-1.5 ps-3 text-end align-top">
                   <Quantity value={{ value: line.quantity, uom: line.unit_code }} />
                 </td>
-                <td className="py-1.5 text-end">
+                <td className="whitespace-nowrap py-1.5 ps-3 text-end align-top">
                   <Money value={line.unit_price} maxFractionDigits={4} />
                 </td>
-                <td className="py-1.5 text-end">
+                <td className="whitespace-nowrap py-1.5 ps-3 text-end align-top">
                   <Money value={line.line_total} />
                 </td>
               </tr>

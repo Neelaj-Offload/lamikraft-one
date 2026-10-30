@@ -213,6 +213,34 @@ function HeaderSection({
   };
 
   const label = (field: string) => m.workspace.fieldLabels[field] ?? field;
+  if (!editable) {
+    // Outside draft the terms are a record, not a form: disabled empty inputs read as missing data.
+    const terms = headerFormOf(quote);
+    const shown = (value: string | null | undefined) => (value && value.trim() !== "" ? value : "—");
+    return (
+      <section aria-labelledby={titleId} className="flex flex-col gap-4">
+        <h2 id={titleId} className="text-lg font-[650] text-ink">
+          {m.workspace.header}
+        </h2>
+        <DescriptionList
+          items={[
+            { term: label("price_type"), description: m.priceTypes[terms.price_type] ?? terms.price_type },
+            { term: label("incoterm"), description: [terms.incoterm, terms.incoterm_place].filter(Boolean).join(" · ") || "—" },
+            { term: label("payment_terms"), description: shown(terms.payment_terms) },
+            { term: label("validity_days"), description: shown(terms.validity_days), numeric: true },
+            { term: label("customer_reference"), description: shown(terms.customer_reference) },
+            { term: label("remarks"), description: <span className="whitespace-pre-line">{shown(terms.remarks)}</span> },
+            { term: label("apply_minimum_surcharge"), description: terms.apply_minimum_surcharge ? m.workspace.surchargeOn : m.workspace.surchargeOff },
+          ]}
+        />
+        {quote.valid_until ? (
+          <p className="text-sm text-ink-muted">
+            {m.workspace.validUntil}: <LocalDate value={quote.valid_until} />
+          </p>
+        ) : null}
+      </section>
+    );
+  }
   const disabled = !editable;
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-4">

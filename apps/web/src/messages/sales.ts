@@ -184,6 +184,8 @@ export const salesMessages = {
       remarks: "Remarks",
       apply_minimum_surcharge: "Minimum order surcharge",
     } as Record<string, string>,
+    surchargeOn: "Added when the order is below the minimum",
+    surchargeOff: "Not added",
     paymentTerms: "Payment terms",
     created: "Created",
     owner: "Owner",
