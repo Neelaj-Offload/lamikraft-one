@@ -9,14 +9,14 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from app.platform.uow import UnitOfWork
-from app.seed.context import D0, SeedContext, SeedDef
+from app.seed.context import SeedContext, SeedDef
 from app.seed.world import keys
 from app.seed.world.tasks import as_member, seed_clock
 
 IST = ZoneInfo(keys.ZONE)
-MEERA_ACK_AT = datetime(2026, 10, 10, 18, 5, tzinfo=IST)  # Sat D-2 18:05
-NEHA_GENERATED_AT = D0.replace(hour=8, minute=49)
-NEHA_ACK_AT = D0.replace(hour=8, minute=50)
+MEERA_ACK_AT = keys.TIMES.MEERA_LAST_ACK_AT  # Sat D-2 18:05
+NEHA_GENERATED_AT = keys.TIMES.NEHA_BRIEFING_AT  # D0 08:49
+NEHA_ACK_AT = keys.TIMES.NEHA_ACK_AT  # D0 08:50
 
 
 def open_and_acknowledge(ctx: SeedContext, person: str, opened_at: datetime, acked_at: datetime) -> None:

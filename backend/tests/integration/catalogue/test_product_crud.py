@@ -51,7 +51,7 @@ def test_values_outside_the_column_scale_are_a_422_not_a_db_error(
     oversized one would overflow the NUMERIC column. Both are field errors."""
     with pytest.raises(ValidationFailed) as excinfo, UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         catalogue.create_product(uow, ProductCreate(
-            product_key="TST-SCALE", product_name="Scale", category_id=world.ref("CAT_SERVEWARE"), unit_of_sale="pcs",
+            product_key="TST-SCALE", product_name="Scale", category_id=world.ref(keys.CATEGORIES.SERVEWARE), unit_of_sale="pcs",
             specification=SpecificationIn.model_validate(spec) if spec else None,
             packaging=PackagingIn.model_validate(packaging) if packaging else None,
         ))

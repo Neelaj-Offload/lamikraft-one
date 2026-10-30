@@ -84,7 +84,7 @@ def test_standard_tier_with_full_provenance(world: World) -> None:
     assert r.status == "found" and r.reason_code is None
     assert _amt(r.unit_price) == keys.PRICES.OAK_TRAY_EUR and r.currency == "EUR" and r.unit_code == "pcs"
     assert (r.tier, r.price_list_code) == ("standard", keys.PRICE_LISTS.EXP_EUR)
-    assert r.item_id == world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
+    assert r.item_id == world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
     assert r.on_date == D0_DATE and r.customer_type == "standard"
     assert [(c.tier, c.outcome) for c in r.checks] == [("customer", "no_list"), ("customer_type", "no_list"),
                                                        ("standard", "matched")]
@@ -165,7 +165,7 @@ def test_currency_is_never_relabelled_and_units_are_never_converted(world: World
 def test_effective_dates_and_supersede_history(world: World) -> None:
     before = resolve(world, keys.USERS.MEERA, "OAK_TRAY", on_date=date(2025, 12, 31))
     assert before.status == "not_found" and before.reason_code in {"NOT_EFFECTIVE", "NO_PRICE"}
-    old_item = world.ref(item_ref("PL_EXP_EUR", "OAK_TRAY"))
+    old_item = world.ref(item_ref(keys.PRICE_LIST_REFS.EXP_EUR, "OAK_TRAY"))
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         new = pricing.supersede_item(uow, old_item, SupersedeItem(unit_price=Decimal("26"), valid_from=date(2026, 11, 1),
                                                                   reason="2026 Q4 price"))

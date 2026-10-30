@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from app.modules.briefings.engine.labels import due_label
 from app.modules.briefings.engine.overview import compose, greeting, greeting_period, number_word
+from app.seed.world import keys
 from app.seed.world.keys import CLOCK_D0, EXPECTED
 
 UTC = ZoneInfo("UTC")
@@ -52,7 +53,7 @@ def test_greeting_by_local_time() -> None:
 def test_due_labels_in_the_viewers_zone() -> None:
     reply_due = datetime(2026, 10, 12, 13, 0, tzinfo=UTC)
     assert due_label(reply_due, zone="Asia/Kolkata", work_date=D0) == "Today 18:30"
-    assert due_label(reply_due, zone="Europe/Berlin", work_date=D0) == "Today 15:00"  # A-05 Berlin variant
+    assert due_label(reply_due, zone="Europe/Berlin", work_date=D0) == keys.EXPECTED.BERLIN_DUE_LABEL  # A-05 Berlin variant
     expiry = datetime(2026, 10, 12, 18, 30, tzinfo=UTC)  # end of 2026-10-12 in IST
     assert due_label(expiry, zone="Asia/Kolkata", work_date=D0, kind="quote_expiry") == "Expires today"
     assert due_label(datetime(2026, 10, 13, 4, 30, tzinfo=UTC), zone="Asia/Kolkata", work_date=D0) == "Tomorrow 10:00"

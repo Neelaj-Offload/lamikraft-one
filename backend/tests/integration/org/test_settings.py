@@ -76,13 +76,13 @@ def test_every_member_sees_defaults_with_not_configured_fields(api: ApiClient, p
 def test_quote_defaults_and_brands_match_the_fixture_world(api: ApiClient, people) -> None:  # type: ignore[no-untyped-def]
     api.as_(people["meera"].actor())
     defaults = api.get("/api/v1/org/settings/quote_defaults").json()["value"]
-    # the unconfigured value is the definition's default (fixtures.md §6); keys.py has no QUOTE_DEFAULTS or
-    # brand names yet (requested from the fixture steward), so only the keyed parts are pinned to keys.py
+    # the unconfigured value is the definition's default (fixtures.md §6); keys.py has no QUOTE_DEFAULTS, so
+    # only the keyed parts of the defaults are pinned to keys.py
     assert defaults == QuoteDefaults().model_dump(mode="json")
     assert defaults["brand"] == keys.BRANDS.LK and defaults["currency"] in keys.CURRENCIES
     brands = api.get("/api/v1/org/settings/brands").json()["value"]["brands"]
     assert [b["token"] for b in brands] == [keys.BRANDS.LK, keys.BRANDS.CR]
-    assert [(b["token"], b["name"]) for b in brands] == list(DEFAULT_BRANDS)
+    assert [(b["token"], b["name"]) for b in brands] == list(DEFAULT_BRANDS) == list(keys.BRAND_NAMES.items())
 
 
 def test_effective_value_is_typed_for_other_modules(people) -> None:  # type: ignore[no-untyped-def]

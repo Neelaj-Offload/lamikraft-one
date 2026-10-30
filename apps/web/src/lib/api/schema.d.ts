@@ -1128,6 +1128,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ui/recent-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remember a detail record the user opened (newest 20 kept per user; invisible records are 404) */
+        post: operations["ui_create_recent_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3640,6 +3657,34 @@ export interface components {
             /** Updated By Name */
             updated_by_name: string | null;
         };
+        /**
+         * RecentRecordCreate
+         * @description A detail record the user just opened, e.g. ``{"resource_type": "catalogue.product", "resource_id": ...}``.
+         */
+        RecentRecordCreate: {
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+        };
+        /** RecentRecordRead */
+        RecentRecordRead: {
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+        };
         /** RecentSearchCreate */
         RecentSearchCreate: {
             /** Query */
@@ -4489,7 +4534,7 @@ export interface components {
         UomConversionRead: {
             /**
              * Factor
-             * @example 1000
+             * @example 1.0850000000
              * @example 0.09290304
              */
             factor: string;
@@ -6980,6 +7025,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ui_create_recent_record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecentRecordCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentRecordRead"];
+                };
             };
             /** @description Validation Error */
             422: {

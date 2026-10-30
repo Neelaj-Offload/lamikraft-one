@@ -29,17 +29,11 @@ from app.seed.context import SeedContext
 from app.seed.world import keys
 
 # ---- fixture keys (fixtures.md §2) ---------------------------------------------------------------------
-# keys.SHIFTS.GEN, keys.CALENDAR_HO_GEN_WINDOW and keys.HOLIDAYS.DEMO were requested from the fixture steward
-# and are on main since c518507; this lane branch predates them and keys.py is read-only here. The seed reads
-# them from keys.py whenever keys.py has them and otherwise uses the identical values below, so after the
-# merge keys.py is the only source (the fallbacks can then be deleted).
-_SHIFTS = getattr(keys, "SHIFTS", None)
-_HOLIDAYS = getattr(keys, "HOLIDAYS", None)
-SHIFT_GEN: str = getattr(_SHIFTS, "GEN", "GEN")
+SHIFT_GEN: str = keys.SHIFTS.GEN
 #: (start, end, rollover, precompute minutes before shift start) for HO-GEN / shift GEN
-CALENDAR_HO_GEN_WINDOW: tuple[str, str, str, int] = getattr(keys, "CALENDAR_HO_GEN_WINDOW", ("09:30", "18:30", "04:00", 30))
+CALENDAR_HO_GEN_WINDOW: tuple[str, str, str, int] = keys.CALENDAR_HO_GEN_WINDOW
 #: (name, offset in days from D0)
-HOLIDAY_DEMO: tuple[str, int] = getattr(_HOLIDAYS, "DEMO", ("Demo holiday", 10))
+HOLIDAY_DEMO: tuple[str, int] = keys.HOLIDAYS.DEMO
 
 HO_GEN_NAME = "Head office general"
 GEN_SHIFT_NAME = "General shift"

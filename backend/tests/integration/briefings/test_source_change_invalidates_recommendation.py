@@ -20,12 +20,12 @@ pytestmark = pytest.mark.db
 
 def test_stable_issue_id_and_stale_recommendation(world: FakeWorld) -> None:
     v1 = today(world, keys.USERS.MEERA)
-    expiry_issue = issue(world, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]))
+    expiry_issue = issue(world, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]))
     with world.uow() as uow:
         r1 = uow.session.scalars(select(Recommendation).where(Recommendation.issue_id == expiry_issue)).one()
     world.at(d0(9, 5))
-    quote = world.change_quote("Q_BERG_EXPIRING", revision_no=3)
-    revised = world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", "Q_BERG_EXPIRING", revision_no=3)
+    quote = world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
+    revised = world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     world.drain()
     v2 = today(world, keys.USERS.MEERA)
     assert v2.version == 2 and v2.briefing_id == v1.briefing_id

@@ -283,4 +283,26 @@ PRODUCTS = SimpleNamespace(OAK_TRAY="LK-OT-0450", MAPLE_TRIVET="LK-MT-0300", ASH
 PRICE_LISTS = SimpleNamespace(EXP_EUR="EXP-EUR-2026", EXP_GBP="EXP-GBP-2026", DOM_INR="DOM-INR-2026")
 QUOTES = SimpleNamespace(PRIOR_WON="LK-QT-2026-0003", NORDHAUS_DRAFT="LK-QT-2026-0008", BERG_EXPIRING="LK-QT-2026-0006", ...)
 EXPECTED = SimpleNamespace(MEERA_S1_SENTENCE=..., SAHIL_S1_SENTENCE=..., ...)  # §9 tables
+
+# names and SeedContext.refs keys (a refs key maps to the id the seed created; numbers above are business numbers)
+BRAND_NAMES = {"LK": "Lamikraft", "CR": "Crown"}
+PARTY_REFS = SimpleNamespace(NORDHAUS="NORDHAUS", ...)      # refs key = PARTIES attribute
+CONTACTS = {"NORDHAUS": ("Lena Brandt", "lena.brandt@nordhaus-interiors.test"), ...}
+CATEGORIES = SimpleNamespace(SERVEWARE="CAT_SERVEWARE", DECORATIVE_BOARDS="CAT_DECORATIVE_BOARDS")
+SUBCATEGORIES = SimpleNamespace(TRAYS="SUB_TRAYS", TRIVETS="SUB_TRIVETS", BOARDS="SUB_BOARDS", VENEERED_PANELS="SUB_VENEERED_PANELS")
+TAXONOMY_NAMES = {"CAT_SERVEWARE": "Serveware", ..., "SUB_VENEERED_PANELS": "Veneered panels"}
+PRODUCT_NAMES = {"OAK_TRAY": "Oak serving tray 450", ...}; DECOR_NAMES = {"0120": "Natural Oak", ...}
+PRICE_LIST_REFS = SimpleNamespace(EXP_EUR="PL_EXP_EUR", ...); PRICE_LIST_NAMES = {"EXP_EUR": "Export EUR 2026", ...}
+PRICE_LIST_ITEM_REFS = SimpleNamespace(EXP_EUR_OAK_TRAY="PLI_EXP_EUR_OAK_TRAY", ...)
+RULE_SET_REFS = SimpleNamespace(QUOTE_COMMERCIAL="RULE_SET_QUOTE_COMMERCIAL")
+QUOTE_REFS = SimpleNamespace(BERG_EXPIRING="Q_BERG_EXPIRING", ...)  # "Q_" + QUOTES attribute
+ENQUIRY_REFS = SimpleNamespace(MAISON="ENQ_MAISON", THORNBURY="ENQ_THORNBURY")
+
+# §7.5 texts, onboarding and fixture times (aware datetimes in Asia/Kolkata)
+TEXTS = SimpleNamespace(REMINDER_MEERA=..., TASK_KABIR_COUNT=..., TASK_ARJUN_WALKTHROUGH=...)
+ONBOARDING_STEPS = ("language_and_detail", "open_product", "global_search"); ONBOARDING_STEP_TITLES = {...}
+TIMES = SimpleNamespace(REMINDER_MEERA_AT=..., MEERA_LAST_ACK_AT=..., NEHA_BRIEFING_AT=..., NEHA_ACK_AT=...,
+                        ARJUN_ACTIVATED_AT=..., ...)
+EXPECTED.MEERA_S1_ITEM_ORDER = ("msg:{MSG_BERG}", "quote:{Q_BERG_EXPIRING}:expiry", ...)  # §9.1 issue keys, in order
+EXPECTED.BERLIN_DUE_LABEL = "Today 15:00"                   # A-05
 ```

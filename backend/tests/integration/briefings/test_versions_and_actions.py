@@ -48,7 +48,7 @@ def current_version(world: FakeWorld, briefing_id: uuid.UUID) -> int:
 
 def new_message(world: FakeWorld, key: str, party: str, at: datetime) -> MessageRec:
     world.at(at)
-    m = MessageRec(uuid.uuid7(), party, "Camille Laurent", keys.USERS.MEERA, at)
+    m = MessageRec(uuid.uuid7(), party, keys.CONTACTS["MAISON"][0], keys.USERS.MEERA, at)
     world.messages[key] = m
     world.refs[key] = m.id
     world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {
@@ -64,13 +64,13 @@ def test_out_of_order_older_event_changes_nothing(world: FakeWorld) -> None:
     """B-03: quote v3 processed, then a v2 event arrives late: facts stay at v3 and no version is made."""
     v1 = today(world, keys.USERS.MEERA)
     world.at(d0(9, 0))
-    world.change_quote("Q_BERG_EXPIRING", revision_no=2)
-    v2_version = world.quotes["Q_BERG_EXPIRING"].version
-    world.change_quote("Q_BERG_EXPIRING", revision_no=3)
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", "Q_BERG_EXPIRING", revision_no=3)
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)
+    v2_version = world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     world.drain()
     assert current_version(world, v1.briefing_id) == 2  # type: ignore[arg-type]
-    q = world.quotes["Q_BERG_EXPIRING"]
+    q = world.quotes[keys.QUOTE_REFS.BERG_EXPIRING]
     stale = world.emit(keys.USERS.MEERA, "sales.quote.revised", q.id, {"quote_id": str(q.id), "revision_no": 2}, version=v2_version)
     world.drain()
     assert current_version(world, v1.briefing_id) == 2  # type: ignore[arg-type]
@@ -185,11 +185,11 @@ def test_mark_handled_completes_when_the_source_confirms(world: FakeWorld) -> No
 
 def test_validity_extension_completes_the_expiry_task(world: FakeWorld) -> None:
     world.at(d0(9, 30))
-    world.change_quote("Q_BERG_EXPIRING", valid_until=date(2026, 10, 14))
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.validity_extended", "Q_BERG_EXPIRING",
+    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, valid_until=date(2026, 10, 14))
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.validity_extended", keys.QUOTE_REFS.BERG_EXPIRING,
                      revision_id=str(uuid.uuid7()), valid_until="2026-10-14")
     world.drain()
-    expiry = issue(world, issue_keys.quote_expiry_key(world.refs["Q_BERG_EXPIRING"]))
+    expiry = issue(world, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]))
     with world.uow() as uow:
         rows = uow.session.scalars(select(Task).where(Task.issue_id == expiry).order_by(Task.created_at)).all()
     assert [(t.state, (t.completion_evidence or {}).get("reason")) for t in rows] == [("done", "validity_extended"), ("open", None)]
@@ -294,7 +294,7 @@ def test_delta_since_yesterday_is_source_linked_and_filtered(world: FakeWorld) -
     with world.uow(keys.USERS.MEERA) as uow:
         delta = service.get_delta(uow, since="yesterday")
     assert delta.since_instant == ist(2026, 10, 11, 4, 0)
-    maison = issue(world, issue_keys.party_info_key(world.refs["MAISON"]))
+    maison = issue(world, issue_keys.party_info_key(world.refs[keys.PARTY_REFS.MAISON]))
     group = next(g for g in delta.groups if g.issue_id == maison)
     change = group.changes[0]
     assert change.after == {"changed_fields": ["addresses.shipping"]} and change.actor is not None and change.actor.name == "Priya Nair"

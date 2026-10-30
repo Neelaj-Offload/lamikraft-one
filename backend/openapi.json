@@ -8009,6 +8009,53 @@
         "title": "RecentProduct",
         "type": "object"
       },
+      "RecentRecordCreate": {
+        "description": "A detail record the user just opened, e.g. ``{\"resource_type\": \"catalogue.product\", \"resource_id\": ...}``.",
+        "properties": {
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "maxLength": 60,
+            "pattern": "^[a-z][a-z_]*\\.[a-z][a-z_]*$",
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "title": "RecentRecordCreate",
+        "type": "object"
+      },
+      "RecentRecordRead": {
+        "properties": {
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_id",
+          "opened_at"
+        ],
+        "title": "RecentRecordRead",
+        "type": "object"
+      },
       "RecentSearchCreate": {
         "properties": {
           "query": {
@@ -10505,7 +10552,7 @@
         "properties": {
           "factor": {
             "examples": [
-              "1000",
+              "1.0850000000",
               "0.09290304"
             ],
             "pattern": "^\\d{1,10}(\\.\\d{1,10})?$",
@@ -15703,6 +15750,50 @@
           }
         },
         "summary": "Ui Poll",
+        "tags": [
+          "ui"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/ui/recent-records": {
+      "post": {
+        "operationId": "ui_create_recent_record",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecentRecordCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentRecordRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remember a detail record the user opened (newest 20 kept per user; invisible records are 404)",
         "tags": [
           "ui"
         ],

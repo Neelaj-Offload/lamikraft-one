@@ -8,38 +8,42 @@ member actor builder registered by identity.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from app.core.clock import FrozenClock, get_clock, set_global_clock
 from app.platform.authz.actors import actor_for_member
 from app.platform.authz.context import ActorContext
 from app.platform.uow import UnitOfWork
-from app.seed.context import D0, SeedContext, SeedDef
+from app.seed.context import SeedContext, SeedDef
 from app.seed.world import keys
 
 IST = ZoneInfo(keys.ZONE)
 
-#: requested for keys.py (fixture steward report): texts and step keys of §7.5
-REMINDER_MEERA_TEXT = "Call Maison about finish preferences"
-TASK_KABIR_COUNT_TITLE = "Count walnut boards in bin A-12"
-TASK_ARJUN_WALKTHROUGH_TITLE = "Complete product catalogue walkthrough"
+#: texts, step keys and times of fixtures.md §7.5 (all from keys.py)
+REMINDER_MEERA_TEXT = keys.TEXTS.REMINDER_MEERA
+TASK_KABIR_COUNT_TITLE = keys.TEXTS.TASK_KABIR_COUNT
+TASK_ARJUN_WALKTHROUGH_TITLE = keys.TEXTS.TASK_ARJUN_WALKTHROUGH
+#: the completion check each sales onboarding step runs (tasks module; readers registered by their owners)
+_STEP_CHECKS = {
+    "language_and_detail": "pref_briefing_saved",
+    "open_product": "recent_record_exists",
+    "global_search": "recent_search_exists",
+}
 SALES_ONBOARDING_STEPS: list[dict[str, str]] = [
-    {"step_key": "language_and_detail", "title": "Choose your language and briefing detail",
-     "completion_check": "pref_briefing_saved"},
-    {"step_key": "open_product", "title": "Open a product record", "completion_check": "recent_record_exists"},
-    {"step_key": "global_search", "title": "Use global search", "completion_check": "recent_search_exists"},
+    {"step_key": step, "title": keys.ONBOARDING_STEP_TITLES[step], "completion_check": _STEP_CHECKS[step]}
+    for step in keys.ONBOARDING_STEPS
 ]
 QUEUES = (("sales", "Sales (unassigned)", "sales"), ("operations", "Operations (unassigned)", "ops"),
           ("admin", "Administration (unassigned)", "admin"))
 
-REMINDER_CREATED = datetime(2026, 10, 10, 17, 30, tzinfo=IST)  # D-2 17:30
-REMINDER_AT = datetime(2026, 10, 13, 10, 0, tzinfo=IST)  # D0+1 10:00
-ARJUN_ACTIVATED = D0.replace(hour=8, minute=0)  # D0 08:00
-WALKTHROUGH_CREATED = D0.replace(hour=8, minute=5)
-WALKTHROUGH_DUE = datetime(2026, 10, 14, 18, 30, tzinfo=IST)  # D0+2 18:30
-COUNT_CREATED = D0.replace(hour=8, minute=10)
-COUNT_DUE = D0.replace(hour=14, minute=0)
+REMINDER_CREATED = keys.TIMES.REMINDER_MEERA_CREATED_AT  # D-2 17:30
+REMINDER_AT = keys.TIMES.REMINDER_MEERA_AT  # D0+1 10:00
+ARJUN_ACTIVATED = keys.TIMES.ARJUN_ACTIVATED_AT  # D0 08:00
+WALKTHROUGH_CREATED = keys.TIMES.TASK_ARJUN_WALKTHROUGH_CREATED_AT
+WALKTHROUGH_DUE = keys.TIMES.TASK_ARJUN_WALKTHROUGH_DUE_AT  # D0+2 18:30
+COUNT_CREATED = keys.TIMES.TASK_KABIR_COUNT_CREATED_AT
+COUNT_DUE = keys.TIMES.TASK_KABIR_COUNT_DUE_AT
 
 
 class seed_clock:  # noqa: N801 - context manager used as a statement

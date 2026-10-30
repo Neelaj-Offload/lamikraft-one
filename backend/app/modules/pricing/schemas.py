@@ -16,6 +16,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 from app.modules.catalogue.schemas import Measure, UomCode
 from app.platform.authz.redaction import Restricted
@@ -179,17 +180,6 @@ class PriceListSummary(BaseModel):
     priority: int | None
     item_count: int
     path: str
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
-
-
-class TransitionRead(BaseModel):
-    action: str
-    to_status: str
-    requires_reason: bool
 
 
 class PriceListDetail(PriceListSummary):

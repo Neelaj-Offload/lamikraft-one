@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     api_port: int = 8000
     web_port: int = 3000
     public_origin: str = "http://127.0.0.1:3000"
+    # How many reverse proxies in front of the web server append the address they saw to X-Forwarded-For
+    # (counted from the right). 0 trusts nothing in the header: every proxied request shares one
+    # "address unknown" rate-limit bucket. Must be 1 behind the production reverse proxy (ADR-001).
+    trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
 
     # --- secrets --------------------------------------------------------------------------
     secret_key: SecretStr = SecretStr("")

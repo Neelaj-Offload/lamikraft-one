@@ -16,7 +16,7 @@ from app.seed.context import SeedContext
 from app.seed.world import keys
 from app.seed.world.parties import CREATOR, as_member, at_ist
 
-RULE_SET_REF = "RULE_SET_QUOTE_COMMERCIAL"
+RULE_SET_REF = keys.RULE_SET_REFS.QUOTE_COMMERCIAL
 RULE_SET_V1 = QuoteCommercialRulesV1(
     thresholds={
         "EUR": ThresholdParams(

@@ -1,4 +1,5 @@
-"""``GET /api/v1/session/bootstrap`` (documented path exception) and ``GET /api/v1/ui/poll`` (ETag/304)."""
+"""``GET /api/v1/session/bootstrap`` (documented path exception), ``GET /api/v1/ui/poll`` (ETag/304) and
+``POST /api/v1/ui/recent-records`` (remember an opened detail record)."""
 
 from __future__ import annotations
 
@@ -9,8 +10,8 @@ from app.core.http.authz_decl import authenticated
 from app.core.http.deps import Actor
 from app.platform.identity.http import set_csrf_cookie
 
-from . import service
-from .schemas import SessionBootstrap, UiPoll
+from . import recents, service
+from .schemas import RecentRecordCreate, RecentRecordRead, SessionBootstrap, UiPoll
 
 router = APIRouter(tags=["ui"])
 
@@ -44,3 +45,15 @@ def ui_poll(actor: Actor, if_none_match: str | None = Header(default=None, alias
     if service.etag_matches(if_none_match, etag):
         return Response(status_code=304, headers={"ETag": etag})
     return JSONResponse(body, headers={"ETag": etag})
+
+
+@router.post(
+    "/ui/recent-records",
+    status_code=201,
+    openapi_extra=authenticated(),
+    operation_id="ui_create_recent_record",
+    response_model=RecentRecordRead,
+    summary="Remember a detail record the user opened (newest 20 kept per user; invisible records are 404)",
+)
+def create_recent_record(body: RecentRecordCreate, actor: Actor) -> RecentRecordRead:
+    return recents.record_recent_record(actor, body)

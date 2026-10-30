@@ -10,6 +10,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
 
 QUOTE_COMMERCIAL = "quote_commercial"
@@ -53,17 +54,6 @@ class RuleSetRead(BaseModel):
     description: str | None
     activated_at: datetime | None
     version: int
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
-
-
-class TransitionRead(BaseModel):
-    action: str
-    to_status: str
-    requires_reason: bool
 
 
 class RuleSetDetail(RuleSetRead):

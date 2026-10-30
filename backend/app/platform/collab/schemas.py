@@ -7,12 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.core.http.capabilities import Capability
 from app.platform.collab.models import NOTE_MAX_CHARS
-
-
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
 
 
 class NoteRead(BaseModel):

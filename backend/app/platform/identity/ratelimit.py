@@ -9,6 +9,7 @@ from the Clock so tests can move through windows deterministically.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -21,9 +22,13 @@ from app.platform.identity.auth_models import RateLimitCounter
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+    from app.platform.authz.context import ActorContext
+
 WINDOW = timedelta(minutes=10)
 IP_LIMIT = 30
 EMAIL_LIMIT = 10
+#: uploads per window per (company, user); api-conventions §11
+UPLOAD_LIMIT = 60
 LOCK_THRESHOLD = 5
 LOCK_BASE = timedelta(minutes=15)
 LOCK_CAP = timedelta(hours=4)
@@ -126,3 +131,21 @@ def clear_failures(session: Session, email_key: str) -> None:
 def purge_expired(session: Session, *, now: datetime) -> int:
     result = session.execute(delete(RateLimitCounter).where(RateLimitCounter.expires_at < now))
     return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+
+def upload_limiter(limit: int = UPLOAD_LIMIT) -> Callable[[ActorContext], float | None]:
+    """The files upload limiter (``app.platform.files.limits.set_upload_limiter``): ``limit`` uploads per window
+    per (company, user), counted in ``rate_limit_counter`` so every worker shares the count. Each call commits its
+    own short transaction, so the count stands even when the upload itself then fails."""
+
+    def check(actor: ActorContext) -> float | None:
+        from app.platform.authz.context import ActorContext as _Actor
+        from app.platform.uow import UnitOfWork
+
+        company = actor.company_id.hex if actor.company_id else "-"
+        user = actor.user_id.hex if actor.user_id else "-"
+        with UnitOfWork(_Actor.system(actor.company_id, reason="files.upload_rate")) as uow:
+            verdict = hit(uow.session, f"upload:user:{company}:{user}", limit=limit, now=uow.now())
+        return None if verdict.allowed else float(verdict.retry_after_seconds)
+
+    return check

@@ -173,6 +173,15 @@ rail, density, shortcuts), integration modes for Demo/Not-connected labels, Inbo
 version, feature readiness flags for nav, and a rotated CSRF value. The `(app)` layout awaits it server-side so
 navigation renders only authorised, implemented areas.
 
+`features` (`dict[str, bool]`, `app/modules/ui/schemas.py::SessionBootstrap.features`) carries:
+- one readiness flag per navigation area (`today`, `inbox`, `sales`, `products`, `operations`, `finance`,
+  `settings`): true when one of the area's modules is installed (`app/modules/ui/service.py::area_readiness`);
+- two capability flags, reserved names: `assistant` (typed commands to the agent can be sent) and `voice`
+  (push-to-talk can be offered). The ui module does not emit them yet (they arrive with the agents lane); a
+  missing key means false, and the web reads `capabilities{assistant,voice}` first, then these keys in
+  `features` (`apps/web/src/lib/session/parse.ts`). Whoever implements the assistant or voice adds the key here,
+  never a new top-level field.
+
 ## 9. Lists and pagination
 
 - Offset pages: `Page{items, total, limit, offset}` (`app/core/http/pagination.py`), `limit` default 50, max 200.

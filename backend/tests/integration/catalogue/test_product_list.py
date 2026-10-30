@@ -37,8 +37,8 @@ def make_product(
     thickness: str | None = None,
     decor: str | None = None,
     name: str | None = None,
-    sub: str = "SUB_TRAYS",
-    category: str = "CAT_SERVEWARE",
+    sub: str = keys.SUBCATEGORIES.TRAYS,
+    category: str = keys.CATEGORIES.SERVEWARE,
     spec: bool = True,
     status: ProductStatus = ProductStatus.ACTIVE,
     display_sku: str | None = None,
@@ -131,8 +131,8 @@ def test_decor_identity_keeps_leading_zeros_and_normalises_float_artefacts(world
 
 
 def test_taxonomy_family_size_finish_and_status_filters(world: World) -> None:
-    assert _keys(world, category_id=world.ref("CAT_SERVEWARE"))[0] == 3
-    assert _keys(world, subcategory_id=world.ref("SUB_VENEERED_PANELS")) == (1, [keys.PRODUCTS.WALNUT_BOARD])
+    assert _keys(world, category_id=world.ref(keys.CATEGORIES.SERVEWARE))[0] == 3
+    assert _keys(world, subcategory_id=world.ref(keys.SUBCATEGORIES.VENEERED_PANELS)) == (1, [keys.PRODUCTS.WALNUT_BOARD])
     assert _keys(world, family="oak serving tray") == (1, [keys.PRODUCTS.OAK_TRAY])
     assert _keys(world, size="300x450") == (1, [keys.PRODUCTS.OAK_TRAY])  # either orientation
     assert _keys(world, size="244 x 122 cm") == (1, [keys.PRODUCTS.WALNUT_BOARD])
@@ -146,18 +146,18 @@ def test_taxonomy_family_size_finish_and_status_filters(world: World) -> None:
 
 def test_facets_count_each_dimension_with_the_other_filters(world: World) -> None:
     facets = catalogue.product_facets(
-        world.actor(keys.USERS.MEERA), ProductFilters(category_id=world.ref("CAT_SERVEWARE"))
+        world.actor(keys.USERS.MEERA), ProductFilters(category_id=world.ref(keys.CATEGORIES.SERVEWARE))
     )
     assert facets.total == 3
     assert {(f.label, f.count) for f in facets.categories} == {
-        (category_name("CAT_SERVEWARE"), 3), (category_name("CAT_DECORATIVE_BOARDS"), 1),
+        (category_name(keys.CATEGORIES.SERVEWARE), 3), (category_name(keys.CATEGORIES.DECORATIVE_BOARDS), 1),
     }
     assert [(f.value, f.count) for f in facets.thicknesses] == [("10", 1), ("12", 1), ("18", 1)]
     assert {f.value for f in facets.decors} == {"0120", "0310", "0415"}
     assert {(f.value, f.count) for f in facets.statuses} == {("active", 3)}
     narrowed = catalogue.product_facets(world.actor(keys.USERS.MEERA), ProductFilters(thickness="18"))
     assert narrowed.total == 2
-    assert {f.label for f in narrowed.subcategories} == {subcategory_name("SUB_BOARDS"), subcategory_name("SUB_VENEERED_PANELS")}
+    assert {f.label for f in narrowed.subcategories} == {subcategory_name(keys.SUBCATEGORIES.BOARDS), subcategory_name(keys.SUBCATEGORIES.VENEERED_PANELS)}
 
 
 def test_size_facet_counts_match_the_orientation_insensitive_filter(world: World) -> None:
@@ -176,7 +176,7 @@ def test_stats_and_recently_changed(world: World) -> None:
     assert stats.total == 4 and stats.by_status == {"active": 4, "inactive": 0, "under_development": 0}
     assert stats.updated_last_7_days == 0  # the world catalogue was recorded at D-116
     assert [(c.name, c.count) for c in stats.by_category] == [
-        (category_name("CAT_SERVEWARE"), 3), (category_name("CAT_DECORATIVE_BOARDS"), 1),
+        (category_name(keys.CATEGORIES.SERVEWARE), 3), (category_name(keys.CATEGORIES.DECORATIVE_BOARDS), 1),
     ]
     make_product(world, "TST-NEW")
     stats = catalogue.product_stats(meera)
@@ -189,8 +189,8 @@ def test_list_rows_carry_canonical_measures(world: World) -> None:
     row = page.items[0]
     assert (row.carton_qty, str(row.thickness_mm), row.decor_no) == (24, "12", "0120")
     assert row.size.length_mm == Decimal("450") and row.path == f"/products/{row.id}"
-    assert row.category.name == category_name("CAT_SERVEWARE")
-    assert row.subcategory is not None and row.subcategory.name == subcategory_name("SUB_TRAYS")
+    assert row.category.name == category_name(keys.CATEGORIES.SERVEWARE)
+    assert row.subcategory is not None and row.subcategory.name == subcategory_name(keys.SUBCATEGORIES.TRAYS)
 
 
 def test_price_columns_require_pricing_price_read(world: World) -> None:

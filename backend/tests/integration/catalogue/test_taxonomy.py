@@ -38,15 +38,15 @@ def test_created_category_active_by_default(world: World) -> None:
 
 def test_duplicate_name_keys_conflict(world: World) -> None:
     """FG-TAX: names are unique per company by a normalised key (case and spacing do not make a new category)."""
-    serveware = category_name("CAT_SERVEWARE")
+    serveware = category_name(keys.CATEGORIES.SERVEWARE)
     with pytest.raises(Conflict) as excinfo, UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         catalogue.create_category(uow, CategoryCreate(name=f"  {serveware.upper()} "))
     assert excinfo.value.code == "category_exists"
     with pytest.raises(Conflict) as excinfo, UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
-        catalogue.create_subcategory(uow, world.ref("CAT_SERVEWARE"), CategoryCreate(name=subcategory_name("SUB_TRAYS").lower()))
+        catalogue.create_subcategory(uow, world.ref(keys.CATEGORIES.SERVEWARE), CategoryCreate(name=subcategory_name(keys.SUBCATEGORIES.TRAYS).lower()))
     assert excinfo.value.code == "subcategory_exists"
     with UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:  # the same subcategory name under another category is fine
-        catalogue.create_subcategory(uow, world.ref("CAT_DECORATIVE_BOARDS"), CategoryCreate(name=subcategory_name("SUB_TRAYS")))
+        catalogue.create_subcategory(uow, world.ref(keys.CATEGORIES.DECORATIVE_BOARDS), CategoryCreate(name=subcategory_name(keys.SUBCATEGORIES.TRAYS)))
 
 
 def test_composite_fk_rejects_foreign_subcategory(world: World) -> None:
@@ -54,14 +54,14 @@ def test_composite_fk_rejects_foreign_subcategory(world: World) -> None:
     (fk_catalogue_product_subcategory_in_category)."""
     with pytest.raises(ValidationFailed) as excinfo, UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         catalogue.create_product(uow, ProductCreate(
-            product_key="TST-FOREIGN-SUB", product_name="Foreign subcategory", category_id=world.ref("CAT_SERVEWARE"),
-            subcategory_id=world.ref("SUB_VENEERED_PANELS"), unit_of_sale="pcs",
+            product_key="TST-FOREIGN-SUB", product_name="Foreign subcategory", category_id=world.ref(keys.CATEGORIES.SERVEWARE),
+            subcategory_id=world.ref(keys.SUBCATEGORIES.VENEERED_PANELS), unit_of_sale="pcs",
         ))
     assert [e["code"] for e in excinfo.value.extra["errors"]] == ["subcategory_not_in_category"]
     with pytest.raises(DBAPIError, match="fk_catalogue_product_subcategory_in_category"), \
             UnitOfWork(world.actor(keys.USERS.PRIYA)) as uow:
         uow.session.execute(
-            update(Product).where(Product.id == world.ref("OAK_TRAY")).values(subcategory_id=world.ref("SUB_VENEERED_PANELS"))
+            update(Product).where(Product.id == world.ref("OAK_TRAY")).values(subcategory_id=world.ref(keys.SUBCATEGORIES.VENEERED_PANELS))
         )
 
 
@@ -89,4 +89,4 @@ def test_tree_follows_display_order(world: World) -> None:
     _category(world, "Zebra range", display_order=-1)
     names = [c.name for c in catalogue.list_categories(world.actor(keys.USERS.MEERA))]
     assert names[0] == "Zebra range" and names[-1] == "Aardvark range"
-    assert names.index(category_name("CAT_SERVEWARE")) < names.index(category_name("CAT_DECORATIVE_BOARDS"))
+    assert names.index(category_name(keys.CATEGORIES.SERVEWARE)) < names.index(category_name(keys.CATEGORIES.DECORATIVE_BOARDS))

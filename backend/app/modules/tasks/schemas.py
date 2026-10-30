@@ -9,6 +9,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from app.core.http.capabilities import Capability
 from app.modules.tasks.models import DismissalReason
 
 
@@ -160,11 +161,6 @@ class HandledResult:
 
 
 # ---- API models --------------------------------------------------------------------------------------
-class Capability(BaseModel):
-    allowed: bool
-    reason_code: str | None = None
-
-
 class AllowedTransition(BaseModel):
     action: str
     to_status: str

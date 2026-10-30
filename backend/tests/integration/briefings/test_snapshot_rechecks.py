@@ -76,9 +76,9 @@ def test_permission_change_version_ends_the_live_pin(world: FakeWorld) -> None:
 
 def test_reply_title_hides_numbers_of_quotes_the_viewer_cannot_open(world: FakeWorld) -> None:
     """Review major 6: the linked draft now belongs to Neha; Meera's reply item names no quote number."""
-    world.quotes["Q_NORDHAUS_DRAFT"].owner = keys.USERS.NEHA
+    world.quotes[keys.QUOTE_REFS.NORDHAUS_DRAFT].owner = keys.USERS.NEHA
     with world.uow(keys.USERS.MEERA) as uow:
-        assert not can_view_source(uow, "sales.quote", world.refs["Q_NORDHAUS_DRAFT"])
+        assert not can_view_source(uow, "sales.quote", world.refs[keys.QUOTE_REFS.NORDHAUS_DRAFT])
     view = today(world, keys.USERS.MEERA)
     nordhaus = next(i for i in view.items if i.issue_id == issue(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])))
     # (the blocker keeps its own title: Meera may still open the review she requested, approvals.proposal.read)

@@ -4,12 +4,15 @@
   ``company_id = NULLIF(current_setting('app.company_id', true), '')::uuid``.
 - ``append_only(table)``: trigger rejecting UPDATE/DELETE (audit log, ledgers, issued revisions).
 - ``enum_check(table, column, values)``: CHECK constraint from a Python StrEnum / tuple.
+- ``immutable_columns(table, columns)``: trigger rejecting an UPDATE that changes any named column (business keys,
+  issued numbers); other columns stay updatable.
 - ``install_platform_functions()``: shared trigger functions (idempotent).
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import re
+from collections.abc import Iterable, Sequence
 
 from alembic import op
 
@@ -59,3 +62,50 @@ def enum_check(table: str, column: str, values: Iterable[str], name: str | None 
 
 def grant_app(table: str, privileges: str = "SELECT, INSERT, UPDATE, DELETE") -> None:
     op.execute(f'GRANT {privileges} ON "{table}" TO lk_app')
+
+
+_IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def _identifier(name: str) -> str:
+    if not _IDENTIFIER.match(name) or len(name) > 50:
+        raise ValueError(f"not a plain lower-case SQL identifier: {name!r}")
+    return name
+
+
+def immutable_columns(table: str, columns: Sequence[str]) -> None:
+    """Reject any UPDATE that changes one of ``columns`` of ``table`` (``integrity_constraint_violation``).
+
+    Installs ``lk_<table>_immutable()`` and ``trg_<table>_immutable`` (``BEFORE UPDATE OF <columns>``); calling it
+    again for the same table replaces both, so the column list can grow in a later migration. The service layer
+    still refuses the change with a proper problem response; the trigger is the database's backstop.
+    """
+    table = _identifier(table)
+    cols = [_identifier(c) for c in columns]
+    if not cols:
+        raise ValueError("immutable_columns needs at least one column")
+    if len(set(cols)) != len(cols):
+        raise ValueError(f"duplicate columns: {cols}")
+    checks = "\n".join(
+        f"""    IF NEW."{c}" IS DISTINCT FROM OLD."{c}" THEN
+        RAISE EXCEPTION '{table}.{c} is immutable' USING ERRCODE = 'integrity_constraint_violation';
+    END IF;"""
+        for c in cols
+    )
+    op.execute(
+        f"""
+        CREATE OR REPLACE FUNCTION lk_{table}_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+{checks}
+            RETURN NEW;
+        END $$;
+        """
+    )
+    op.execute(f'DROP TRIGGER IF EXISTS trg_{table}_immutable ON "{table}"')
+    column_list = ", ".join(f'"{c}"' for c in cols)
+    op.execute(
+        f"""
+        CREATE TRIGGER trg_{table}_immutable BEFORE UPDATE OF {column_list} ON "{table}"
+            FOR EACH ROW EXECUTE FUNCTION lk_{table}_immutable()
+        """
+    )
