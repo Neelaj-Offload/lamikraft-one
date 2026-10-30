@@ -19,7 +19,12 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+// Build workers: Next starts one per CPU, which can exhaust memory on a busy machine (each worker
+// holds its own heap). LK_NEXT_BUILD_CPUS caps them; unset keeps Next's default.
+const buildCpus = Number.parseInt(process.env.LK_NEXT_BUILD_CPUS ?? "", 10);
+
 const nextConfig: NextConfig = {
+  ...(Number.isFinite(buildCpus) && buildCpus > 0 ? { experimental: { cpus: buildCpus } } : {}),
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,

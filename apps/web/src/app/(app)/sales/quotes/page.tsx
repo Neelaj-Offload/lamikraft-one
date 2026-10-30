@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { QuoteList, quoteListStateFrom } from "@/features/sales/quote-list";
+import { quoteListStateFrom } from "@/features/sales/list-state";
+import { QuoteList } from "@/features/sales/quote-list";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-quotes");

@@ -58,6 +58,8 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
   const pathname = usePathname() ?? "/";
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [sending, setSending] = useState(false);
+  // Bumped after every poll: a run that stays queued with no new steps must still be polled again.
+  const [pollTick, setPollTick] = useState(0);
   const conversation = useRef<string | null>(null);
   const extraRef = useRef(extra);
   extraRef.current = extra;
@@ -82,7 +84,10 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       fetchRun(runId, afterSeq, controller.signal)
-        .then((update) => patch(exchangeId, (exchange) => ({ ...exchange, run: mergeRun(exchange.run, update) })))
+        .then((update) => {
+          patch(exchangeId, (exchange) => ({ ...exchange, run: mergeRun(exchange.run, update) }));
+          setPollTick((tick) => tick + 1);
+        })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;
           patch(exchangeId, (exchange) => ({
@@ -96,7 +101,7 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [runId, runStatus, afterSeq, exchangeId, patch]);
+  }, [runId, runStatus, afterSeq, exchangeId, patch, pollTick]);
 
   const send = useCallback(
     async (text: string, options: { selectedOption?: SelectedOption } = {}) => {

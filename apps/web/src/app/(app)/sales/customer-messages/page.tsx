@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { CustomerMessageList, messageListStateFrom } from "@/features/sales/customer-messages";
+import { CustomerMessageList } from "@/features/sales/customer-messages";
+import { messageListStateFrom } from "@/features/sales/list-state";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-customer-messages");

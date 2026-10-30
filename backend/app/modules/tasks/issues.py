@@ -427,11 +427,24 @@ def write_change(uow: UnitOfWork, issue: Issue, change: ChangeSpec, event: Domai
 
 
 # ---- reconcile ---------------------------------------------------------------------------------------
+ISSUE_LOCK = "tasks.issue"
+
+
+def lock_issue_keys(uow: UnitOfWork, issue_keys: Iterable[str]) -> None:
+    """Serialise reconciliation per issue key (transaction-scoped advisory locks, taken in sorted order so two
+    workers never wait on each other crosswise). Two events about the same record handled at once by
+    concurrent workers would otherwise both find no live issue and both insert it (unique violation)."""
+    company_id = uow.actor.company_id
+    for key in sorted(set(issue_keys)):
+        uow.advisory_xact_lock(ISSUE_LOCK, f"{company_id}:{key}")
+
+
 def apply_outcome(uow: UnitOfWork, outcome: IssueOutcome, event: DomainEvent | None = None) -> Issue | None:
     company_id = uow.actor.company_id
     assert company_id is not None
     now = uow.now()
     event_id = event.id if event is not None else None
+    lock_issue_keys(uow, [outcome.issue_key])  # re-entrant: a caller may already hold it
     issue = live_issue(uow, outcome.issue_key)
     created = False
     if issue is None:

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { EnquiryList, enquiryListStateFrom } from "@/features/sales/enquiries";
+import { EnquiryList } from "@/features/sales/enquiries";
+import { enquiryListStateFrom } from "@/features/sales/list-state";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-enquiries");

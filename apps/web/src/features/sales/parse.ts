@@ -3,7 +3,7 @@
  * stay inside the app; DecimalStr values are validated, never converted.
  */
 
-import { isDecimalStr } from "@/lib/format/decimal";
+import { isDecimalStr, trimDecimalStr } from "@/lib/format/decimal";
 import { safeAppPath } from "@/lib/safe-path";
 import {
   MANUAL_PRESETS,
@@ -148,7 +148,7 @@ function line(raw: unknown): QuoteLine | null {
     product_key: product ? str(product.product_key) : null,
     description: str(raw.description) ?? (product ? (str(product.product_name) ?? "") : ""),
     manual_preset: MANUAL_PRESETS.find((preset) => preset === raw.manual_preset) ?? null,
-    quantity: raw.quantity,
+    quantity: trimDecimalStr(raw.quantity),
     unit_code: str(raw.unit_code) ?? "",
     default_unit_price: dec(raw.default_unit_price),
     unit_price: dec(raw.unit_price),

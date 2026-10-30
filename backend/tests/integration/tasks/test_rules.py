@@ -285,3 +285,33 @@ def test_event_after_lapse_expires_the_obligation_before_the_sweep_runs(world: F
     assert (expiry.state, expiry.resolution) == ("resolved", "source_closed")
     (task,) = tasks_of(world, expiry.id)
     assert task.state == "expired" and task.completion_evidence == {"reason": "quote_lapsed"}
+
+
+
+def test_reconciliation_locks_each_issue_key_before_reading_it(world: FakeWorld, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two workers handling events about one record at once must not both insert the same issue (the e2e run hit
+    ``pk_tasks_issue`` violations): every issue key is advisory-locked, in sorted order, before it is looked up."""
+    from app.modules.tasks.issues import ISSUE_LOCK, apply_outcome
+    from app.modules.tasks.rules.outcome import IssueOutcome
+    from app.platform.uow import UnitOfWork
+
+    calls: list[tuple[str, str]] = []
+    original = UnitOfWork.advisory_xact_lock
+
+    def spy(self: UnitOfWork, namespace: str, key: str) -> None:
+        calls.append((namespace, key))
+        original(self, namespace, key)
+
+    monkeypatch.setattr(UnitOfWork, "advisory_xact_lock", spy)
+    party = world.refs[keys.PARTY_REFS.THORNBURY]
+    key = issue_keys.party_info_key(party)
+    outcome = IssueOutcome(issue_key=key, family="sales.customer_changes", root_ref_type="parties.party", root_ref_id=party,
+                           title="Thornbury Kitchens Ltd details updated", required_permission="parties.party.read", info=True)
+    with world.uow() as uow:
+        issue = apply_outcome(uow, outcome)
+    assert issue is not None and (ISSUE_LOCK, f"{world.company_id}:{key}") in calls
+    calls.clear()
+    world.at(d0(9, 40))
+    world.touch_message(keys.USERS.MEERA, keys.MESSAGES.BERG)  # a rule delivery reconciles the message's issue
+    locked = [k for n, k in calls if n == ISSUE_LOCK]
+    assert f"{world.company_id}:{issue_keys.message_key(world.refs[keys.MESSAGES.BERG])}" in locked

@@ -17,7 +17,10 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { useSession } from "@/lib/session/context";
 import { salesMessages as m } from "@/messages/sales";
 import { fetchQuotes, QUOTES_PAGE_SIZE, type QuoteListParams } from "./api";
+import { quoteListHref, type QuoteListState } from "./list-state";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "./types";
+
+export { quoteListHref, quoteListStateFrom, type QuoteListState } from "./list-state";
 
 export const QUOTE_STATUS_TONE: Record<string, Tone> = {
   draft: "neutral",
@@ -32,36 +35,6 @@ export const QUOTE_STATUS_TONE: Record<string, Tone> = {
 
 export function QuoteStatusPill({ status }: { status: string }) {
   return <StatusPill tone={QUOTE_STATUS_TONE[status] ?? "neutral"}>{m.status[status] ?? status}</StatusPill>;
-}
-
-export interface QuoteListState {
-  q: string;
-  status: QuoteStatus | null;
-  scope: "mine" | "all";
-  offset: number;
-}
-
-type Search = Record<string, string | string[] | undefined>;
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-/** URL → list state; anything unknown falls back to the default, never forwarded raw. */
-export function quoteListStateFrom(search: Search): QuoteListState {
-  const q = (first(search.q) ?? "").slice(0, 200);
-  const status = QUOTE_STATUSES.find((candidate) => candidate === first(search.status)) ?? null;
-  const scope = first(search.scope) === "all" ? "all" : "mine";
-  const rawOffset = Number.parseInt(first(search.offset) ?? "0", 10);
-  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset - (rawOffset % QUOTES_PAGE_SIZE) : 0;
-  return { q, status, scope, offset };
-}
-
-export function quoteListHref(state: Partial<QuoteListState>): string {
-  const query = new URLSearchParams();
-  if (state.q?.trim()) query.set("q", state.q.trim());
-  if (state.status) query.set("status", state.status);
-  if (state.scope === "all") query.set("scope", "all");
-  if (state.offset) query.set("offset", String(state.offset));
-  const search = query.toString();
-  return search ? `/sales/quotes?${search}` : "/sales/quotes";
 }
 
 export function quoteListParams(state: QuoteListState): QuoteListParams {

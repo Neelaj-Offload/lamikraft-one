@@ -19,35 +19,11 @@ import { useOnline } from "@/lib/hooks";
 import { briefingMessages } from "@/messages/briefing";
 import { salesMessages as m } from "@/messages/sales";
 import { fetchCustomerMessages, markMessageReplied, QUOTES_PAGE_SIZE } from "./api";
+import { messageListHref, type MessageListState } from "./list-state";
 import type { CustomerMessage } from "./types";
+
+export { messageListHref, messageListStateFrom, type MessageFilter, type MessageListState } from "./list-state";
 import { problemDescription } from "./use-quote-command";
-
-export type MessageFilter = "received" | "replied" | "all";
-
-export interface MessageListState {
-  status: MessageFilter;
-  offset: number;
-}
-
-type Search = Record<string, string | string[] | undefined>;
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-/** Waiting for a reply is the default view. */
-export function messageListStateFrom(search: Search): MessageListState {
-  const raw = first(search.status);
-  const status: MessageFilter = raw === "replied" || raw === "all" ? raw : "received";
-  const rawOffset = Number.parseInt(first(search.offset) ?? "0", 10);
-  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset - (rawOffset % QUOTES_PAGE_SIZE) : 0;
-  return { status, offset };
-}
-
-export function messageListHref(state: Partial<MessageListState>): string {
-  const query = new URLSearchParams();
-  if (state.status && state.status !== "received") query.set("status", state.status);
-  if (state.offset) query.set("offset", String(state.offset));
-  const search = query.toString();
-  return search ? `/sales/customer-messages?${search}` : "/sales/customer-messages";
-}
 
 /** "Mark replied" appears only when the server offers it in `allowed_transitions`. */
 export function canMarkReplied(message: Pick<CustomerMessage, "allowed_transitions">): boolean {

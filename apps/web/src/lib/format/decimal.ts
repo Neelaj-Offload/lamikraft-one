@@ -13,6 +13,16 @@ export function isDecimalStr(value: unknown): value is string {
   return typeof value === "string" && DECIMAL_STR_PATTERN.test(value);
 }
 
+/**
+ * The same value without trailing fraction zeros ("240.000000" -> "240", "12.500" -> "12.5"): the
+ * server keeps the column's scale, people edit the plain value. String work only, no arithmetic.
+ */
+export function trimDecimalStr(value: string): string {
+  if (!value.includes(".")) return value;
+  const trimmed = value.replace(/0+$/, "").replace(/\.$/, "");
+  return trimmed === "-0" ? "0" : trimmed;
+}
+
 export interface DecimalInputRules {
   /** Fraction digits accepted (money entry: 4; integer UOMs: 0). At most 6. */
   maxFractionDigits?: number;

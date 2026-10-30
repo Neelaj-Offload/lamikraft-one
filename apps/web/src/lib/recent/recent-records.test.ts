@@ -7,7 +7,7 @@ import { recordRecentRecord } from "./recent-records";
 const ID = "01a18baa-80e8-7324-8318-09a76824077e";
 
 function clientReturning(status: number, body: unknown) {
-  const fetch = vi.fn(async (_request: Request) =>
+  const fetch = vi.fn<(request: Request) => Promise<Response>>(async () =>
     new Response(JSON.stringify(body), { status, headers: { "content-type": status < 400 ? "application/json" : "application/problem+json" } }),
   );
   return { fetch, client: createApiClient({ baseUrl: "http://app.test", fetch }) };

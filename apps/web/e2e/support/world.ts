@@ -31,7 +31,9 @@ export async function loadWorld(request: APIRequestContext): Promise<World> {
 /** Signs the browser context in as a fixture person; the session cookies land in the context. */
 export async function signInAs(page: Page, person: PersonKey): Promise<void> {
   await page.context().clearCookies();
-  const response = await page.request.post("/api/v1/_test/sign-in", { data: { user_key: person } });
+  // The API's CSRF/Origin check refuses unsafe requests without the app's Origin (a browser sends it).
+  const origin = new URL(test.info().project.use.baseURL ?? "http://127.0.0.1").origin;
+  const response = await page.request.post("/api/v1/_test/sign-in", { data: { user_key: person }, headers: { Origin: origin } });
   expect(response.status(), `test sign-in as ${person}`).toBe(200);
 }
 

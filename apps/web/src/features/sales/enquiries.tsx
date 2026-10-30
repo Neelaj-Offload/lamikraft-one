@@ -25,43 +25,17 @@ import { useSession } from "@/lib/session/context";
 import { briefingMessages } from "@/messages/briefing";
 import { salesMessages as m } from "@/messages/sales";
 import { closeEnquiry, fetchEnquiries, fetchEnquiry, QUOTES_PAGE_SIZE } from "./api";
+import { ENQUIRY_STATUSES, enquiryListHref, type EnquiryListState } from "./list-state";
 import type { Enquiry } from "./types";
+
+export { ENQUIRY_STATUSES, enquiryListHref, enquiryListStateFrom, type EnquiryListState } from "./list-state";
 import { problemDescription } from "./use-quote-command";
 import { useRecentRecord } from "@/lib/recent/recent-records";
-
-export const ENQUIRY_STATUSES = ["received", "assigned", "quoted", "closed"] as const;
-type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
 
 const TONE: Record<string, Tone> = { received: "info", assigned: "warning", quoted: "success", closed: "neutral" };
 
 function EnquiryStatusPill({ status }: { status: string }) {
   return <StatusPill tone={TONE[status] ?? "neutral"}>{m.enquiries.status[status] ?? status}</StatusPill>;
-}
-
-export interface EnquiryListState {
-  q: string;
-  status: EnquiryStatus | null;
-  offset: number;
-}
-
-type Search = Record<string, string | string[] | undefined>;
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-export function enquiryListStateFrom(search: Search): EnquiryListState {
-  const q = (first(search.q) ?? "").slice(0, 200);
-  const status = ENQUIRY_STATUSES.find((candidate) => candidate === first(search.status)) ?? null;
-  const rawOffset = Number.parseInt(first(search.offset) ?? "0", 10);
-  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset - (rawOffset % QUOTES_PAGE_SIZE) : 0;
-  return { q, status, offset };
-}
-
-export function enquiryListHref(state: Partial<EnquiryListState>): string {
-  const query = new URLSearchParams();
-  if (state.q?.trim()) query.set("q", state.q.trim());
-  if (state.status) query.set("status", state.status);
-  if (state.offset) query.set("offset", String(state.offset));
-  const search = query.toString();
-  return search ? `/sales/enquiries?${search}` : "/sales/enquiries";
 }
 
 function columns(): DataTableColumn<Enquiry>[] {

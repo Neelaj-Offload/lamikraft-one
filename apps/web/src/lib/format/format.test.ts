@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { digits, forAllSeeds, int } from "@/lib/test-support/random";
-import { compareDecimalStr, isDecimalStr, normaliseDecimalInput } from "./decimal";
+import { compareDecimalStr, isDecimalStr, normaliseDecimalInput, trimDecimalStr } from "./decimal";
 import { formatCount, formatDecimal, formatMoney, formatQuantity } from "./money";
 import {
   calendarDaysFrom,
@@ -155,5 +155,15 @@ describe("zone-aware time", () => {
     expect(formatRelative("2026-10-12T05:25:00Z", D0, "en")).toBe("in 2 hours");
     expect(formatRelative("2026-10-12T03:24:50Z", D0, "en")).toBe("now");
     expect(formatRelative("2026-10-10T03:25:00Z", D0, "en")).toBe("2 days ago");
+  });
+});
+
+describe("trimDecimalStr", () => {
+  it("drops trailing fraction zeros only", () => {
+    expect(trimDecimalStr("240.000000")).toBe("240");
+    expect(trimDecimalStr("12.500")).toBe("12.5");
+    expect(trimDecimalStr("100")).toBe("100");
+    expect(trimDecimalStr("-0.000")).toBe("0");
+    expect(trimDecimalStr("0.010")).toBe("0.01");
   });
 });
