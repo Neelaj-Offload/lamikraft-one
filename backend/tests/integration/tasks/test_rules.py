@@ -22,7 +22,7 @@ from app.platform.events.models import DomainEvent
 from app.platform.identity.models import Membership
 from app.platform.search import service as search
 from app.seed.world import keys
-from tests.integration.briefings.world import EnquiryRec, FakeWorld, MessageRec, d0, ist
+from tests.integration.briefings.world import FakeWorld, d0, ist
 
 pytestmark = pytest.mark.db
 
@@ -83,12 +83,7 @@ def test_draft_review_is_grouped_under_the_originating_message(world: FakeWorld)
 
 
 def test_reply_closes_when_the_message_is_replied(world: FakeWorld) -> None:
-    world.at(d0(9, 30))
-    m = world.messages[keys.MESSAGES.BERG]
-    m.status, m.replied_at, m.version = "replied", d0(9, 30), m.version + 1
-    world.emit(keys.USERS.MEERA, "sales.customer_message.replied", m.id,
-               {"message_id": str(m.id), "reply_ref_type": "sales.customer_message", "reply_ref_id": str(uuid.uuid7())}, version=m.version)
-    world.drain()
+    m = world.mark_replied(keys.USERS.MEERA, keys.MESSAGES.BERG, d0(9, 30))
     issue = issue_of(world, issue_keys.message_key(m.id))
     (task,) = tasks_of(world, issue.id)
     assert task.state == "done" and task.completion_evidence["reason"] == "message_replied"
@@ -97,10 +92,8 @@ def test_reply_closes_when_the_message_is_replied(world: FakeWorld) -> None:
 
 def test_reply_closes_when_a_linked_quote_is_sent_after_the_message(world: FakeWorld) -> None:
     world.at(d0(10, 0))
-    world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="sent", sent_at=d0(10, 0), valid_until=datetime(2026, 11, 11).date())
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", keys.QUOTE_REFS.NORDHAUS_DRAFT, revision_id=str(uuid.uuid7()),
-                     dispatch_id=str(uuid.uuid7()))
-    world.drain()
+    sent = world.transition(keys.USERS.MEERA, keys.QUOTE_REFS.NORDHAUS_DRAFT, "mark_sent", dispatch_channel="email")
+    assert sent.valid_until is not None and str(sent.valid_until)[:10] == "2026-11-11"
     issue = issue_of(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS]))
     reply = next(t for t in tasks_of(world, issue.id) if t.kind == "reply_needed")
     assert reply.state == "done" and reply.completion_evidence["reason"] == "linked_quote_sent"
@@ -174,47 +167,40 @@ def test_onboarding_step_completes_only_when_the_source_confirms(world: FakeWorl
 
 
 def test_enquiries_open_and_close(world: FakeWorld) -> None:
-    done = issue_of(world, issue_keys.enquiry_key(world.refs["ENQ_MAISON"]))
+    done = issue_of(world, issue_keys.enquiry_key(world.refs[keys.ENQUIRY_REFS.MAISON]))
     assert [t.state for t in tasks_of(world, done.id)] == ["done"]
-    world.at(d0(10, 0))
-    e = EnquiryRec(uuid.uuid7(), "ENQ-2026-0003", "BERG", keys.USERS.MEERA, d0(10, 0), "email")
-    world.enquiries["ENQ_NEW"] = e
-    world.emit(keys.USERS.MEERA, "sales.enquiry.received", e.id, {"enquiry_id": str(e.id), "enquiry_number": e.number,
-               "party_id": str(world.refs["BERG"]), "channel": "email", "owner_user_id": str(world.refs[keys.USERS.MEERA])}, version=1)
-    world.drain()
-    (task,) = tasks_of(world, issue_of(world, issue_keys.enquiry_key(e.id)).id)
+    enquiry_id = world.create_enquiry("ENQ_NEW", keys.PARTY_REFS.BERG, keys.USERS.MEERA, d0(10, 0))
+    (task,) = tasks_of(world, issue_of(world, issue_keys.enquiry_key(enquiry_id)).id)
     assert (task.kind, task.state, task.assignee_user_id) == ("enquiry_reply", "open", world.refs[keys.USERS.MEERA])
     assert task.due_at == ist(2026, 10, 13, 18, 30)  # next working day after receipt
 
 
 def _message(world: FakeWorld, key: str, assignee: str, at: datetime, *, origin: str | None = None,
-             received_by_system: bool = False) -> MessageRec:
-    world.at(at)
-    m = MessageRec(uuid.uuid7(), "BERG", keys.CONTACTS["BERG"][0], assignee, at)
-    world.messages[key] = m
-    payload = {"message_id": str(m.id), "party_id": str(world.refs["BERG"]), "contact_id": None, "channel": "email",
-               "assignee_user_id": str(world.refs[assignee]), "enquiry_id": None, "quote_id": None}
-    if origin:
-        payload["origin"] = origin
-    # an inbound message for a deactivated assignee is recorded by the system (no member actor exists for them)
-    world.emit(None if received_by_system else assignee, "sales.customer_message.received", m.id, payload, version=1)
-    world.drain()
-    return m
+             received_by_system: bool = False, drain: bool = True) -> uuid.UUID:
+    """A real inbound Berg message; one for an assignee who is being deactivated is recorded by the system."""
+    return world.record_message(key, keys.PARTY_REFS.BERG, assignee, at, by_system=received_by_system, origin=origin, drain=drain)
 
 
 def test_team_lead_fallback_then_queue(world: FakeWorld) -> None:
     """No active named person: the manager takes it; with no active manager the family queue does."""
+    # the messages are recorded while the assignee is still a member; the rule runs after the deactivation
+    m = _message(world, "MSG_FALLBACK", keys.USERS.MEERA, d0(10, 0), received_by_system=True, drain=False)
     with world.uow() as uow:
         meera = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[keys.USERS.MEERA])).one()
         meera.status = "deactivated"
-    m = _message(world, "MSG_FALLBACK", keys.USERS.MEERA, d0(10, 0), received_by_system=True)
-    (task,) = tasks_of(world, issue_of(world, issue_keys.message_key(m.id)).id)
+    world.drain()
+    (task,) = tasks_of(world, issue_of(world, issue_keys.message_key(m)).id)
     assert (task.owner_user_id, task.assignee_user_id, task.queue_code) == (world.refs[keys.USERS.SAHIL],) * 2 + (None,)
     with world.uow() as uow:
-        sahil = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[keys.USERS.SAHIL])).one()
-        sahil.status = "deactivated"
-    m2 = _message(world, "MSG_QUEUE", keys.USERS.MEERA, d0(10, 5), received_by_system=True)
-    (queued,) = tasks_of(world, issue_of(world, issue_keys.message_key(m2.id)).id)
+        meera = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[keys.USERS.MEERA])).one()
+        meera.status = "active"
+    m2 = _message(world, "MSG_QUEUE", keys.USERS.MEERA, d0(10, 5), received_by_system=True, drain=False)
+    with world.uow() as uow:
+        for person in (keys.USERS.MEERA, keys.USERS.SAHIL):
+            member = uow.session.scalars(select(Membership).where(Membership.user_id == world.refs[person])).one()
+            member.status = "deactivated"
+    world.drain()
+    (queued,) = tasks_of(world, issue_of(world, issue_keys.message_key(m2)).id)
     assert (queued.owner_user_id, queued.assignee_user_id, queued.queue_code) == (None, None, "sales")
     # the queue is never silent: a triage obligation for queue managers (admins) until it is empty
     triage_issue = issue_of(world, issue_keys.responsibility_key("sales"))
@@ -235,7 +221,7 @@ def test_replayed_and_migration_events_change_nothing(world: FakeWorld) -> None:
         assert consumer.handle(uow, event) == 0  # already consumed: exactly once
     m = _message(world, "MSG_MIGRATED", keys.USERS.MEERA, d0(10, 0), origin="migration")
     with world.uow() as uow:
-        assert uow.session.scalars(select(Issue).where(Issue.issue_key == issue_keys.message_key(m.id))).first() is None
+        assert uow.session.scalars(select(Issue).where(Issue.issue_key == issue_keys.message_key(m))).first() is None
 
 
 def test_access_change_rechecks_approval_eligibility(world: FakeWorld) -> None:
@@ -267,7 +253,7 @@ def test_dismissed_reply_keeps_the_issue_open_across_rederivation(world: FakeWor
     with world.uow(keys.USERS.MEERA) as uow:
         tasks.transition_task(uow, reply.id, action="dismiss", reason_code="handled_outside_system")
     world.at(d0(9, 40))
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)
+    world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)
     world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)  # re-derives msg:M2
     world.drain()
     issue = issue_of(world, key)
@@ -280,8 +266,8 @@ def test_lapsed_quote_is_not_reopened_by_later_events(world: FakeWorld) -> None:
     world.at(ist(2026, 10, 13, 0, 5))
     with world.uow() as uow:
         tasks.sweep_overdue(uow)
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING)
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version,
+    world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quote(keys.QUOTE_REFS.BERG_EXPIRING).version,
                      changed_fields=["notes"], line_change_kinds=[])
     world.drain()
     expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]), 1))
@@ -291,8 +277,8 @@ def test_lapsed_quote_is_not_reopened_by_later_events(world: FakeWorld) -> None:
 def test_event_after_lapse_expires_the_obligation_before_the_sweep_runs(world: FakeWorld) -> None:
     """The rule re-reads the quote: an event arriving after validity ended lapses the task, never re-arms it."""
     world.at(ist(2026, 10, 13, 0, 5))  # the sweep has not run yet
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING)
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version,
+    world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING)
+    world.emit_quote(keys.USERS.MEERA, "sales.quote.updated", keys.QUOTE_REFS.BERG_EXPIRING, version=world.quote(keys.QUOTE_REFS.BERG_EXPIRING).version,
                      changed_fields=["notes"], line_change_kinds=[])
     world.drain()
     expiry = issue_of_any(world, issue_keys.issue_id(world.company_id, issue_keys.quote_expiry_key(world.refs[keys.QUOTE_REFS.BERG_EXPIRING]), 1))

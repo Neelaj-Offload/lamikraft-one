@@ -124,11 +124,7 @@ def test_rule_does_not_recreate_a_dismissed_obligation(world: FakeWorld) -> None
     with world.uow(keys.USERS.MEERA) as uow:
         tasks.transition_task(uow, berg, action="dismiss", reason_code="handled_outside_system")
     world.at(d0(9, 30))
-    m = world.messages[keys.MESSAGES.BERG]
-    world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {"message_id": str(m.id), "party_id": str(world.refs["BERG"]),
-               "contact_id": None, "channel": "email", "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None,
-               "quote_id": None}, version=m.version)
-    world.drain()
+    world.touch_message(keys.USERS.MEERA, keys.MESSAGES.BERG)  # a later source event for the same message
     with world.uow() as uow:
         states = list(uow.session.scalars(select(Task.state).join(Issue, Issue.id == Task.issue_id).where(Issue.issue_key == berg_issue)))
     assert states == ["dismissed"]

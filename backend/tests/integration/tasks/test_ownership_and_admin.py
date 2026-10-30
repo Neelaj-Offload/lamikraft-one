@@ -39,10 +39,7 @@ def open_tasks(world: FakeWorld, issue_key: str) -> list[Task]:
 def test_briefing_dismiss_leaves_other_peoples_obligations_open(world: FakeWorld) -> None:
     """Review major 2: Sahil dismisses his assigned review; Meera's reply on the same issue stays open."""
     world.at(d0(9, 0))
-    q = world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="draft")
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.status_changed", keys.QUOTE_REFS.NORDHAUS_DRAFT, version=q.version,
-                     action="withdraw_review", from_status="internal_review", to_status="draft")
-    world.drain()
+    world.transition(keys.USERS.MEERA, keys.QUOTE_REFS.NORDHAUS_DRAFT, "withdraw_review")
     key = issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])
     review = next(t for t in open_tasks(world, key) if t.kind == "review_draft" and t.state == "open")
     with world.uow(keys.USERS.MEERA) as uow:
@@ -63,13 +60,8 @@ def test_manual_assignment_survives_rederivation_and_source_events(world: FakeWo
         tasks.assign_task(uow, reply.id, assignee_user_id=world.refs[keys.USERS.SAHIL], expected_version=reply.version)
     with world.uow() as uow:
         assert consumer.rederive_open(uow) >= 1
-    m = world.messages[keys.MESSAGES.BERG]
-    m.version += 1
     world.at(d0(9, 30))
-    world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {
-        "message_id": str(m.id), "party_id": str(world.refs["BERG"]), "contact_id": None, "channel": "email",
-        "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None, "quote_id": None}, version=m.version)
-    world.drain()
+    world.touch_message(keys.USERS.MEERA, keys.MESSAGES.BERG)  # a new source event at a new message version
     (kept,) = [t for t in open_tasks(world, key) if t.kind == "reply_needed"]
     assert (kept.assignee_user_id, kept.owner_user_id, kept.queue_code) == (
         world.refs[keys.USERS.SAHIL], world.refs[keys.USERS.MEERA], None)
@@ -185,14 +177,17 @@ def test_onboarding_role_template_without_an_identity_reader(world: FakeWorld, m
 
 def test_reply_closes_through_origin_message_link_only(world: FakeWorld) -> None:
     """Review major 7: the message does not list the draft; the draft's origin_message_id links it."""
+    from app.modules.sales import service as sales
+    from app.modules.sales.schemas import CustomerMessageUpdate
+
+    with world.uow(keys.USERS.MEERA) as uow:  # sales links the agent's draft to its message: unlink it here
+        message = sales.get_customer_message(uow, world.refs[keys.MESSAGES.NORDHAUS])
+        sales.update_customer_message(uow, message.id, CustomerMessageUpdate(expected_version=message.version, quote_id=None))
     with world.uow() as uow:
         facts = sources.read(uow, "sales.customer_message", world.refs[keys.MESSAGES.NORDHAUS])
     assert facts is not None and str(world.refs[keys.QUOTE_REFS.NORDHAUS_DRAFT]) not in facts.facts["linked_quote_ids"]
     world.at(d0(10, 0))
-    world.change_quote(keys.QUOTE_REFS.NORDHAUS_DRAFT, status="sent", sent_at=d0(10, 0))
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.marked_sent", keys.QUOTE_REFS.NORDHAUS_DRAFT, revision_id=str(uuid.uuid7()),
-                     dispatch_id=str(uuid.uuid7()))
-    world.drain()
+    world.transition(keys.USERS.MEERA, keys.QUOTE_REFS.NORDHAUS_DRAFT, "mark_sent", dispatch_channel="email")
     (reply,) = [t for t in open_tasks(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])) if t.kind == "reply_needed"]
     assert reply.state == "done" and reply.completion_evidence["reason"] == "linked_quote_sent"
 

@@ -76,7 +76,8 @@ def test_permission_change_version_ends_the_live_pin(world: FakeWorld) -> None:
 
 def test_reply_title_hides_numbers_of_quotes_the_viewer_cannot_open(world: FakeWorld) -> None:
     """Review major 6: the linked draft now belongs to Neha; Meera's reply item names no quote number."""
-    world.quotes[keys.QUOTE_REFS.NORDHAUS_DRAFT].owner = keys.USERS.NEHA
+    # reassigned to Neha (quote ownership transfer is a Slice-2 command; the row is changed directly)
+    world.slice2_quote_change(keys.QUOTE_REFS.NORDHAUS_DRAFT, owner_user_id=world.refs[keys.USERS.NEHA])
     with world.uow(keys.USERS.MEERA) as uow:
         assert not can_view_source(uow, "sales.quote", world.refs[keys.QUOTE_REFS.NORDHAUS_DRAFT])
     view = today(world, keys.USERS.MEERA)

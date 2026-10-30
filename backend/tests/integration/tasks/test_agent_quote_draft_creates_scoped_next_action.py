@@ -25,10 +25,8 @@ def test_review_task_for_meera_only(world: FakeWorld) -> None:
     neha = today(world, keys.USERS.NEHA)
     kabir = today(world, keys.USERS.KABIR)
     world.at(d0(9, 10))
-    q = world._quote("Q_SCENARIO_C", keys.QUOTES.SCENARIO_C_NEW, "NORDHAUS", keys.USERS.MEERA, "draft", "5760.00", "EUR", d0(9, 10))
-    world.emit_quote(keys.USERS.MEERA, "sales.quote.created", "Q_SCENARIO_C", agent=True, quote_number=q.number,
-                     owner_user_id=str(world.refs[keys.USERS.MEERA]), party_id=str(world.refs["NORDHAUS"]))
-    world.drain()
+    q = world.agent_draft(keys.USERS.MEERA, keys.PARTY_REFS.NORDHAUS, "OAK_TRAY", keys.EXPECTED.SCENARIO_C_QTY)
+    assert q.quote_number == keys.QUOTES.SCENARIO_C_NEW
     review = issue(world, issue_keys.quote_review_key(q.id))
     with world.uow() as uow:
         (task,) = uow.session.scalars(select(Task).where(Task.issue_id == review)).all()

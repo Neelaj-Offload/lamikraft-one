@@ -24,7 +24,7 @@ def test_stable_issue_id_and_stale_recommendation(world: FakeWorld) -> None:
     with world.uow() as uow:
         r1 = uow.session.scalars(select(Recommendation).where(Recommendation.issue_id == expiry_issue)).one()
     world.at(d0(9, 5))
-    quote = world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
+    quote = world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     revised = world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     world.drain()
     v2 = today(world, keys.USERS.MEERA)

@@ -20,7 +20,7 @@ from app.modules.tasks.models import ChangeLog, Issue, Task
 from app.platform.audit.models import AuditLog
 from app.platform.events.models import DomainEvent
 from app.seed.world import keys
-from tests.integration.briefings.world import FakeWorld, MessageRec, d0, ist
+from tests.integration.briefings.world import FakeWorld, d0, ist
 
 pytestmark = pytest.mark.db
 
@@ -46,16 +46,9 @@ def current_version(world: FakeWorld, briefing_id: uuid.UUID) -> int:
         return b.current_version
 
 
-def new_message(world: FakeWorld, key: str, party: str, at: datetime) -> MessageRec:
-    world.at(at)
-    m = MessageRec(uuid.uuid7(), party, keys.CONTACTS["MAISON"][0], keys.USERS.MEERA, at)
-    world.messages[key] = m
-    world.refs[key] = m.id
-    world.emit(keys.USERS.MEERA, "sales.customer_message.received", m.id, {
-        "message_id": str(m.id), "party_id": str(world.refs[party]), "contact_id": None, "channel": "email",
-        "assignee_user_id": str(world.refs[keys.USERS.MEERA]), "enquiry_id": None, "quote_id": None}, version=1)
-    world.drain()
-    return m
+def new_message(world: FakeWorld, key: str, party: str, at: datetime) -> uuid.UUID:
+    """A real inbound message for Meera (``sales.record_customer_message``)."""
+    return world.record_message(key, party, keys.USERS.MEERA, at)
 
 
 # ---- B-02 / B-03: no manufactured versions ------------------------------------------------------------------
@@ -64,13 +57,12 @@ def test_out_of_order_older_event_changes_nothing(world: FakeWorld) -> None:
     """B-03: quote v3 processed, then a v2 event arrives late: facts stay at v3 and no version is made."""
     v1 = today(world, keys.USERS.MEERA)
     world.at(d0(9, 0))
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2)
-    v2_version = world.quotes[keys.QUOTE_REFS.BERG_EXPIRING].version
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
+    v2_version = world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=2).version
+    world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     world.emit_quote(keys.USERS.MEERA, "sales.quote.revised", keys.QUOTE_REFS.BERG_EXPIRING, revision_no=3)
     world.drain()
     assert current_version(world, v1.briefing_id) == 2  # type: ignore[arg-type]
-    q = world.quotes[keys.QUOTE_REFS.BERG_EXPIRING]
+    q = world.quote(keys.QUOTE_REFS.BERG_EXPIRING)
     stale = world.emit(keys.USERS.MEERA, "sales.quote.revised", q.id, {"quote_id": str(q.id), "revision_no": 2}, version=v2_version)
     world.drain()
     assert current_version(world, v1.briefing_id) == 2  # type: ignore[arg-type]
@@ -174,8 +166,9 @@ def test_mark_handled_verifies_the_source_or_needs_an_authorised_reason(world: F
 def test_mark_handled_completes_when_the_source_confirms(world: FakeWorld) -> None:
     today(world, keys.USERS.MEERA)
     berg_reply = issue(world, issue_keys.message_key(world.refs[keys.MESSAGES.BERG]))
-    world.messages[keys.MESSAGES.BERG].status = "replied"
-    world.messages[keys.MESSAGES.BERG].replied_at = d0(8, 54)
+    # replied outside the briefing (just before the action); the rule's own delivery is held back so only the
+    # mark-handled check sees it
+    world.mark_replied(keys.USERS.MEERA, keys.MESSAGES.BERG, d0(8, 54), drain=False)
     out = act(world, keys.USERS.MEERA, berg_reply, action="mark_handled")
     assert out.outcome == "completed"
     with world.uow() as uow:
@@ -185,7 +178,7 @@ def test_mark_handled_completes_when_the_source_confirms(world: FakeWorld) -> No
 
 def test_validity_extension_completes_the_expiry_task(world: FakeWorld) -> None:
     world.at(d0(9, 30))
-    world.change_quote(keys.QUOTE_REFS.BERG_EXPIRING, valid_until=date(2026, 10, 14))
+    world.slice2_quote_change(keys.QUOTE_REFS.BERG_EXPIRING, valid_until=date(2026, 10, 14))
     world.emit_quote(keys.USERS.MEERA, "sales.quote.validity_extended", keys.QUOTE_REFS.BERG_EXPIRING,
                      revision_id=str(uuid.uuid7()), valid_until="2026-10-14")
     world.drain()

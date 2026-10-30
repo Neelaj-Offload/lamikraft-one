@@ -92,8 +92,16 @@ def test_overdue_sweep_emits_once_and_lapses_quote_expiry(world: FakeWorld) -> N
     world.at(ist(2026, 10, 13, 0, 1))  # validity of the two quotes ended at midnight company time
     with world.uow() as uow:
         tasks.sweep_overdue(uow)
-        expiry_states = list(uow.session.scalars(select(Task.state).where(Task.kind == "quote_expiry").order_by(Task.created_at)))
+        from app.modules.tasks.models import Issue
+
+        expiring = [issue_keys.quote_expiry_key(world.refs[k]) for k in (keys.QUOTE_REFS.THORNBURY_EXPIRING, keys.QUOTE_REFS.BERG_EXPIRING)]
+        expiry_states = list(uow.session.scalars(
+            select(Task.state).join(Issue, Issue.id == Task.issue_id)
+            .where(Task.kind == "quote_expiry", Issue.issue_key.in_(expiring)).order_by(Task.created_at)))
+        # the quotes that were sent and later won or lost had their expiry obligation done at that time
+        closed = list(uow.session.scalars(select(Task.state).where(Task.kind == "quote_expiry", Task.state != "expired")))
     assert expiry_states == ["expired", "expired"]
+    assert set(closed) <= {"done"}
     with world.uow() as uow:
         from app.modules.tasks.models import Issue
 

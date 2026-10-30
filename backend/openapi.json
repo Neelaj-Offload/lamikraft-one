@@ -327,6 +327,44 @@
         "title": "AddressRead",
         "type": "object"
       },
+      "AdjustmentOut": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "kind": {
+            "enum": [
+              "line_discount",
+              "surcharge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Key"
+          }
+        },
+        "required": [
+          "kind",
+          "line_key",
+          "label",
+          "amount"
+        ],
+        "title": "AdjustmentOut",
+        "type": "object"
+      },
       "AllowedTransition": {
         "properties": {
           "action": {
@@ -1053,6 +1091,172 @@
         "title": "BriefingView",
         "type": "object"
       },
+      "CalculationResultOut": {
+        "properties": {
+          "adjustments": {
+            "items": {
+              "$ref": "#/components/schemas/AdjustmentOut"
+            },
+            "title": "Adjustments",
+            "type": "array"
+          },
+          "applicable_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "discount_total": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gross_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/LineResultOut"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "minimum": {
+            "$ref": "#/components/schemas/MinimumOut"
+          },
+          "net_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "priced_line_count": {
+            "title": "Priced Line Count",
+            "type": "integer"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "rule_set_code": {
+            "title": "Rule Set Code",
+            "type": "string"
+          },
+          "rule_set_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Set Id"
+          },
+          "rule_set_version": {
+            "title": "Rule Set Version",
+            "type": "integer"
+          },
+          "surcharge": {
+            "$ref": "#/components/schemas/SurchargeOut"
+          },
+          "surcharge_requested": {
+            "title": "Surcharge Requested",
+            "type": "boolean"
+          },
+          "tax": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_label": {
+            "title": "Tax Label",
+            "type": "string"
+          },
+          "tax_status": {
+            "title": "Tax Status",
+            "type": "string"
+          },
+          "totals_complete": {
+            "title": "Totals Complete",
+            "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine_version",
+          "rule_set_code",
+          "rule_set_id",
+          "rule_set_version",
+          "currency",
+          "surcharge_requested",
+          "lines",
+          "line_count",
+          "priced_line_count",
+          "totals_complete",
+          "gross_subtotal",
+          "discount_total",
+          "net_subtotal",
+          "applicable_subtotal",
+          "adjustments",
+          "minimum",
+          "surcharge",
+          "tax",
+          "tax_status",
+          "tax_label",
+          "grand_total",
+          "reason_codes",
+          "warnings",
+          "input_hash",
+          "inputs"
+        ],
+        "title": "CalculationResultOut",
+        "type": "object"
+      },
       "Capability": {
         "properties": {
           "allowed": {
@@ -1177,6 +1381,146 @@
           "subcategories"
         ],
         "title": "CategoryRead",
+        "type": "object"
+      },
+      "Channel": {
+        "enum": [
+          "email",
+          "phone",
+          "whatsapp",
+          "web",
+          "other"
+        ],
+        "title": "Channel",
+        "type": "string"
+      },
+      "CommercialSnapshot": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id"
+          },
+          "moq_unit_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moq Unit Code"
+          },
+          "price_list_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price List Code"
+          },
+          "price_list_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price List Id"
+          },
+          "product_moq": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Moq"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "resolved_on": {
+            "format": "date",
+            "title": "Resolved On",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "unit_code": {
+            "title": "Unit Code",
+            "type": "string"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "price_list_id",
+          "price_list_code",
+          "item_id",
+          "tier",
+          "unit_price",
+          "currency",
+          "unit_code",
+          "product_moq",
+          "moq_unit_code",
+          "resolved_on"
+        ],
+        "title": "CommercialSnapshot",
         "type": "object"
       },
       "CompanyRef": {
@@ -1570,6 +1914,382 @@
           "limit"
         ],
         "title": "CursorPage[AuditEntryRead]",
+        "type": "object"
+      },
+      "CustomerMessageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignee_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee User Id"
+          },
+          "body": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "enquiry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enquiry Id"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "party_id",
+          "channel",
+          "body"
+        ],
+        "title": "CustomerMessageCreate",
+        "type": "object"
+      },
+      "CustomerMessageRead": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Name"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "enquiry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enquiry Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "quote_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Number"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "replied_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replied At"
+          },
+          "reply_ref_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply Ref Id"
+          },
+          "reply_ref_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply Ref Type"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessageStatus"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "party",
+          "contact_id",
+          "contact_name",
+          "channel",
+          "received_at",
+          "assignee",
+          "branch_id",
+          "enquiry_id",
+          "quote_id",
+          "quote_number",
+          "subject",
+          "body",
+          "status",
+          "replied_at",
+          "reply_ref_type",
+          "reply_ref_id",
+          "created_at",
+          "updated_at",
+          "version",
+          "path",
+          "capabilities"
+        ],
+        "title": "CustomerMessageRead",
+        "type": "object"
+      },
+      "CustomerMessageUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignee_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee User Id"
+          },
+          "enquiry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enquiry Id"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "CustomerMessageUpdate",
         "type": "object"
       },
       "CustomerType": {
@@ -1994,6 +2714,383 @@
           "parse_warnings"
         ],
         "title": "DimensionRead",
+        "type": "object"
+      },
+      "DispatchChannel": {
+        "enum": [
+          "manual",
+          "email",
+          "whatsapp",
+          "post",
+          "other"
+        ],
+        "title": "DispatchChannel",
+        "type": "string"
+      },
+      "EnquiryCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "party_id",
+          "channel"
+        ],
+        "title": "EnquiryCreate",
+        "type": "object"
+      },
+      "EnquiryRead": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "enquiry_number": {
+            "title": "Enquiry Number",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "outcome_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Code"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "quote_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Number"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnquiryStatus"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "enquiry_number",
+          "party",
+          "contact_id",
+          "channel",
+          "received_at",
+          "owner",
+          "branch_id",
+          "subject",
+          "body",
+          "status",
+          "outcome_code",
+          "quote_id",
+          "quote_number",
+          "closed_at",
+          "created_at",
+          "updated_at",
+          "version",
+          "path",
+          "capabilities"
+        ],
+        "title": "EnquiryRead",
+        "type": "object"
+      },
+      "EnquiryStatus": {
+        "enum": [
+          "received",
+          "assigned",
+          "quoted",
+          "closed"
+        ],
+        "title": "EnquiryStatus",
+        "type": "string"
+      },
+      "EnquiryUpdate": {
+        "additionalProperties": false,
+        "description": "Dirty fields plus ``expected_version``; ``owner_user_id`` assigns (``sales.enquiry.assign``),\n``status='closed'`` with an ``outcome_code`` closes.",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "contact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Id"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "outcome_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Code"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "const": "closed",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "EnquiryUpdate",
         "type": "object"
       },
       "ExplainView": {
@@ -2432,6 +3529,19 @@
         ],
         "title": "InboxPage",
         "type": "object"
+      },
+      "Incoterm": {
+        "enum": [
+          "FOB",
+          "CIF",
+          "CFR",
+          "EXW",
+          "DDP",
+          "DAP",
+          "FCA"
+        ],
+        "title": "Incoterm",
+        "type": "string"
       },
       "IntegrationModes": {
         "description": "Configured provider modes so the UI can label Demo / Not connected features truthfully.",
@@ -3091,6 +4201,124 @@
         "title": "LastSuccessfulView",
         "type": "object"
       },
+      "LineResultOut": {
+        "properties": {
+          "advisories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Advisories",
+            "type": "array"
+          },
+          "applicable": {
+            "title": "Applicable",
+            "type": "boolean"
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gross": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "line_key": {
+            "title": "Line Key",
+            "type": "string"
+          },
+          "line_type": {
+            "enum": [
+              "catalog",
+              "custom",
+              "manual"
+            ],
+            "title": "Line Type",
+            "type": "string"
+          },
+          "net": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_status": {
+            "enum": [
+              "priced",
+              "missing",
+              "zero"
+            ],
+            "title": "Price Status",
+            "type": "string"
+          },
+          "product_moq": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/Quantity"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/RecommendationOut"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "line_key",
+          "line_type",
+          "quantity",
+          "unit_price",
+          "price_status",
+          "gross",
+          "discount",
+          "net",
+          "applicable",
+          "recommendation",
+          "product_moq",
+          "advisories"
+        ],
+        "title": "LineResultOut",
+        "type": "object"
+      },
+      "LineType": {
+        "enum": [
+          "catalog",
+          "manual",
+          "custom"
+        ],
+        "title": "LineType",
+        "type": "string"
+      },
       "LocalePreferences": {
         "properties": {
           "locale": {
@@ -3203,6 +4431,51 @@
         "title": "ManagerRef",
         "type": "object"
       },
+      "ManualPreset": {
+        "enum": [
+          "development",
+          "tooling",
+          "special_packaging",
+          "freight",
+          "sample",
+          "miscellaneous"
+        ],
+        "title": "ManualPreset",
+        "type": "string"
+      },
+      "MarkReplied": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reply_ref_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply Ref Id"
+          },
+          "reply_ref_type": {
+            "default": "manual",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Reply Ref Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "MarkReplied",
+        "type": "object"
+      },
       "MeRead": {
         "properties": {
           "locale": {
@@ -3266,6 +4539,38 @@
           "locale"
         ],
         "title": "MeRead",
+        "type": "object"
+      },
+      "MediaSnapshot": {
+        "properties": {
+          "file_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          }
+        },
+        "required": [
+          "hint"
+        ],
+        "title": "MediaSnapshot",
         "type": "object"
       },
       "MembershipSummary": {
@@ -3376,6 +4681,123 @@
           "joined_on"
         ],
         "title": "MembershipView",
+        "type": "object"
+      },
+      "MessageStatus": {
+        "enum": [
+          "received",
+          "replied"
+        ],
+        "title": "MessageStatus",
+        "type": "string"
+      },
+      "MinimumOut": {
+        "properties": {
+          "minimum_order_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "shortfall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "MEETS",
+              "BELOW",
+              "NOT_EVALUATED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "minimum_order_value",
+          "shortfall",
+          "reason_code"
+        ],
+        "title": "MinimumOut",
+        "type": "object"
+      },
+      "MinimumRead": {
+        "properties": {
+          "minimum_order_value": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Order Value"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "shortfall": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shortfall"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "minimum_order_value",
+          "shortfall",
+          "reason_code"
+        ],
+        "title": "MinimumRead",
         "type": "object"
       },
       "Money": {
@@ -4039,6 +5461,188 @@
         "title": "PackagingRead",
         "type": "object"
       },
+      "PackagingSnapshot": {
+        "properties": {
+          "carton_qty": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carton Qty"
+          },
+          "cbm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cbm"
+          },
+          "gross_weight_kg": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gross Weight Kg"
+          },
+          "inner_qty": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inner Qty"
+          },
+          "net_weight_kg": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Weight Kg"
+          },
+          "packing_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packing Type"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "unit_weight_g": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Weight G"
+          }
+        },
+        "required": [
+          "carton_qty",
+          "inner_qty",
+          "unit_weight_g",
+          "packing_type",
+          "cbm",
+          "net_weight_kg",
+          "gross_weight_kg",
+          "summary"
+        ],
+        "title": "PackagingSnapshot",
+        "type": "object"
+      },
+      "Page_CustomerMessageRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerMessageRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CustomerMessageRead]",
+        "type": "object"
+      },
+      "Page_EnquiryRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EnquiryRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[EnquiryRead]",
+        "type": "object"
+      },
       "Page_PartySummary_": {
         "properties": {
           "items": {
@@ -4194,6 +5798,37 @@
         "title": "Page[ProductSummary]",
         "type": "object"
       },
+      "Page_QuoteSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[QuoteSummary]",
+        "type": "object"
+      },
       "Page_RuleSetRead_": {
         "properties": {
           "items": {
@@ -4233,6 +5868,27 @@
         ],
         "title": "ParseStatus",
         "type": "string"
+      },
+      "PartyAddressSnapshot": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "lines"
+        ],
+        "title": "PartyAddressSnapshot",
+        "type": "object"
       },
       "PartyCreate": {
         "additionalProperties": false,
@@ -4539,6 +6195,35 @@
         "title": "PartyMini",
         "type": "object"
       },
+      "PartyRef": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name",
+          "country_code"
+        ],
+        "title": "PartyRef",
+        "type": "object"
+      },
       "PartyRole": {
         "enum": [
           "customer",
@@ -4548,6 +6233,95 @@
         ],
         "title": "PartyRole",
         "type": "string"
+      },
+      "PartySnapshot": {
+        "properties": {
+          "addresses": {
+            "items": {
+              "$ref": "#/components/schemas/PartyAddressSnapshot"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
+          },
+          "contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Name"
+          },
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "customer_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Type"
+          },
+          "default_currency": {
+            "title": "Default Currency",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "legal_name": {
+            "title": "Legal Name",
+            "type": "string"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "title": "Taken At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_number",
+          "display_name",
+          "legal_name",
+          "country_code",
+          "default_currency",
+          "customer_type",
+          "contact_name",
+          "contact_email",
+          "addresses",
+          "taken_at"
+        ],
+        "title": "PartySnapshot",
+        "type": "object"
       },
       "PartyStatus": {
         "enum": [
@@ -5353,6 +7127,216 @@
           "changed_fields"
         ],
         "title": "PreferencesUpdated",
+        "type": "object"
+      },
+      "PreviewLine": {
+        "additionalProperties": false,
+        "properties": {
+          "discount_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "le": 100,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "line_key": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Key"
+          },
+          "line_type": {
+            "default": "catalog",
+            "enum": [
+              "catalog",
+              "manual"
+            ],
+            "title": "Line Type",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "unit_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pcs",
+                  "nos",
+                  "sheets",
+                  "kg",
+                  "g",
+                  "m",
+                  "mm",
+                  "cm",
+                  "sqm",
+                  "sqft",
+                  "box",
+                  "set",
+                  "roll",
+                  "bundle",
+                  "carton"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Code"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "quantity"
+        ],
+        "title": "PreviewLine",
+        "type": "object"
+      },
+      "PreviewLineOut": {
+        "properties": {
+          "default_unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Unit Price"
+          },
+          "line_key": {
+            "title": "Line Key",
+            "type": "string"
+          },
+          "line_type": {
+            "title": "Line Type",
+            "type": "string"
+          },
+          "price_status": {
+            "title": "Price Status",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Key"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "unit_code": {
+            "title": "Unit Code",
+            "type": "string"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "line_key",
+          "line_type",
+          "product_id",
+          "product_key",
+          "unit_code",
+          "default_unit_price",
+          "unit_price",
+          "price_status",
+          "reason_code"
+        ],
+        "title": "PreviewLineOut",
         "type": "object"
       },
       "PriceCandidate": {
@@ -7278,6 +9262,164 @@
         "title": "ProductSize",
         "type": "object"
       },
+      "ProductSnapshot": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "decor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decor Name"
+          },
+          "decor_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decor No"
+          },
+          "display_sku": {
+            "title": "Display Sku",
+            "type": "string"
+          },
+          "finish": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "product_version": {
+            "title": "Product Version",
+            "type": "integer"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          },
+          "size_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Text"
+          },
+          "specification_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specification Summary"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thickness Mm"
+          },
+          "unit_of_sale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Of Sale"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_key",
+          "display_sku",
+          "product_name",
+          "category",
+          "subcategory",
+          "unit_of_sale",
+          "decor_no",
+          "decor_name",
+          "finish",
+          "shape",
+          "size_text",
+          "thickness_mm",
+          "specification_summary",
+          "product_version"
+        ],
+        "title": "ProductSnapshot",
+        "type": "object"
+      },
       "ProductStats": {
         "properties": {
           "archived": {
@@ -7962,6 +10104,1939 @@
         "title": "QuoteCommercialRulesV1",
         "type": "object"
       },
+      "QuoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "apply_minimum_surcharge": {
+            "default": false,
+            "title": "Apply Minimum Surcharge",
+            "type": "boolean"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "brand": {
+            "default": "LK",
+            "title": "Brand",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "INR",
+                  "EUR",
+                  "USD",
+                  "GBP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "enquiry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enquiry Id"
+          },
+          "incoterm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Incoterm"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "FOB"
+          },
+          "incoterm_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incoterm Place"
+          },
+          "origin_message_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Message Id"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "price_type": {
+            "$ref": "#/components/schemas/PriceType",
+            "default": "export"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "validity_days": {
+            "default": 30,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Validity Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "party_id"
+        ],
+        "title": "QuoteCreate",
+        "type": "object"
+      },
+      "QuoteDetail": {
+        "properties": {
+          "accepted_revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Revision Id"
+          },
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "apply_minimum_surcharge": {
+            "title": "Apply Minimum Surcharge",
+            "type": "boolean"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "brand": {
+            "title": "Brand",
+            "type": "string"
+          },
+          "calculation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationResultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelled_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled Reason Code"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "enquiry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enquiry Id"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incoterm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incoterm"
+          },
+          "incoterm_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incoterm Place"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineRead"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "lost_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason Code"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/QuoteOrigin"
+          },
+          "origin_message_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Message Id"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "party_snapshot": {
+            "$ref": "#/components/schemas/PartySnapshot"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "price_type": {
+            "$ref": "#/components/schemas/PriceType"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewRead"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/QuoteStatus"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/QuoteTotals"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "validity_days": {
+            "title": "Validity Days",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "won_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Won At"
+          }
+        },
+        "required": [
+          "id",
+          "quote_number",
+          "revision_no",
+          "status",
+          "party",
+          "customer_reference",
+          "currency",
+          "line_count",
+          "grand_total",
+          "owner",
+          "created_by",
+          "branch_id",
+          "origin",
+          "valid_until",
+          "issued_at",
+          "sent_at",
+          "created_at",
+          "updated_at",
+          "version",
+          "path",
+          "party_snapshot",
+          "enquiry_id",
+          "origin_message_id",
+          "brand",
+          "price_type",
+          "incoterm",
+          "incoterm_place",
+          "payment_terms",
+          "validity_days",
+          "remarks",
+          "apply_minimum_surcharge",
+          "won_at",
+          "accepted_revision_id",
+          "lost_reason_code",
+          "cancelled_reason_code",
+          "deleted_at",
+          "lines",
+          "totals",
+          "calculation",
+          "content_hash",
+          "review",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "QuoteDetail",
+        "type": "object"
+      },
+      "QuoteHistoryRead": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_status": {
+            "title": "From Status",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "quote_version": {
+            "title": "Quote Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "to_status": {
+            "title": "To Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "from_status",
+          "to_status",
+          "actor",
+          "reason_code",
+          "reason",
+          "occurred_at",
+          "quote_version"
+        ],
+        "title": "QuoteHistoryRead",
+        "type": "object"
+      },
+      "QuoteLineCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "le": 100,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          },
+          "line_type": {
+            "default": "catalog",
+            "enum": [
+              "catalog",
+              "manual"
+            ],
+            "title": "Line Type",
+            "type": "string"
+          },
+          "manual_preset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManualPreset"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_key": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Key"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pcs",
+                  "nos",
+                  "sheets",
+                  "kg",
+                  "g",
+                  "m",
+                  "mm",
+                  "cm",
+                  "sqm",
+                  "sqft",
+                  "box",
+                  "set",
+                  "roll",
+                  "bundle",
+                  "carton"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Code"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "expected_version",
+          "quantity"
+        ],
+        "title": "QuoteLineCreate",
+        "type": "object"
+      },
+      "QuoteLineRead": {
+        "properties": {
+          "advisories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Advisories",
+            "type": "array"
+          },
+          "commercial_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommercialSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "current_unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Unit Price"
+          },
+          "default_unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Unit Price"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Amount"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "gross_amount": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gross Amount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          },
+          "is_overridden": {
+            "title": "Is Overridden",
+            "type": "boolean"
+          },
+          "line_key": {
+            "format": "uuid",
+            "title": "Line Key",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "line_total": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Total"
+          },
+          "line_type": {
+            "$ref": "#/components/schemas/LineType"
+          },
+          "manual_preset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManualPreset"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "media_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MediaSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "packaging_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackagingSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_list_item_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price List Item Id"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit_code": {
+            "title": "Unit Code",
+            "type": "string"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "id",
+          "line_no",
+          "line_key",
+          "line_type",
+          "product_id",
+          "description",
+          "manual_preset",
+          "quantity",
+          "unit_code",
+          "default_unit_price",
+          "unit_price",
+          "currency",
+          "is_overridden",
+          "override_reason",
+          "discount_pct",
+          "gross_amount",
+          "discount_amount",
+          "line_total",
+          "remarks",
+          "internal_note",
+          "price_list_item_id",
+          "product_snapshot",
+          "packaging_snapshot",
+          "media_snapshot",
+          "commercial_snapshot",
+          "recommendation",
+          "advisories"
+        ],
+        "title": "QuoteLineRead",
+        "type": "object"
+      },
+      "QuoteLineUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "clear_discount": {
+            "default": false,
+            "title": "Clear Discount",
+            "type": "boolean"
+          },
+          "clear_override": {
+            "default": false,
+            "title": "Clear Override",
+            "type": "boolean"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "le": 100,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "gt": 0,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "ge": 0,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "QuoteLineUpdate",
+        "type": "object"
+      },
+      "QuoteOrigin": {
+        "enum": [
+          "user",
+          "agent",
+          "seed",
+          "import",
+          "migration"
+        ],
+        "title": "QuoteOrigin",
+        "type": "string"
+      },
+      "QuotePreviewIn": {
+        "additionalProperties": false,
+        "description": "Run the engine over proposed lines without persisting anything (live totals in the UI).",
+        "properties": {
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewLine"
+            },
+            "maxItems": 200,
+            "title": "Lines",
+            "type": "array"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "price_type": {
+            "$ref": "#/components/schemas/PriceType",
+            "default": "export"
+          },
+          "surcharge_requested": {
+            "default": false,
+            "title": "Surcharge Requested",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "currency"
+        ],
+        "title": "QuotePreviewIn",
+        "type": "object"
+      },
+      "QuotePreviewOut": {
+        "properties": {
+          "calculation": {
+            "$ref": "#/components/schemas/CalculationResultOut"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewLineOut"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "calculation",
+          "lines",
+          "warnings"
+        ],
+        "title": "QuotePreviewOut",
+        "type": "object"
+      },
+      "QuoteRevisionRead": {
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "document_path": {
+            "title": "Document Path",
+            "type": "string"
+          },
+          "document_sha256": {
+            "title": "Document Sha256",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RevisionKind"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision_no",
+          "kind",
+          "issued_at",
+          "issued_by",
+          "valid_until",
+          "document_sha256",
+          "content_hash",
+          "document_path",
+          "snapshot"
+        ],
+        "title": "QuoteRevisionRead",
+        "type": "object"
+      },
+      "QuoteRevisionSummary": {
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "document_path": {
+            "title": "Document Path",
+            "type": "string"
+          },
+          "document_sha256": {
+            "title": "Document Sha256",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RevisionKind"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision_no",
+          "kind",
+          "issued_at",
+          "issued_by",
+          "valid_until",
+          "document_sha256",
+          "content_hash",
+          "document_path"
+        ],
+        "title": "QuoteRevisionSummary",
+        "type": "object"
+      },
+      "QuoteStatus": {
+        "enum": [
+          "draft",
+          "internal_review",
+          "sent",
+          "revised",
+          "won",
+          "lost",
+          "cancelled",
+          "archived"
+        ],
+        "title": "QuoteStatus",
+        "type": "string"
+      },
+      "QuoteSummary": {
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/QuoteOrigin"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/QuoteStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "quote_number",
+          "revision_no",
+          "status",
+          "party",
+          "customer_reference",
+          "currency",
+          "line_count",
+          "grand_total",
+          "owner",
+          "created_by",
+          "branch_id",
+          "origin",
+          "valid_until",
+          "issued_at",
+          "sent_at",
+          "created_at",
+          "updated_at",
+          "version",
+          "path"
+        ],
+        "title": "QuoteSummary",
+        "type": "object"
+      },
+      "QuoteTotals": {
+        "description": "The persisted engine result in money form (never recomputed by a client).",
+        "properties": {
+          "applicable_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "discount_total": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gross_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "input_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Hash"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "minimum": {
+            "$ref": "#/components/schemas/MinimumRead"
+          },
+          "net_subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "rule_set_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Set Version"
+          },
+          "surcharge": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "surcharge_applied": {
+            "title": "Surcharge Applied",
+            "type": "boolean"
+          },
+          "surcharge_label": {
+            "title": "Surcharge Label",
+            "type": "string"
+          },
+          "surcharge_reason_code": {
+            "title": "Surcharge Reason Code",
+            "type": "string"
+          },
+          "tax_label": {
+            "title": "Tax Label",
+            "type": "string"
+          },
+          "tax_status": {
+            "title": "Tax Status",
+            "type": "string"
+          },
+          "threshold_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Note"
+          },
+          "totals_complete": {
+            "title": "Totals Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "currency",
+          "gross_subtotal",
+          "discount_total",
+          "net_subtotal",
+          "applicable_subtotal",
+          "surcharge",
+          "surcharge_applied",
+          "surcharge_reason_code",
+          "surcharge_label",
+          "grand_total",
+          "totals_complete",
+          "line_count",
+          "minimum",
+          "tax_status",
+          "tax_label",
+          "threshold_note",
+          "engine_version",
+          "rule_set_version",
+          "input_hash"
+        ],
+        "title": "QuoteTotals",
+        "type": "object"
+      },
+      "QuoteTransition": {
+        "additionalProperties": false,
+        "description": "One request for every state-machine action. Unknown or not-allowed actions are 409 ``invalid_transition``.",
+        "properties": {
+          "accepted_revision_no": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Revision No"
+          },
+          "action": {
+            "pattern": "^[a-z][a-z_]{1,39}$",
+            "title": "Action",
+            "type": "string"
+          },
+          "dispatch_channel": {
+            "$ref": "#/components/schemas/DispatchChannel",
+            "default": "manual"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "sent_to": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent To"
+          }
+        },
+        "required": [
+          "action",
+          "expected_version"
+        ],
+        "title": "QuoteTransition",
+        "type": "object"
+      },
+      "QuoteUpdate": {
+        "additionalProperties": false,
+        "description": "Header edits (drafts only). Currency changes are Slice 2 (list or approved FX), brand is fixed by the number.",
+        "properties": {
+          "apply_minimum_surcharge": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apply Minimum Surcharge"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "incoterm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Incoterm"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incoterm_place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incoterm Place"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "price_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refresh_party_snapshot": {
+            "default": false,
+            "title": "Refresh Party Snapshot",
+            "type": "boolean"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "validity_days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validity Days"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "QuoteUpdate",
+        "type": "object"
+      },
       "RecentProduct": {
         "properties": {
           "id": {
@@ -8096,6 +12171,127 @@
         "title": "RecentSearchRead",
         "type": "object"
       },
+      "RecommendationOut": {
+        "properties": {
+          "basis_unit_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "carton_qty": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carton Qty"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "minimum_order_value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE",
+              "NOT_EVALUATED",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "quantity",
+          "basis_unit_price",
+          "minimum_order_value",
+          "carton_qty",
+          "explanation",
+          "label"
+        ],
+        "title": "RecommendationOut",
+        "type": "object"
+      },
+      "RecommendationRead": {
+        "properties": {
+          "carton_qty": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carton Qty"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "quantity",
+          "carton_qty",
+          "explanation",
+          "label"
+        ],
+        "title": "RecommendationRead",
+        "type": "object"
+      },
       "RecommendationView": {
         "properties": {
           "action_code": {
@@ -8152,6 +12348,20 @@
           "alternatives"
         ],
         "title": "RecommendationView",
+        "type": "object"
+      },
+      "RefreshSnapshots": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "RefreshSnapshots",
         "type": "object"
       },
       "ReminderCreate": {
@@ -8357,6 +12567,65 @@
         ],
         "title": "ReminderUpdate",
         "type": "object"
+      },
+      "ReviewRead": {
+        "properties": {
+          "approval_current": {
+            "title": "Approval Current",
+            "type": "boolean"
+          },
+          "approved_proposal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Proposal Id"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "requires_approval": {
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
+          "review_proposal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Proposal Id"
+          }
+        },
+        "required": [
+          "requires_approval",
+          "reasons",
+          "review_proposal_id",
+          "approved_proposal_id",
+          "approval_current"
+        ],
+        "title": "ReviewRead",
+        "type": "object"
+      },
+      "RevisionKind": {
+        "enum": [
+          "issued"
+        ],
+        "title": "RevisionKind",
+        "type": "string"
       },
       "RoleRef": {
         "properties": {
@@ -9742,6 +14011,33 @@
         "title": "SubcategoryRead",
         "type": "object"
       },
+      "SurchargeOut": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "applied",
+          "amount",
+          "reason_code",
+          "label"
+        ],
+        "title": "SurchargeOut",
+        "type": "object"
+      },
       "TargetOut": {
         "properties": {
           "target_id": {
@@ -10740,6 +15036,32 @@
         "type": "object"
       },
       "app__modules__parties__schemas__UserRef": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "UserRef",
+        "type": "object"
+      },
+      "app__modules__sales__schemas__UserRef": {
         "properties": {
           "display_name": {
             "anyOf": [
@@ -14750,6 +19072,2013 @@
           "kind": "permission",
           "permissions": [
             "pricing.price.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/customer-messages": {
+      "get": {
+        "operationId": "sales_list_customer_messages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/MessageStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assignee_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assignee User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "quote_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quote Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CustomerMessageRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Customer Messages",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.customer_message.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Record an inbound customer message (the body is external content and never becomes a rule fact).",
+        "operationId": "sales_create_customer_message",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerMessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMessageRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Customer Message",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.customer_message.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/customer-messages/{message_id}": {
+      "get": {
+        "operationId": "sales_get_customer_message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMessageRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Customer Message",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.customer_message.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "sales_update_customer_message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Message Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerMessageUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMessageRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Customer Message",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.customer_message.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/customer-messages/{message_id}/replied": {
+      "post": {
+        "description": "Mark a message replied (``reply_ref_type``/``reply_ref_id`` point at the reply); emits ``replied``.",
+        "operationId": "sales_transition_customer_message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Message Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReplied"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMessageRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Customer Message",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.customer_message.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/enquiries": {
+      "get": {
+        "operationId": "sales_list_enquiries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/EnquiryStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_EnquiryRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Enquiries",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.enquiry.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Record an enquiry; ``ENQ-YYYY-NNNN`` is allocated atomically (yearly reset).",
+        "operationId": "sales_create_enquiry",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnquiryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnquiryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Enquiry",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.enquiry.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/enquiries/{enquiry_id}": {
+      "get": {
+        "operationId": "sales_get_enquiry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enquiry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Enquiry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnquiryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Enquiry",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.enquiry.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Dirty fields plus ``expected_version``; ``owner_user_id`` assigns, ``status=closed`` with ``outcome_code`` closes.",
+        "operationId": "sales_update_enquiry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enquiry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Enquiry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnquiryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnquiryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Enquiry",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.enquiry.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes": {
+      "get": {
+        "description": "Quotes within the actor's read scope (``scope=mine`` narrows to the actor's own); filters apply before paging.",
+        "operationId": "sales_list_quotes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tokens matched against number, customer name and country",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against number, customer name and country",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/QuoteStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Deleted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_QuoteSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Quotes",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Create a draft; the number ``{brand}-QT-YYYY-NNNN`` is allocated atomically and never reused.",
+        "operationId": "sales_create_quote",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Quote",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/calculate": {
+      "post": {
+        "description": "Run the commercial engine on proposed lines without persisting anything (live totals in the UI).",
+        "operationId": "sales_calculate_quote_preview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotePreviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotePreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Calculate Quote Preview",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "pricing.price.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/lookup": {
+      "get": {
+        "operationId": "sales_get_quote_by_number",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "quote_number",
+            "required": true,
+            "schema": {
+              "maxLength": 30,
+              "minLength": 5,
+              "title": "Quote Number",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quote By Number",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/status-counts": {
+      "get": {
+        "operationId": "sales_get_quote_status_counts",
+        "parameters": [
+          {
+            "description": "Tokens matched against number, customer name and country",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against number, customer name and country",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/QuoteStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Deleted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Sales Get Quote Status Counts",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quote Status Counts",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}": {
+      "delete": {
+        "description": "Soft-delete a never-issued draft (``sales.quote.delete``); the number stays reserved.",
+        "operationId": "sales_delete_quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expected Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Quote",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.delete"
+          ]
+        }
+      },
+      "get": {
+        "description": "Detail with lines, snapshots, the persisted totals, ``capabilities`` and ``allowed_transitions``.",
+        "operationId": "sales_get_quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quote",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Header fields of a draft (dirty fields plus ``expected_version``; 409 ``version_conflict`` when stale).",
+        "operationId": "sales_update_quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Quote",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/history": {
+      "get": {
+        "operationId": "sales_list_quote_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuoteHistoryRead"
+                  },
+                  "title": "Response Sales List Quote History",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Quote History",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/lines": {
+      "post": {
+        "description": "Add a catalog line (priced through the price lists, snapshots taken) or a manual line; totals are recomputed.",
+        "operationId": "sales_create_quote_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteLineCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Quote Line",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/lines/{line_id}": {
+      "delete": {
+        "description": "Remove a line; the remaining lines are renumbered and totals recomputed in the same transaction.",
+        "operationId": "sales_delete_quote_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expected Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Quote Line",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.update"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "sales_update_quote_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteLineUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Quote Line",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/refresh-snapshots": {
+      "post": {
+        "description": "Explicitly re-read the catalogue and current prices into the catalog lines of a draft.",
+        "operationId": "sales_refresh_quote_snapshots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSnapshots"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Quote Snapshots",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/revisions": {
+      "get": {
+        "operationId": "sales_list_quote_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuoteRevisionSummary"
+                  },
+                  "title": "Response Sales List Quote Revisions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Quote Revisions",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/revisions/{revision_no}": {
+      "get": {
+        "operationId": "sales_get_quote_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_no",
+            "required": true,
+            "schema": {
+              "title": "Revision No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteRevisionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quote Revision",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/revisions/{revision_no}/document.pdf": {
+      "get": {
+        "description": "The issued revision as PDF, rendered deterministically from its snapshot (inline, nosniff, sandboxed).",
+        "operationId": "sales_download_quote_revision_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_no",
+            "required": true,
+            "schema": {
+              "title": "Revision No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Quote Revision Pdf",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/transitions": {
+      "post": {
+        "description": "Apply a state-machine action (submit_review, withdraw_review, mark_sent, mark_won, mark_lost, cancel).\n\nAn action that is unknown or not allowed in the current status is 409 ``invalid_transition`` with\n``allowed_transitions``. ``mark_sent``, ``mark_won``, ``mark_lost`` and ``cancel`` require ``Idempotency-Key``.",
+        "operationId": "sales_transition_quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Quote",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.transition",
+            "sales.quote.issue"
           ]
         }
       }
