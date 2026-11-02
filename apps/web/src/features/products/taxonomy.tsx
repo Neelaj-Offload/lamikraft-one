@@ -17,7 +17,7 @@ import { productListHref } from "./list-state";
 import { productsAreaNav, PRODUCTS_READ } from "./product-list";
 import type { CategoryRead, SubcategoryRead } from "./types";
 
-import { includeInactiveFrom, taxonomyHref } from "./detail-state";
+import { taxonomyHref } from "./detail-state";
 
 export { includeInactiveFrom, taxonomyHref } from "./detail-state";
 
