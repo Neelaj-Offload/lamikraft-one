@@ -52,18 +52,20 @@ export function LoginShowcase({ next }: { next: string }) {
             <p data-entrance="copy" className="text-xs font-semibold tracking-[0.12em] text-ink-muted uppercase">
               {m.showcase.eyebrow}
             </p>
-            <h1 className="font-display text-[44px] leading-[0.98] font-medium tracking-[-0.025em] text-ink sm:text-[56px] md:text-[64px] xl:text-[76px]">
+            {/* The tagline is display copy; the page's heading is the form's "Sign in" below (its route label). */}
+            <p className="font-display text-[44px] leading-[0.98] font-medium tracking-[-0.025em] text-ink sm:text-[56px] md:text-[64px] xl:text-[76px]">
               {m.showcase.headline.map((line) => (
                 <span key={line} data-entrance="line" className="block">
                   {line}
                 </span>
               ))}
-            </h1>
+            </p>
             <p data-entrance="copy" className="max-w-md text-lg leading-relaxed text-ink-muted">
               {m.showcase.lede}
             </p>
             <MaterialRow className="lg:hidden" />
-            <div data-entrance="copy" className="w-full max-w-sm pt-2">
+            <div data-entrance="copy" className="flex w-full max-w-sm flex-col gap-4 pt-2">
+              <h1 className="text-xl font-bold tracking-tight text-ink">{m.login.title}</h1>
               <LoginForm next={next} />
             </div>
           </div>

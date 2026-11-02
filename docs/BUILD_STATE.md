@@ -119,7 +119,7 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-02 | CP2 | check on the working tree | `npm run check -- --keep-going` | 7/7 PASS (ruff, pytest unit+contract 481, alembic heads 1, api:check, web lint, typecheck, vitest 39 files / 496 tests) | scratchpad `check-cp2.log`, summary in this row |
 | 2026-11-02 | CP2 | dev boot and route sweep | `npm run dev` on 127.0.0.1:3200 / 8200, signed in as Meera and Sahil through `lk demo sign-in-link` | 21 routes rendered real data or an honest state; no console errors on the clean server | `docs/evidence/checkpoint-2/README.md` |
 | 2026-11-02 | CP2 | showcase surfaces in the browser | sign-in light/dark/phone, story scroll, Today reveal, sidebar indicator, product Material tab (WebGL canvas 838×627, three presets) | as designed; reveal gate and entrance hold under Strict Mode and hidden tabs | `docs/evidence/checkpoint-2/*.jpg` |
-| 2026-11-02 | CP2 | e2e (Playwright, axe) | not run | — | see Checkpoint-2 open items in §8 |
+| 2026-11-02 | CP2 | e2e on the working tree | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build) | 96 passed, 0 failed, 165 skipped (project-scoped / opt-in); axe sweep in light and dark now includes `/products/[productId]`, `/sales/parties/[partyId]`, `/products/price-lists/[priceListId]` | scratchpad `e2e-cp2-run2.log`; the first run found 7 login failures (sand numerals at 2.21:1, missing h1 "Sign in"), fixed before the rerun |
 
 ## 8. Next executable step
 
@@ -151,10 +151,8 @@ Open items carried from Slice 1 (owners in brackets):
 - Composer: Enter inserts a newline; decide whether Enter sends (Shift+Enter for newline). [web, design]
 
 Open items carried from Checkpoint 2 (owners in brackets):
-- `npm run test:e2e` was not run at this checkpoint (the production build needs memory this machine did not have
-  during the session; see §7). The axe sweep iterates the route manifest, so it covers the new routes once run;
-  `e2e/axe-sweep.spec.ts` still needs `productId`, `partyId` and `priceListId` candidates from `/_test/fixtures`
-  for the three new dynamic routes, which skip until then. [web]
+- `next build` stops once per build on the Next.js 16.4.0 security nudge (`SecurityFatalError`) and must be
+  retried; the e2e orchestration therefore needs two invocations until the upgrade decision is made. [owner]
 - `queryKeys.sales.quotes()` has no `party_id` slot; the customer record uses an inline key under the same prefix.
   Add the parameter to the factory. [web]
 - `UiPreferencePatch` in `lib/session/preferences.ts` names only theme/sidebar/rail; the profile page passes the

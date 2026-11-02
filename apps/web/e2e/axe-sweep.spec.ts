@@ -24,6 +24,10 @@ function paramCandidates(world: World): Record<string, () => string | null> {
     quoteId: () => byFact("quotes", "NORDHAUS_DRAFT") ?? byFact("quotes", "MAISON_OVERRIDE"),
     proposalId: () => ref(world, "PROP_MAISON") ?? ref(world, "PROP_NORDHAUS"),
     enquiryId: () => byFact("enquiries", "MAISON"),
+    // Checkpoint 2 routes: ids by fixture key (seed/world/{catalogue,parties,pricing}.py refs).
+    productId: () => ref(world, "OAK_TRAY"),
+    partyId: () => ref(world, "MAISON") ?? ref(world, "NORDHAUS"),
+    priceListId: () => ref(world, "PL_EXP_EUR"),
   };
 }
 

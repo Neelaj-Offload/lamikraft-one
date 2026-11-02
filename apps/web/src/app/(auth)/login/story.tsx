@@ -16,7 +16,7 @@ export function LoginStory() {
         <ol className="flex flex-col gap-16 lg:gap-24">
           {m.showcase.story.map((beat) => (
             <li key={beat.number} className="grid grid-cols-1 gap-4 border-t pt-8 md:grid-cols-[120px_minmax(0,1fr)] lg:grid-cols-[160px_minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
-              <span aria-hidden="true" className="font-display text-5xl leading-none font-medium text-sand md:text-6xl">
+              <span aria-hidden="true" className="font-display text-5xl leading-none font-medium text-ink-muted md:text-6xl">
                 {beat.number}
               </span>
               <h3 className="font-display text-3xl leading-[1.05] font-medium tracking-[-0.02em] text-ink md:text-4xl lg:text-[44px]">{beat.title}</h3>
