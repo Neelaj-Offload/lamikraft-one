@@ -57,14 +57,53 @@ export const queryKeys = {
     enquiry: (enquiryId: string) => ["sales", "enquiry", { enquiry_id: enquiryId }] as const,
     messages: (params: { status?: string | null; offset?: number | null }) =>
       ["sales", "customer-messages", compact({ status: params.status ?? null, offset: params.offset ?? null })] as const,
+    statusCounts: () => ["sales", "quote-status-counts"] as const,
   },
   parties: {
     all: () => ["parties"] as const,
     search: (q: string) => ["parties", "search", compact({ q: q.trim() })] as const,
+    list: (params: Record<string, string | number | boolean | null | undefined>) => ["parties", "list", compact(params)] as const,
+    party: (partyId: string) => ["parties", "party", { party_id: partyId }] as const,
   },
   catalogue: {
     all: () => ["catalogue"] as const,
     productSearch: (q: string) => ["catalogue", "product-search", compact({ q: q.trim() })] as const,
+    products: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "products", compact(params)] as const,
+    facets: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "facets", compact(params)] as const,
+    stats: () => ["catalogue", "stats"] as const,
+    completeness: () => ["catalogue", "completeness"] as const,
+    product: (productId: string) => ["catalogue", "product", { product_id: productId }] as const,
+    categories: (includeInactive = false) => ["catalogue", "categories", compact({ include_inactive: includeInactive })] as const,
+  },
+  pricing: {
+    all: () => ["pricing"] as const,
+    priceLists: (params: Record<string, string | number | boolean | null | undefined>) => ["pricing", "price-lists", compact(params)] as const,
+    priceList: (priceListId: string) => ["pricing", "price-list", { price_list_id: priceListId }] as const,
+    priceListItems: (priceListId: string, params: Record<string, string | number | boolean | null | undefined>) =>
+      ["pricing", "price-list-items", compact({ price_list_id: priceListId, ...params })] as const,
+    productPrices: (productId: string) => ["pricing", "product-prices", { product_id: productId }] as const,
+    productCosts: (productId: string) => ["pricing", "product-costs", { product_id: productId }] as const,
+  },
+  org: {
+    all: () => ["org"] as const,
+    settings: () => ["org", "settings"] as const,
+    setting: (key: string) => ["org", "setting", { key }] as const,
+    settingRevisions: (key: string) => ["org", "setting-revisions", { key }] as const,
+    currencies: () => ["org", "currencies"] as const,
+    uoms: () => ["org", "uoms"] as const,
+    calendar: () => ["org", "calendar"] as const,
+  },
+  system: {
+    all: () => ["system"] as const,
+    integrations: () => ["system", "integrations"] as const,
+  },
+  audit: {
+    all: () => ["audit"] as const,
+    entries: (params: Record<string, string | number | boolean | null | undefined>) => ["audit", "entries", compact(params)] as const,
+  },
+  identity: {
+    all: () => ["identity"] as const,
+    me: () => ["identity", "me"] as const,
   },
   search: {
     all: () => ["search"] as const,
@@ -86,6 +125,9 @@ export const invalidationMap = {
   "sales.quote_changed": [queryKeys.sales.all(), queryKeys.briefings.today()],
   "sales.quote_transition": [queryKeys.sales.all(), queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "sales.message_replied": [queryKeys.sales.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  "parties.party_changed": [queryKeys.parties.all(), queryKeys.sales.all(), queryKeys.search.all()],
+  "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap()],
+  "identity.password_changed": [queryKeys.identity.me()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

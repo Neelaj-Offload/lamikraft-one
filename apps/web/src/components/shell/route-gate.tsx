@@ -21,6 +21,8 @@ export function deniedRoute(pathname: string, permissionKeys: Iterable<string>):
 export function RouteGate({ permissionKeys, children }: { permissionKeys: ReadonlySet<string>; children: ReactNode }) {
   const pathname = usePathname();
   const denied = deniedRoute(pathname, permissionKeys);
-  if (denied) return <PermissionDenied area={areaRouteFor(pathname)?.label ?? denied.label} />;
+  // A sub-route (e.g. the audit log) is named itself; a primary area keeps its area name.
+  const area = denied ? (denied.navGroup === "context" ? denied.label : (areaRouteFor(pathname)?.label ?? denied.label)) : null;
+  if (denied && area) return <PermissionDenied area={area} />;
   return <>{children}</>;
 }

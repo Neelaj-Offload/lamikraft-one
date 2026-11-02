@@ -1,7 +1,7 @@
 # Build state
 
-**Checkpoint 1 — Slice 1 (shell, auth, briefing and the quote vertical path) merged on `main` 2026-10-30.** Slice 2 next.
-(Checkpoint 0 — Slice 0 — verified 2026-10-23.)
+**Checkpoint 2 — web surfaces for every API that exists, plus the showcase motion system, on `main` 2026-11-02.**
+(Checkpoint 1 — Slice 1 — merged 2026-10-30. Checkpoint 0 — Slice 0 — verified 2026-10-23.) Slice 2 backend next.
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
 "Next executable step". Nothing below is claimed as implemented unless it appears under **Implemented (verified)**
@@ -116,11 +116,17 @@ Filled at each checkpoint; one row per executed check.
 | 2026-10-30 | 1 | e2e on `lane/s1-merge` (= `main` 27502a8) | `npm run test:e2e -- --no-build --workers=1` on fresh `lk seed demo` | 70 passed, 113 skipped (project-scoped / opt-in) | `docs/lanes/merge-s1w2.md` |
 | 2026-10-30 | 1 | screenshots inspected | 24 PNGs at 1440/390 × light/dark | 3 defects found and fixed in c0d2c7e; re-checked live on slot 8 | `docs/evidence/slice-1/` |
 | 2026-10-30 | 1 | vitest after the screenshot fixes | `npx vitest run` | 411 passed | console |
+| 2026-11-02 | CP2 | check on the working tree | `npm run check -- --keep-going` | 7/7 PASS (ruff, pytest unit+contract 481, alembic heads 1, api:check, web lint, typecheck, vitest 39 files / 496 tests) | scratchpad `check-cp2.log`, summary in this row |
+| 2026-11-02 | CP2 | dev boot and route sweep | `npm run dev` on 127.0.0.1:3200 / 8200, signed in as Meera and Sahil through `lk demo sign-in-link` | 21 routes rendered real data or an honest state; no console errors on the clean server | `docs/evidence/checkpoint-2/README.md` |
+| 2026-11-02 | CP2 | showcase surfaces in the browser | sign-in light/dark/phone, story scroll, Today reveal, sidebar indicator, product Material tab (WebGL canvas 838×627, three presets) | as designed; reveal gate and entrance hold under Strict Mode and hidden tabs | `docs/evidence/checkpoint-2/*.jpg` |
+| 2026-11-02 | CP2 | e2e (Playwright, axe) | not run | — | see Checkpoint-2 open items in §8 |
 
 ## 8. Next executable step
 
 Slice 2 (complete legacy parity) per `docs/PLAN.md`, in waves of at most three lanes, starting from `main` at the
-Slice-1 checkpoint. Before the first Slice-2 wave:
+Checkpoint-2 commit. The web side of Slice 2 (product and price-list forms, imports workbench, cutting canvas,
+challans) builds on the screens and recipes in `docs/superpowers/specs/2026-11-02-checkpoint-2-build-guide.md`.
+Before the first Slice-2 wave:
 1. Re-run `npm run test:e2e` on `main` once the machine has memory to spare: the 2026-10-30 run after c0d2c7e
    stopped in `next build` with an out-of-memory error (machine had 1.6 GB free of 15.7 GB). The same code passed
    e2e on the merge branch earlier the same day; c0d2c7e changes only three components (vitest-covered, checked live).
@@ -143,6 +149,21 @@ Open items carried from Slice 1 (owners in brackets):
   requester-only (sales invalidates instead). [approvals]
 - Enquiry outcome codes are free text; a catalogue is needed. Quote delete is a capability, not a transition. [sales]
 - Composer: Enter inserts a newline; decide whether Enter sends (Shift+Enter for newline). [web, design]
+
+Open items carried from Checkpoint 2 (owners in brackets):
+- `npm run test:e2e` was not run at this checkpoint (the production build needs memory this machine did not have
+  during the session; see §7). The axe sweep iterates the route manifest, so it covers the new routes once run;
+  `e2e/axe-sweep.spec.ts` still needs `productId`, `partyId` and `priceListId` candidates from `/_test/fixtures`
+  for the three new dynamic routes, which skip until then. [web]
+- `queryKeys.sales.quotes()` has no `party_id` slot; the customer record uses an inline key under the same prefix.
+  Add the parameter to the factory. [web]
+- `UiPreferencePatch` in `lib/session/preferences.ts` names only theme/sidebar/rail; the profile page passes the
+  wider patch (motion, density, shortcuts) through a typed cast in `features/settings/api.ts`. Widen the type. [web]
+- Procedural fixture swatches stand in for product media (`public/swatches/README.md`); replace through
+  `features/material-viewer/swatches.ts` when catalogue media land. [catalogue, web]
+- The sign-in headline uses Fraunces (OFL, `@fontsource-variable/fraunces`, loaded on `/login` only); the owner's
+  design system may replace it through `--font-display` in `globals.css`. [design]
+- The Next.js 16.4.0 advisory and lockfile upgrade decision from Checkpoint 1 still stands. [owner]
 
 ---
 
@@ -168,3 +189,32 @@ agreement — `tests/integration/documents/test_output_channels_agree.py` and `t
 matrix, 40-way numbering, optimistic 409) — passed; A subset and B subset — passed in `tests/integration/briefings`
 and `tasks`; keyboard journey and axe in both themes on all 24 manifest routes — passed; screenshots inspected and
 defects fixed — done (see section 7). PARITY_MATRIX: 40 rows implemented, 13 in progress, 647 planned (Slice 2–6).
+
+---
+
+## 10. Checkpoint 2 — web completion and showcase motion (2026-11-02)
+
+Design: `docs/superpowers/specs/2026-11-02-frontend-showcase-and-completion-design.md`; build guide (file map,
+recipes, motion contract, design-system swap seams): `docs/superpowers/specs/2026-11-02-checkpoint-2-build-guide.md`.
+Evidence: `docs/evidence/checkpoint-2/`. No backend change; no migration.
+
+What runs (all against the existing API, every figure from the server, honest states everywhere):
+- **Showcase surfaces (motion-system §2):** sign-in choreography (GSAP entrance ≤ 900 ms, four-board material
+  composition with ≤ 12 px pointer parallax, Lenis story section, dark theme, phone layout); Today greeting reveal
+  (once per briefing version, ≤ 700 ms, skipped offline/stale/reduced/hidden tab); route transitions
+  (`(app)/template.tsx`); sliding sidebar indicator; lazy Three.js material viewer on the product record
+  (real L × W × T, swatch albedo + normal map, drag/keys/presets, demand rendering, static fallback).
+- **Products:** catalogue list (URL-state filters, server facets with exclude-self counts, stats fact strip, price
+  column by currency when permitted), product record with Overview / Specification / Packaging / Prices /
+  Material tabs, completeness rules, taxonomy, price lists and price-list items.
+- **Sales:** hub "my work in motion" (status counts, quotes in review, messages waiting, open enquiries);
+  customers list, customer record (edit drawer with 409 three-way merge, add contact, quotes of the customer),
+  new-customer form (Idempotency-Key, 422 field errors).
+- **Settings:** hub with workspace modes; profile (account facts, preferences incl. motion, password change,
+  current session); company settings (every registered setting, typed editor when allowed, revisions); reference
+  data (currencies, UOMs, work calendar); integrations; audit log (keyset pages, filters).
+- **Operations / Finance:** honest overviews naming the slice each sub-area arrives in; no fabricated figures.
+- **Design system additions:** PageHeader, FactStrip, RecordHeader, SectionCard, KeyValueGrid, FacetGroup, AreaNav;
+  `--font-display` token; procedural fixture swatches and their generator.
+
+Verification at this checkpoint is in §7 (rows dated 2026-11-02).

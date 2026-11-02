@@ -1,5 +1,6 @@
 "use client";
 
+import { m as motion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { Link as RacLink } from "react-aria-components";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -74,13 +75,22 @@ export function PrimaryNav({
                     "relative flex min-h-11 items-center gap-3 rounded-md px-3 font-medium text-ink-muted transition-colors duration-150 pointer-fine:min-h-9",
                     "hover:bg-surface-sunken hover:text-ink",
                     classes.link,
-                    current && "bg-forest-tint font-semibold text-forest hover:bg-forest-tint hover:text-forest",
+                    current && "font-semibold text-forest hover:text-forest",
                   )}
                 >
-                  <AreaIcon id={route.id} size={19} />
-                  <span className={cx("flex-1", classes.label)}>{route.label}</span>
+                  {current ? (
+                    // One shared element slides to the new current item (motion-system §4 spring.snappy).
+                    <motion.span
+                      aria-hidden="true"
+                      layoutId="lk-primary-nav-current"
+                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                      className="absolute inset-0 rounded-md bg-forest-tint"
+                    />
+                  ) : null}
+                  <AreaIcon id={route.id} size={19} className="relative" />
+                  <span className={cx("relative flex-1", classes.label)}>{route.label}</span>
                   {count !== null ? (
-                    <span className={cx("rounded-sm bg-sand-tint px-1.5 text-xs font-bold tabular text-ink", classes.count)}>
+                    <span className={cx("relative rounded-sm bg-sand-tint px-1.5 text-xs font-bold tabular text-ink", classes.count)}>
                       <span aria-hidden="true">{formatCount(count, locale)}</span>
                       <span className="sr-only">{m.inboxCount(count)}</span>
                     </span>

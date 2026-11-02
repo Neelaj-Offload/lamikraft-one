@@ -29,6 +29,7 @@ import {
   parseQuoteDetail,
   parseQuoteSummary,
   parseRevisions,
+  parseStatusCounts,
   SalesShapeError,
 } from "./parse";
 import type {
@@ -44,6 +45,7 @@ import type {
   QuoteHistoryEntry,
   QuotePreview,
   QuoteRevision,
+  QuoteStatusCounts,
   QuoteSummary,
   QuoteTransitionRequest,
 } from "./types";
@@ -57,6 +59,8 @@ export interface QuoteListParams {
   q?: string | null;
   status?: string | null;
   scope?: "mine" | "all" | null;
+  /** One customer's quotes (`QuoteFilters.party_id`). */
+  party_id?: string | null;
   offset?: number | null;
 }
 
@@ -67,6 +71,7 @@ export async function fetchQuotes(params: QuoteListParams, signal?: AbortSignal,
         q: params.q?.trim() || undefined,
         status: params.status || undefined,
         scope: params.scope ?? undefined,
+        party_id: params.party_id || undefined,
         offset: params.offset ?? 0,
         limit: QUOTES_PAGE_SIZE,
       },
@@ -248,4 +253,22 @@ export async function closeEnquiry(
     headers: idempotencyHeaders(idempotencyKey),
   });
   return parseEnquiry(raw);
+}
+
+// ---- status counts (the Sales hub) --------------------------------------------------------------
+
+/**
+ * `GET /sales/quotes/status-counts`: one integer per quote status over the scoped, filtered set
+ * (statuses with no quotes are present as 0). Accepts the list filters; `status` is ignored.
+ */
+export async function fetchQuoteStatusCounts(
+  params: Pick<QuoteListParams, "scope" | "party_id"> = {},
+  signal?: AbortSignal,
+  client: ApiClient = api,
+): Promise<QuoteStatusCounts> {
+  const raw = await requestUntyped<unknown>(client, "get", `${QUOTES_PATH}/status-counts`, {
+    params: { query: { scope: params.scope ?? undefined, party_id: params.party_id || undefined } },
+    signal,
+  });
+  return parseStatusCounts(raw);
 }

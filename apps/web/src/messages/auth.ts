@@ -39,5 +39,31 @@ export const authMessages = {
     cancel: "Back to Today",
     failed: "You're still signed in. Lamikraft One couldn't reach the server to sign you out. Try again.",
   },
+  showcase: {
+    eyebrow: "Crown / Lamikraft",
+    headline: ["Your day,", "prepared."],
+    lede: "Briefings, quotes, materials and the people behind them, in one place. Sign in to open yours.",
+    stageLabel: "Four material swatches from the catalogue, stacked like boards on a bench",
+    swatchNote: "Illustrative material swatches, not product photos.",
+    scrollHint: "What Lamikraft One does",
+    story: [
+      {
+        number: "01",
+        title: "A briefing for each person.",
+        body: "Every morning the briefing lists what needs you: decisions, replies and changes to the records you own, with the evidence beside each one and a plain next step.",
+      },
+      {
+        number: "02",
+        title: "Ask in plain words.",
+        body: "The assistant works through the same services as every screen. It drafts; you decide. Nothing leaves without your review, and every action keeps its receipt.",
+      },
+      {
+        number: "03",
+        title: "Real materials, real numbers.",
+        body: "Prices come from active price lists, totals from the server, previews from each product's own specification. Nothing on screen is estimated.",
+      },
+    ],
+    backToTop: "Back to sign-in",
+  },
   requestId: "Reference",
 } as const;

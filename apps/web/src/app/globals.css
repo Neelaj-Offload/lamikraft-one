@@ -177,6 +177,8 @@
   --font-mono:
     ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
+  /* Editorial display face, loaded only by the sign-in page (motion-system §2 "Sign-in"). */
+  --font-display: "Fraunces Variable", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 
   --radius-*: initial;
   --radius-xs: 4px;
@@ -312,6 +314,21 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Lenis smooth scroll (sign-in page only, motion-system §5). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 @utility focus-ring {

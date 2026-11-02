@@ -16,9 +16,15 @@ export interface BriefingHeaderProps {
 export function BriefingHeader({ greeting, overview, meta, wording }: BriefingHeaderProps) {
   return (
     <header className="flex flex-col gap-2">
-      <h1 className="text-[28px] leading-tight font-bold tracking-[-0.02em] text-ink md:text-[clamp(28px,3vw,40px)]">{greeting}</h1>
-      {overview ? <p className="max-w-3xl text-lg text-ink md:text-xl">{overview}</p> : null}
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
+      <h1 data-reveal="line" className="text-[28px] leading-tight font-bold tracking-[-0.02em] text-ink md:text-[clamp(28px,3vw,40px)]">
+        {greeting}
+      </h1>
+      {overview ? (
+        <p data-reveal="line" className="max-w-3xl text-lg text-ink md:text-xl">
+          {overview}
+        </p>
+      ) : null}
+      <p data-reveal="line" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
         {meta}
         {wording ? (
           <Badge tone="neutral">

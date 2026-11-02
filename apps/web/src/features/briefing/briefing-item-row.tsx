@@ -75,7 +75,7 @@ export function BriefingItemRow({
     item.uncertainty_flags.length > 0;
 
   return (
-    <article aria-labelledby={titleId} className="flex flex-col gap-3 py-5">
+    <article aria-labelledby={titleId} data-reveal="item" className="flex flex-col gap-3 py-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <StatusPill tone={status.tone}>{status.label}</StatusPill>
         {due ? <span className={cx("text-sm tabular", item.overdue ? "font-semibold text-danger" : "text-ink-muted")}>{due}</span> : null}

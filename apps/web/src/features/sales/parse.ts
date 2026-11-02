@@ -20,6 +20,7 @@ import {
   type QuoteLine,
   type QuotePreview,
   type QuoteRevision,
+  type QuoteStatusCounts,
   type QuoteSummary,
   type QuoteTotals,
   type TransitionOption,
@@ -349,4 +350,15 @@ export function parsePreview(raw: unknown): QuotePreview {
     line_totals: lineTotals,
     warnings: [...arr(raw.warnings), ...arr(c.warnings)].filter((warning, index, all): warning is string => typeof warning === "string" && all.indexOf(warning) === index),
   };
+}
+
+/** `dict[str, int]` keyed by quote status; unknown keys are dropped, missing known ones are absent (not zero). */
+export function parseStatusCounts(raw: unknown): QuoteStatusCounts {
+  if (!isObject(raw)) throw new SalesShapeError("The quote status counts could not be read.");
+  const counts: QuoteStatusCounts = {};
+  for (const status of QUOTE_STATUSES) {
+    const value = int(raw[status]);
+    if (value !== null && value >= 0) counts[status] = value;
+  }
+  return counts;
 }

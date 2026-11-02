@@ -14,6 +14,7 @@ import { createIdempotencyKey } from "@/lib/api/client";
 import { commandPrefix, commandSignature, createCommandKeys } from "@/lib/api/command-keys";
 import { isNetworkError, isStalenessConflict, ProblemError } from "@/lib/api/errors";
 import { invalidationMap, queryKeys } from "@/lib/api/query-keys";
+import { GreetingReveal } from "@/lib/motion/showcase/greeting-reveal";
 import { formatBusinessDate, formatDayTime, formatLongDate, formatTime, parseInstant } from "@/lib/format/time";
 import { useOnline } from "@/lib/hooks";
 import { useNow, useSession } from "@/lib/session/context";
@@ -260,7 +261,12 @@ export function TodayView() {
     commandsDisabledReason,
   };
 
+  // The greeting reveal plays once per briefing version on first view, never over an offline or
+  // stale state (motion-system §2 "Today greeting").
+  const revealKey = view.status === "ready" && view.briefing_id && view.version !== null ? `${view.briefing_id}:${view.version}` : null;
+
   return (
+    <GreetingReveal revealKey={revealKey} active={!offline && !query.isError}>
     <div className="flex flex-col gap-6">
       <BriefingHeader
         // A fallback has no greeting of its own; an older one could name the wrong time of day.
@@ -392,5 +398,6 @@ export function TodayView() {
         onOpenChange={(open) => (open ? undefined : closeDialog())}
       />
     </div>
+    </GreetingReveal>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { MotionConfig } from "motion/react";
+import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 import { transition } from "./tokens";
 import { useIsMotionReduced } from "./use-motion-preference";
@@ -12,8 +12,10 @@ import { useIsMotionReduced } from "./use-motion-preference";
 export function LkMotionConfig({ children }: { children: ReactNode }) {
   const reduced = useIsMotionReduced();
   return (
-    <MotionConfig reducedMotion={reduced ? "always" : "never"} transition={transition.base}>
-      {children}
-    </MotionConfig>
+    <LazyMotion features={domAnimation}>
+      <MotionConfig reducedMotion={reduced ? "always" : "never"} transition={transition.base}>
+        {children}
+      </MotionConfig>
+    </LazyMotion>
   );
 }

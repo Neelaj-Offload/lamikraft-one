@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { api, unwrap, type ApiClient } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
-export type RecentRecordType = "sales.quote" | "sales.enquiry" | "catalogue.product";
+export type RecentRecordType = "sales.quote" | "sales.enquiry" | "catalogue.product" | "parties.party";
 
 export async function recordRecentRecord(
   resourceType: RecentRecordType,

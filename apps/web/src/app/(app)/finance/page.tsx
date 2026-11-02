@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AreaOverview } from "@/features/areas/area-overview";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("finance");
@@ -6,5 +7,5 @@ const route = getRoute("finance");
 export const metadata: Metadata = { title: route.label };
 
 export default function FinancePage() {
-  return <h1 className="text-3xl font-bold tracking-tight">{route.label}</h1>;
+  return <AreaOverview area="finance" />;
 }

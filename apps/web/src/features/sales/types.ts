@@ -328,3 +328,6 @@ export interface QuotePreview {
   line_totals: Record<string, string | null>;
   warnings: string[];
 }
+
+/** `GET /sales/quotes/status-counts`: a count per status the server reported. */
+export type QuoteStatusCounts = Partial<Record<QuoteStatus, number>>;
