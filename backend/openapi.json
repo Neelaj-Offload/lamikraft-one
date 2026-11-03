@@ -833,6 +833,36 @@
         "title": "ActivityPage",
         "type": "object"
       },
+      "AdapterInfo": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "demo",
+              "configured",
+              "not_configured",
+              "browser",
+              "off"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "label",
+          "status"
+        ],
+        "title": "AdapterInfo",
+        "type": "object"
+      },
       "AddressIn": {
         "additionalProperties": false,
         "properties": {
@@ -1088,6 +1118,15 @@
             ],
             "title": "Response Style",
             "type": "string"
+          },
+          "screen_share": {
+            "default": "ask",
+            "enum": [
+              "ask",
+              "auto"
+            ],
+            "title": "Screen Share",
+            "type": "string"
           }
         },
         "title": "AssistantPreferences",
@@ -1121,6 +1160,21 @@
               }
             ],
             "title": "Response Style"
+          },
+          "screen_share": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ask",
+                  "auto"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screen Share"
           }
         },
         "title": "AssistantPreferencesPatch",
@@ -2163,6 +2217,77 @@
           "pin"
         ],
         "title": "BriefingView",
+        "type": "object"
+      },
+      "BrowserUtteranceCreate": {
+        "additionalProperties": false,
+        "description": "A final transcript produced by the browser fallback (no audio reaches the server).",
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 60000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "default": "en-IN",
+            "enum": [
+              "en-IN",
+              "hi-IN",
+              "hinglish"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "BrowserUtteranceCreate",
         "type": "object"
       },
       "CalcStateRead": {
@@ -11266,6 +11391,273 @@
         "title": "ExplainView",
         "type": "object"
       },
+      "ExtractionCard": {
+        "description": "The structured confirmation card (ai-routing.md section 3, ``visual_extraction``).",
+        "properties": {
+          "extraction_kind": {
+            "enum": [
+              "purchase_order",
+              "bill",
+              "delivery_note",
+              "handwritten_list"
+            ],
+            "title": "Extraction Kind",
+            "type": "string"
+          },
+          "header": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionField"
+            },
+            "title": "Header",
+            "type": "array"
+          },
+          "kind": {
+            "const": "extraction",
+            "default": "extraction",
+            "title": "Kind",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "pending_confirmations": {
+            "title": "Pending Confirmations",
+            "type": "integer"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "extracted",
+              "confirmed",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tainted": {
+            "default": true,
+            "title": "Tainted",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "status",
+          "extraction_kind",
+          "provider_label",
+          "header",
+          "lines",
+          "pending_confirmations",
+          "version"
+        ],
+        "title": "ExtractionCard",
+        "type": "object"
+      },
+      "ExtractionConfirm": {
+        "additionalProperties": false,
+        "description": "Every confirmation field must be answered explicitly (a value, or null to leave it empty).",
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "header": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "propertyNames": {
+              "maxLength": 40
+            },
+            "title": "Header",
+            "type": "object"
+          },
+          "lines": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "propertyNames": {
+                "maxLength": 40
+              },
+              "type": "object"
+            },
+            "maxItems": 50,
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ExtractionConfirm",
+        "type": "object"
+      },
+      "ExtractionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "purchase_order",
+                  "bill",
+                  "delivery_note",
+                  "handwritten_list"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          }
+        },
+        "required": [
+          "file_id"
+        ],
+        "title": "ExtractionCreate",
+        "type": "object"
+      },
+      "ExtractionField": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "needs_confirmation": {
+            "title": "Needs Confirmation",
+            "type": "boolean"
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestion"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "value",
+          "suggestion",
+          "confidence",
+          "needs_confirmation"
+        ],
+        "title": "ExtractionField",
+        "type": "object"
+      },
+      "ExtractionLine": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "fields"
+        ],
+        "title": "ExtractionLine",
+        "type": "object"
+      },
       "FacetValue": {
         "properties": {
           "count": {
@@ -14054,6 +14446,39 @@
           "path"
         ],
         "title": "JobSummary",
+        "type": "object"
+      },
+      "LanguageOption": {
+        "properties": {
+          "code": {
+            "enum": [
+              "en-IN",
+              "hi-IN",
+              "hinglish"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status_label": {
+            "title": "Status Label",
+            "type": "string"
+          },
+          "tested": {
+            "title": "Tested",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "tested",
+          "status_label"
+        ],
+        "title": "LanguageOption",
         "type": "object"
       },
       "LastSuccessfulView": {
@@ -28000,6 +28425,81 @@
         "title": "QuoteUpdate",
         "type": "object"
       },
+      "ReadbackCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "subject_id": {
+            "format": "uuid",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "maxLength": 80,
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_type",
+          "subject_id"
+        ],
+        "title": "ReadbackCreate",
+        "type": "object"
+      },
+      "ReadbackOut": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "presented_at": {
+            "format": "date-time",
+            "title": "Presented At",
+            "type": "string"
+          },
+          "subject_id": {
+            "format": "uuid",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          },
+          "subject_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Version"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_type",
+          "subject_id",
+          "subject_version",
+          "text",
+          "presented_at",
+          "expires_at"
+        ],
+        "title": "ReadbackOut",
+        "type": "object"
+      },
       "ReasonBody": {
         "additionalProperties": false,
         "properties": {
@@ -30975,6 +31475,171 @@
         "title": "SampleUpdate",
         "type": "object"
       },
+      "ScreenAnswerCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capture_id": {
+            "format": "uuid",
+            "title": "Capture Id",
+            "type": "string"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScreenContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "question": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capture_id",
+          "question"
+        ],
+        "title": "ScreenAnswerCreate",
+        "type": "object"
+      },
+      "ScreenAnswerOut": {
+        "properties": {
+          "capture_sha256": {
+            "title": "Capture Sha256",
+            "type": "string"
+          },
+          "handoff": {
+            "title": "Handoff",
+            "type": "boolean"
+          },
+          "handoff_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handoff Reason"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "answered",
+              "handed_off",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tainted": {
+            "default": true,
+            "title": "Tainted",
+            "type": "boolean"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "status",
+          "text",
+          "handoff",
+          "handoff_reason",
+          "provider_label",
+          "capture_sha256"
+        ],
+        "title": "ScreenAnswerOut",
+        "type": "object"
+      },
+      "ScreenCaptureOut": {
+        "properties": {
+          "deduplicated": {
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "masked_count": {
+            "title": "Masked Count",
+            "type": "integer"
+          },
+          "purge_at": {
+            "format": "date-time",
+            "title": "Purge At",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "attached",
+              "removed",
+              "purged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sha256",
+          "width",
+          "height",
+          "size_bytes",
+          "masked_count",
+          "deduplicated",
+          "purge_at",
+          "status"
+        ],
+        "title": "ScreenCaptureOut",
+        "type": "object"
+      },
       "ScreenContext": {
         "properties": {
           "briefing_pin": {
@@ -31257,6 +31922,29 @@
           "issue_ids"
         ],
         "title": "SectionView",
+        "type": "object"
+      },
+      "Segment": {
+        "properties": {
+          "end_ms": {
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_ms",
+          "end_ms",
+          "text"
+        ],
+        "title": "Segment",
         "type": "object"
       },
       "SelectedOption": {
@@ -33214,6 +33902,78 @@
           "source_extra"
         ],
         "title": "SpecificationRead",
+        "type": "object"
+      },
+      "SpeechCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "en-IN",
+                  "hi-IN",
+                  "hinglish"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "SpeechCreate",
+        "type": "object"
+      },
+      "SpeechOut": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "expires_at",
+          "mime_type",
+          "duration_ms",
+          "provider_label"
+        ],
+        "title": "SpeechOut",
         "type": "object"
       },
       "StepKind": {
@@ -35303,6 +36063,221 @@
         "title": "UserUpdate",
         "type": "object"
       },
+      "UtteranceOut": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "corrects_turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrects Turn Id"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "replayed": {
+            "default": false,
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "server",
+              "browser"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "received",
+              "transcribed",
+              "failed",
+              "submitted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          },
+          "untested_language": {
+            "title": "Untested Language",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "source",
+          "provider_label",
+          "text",
+          "language",
+          "confidence",
+          "segments",
+          "simulated",
+          "untested_language",
+          "duration_ms",
+          "error_code",
+          "turn_id",
+          "run_id",
+          "corrects_turn_id"
+        ],
+        "title": "UtteranceOut",
+        "type": "object"
+      },
+      "UtteranceSubmit": {
+        "additionalProperties": false,
+        "description": "Send the (possibly edited) final transcript as an assistant turn, once. A resend returns the same turn.",
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScreenContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "corrects_turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrects Turn Id"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "text"
+        ],
+        "title": "UtteranceSubmit",
+        "type": "object"
+      },
+      "UtteranceSubmitted": {
+        "properties": {
+          "turn": {
+            "$ref": "#/components/schemas/TurnAccepted"
+          },
+          "utterance": {
+            "$ref": "#/components/schemas/UtteranceOut"
+          }
+        },
+        "required": [
+          "utterance",
+          "turn"
+        ],
+        "title": "UtteranceSubmitted",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -35634,6 +36609,147 @@
         "title": "VisibleItem",
         "type": "object"
       },
+      "VisionCapabilities": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "extraction_kinds": {
+            "items": {
+              "enum": [
+                "purchase_order",
+                "bill",
+                "delivery_note",
+                "handwritten_list"
+              ],
+              "type": "string"
+            },
+            "title": "Extraction Kinds",
+            "type": "array"
+          },
+          "max_capture_bytes": {
+            "title": "Max Capture Bytes",
+            "type": "integer"
+          },
+          "max_edge_px": {
+            "title": "Max Edge Px",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "screen_capture_enabled": {
+            "title": "Screen Capture Enabled",
+            "type": "boolean"
+          },
+          "screen_share": {
+            "enum": [
+              "ask",
+              "auto"
+            ],
+            "title": "Screen Share",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screen_capture_enabled",
+          "screen_share",
+          "provider_label",
+          "mode",
+          "configured",
+          "max_capture_bytes",
+          "max_edge_px",
+          "extraction_kinds"
+        ],
+        "title": "VisionCapabilities",
+        "type": "object"
+      },
+      "VoiceCapabilities": {
+        "properties": {
+          "accepted_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted Types",
+            "type": "array"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "browser_fallback": {
+            "$ref": "#/components/schemas/AdapterInfo"
+          },
+          "can_speak": {
+            "title": "Can Speak",
+            "type": "boolean"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "max_seconds": {
+            "title": "Max Seconds",
+            "type": "integer"
+          },
+          "read_back_values": {
+            "title": "Read Back Values",
+            "type": "boolean"
+          },
+          "speak_responses": {
+            "title": "Speak Responses",
+            "type": "boolean"
+          },
+          "speech_language": {
+            "enum": [
+              "en-IN",
+              "hi-IN",
+              "hinglish"
+            ],
+            "title": "Speech Language",
+            "type": "string"
+          },
+          "stt": {
+            "$ref": "#/components/schemas/AdapterInfo"
+          },
+          "tts": {
+            "$ref": "#/components/schemas/AdapterInfo"
+          }
+        },
+        "required": [
+          "available",
+          "stt",
+          "tts",
+          "browser_fallback",
+          "can_speak",
+          "languages",
+          "max_seconds",
+          "max_bytes",
+          "accepted_types",
+          "speech_language",
+          "speak_responses",
+          "read_back_values"
+        ],
+        "title": "VoiceCapabilities",
+        "type": "object"
+      },
       "VoicePreferences": {
         "properties": {
           "read_back_values": {
@@ -35650,7 +36766,8 @@
             "default": "en-IN",
             "enum": [
               "en-IN",
-              "hi-IN"
+              "hi-IN",
+              "hinglish"
             ],
             "title": "Speech Language",
             "type": "string"
@@ -35689,7 +36806,8 @@
               {
                 "enum": [
                   "en-IN",
-                  "hi-IN"
+                  "hi-IN",
+                  "hinglish"
                 ],
                 "type": "string"
               },
@@ -56132,6 +57250,842 @@
         ],
         "x-authz": {
           "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/vision/capabilities": {
+      "get": {
+        "operationId": "vision_get_capabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisionCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Capabilities",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/extractions": {
+      "post": {
+        "operationId": "vision_create_extraction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Extraction",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/extractions/{request_id}": {
+      "get": {
+        "operationId": "vision_get_extraction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Extraction",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/extractions/{request_id}/confirm": {
+      "post": {
+        "operationId": "vision_update_extraction_confirmation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Extraction Confirmation",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/screen-answers": {
+      "post": {
+        "operationId": "vision_create_screen_answer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenAnswerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenAnswerOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Screen Answer",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/screen-captures": {
+      "post": {
+        "operationId": "vision_create_screen_capture",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "conversation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "masked_count",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Masked Count",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "route_path",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Route Path"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenCaptureOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "screen_capture_disabled"
+          },
+          "413": {
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Attach a masked screenshot (WebP/PNG, at most 1.5 MB and 1568 px); deduplicated per conversation",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/vision/screen-captures/{capture_id}": {
+      "delete": {
+        "operationId": "vision_delete_screen_capture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capture_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Capture Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenCaptureOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Screen Capture",
+        "tags": [
+          "vision"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/capabilities": {
+      "get": {
+        "operationId": "voice_get_capabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Capabilities",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/readbacks": {
+      "post": {
+        "operationId": "voice_create_readback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadbackCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadbackOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Readback",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/speech": {
+      "post": {
+        "operationId": "voice_create_speech",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeechCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeechOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Speech",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "voice.speech.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/speech/{speech_id}/audio": {
+      "get": {
+        "operationId": "voice_download_speech_audio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "speech_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Speech Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/wav": {}
+            },
+            "description": "the synthesised reply (valid for 5 minutes)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Speech Audio",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "voice.speech.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/transcriptions": {
+      "post": {
+        "operationId": "voice_create_transcription",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "utterance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Utterance Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "conversation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en-IN",
+              "enum": [
+                "en-IN",
+                "hi-IN",
+                "hinglish"
+              ],
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "duration_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 600000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Duration Ms"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtteranceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "not_configured"
+          },
+          "413": {
+            "description": "payload_too_large"
+          },
+          "415": {
+            "description": "unsupported_media_type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transcribe one recording (at most 60 s and 10 MB; webm, ogg-opus, mp4 or wav by magic bytes)",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/utterances": {
+      "post": {
+        "operationId": "voice_create_utterance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserUtteranceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtteranceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Utterance",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/utterances/{utterance_id}": {
+      "get": {
+        "operationId": "voice_get_utterance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utterance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Utterance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtteranceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Utterance",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/voice/utterances/{utterance_id}/submit": {
+      "post": {
+        "operationId": "voice_create_utterance_submission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utterance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Utterance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UtteranceSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtteranceSubmitted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Utterance Submission",
+        "tags": [
+          "voice"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
         }
       }
     }

@@ -4665,6 +4665,261 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vision/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Capabilities */
+        get: operations["vision_get_capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/extractions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Extraction */
+        post: operations["vision_create_extraction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/extractions/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Extraction */
+        get: operations["vision_get_extraction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/extractions/{request_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Extraction Confirmation */
+        post: operations["vision_update_extraction_confirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/screen-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Screen Answer */
+        post: operations["vision_create_screen_answer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/screen-captures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach a masked screenshot (WebP/PNG, at most 1.5 MB and 1568 px); deduplicated per conversation */
+        post: operations["vision_create_screen_capture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vision/screen-captures/{capture_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Screen Capture */
+        delete: operations["vision_delete_screen_capture"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Capabilities */
+        get: operations["voice_get_capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/readbacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Readback */
+        post: operations["voice_create_readback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/speech": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Speech */
+        post: operations["voice_create_speech"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/speech/{speech_id}/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Speech Audio */
+        get: operations["voice_download_speech_audio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/transcriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transcribe one recording (at most 60 s and 10 MB; webm, ogg-opus, mp4 or wav by magic bytes) */
+        post: operations["voice_create_transcription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/utterances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Utterance */
+        post: operations["voice_create_utterance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/utterances/{utterance_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Utterance */
+        get: operations["voice_get_utterance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/utterances/{utterance_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Utterance Submission */
+        post: operations["voice_create_utterance_submission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4970,6 +5225,18 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** AdapterInfo */
+        AdapterInfo: {
+            /** Label */
+            label: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "demo" | "configured" | "not_configured" | "browser" | "off";
+        };
         /** AddressIn */
         AddressIn: {
             /** City */
@@ -5059,6 +5326,12 @@ export interface components {
              * @enum {string}
              */
             response_style: "concise" | "detailed";
+            /**
+             * Screen Share
+             * @default ask
+             * @enum {string}
+             */
+            screen_share: "ask" | "auto";
         };
         /** AssistantPreferencesPatch */
         AssistantPreferencesPatch: {
@@ -5066,6 +5339,8 @@ export interface components {
             proactive_suggestions?: boolean | null;
             /** Response Style */
             response_style?: ("concise" | "detailed") | null;
+            /** Screen Share */
+            screen_share?: ("ask" | "auto") | null;
         };
         /** AttachmentCreate */
         AttachmentCreate: {
@@ -5415,6 +5690,31 @@ export interface components {
              * Format: date
              */
             work_date: string;
+        };
+        /**
+         * BrowserUtteranceCreate
+         * @description A final transcript produced by the browser fallback (no audio reaches the server).
+         */
+        BrowserUtteranceCreate: {
+            /** Confidence */
+            confidence?: number | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Language
+             * @default en-IN
+             * @enum {string}
+             */
+            language: "en-IN" | "hi-IN" | "hinglish";
+            /** Text */
+            text: string;
         };
         /** CalcStateRead */
         CalcStateRead: {
@@ -8057,6 +8357,102 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * ExtractionCard
+         * @description The structured confirmation card (ai-routing.md section 3, ``visual_extraction``).
+         */
+        ExtractionCard: {
+            /**
+             * Extraction Kind
+             * @enum {string}
+             */
+            extraction_kind: "purchase_order" | "bill" | "delivery_note" | "handwritten_list";
+            /** Header */
+            header: components["schemas"]["ExtractionField"][];
+            /**
+             * Kind
+             * @default extraction
+             * @constant
+             */
+            kind: "extraction";
+            /** Lines */
+            lines: components["schemas"]["ExtractionLine"][];
+            /** Message */
+            message?: string | null;
+            /** Pending Confirmations */
+            pending_confirmations: number;
+            /** Provider Label */
+            provider_label: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "extracted" | "confirmed" | "unavailable";
+            /**
+             * Tainted
+             * @default true
+             */
+            tainted: boolean;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ExtractionConfirm
+         * @description Every confirmation field must be answered explicitly (a value, or null to leave it empty).
+         */
+        ExtractionConfirm: {
+            /** Expected Version */
+            expected_version: number;
+            /** Header */
+            header?: {
+                [key: string]: string | null;
+            };
+            /** Lines */
+            lines?: {
+                [key: string]: string | null;
+            }[];
+        };
+        /** ExtractionCreate */
+        ExtractionCreate: {
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Kind */
+            kind?: ("purchase_order" | "bill" | "delivery_note" | "handwritten_list") | null;
+        };
+        /** ExtractionField */
+        ExtractionField: {
+            /** Confidence */
+            confidence: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Needs Confirmation */
+            needs_confirmation: boolean;
+            /** Suggestion */
+            suggestion: string | null;
+            /** Type */
+            type: string;
+            /** Value */
+            value: string | null;
+        };
+        /** ExtractionLine */
+        ExtractionLine: {
+            /** Fields */
+            fields: components["schemas"]["ExtractionField"][];
+            /** Index */
+            index: number;
+        };
         /** FacetValue */
         FacetValue: {
             /** Count */
@@ -9078,6 +9474,20 @@ export interface components {
             row_count: number;
             /** Status */
             status: string;
+        };
+        /** LanguageOption */
+        LanguageOption: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "en-IN" | "hi-IN" | "hinglish";
+            /** Label */
+            label: string;
+            /** Status Label */
+            status_label: string;
+            /** Tested */
+            tested: boolean;
         };
         /** LastSuccessfulView */
         LastSuccessfulView: {
@@ -13017,6 +13427,45 @@ export interface components {
             /** Validity Days */
             validity_days?: number | null;
         };
+        /** ReadbackCreate */
+        ReadbackCreate: {
+            /**
+             * Subject Id
+             * Format: uuid
+             */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
+        /** ReadbackOut */
+        ReadbackOut: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Presented At
+             * Format: date-time
+             */
+            presented_at: string;
+            /**
+             * Subject Id
+             * Format: uuid
+             */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Subject Version */
+            subject_version: number | null;
+            /** Text */
+            text: string;
+        };
         /** ReasonBody */
         ReasonBody: {
             /** Reason */
@@ -14008,6 +14457,77 @@ export interface components {
             /** Quantity */
             quantity?: string | null;
         };
+        /** ScreenAnswerCreate */
+        ScreenAnswerCreate: {
+            /**
+             * Capture Id
+             * Format: uuid
+             */
+            capture_id: string;
+            context?: components["schemas"]["ScreenContext"] | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Question */
+            question: string;
+        };
+        /** ScreenAnswerOut */
+        ScreenAnswerOut: {
+            /** Capture Sha256 */
+            capture_sha256: string;
+            /** Handoff */
+            handoff: boolean;
+            /** Handoff Reason */
+            handoff_reason: string | null;
+            /** Provider Label */
+            provider_label: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "answered" | "handed_off" | "unavailable";
+            /**
+             * Tainted
+             * @default true
+             */
+            tainted: boolean;
+            /** Text */
+            text: string;
+        };
+        /** ScreenCaptureOut */
+        ScreenCaptureOut: {
+            /** Deduplicated */
+            deduplicated: boolean;
+            /** Height */
+            height: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Masked Count */
+            masked_count: number;
+            /**
+             * Purge At
+             * Format: date-time
+             */
+            purge_at: string;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "attached" | "removed" | "purged";
+            /** Width */
+            width: number;
+        };
         /** ScreenContext */
         ScreenContext: {
             briefing_pin?: components["schemas"]["BriefingPin"] | null;
@@ -14098,6 +14618,15 @@ export interface components {
             title: string;
             /** Total */
             total: number;
+        };
+        /** Segment */
+        Segment: {
+            /** End Ms */
+            end_ms: number;
+            /** Start Ms */
+            start_ms: number;
+            /** Text */
+            text: string;
         };
         /**
          * SelectedOption
@@ -14678,6 +15207,34 @@ export interface components {
             width_mm: string | null;
             /** Width Mm Source */
             width_mm_source: string | null;
+        };
+        /** SpeechCreate */
+        SpeechCreate: {
+            /** Language */
+            language?: ("en-IN" | "hi-IN" | "hinglish") | null;
+            /** Text */
+            text: string;
+        };
+        /** SpeechOut */
+        SpeechOut: {
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Provider Label */
+            provider_label: string;
+            /** Url */
+            url: string;
         };
         /**
          * StepKind
@@ -15366,6 +15923,74 @@ export interface components {
             /** Manager User Id */
             manager_user_id?: string | null;
         };
+        /** UtteranceOut */
+        UtteranceOut: {
+            /** Confidence */
+            confidence: number | null;
+            /** Corrects Turn Id */
+            corrects_turn_id: string | null;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string | null;
+            /** Provider Label */
+            provider_label: string;
+            /**
+             * Replayed
+             * @default false
+             */
+            replayed: boolean;
+            /** Run Id */
+            run_id: string | null;
+            /** Segments */
+            segments: components["schemas"]["Segment"][];
+            /** Simulated */
+            simulated: boolean;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "server" | "browser";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "received" | "transcribed" | "failed" | "submitted";
+            /** Text */
+            text: string;
+            /** Turn Id */
+            turn_id: string | null;
+            /** Untested Language */
+            untested_language: boolean;
+        };
+        /**
+         * UtteranceSubmit
+         * @description Send the (possibly edited) final transcript as an assistant turn, once. A resend returns the same turn.
+         */
+        UtteranceSubmit: {
+            context?: components["schemas"]["ScreenContext"] | null;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Corrects Turn Id */
+            corrects_turn_id?: string | null;
+            /** Text */
+            text: string;
+        };
+        /** UtteranceSubmitted */
+        UtteranceSubmitted: {
+            turn: components["schemas"]["TurnAccepted"];
+            utterance: components["schemas"]["UtteranceOut"];
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -15464,6 +16089,58 @@ export interface components {
             /** Version */
             version?: number | null;
         };
+        /** VisionCapabilities */
+        VisionCapabilities: {
+            /** Configured */
+            configured: boolean;
+            /** Extraction Kinds */
+            extraction_kinds: ("purchase_order" | "bill" | "delivery_note" | "handwritten_list")[];
+            /** Max Capture Bytes */
+            max_capture_bytes: number;
+            /** Max Edge Px */
+            max_edge_px: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "demo" | "live";
+            /** Provider Label */
+            provider_label: string;
+            /** Screen Capture Enabled */
+            screen_capture_enabled: boolean;
+            /**
+             * Screen Share
+             * @enum {string}
+             */
+            screen_share: "ask" | "auto";
+        };
+        /** VoiceCapabilities */
+        VoiceCapabilities: {
+            /** Accepted Types */
+            accepted_types: string[];
+            /** Available */
+            available: boolean;
+            browser_fallback: components["schemas"]["AdapterInfo"];
+            /** Can Speak */
+            can_speak: boolean;
+            /** Languages */
+            languages: components["schemas"]["LanguageOption"][];
+            /** Max Bytes */
+            max_bytes: number;
+            /** Max Seconds */
+            max_seconds: number;
+            /** Read Back Values */
+            read_back_values: boolean;
+            /** Speak Responses */
+            speak_responses: boolean;
+            /**
+             * Speech Language
+             * @enum {string}
+             */
+            speech_language: "en-IN" | "hi-IN" | "hinglish";
+            stt: components["schemas"]["AdapterInfo"];
+            tts: components["schemas"]["AdapterInfo"];
+        };
         /** VoicePreferences */
         VoicePreferences: {
             /**
@@ -15481,7 +16158,7 @@ export interface components {
              * @default en-IN
              * @enum {string}
              */
-            speech_language: "en-IN" | "hi-IN";
+            speech_language: "en-IN" | "hi-IN" | "hinglish";
         };
         /** VoicePreferencesPatch */
         VoicePreferencesPatch: {
@@ -15490,7 +16167,7 @@ export interface components {
             /** Speak Responses */
             speak_responses?: boolean | null;
             /** Speech Language */
-            speech_language?: ("en-IN" | "hi-IN") | null;
+            speech_language?: ("en-IN" | "hi-IN" | "hinglish") | null;
         };
         /** TransitionRead */
         app__core__http__capabilities__TransitionRead: {
@@ -25791,6 +26468,521 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecentRecordRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_get_capabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisionCapabilities"];
+                };
+            };
+        };
+    };
+    vision_create_extraction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_get_extraction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_update_extraction_confirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractionConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_create_screen_answer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreenAnswerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreenAnswerOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_create_screen_capture: {
+        parameters: {
+            query?: {
+                conversation_id?: string | null;
+                masked_count?: number;
+                route_path?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreenCaptureOut"];
+                };
+            };
+            /** @description screen_capture_disabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description payload_too_large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vision_delete_screen_capture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                capture_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreenCaptureOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_get_capabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceCapabilities"];
+                };
+            };
+        };
+    };
+    voice_create_readback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadbackOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_create_speech: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeechCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_download_speech_audio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                speech_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description the synthesised reply (valid for 5 minutes) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_create_transcription: {
+        parameters: {
+            query: {
+                utterance_id: string;
+                conversation_id?: string | null;
+                language?: "en-IN" | "hi-IN" | "hinglish";
+                duration_ms?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UtteranceOut"];
+                };
+            };
+            /** @description not_configured */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description payload_too_large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description unsupported_media_type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_create_utterance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserUtteranceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UtteranceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_get_utterance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                utterance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UtteranceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_create_utterance_submission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                utterance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UtteranceSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UtteranceSubmitted"];
                 };
             };
             /** @description Validation Error */
