@@ -202,6 +202,14 @@ export const queryKeys = {
     grainLocks: () => ["cutting", "grain-locks"] as const,
     products: (q: string) => ["cutting", "products", compact({ q: q.trim() })] as const,
   },
+  channels: {
+    all: () => ["channels"] as const,
+    account: () => ["channels", "account"] as const,
+    identities: (scope: "mine" | "all") => ["channels", "identities", { scope }] as const,
+    messages: () => ["channels", "messages"] as const,
+    templates: () => ["channels", "templates"] as const,
+    demoThread: () => ["channels", "demo-thread"] as const,
+  },
 } as const;
 
 /** Prefixes a mutation invalidates; one table so screens never guess (frontend_verification §5). */
@@ -228,6 +236,7 @@ export const invalidationMap = {
   "catalogue.changed": [queryKeys.catalogue.all()],
   "imports.changed": [queryKeys.imports.all(), queryKeys.catalogue.all()],
   "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
+  "channels.changed": [queryKeys.channels.all()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

@@ -28,6 +28,7 @@ export const settingsMessages = {
     customerTypesHint: "The customer types parties and price lists use.",
     quotesHint: "Quote defaults: validity, numbering of revisions and the owner of duplicates.",
     fxRatesHint: "Dated exchange rates with second-person approval, and the conversion policy.",
+    whatsappHint: "Link your phone to use the assistant on WhatsApp, and choose which messages you get.",
   },
   profile: {
     title: "Profile",

@@ -25,7 +25,9 @@ VERBS = {"list", "get", "create", "update", "delete", "archive", "transition", "
 #: api-conventions §1 documented path exceptions (owner module differs from the first path segment)
 PATH_EXCEPTIONS = {"health": "system", "session": "ui", "webhooks": "channels", "_test": "test",
                    # Slice 3 agents runtime: draft receipts (Undo) and the trace view live at the top level
-                   "receipts": "agents", "traces": "agents"}
+                   "receipts": "agents", "traces": "agents",
+                   # Slice 3 WhatsApp: the review-link resolver
+                   "review-links": "channels"}
 
 #: the platform lane's routes: (method, path) -> (kind, permission keys)
 PLATFORM_MATRIX: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
