@@ -54,3 +54,28 @@ class TooManyAttempts(RateLimited):
 
 class PasswordPolicyViolation(AppError):
     status, code, title = 422, "validation_failed", "The password does not meet the policy"
+
+
+class MfaVerificationRequired(Unauthenticated):
+    """The session is waiting for the authenticator code (``POST /api/v1/identity/session/mfa``)."""
+
+    code, title = "mfa_verification_required", "Enter the code from your authenticator app"
+
+    def __init__(self) -> None:
+        super().__init__("Two-step sign-in: enter the 6-digit code from your authenticator app or a recovery code.")
+
+
+class MfaEnrollmentRequired(Unauthenticated):
+    """The member must set up an authenticator before using the app (only the enrolment endpoints work)."""
+
+    code, title = "mfa_enrollment_required", "Set up two-step sign-in to continue"
+
+    def __init__(self) -> None:
+        super().__init__("Your role requires two-step sign-in. Set up an authenticator app to continue.")
+
+
+class InvalidCode(Unauthenticated):
+    code, title = "invalid_code", "That code did not work"
+
+    def __init__(self) -> None:
+        super().__init__("Check the code in your authenticator app (or use an unused recovery code) and try again.")

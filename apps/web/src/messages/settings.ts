@@ -17,6 +17,12 @@ export const settingsMessages = {
     integrationsHint: "Which connections run live and which are simulated.",
     audit: "Audit log",
     auditHint: "Who did what, when, and whether it was allowed.",
+    securityHint: "Password, two-step sign-in and where you are signed in.",
+    delegationHint: "Let a colleague work on your records while you are away.",
+    leaveHint: "Record time away and name who covers your work.",
+    accessRequestsHint: "Ask for a permission you need for a while.",
+    usersHint: "Invite people, change roles, deactivate and reactivate.",
+    rolesHint: "System roles and custom roles with inheritance and deny.",
   },
   profile: {
     title: "Profile",

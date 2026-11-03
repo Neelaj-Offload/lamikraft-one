@@ -17,6 +17,7 @@ from app.seed.context import SeedContext
 from app.seed.world import keys
 from tests.integration.identity.fixtures import (
     TEST_PASSWORD,
+    enrol_mfa,
     login,
     make_member,
     make_tenant,
@@ -46,6 +47,10 @@ def test_create_first_admin_once(db: None, client: TestClient, monkeypatch: pyte
         assert user.password_hash and user.password_hash.startswith("$argon2id$")
     signed = login(client, "owner@example.test")
     assert signed.status_code == 200
+    # the first administrator must set up two-step sign-in before anything else (Slice 2)
+    assert signed.json()["stage"] == "mfa_enrollment_required"
+    assert client.get("/api/v1/session/bootstrap").json()["code"] == "mfa_enrollment_required"
+    enrol_mfa(client)
     boot = client.get("/api/v1/session/bootstrap").json()
     assert boot["membership"]["role_names"] == ["Admin"]
     assert {p["key"] for p in boot["permissions"]} >= {"identity.role.manage", "sales.quote.delete"}

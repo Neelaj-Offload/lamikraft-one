@@ -1,8 +1,6 @@
 /**
- * INTERIM hand-written types for `GET /api/v1/search?q=` (platform search; contract in
- * backend/app/platform/search/defs.py: SearchHit and SearchProvider, grouped per provider).
- * The search endpoint is built by another lane; the web derives this shape from the provider
- * dataclasses. INTERIM(api-generate): replace with the generated schema types when it merges.
+ * Types for `GET /api/v1/search?q=&types=&limit=&offset=` and `GET|POST|DELETE /api/v1/search/recent`
+ * (backend/app/platform/search/schemas.py). INTERIM(api-generate): replace with the generated schema types.
  */
 
 export interface SearchHit {
@@ -23,9 +21,20 @@ export interface SearchGroup {
   /** Visible matches in this group (permission-filtered on the server). */
   total: number;
   items: SearchHit[];
+  /** More hits after this page (the "See all results" page pages one group). */
+  hasMore?: boolean;
+  offset?: number;
 }
 
 export interface SearchResponse {
   q: string;
   groups: SearchGroup[];
+  /** Groups whose provider failed this time (shown as unavailable, never as "no results"). */
+  unavailable?: string[];
+}
+
+export interface RecentSearch {
+  id: string;
+  query: string;
+  searched_at: string;
 }

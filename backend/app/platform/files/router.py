@@ -8,6 +8,7 @@ with an ETag (``no-store`` for restricted files). ``nosniff`` comes from the req
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -86,8 +87,13 @@ def _matches(if_none_match: str | None, etag: str) -> bool:
     response_class=StreamingResponse,
     responses={200: {"content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}},
 )
-def download_file_content(file_id: uuid.UUID, request: Request, actor: Actor) -> Response:
-    ticket = service.open_download(actor, file_id)  # authorised; the unit of work is closed before streaming
+def download_file_content(
+    file_id: uuid.UUID,
+    request: Request,
+    actor: Actor,
+    variant: Literal["thumb", "medium"] | None = Query(default=None),
+) -> Response:
+    ticket = service.open_download(actor, file_id, variant)  # authorised; the unit of work is closed before streaming
     headers = {
         "ETag": ticket.etag,
         "Cache-Control": "no-store" if ticket.restricted else "private, no-cache",

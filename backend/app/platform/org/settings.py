@@ -325,6 +325,22 @@ def _validate_brands(uow: UnitOfWork, value: BaseModel) -> None:
         )
 
 
+# ---- security_policy (identity reads it at sign-in) ----------------------------------------------------------
+class SecurityPolicy(_Value):
+    #: privileged: members holding identity/org/audit/system administration keys must use MFA at sign-in;
+    #: all: every member must
+    mfa_required_for: Literal["privileged", "all"] = "privileged"
+
+
+def read_security_policy(uow: UnitOfWork) -> SecurityPolicy:
+    """The company's security policy (unredacted; no restricted fields)."""
+    from app.platform.org.service import stored_or_default
+
+    value = stored_or_default(uow, "security_policy")
+    assert isinstance(value, SecurityPolicy)  # noqa: S101 - the registered model
+    return value
+
+
 BUILTIN_SETTINGS: tuple[SettingDef, ...] = (
     SettingDef(
         key="company_identity",
@@ -364,5 +380,12 @@ BUILTIN_SETTINGS: tuple[SettingDef, ...] = (
         read_permission="org.settings.read",
         manage_permission="org.settings.manage",
         validate=_validate_brands,
+    ),
+    SettingDef(
+        key="security_policy",
+        model=SecurityPolicy,
+        description="Who must use two-step sign-in (authenticator app): administrators only, or everyone",
+        read_permission="org.settings.read",
+        manage_permission="identity.mfa.manage",
     ),
 )

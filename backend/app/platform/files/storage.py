@@ -1,5 +1,7 @@
-"""Storage backends. ``local_fs`` (``LK_STORAGE_DIR``) is the Slice-1 default; the Slice-2 ``s3`` adapter
-implements the same ``StorageBackend`` protocol and shares its contract tests.
+"""Storage backends. ``local_fs`` (``LK_STORAGE_DIR``) is the default; ``s3`` (``LK_STORAGE_BACKEND=s3``, boto3,
+any S3-compatible endpoint via ``LK_S3_ENDPOINT_URL``) implements the same ``StorageBackend`` protocol and shares its
+contract tests (moto). Credentials come from the standard AWS environment / profile chain, never from settings.
+Downloads always stream through the backend: no presigned URLs.
 
 Storage keys are random (``<company_id>/<shard>/<token>``) and never derived from a filename; the backend
 validates every key so a key can never escape the storage root.
@@ -76,6 +78,59 @@ class LocalFsStorage:
         self._path(key).unlink(missing_ok=True)
 
 
+class S3Storage:
+    """Objects in one bucket under the same random keys; reads stream from the response body."""
+
+    name = "s3"
+
+    def __init__(self, bucket: str, *, endpoint_url: str | None = None, region: str | None = None, client: object | None = None) -> None:
+        if not bucket:
+            raise NotConfigured("Set LK_S3_BUCKET to use the S3 storage backend.", code="not_configured")
+        self.bucket = bucket
+        if client is None:
+            import boto3
+
+            client = boto3.client("s3", endpoint_url=endpoint_url or None, region_name=region or None)
+        self._s3 = client
+
+    @staticmethod
+    def _key(key: str) -> str:
+        if not _KEY.match(key):
+            raise ValueError("invalid storage key")
+        return key
+
+    def put_file(self, key: str, source: Path) -> None:
+        with Path(source).open("rb") as fh:
+            self._s3.put_object(Bucket=self.bucket, Key=self._key(key), Body=fh)  # type: ignore[attr-defined]
+        Path(source).unlink(missing_ok=True)
+
+    def open(self, key: str) -> BinaryIO:
+        try:
+            body = self._s3.get_object(Bucket=self.bucket, Key=self._key(key))["Body"]  # type: ignore[attr-defined]
+        except Exception as exc:  # botocore ClientError NoSuchKey -> the same error as a missing local file
+            if _missing(exc):
+                raise FileNotFoundError(key) from None
+            raise
+        return body  # type: ignore[no-any-return]  # StreamingBody: read(n), close(), context manager
+
+    def exists(self, key: str) -> bool:
+        try:
+            self._s3.head_object(Bucket=self.bucket, Key=self._key(key))  # type: ignore[attr-defined]
+        except Exception as exc:
+            if _missing(exc):
+                return False
+            raise
+        return True
+
+    def delete(self, key: str) -> None:
+        self._s3.delete_object(Bucket=self.bucket, Key=self._key(key))  # type: ignore[attr-defined]
+
+
+def _missing(exc: Exception) -> bool:
+    code = str(getattr(exc, "response", {}).get("Error", {}).get("Code", ""))
+    return code in {"404", "NoSuchKey", "NotFound"}
+
+
 _lock = threading.Lock()
 _backend: StorageBackend | None = None
 
@@ -85,12 +140,10 @@ def get_storage() -> StorageBackend:
     with _lock:
         if _backend is None:
             settings = get_settings()
-            if settings.storage_backend != "local_fs":
-                raise NotConfigured(
-                    "The S3 storage adapter arrives in Slice 2; set LK_STORAGE_BACKEND=local_fs.",
-                    code="not_configured",
-                )
-            _backend = LocalFsStorage(settings.storage_dir)
+            if settings.storage_backend == "s3":
+                _backend = S3Storage(settings.s3_bucket or "", endpoint_url=settings.s3_endpoint_url, region=settings.s3_region)
+            else:
+                _backend = LocalFsStorage(settings.storage_dir)
         return _backend
 
 

@@ -26,19 +26,37 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { cx } from "@/lib/cx";
 import { useDebouncedValue } from "@/lib/hooks";
 import { shellMessages as m } from "@/messages/shell";
-import { parseSearchResponse } from "./parse";
-import type { SearchResponse } from "./types";
+import { parseRecent, parseSearchResponse } from "./parse";
+import type { RecentSearch, SearchResponse } from "./types";
 
 export const SEARCH_MIN_CHARS = 2;
 export const SEARCH_DEBOUNCE_MS = 250;
 
 export async function fetchSearch(q: string, signal?: AbortSignal): Promise<SearchResponse> {
   const raw = await requestUntyped<unknown>(api, "get", "/api/v1/search", {
-    params: { query: { q, per_group: 5 } },
+    params: { query: { q, limit: 5 } },
     signal,
   });
   return parseSearchResponse(raw, q);
 }
+
+export async function fetchRecent(signal?: AbortSignal): Promise<RecentSearch[]> {
+  return parseRecent(await requestUntyped<unknown>(api, "get", "/api/v1/search/recent", { signal }));
+}
+
+/** Remembers a submitted or opened search (newest 10 kept per person); failures never block navigation. */
+export function rememberSearch(q: string): void {
+  if (q.trim().length < SEARCH_MIN_CHARS) return;
+  void requestUntyped(api, "post", "/api/v1/search/recent", { body: { query: q.trim() } }).catch(() => undefined);
+}
+
+export function seeAllHref(q: string): string {
+  return `/search?q=${encodeURIComponent(q.trim())}`;
+}
+
+const SEE_ALL = "__see_all__";
+export const SEE_ALL_LABEL = "See all results for";
+const RECENT_PREFIX = "recent|";
 
 function hitId(group: string, path: string): string {
   return `${group}|${path}`;
@@ -76,6 +94,14 @@ export function SearchDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpen
     staleTime: 30_000,
     placeholderData: (previous) => previous,
   });
+
+  const recent = useQuery({
+    queryKey: queryKeys.searchRecent.all(),
+    queryFn: ({ signal }) => fetchRecent(signal),
+    enabled: isOpen && q.length < SEARCH_MIN_CHARS,
+    staleTime: 10_000,
+  });
+  const showRecent = q.length < SEARCH_MIN_CHARS && (recent.data?.length ?? 0) > 0;
 
   const unavailable = query.isError && isEndpointUnavailable(query.error);
   const groups = enabled && query.data ? query.data.groups : [];
@@ -123,10 +149,16 @@ export function SearchDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpen
             ) : (
               <Menu
                 aria-label="Search results"
-                className={cx("min-h-0 flex-1 overflow-y-auto px-2 pb-3 outline-hidden", groups.length === 0 && "hidden")}
+                className={cx("min-h-0 flex-1 overflow-y-auto px-2 pb-3 outline-hidden", groups.length === 0 && !showRecent && "hidden")}
                 onAction={(key) => {
-                  const path = pathById.get(String(key));
+                  const id = String(key);
+                  if (id.startsWith(RECENT_PREFIX)) {
+                    setText(id.slice(RECENT_PREFIX.length));
+                    return;
+                  }
+                  const path = id === SEE_ALL ? seeAllHref(q) : pathById.get(id);
                   if (!path) return;
+                  rememberSearch(q);
                   close();
                   router.push(path as Route);
                 }}
@@ -145,6 +177,23 @@ export function SearchDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpen
                     ))}
                   </MenuSection>
                 ))}
+                {groups.length > 0 ? (
+                  <MenuSection id="see-all" className="pt-2">
+                    <MenuItem id={SEE_ALL} textValue={SEE_ALL_LABEL} className={cx(listItemClasses, "font-medium")}>
+                      {SEE_ALL_LABEL} “{q}”
+                    </MenuItem>
+                  </MenuSection>
+                ) : null}
+                {showRecent ? (
+                  <MenuSection id="recent" className="pt-2">
+                    <Header className={cx(sectionLabelClasses, "px-3 pb-1")}>Recent searches</Header>
+                    {(recent.data ?? []).map((r) => (
+                      <MenuItem key={r.id} id={`${RECENT_PREFIX}${r.query}`} textValue={r.query} className={listItemClasses}>
+                        {r.query}
+                      </MenuItem>
+                    ))}
+                  </MenuSection>
+                ) : null}
               </Menu>
             )}
           </Autocomplete>

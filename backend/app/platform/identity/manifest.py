@@ -15,6 +15,24 @@ def _router() -> Any:
     return router
 
 
+def _auth_router() -> Any:
+    from app.platform.identity.router_auth import router
+
+    return router
+
+
+def _admin_router() -> Any:
+    from app.platform.identity.router_admin import router
+
+    return router
+
+
+def _people_router() -> Any:
+    from app.platform.identity.router_people import router
+
+    return router
+
+
 def _test_support_router() -> Any:
     """Mounted only in the test environment; elsewhere an empty router adds no paths (so they are 404)."""
     from fastapi import APIRouter
@@ -44,7 +62,7 @@ def _on_load() -> None:
     register_member_actor_builder(actor_for)
     register_actor_builder(actor_for_job)
     set_upload_limiter(upload_limiter())  # Postgres-backed, shared by every worker (api-conventions §11)
-    register_readers()  # identity.membership, identity.user_preference (tasks onboarding checks)
+    register_readers()  # identity.membership, identity.user_preference (tasks onboarding checks), identity.absence
     _warn_untrusted_client_addresses()
 
 
@@ -66,6 +84,25 @@ def _purge_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any]:
     return purge_auth_state(ctx.uow)
 
 
+def _delegation_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    """Every company: emit identity.delegation.started/ended once their start or end has passed."""
+    from sqlalchemy import select
+
+    from app.platform.authz.context import ActorContext
+    from app.platform.identity.delegation import notify_boundaries
+    from app.platform.org.models import Company
+    from app.platform.uow import UnitOfWork
+
+    totals = {"started": 0, "ended": 0}
+    with UnitOfWork(ActorContext.system(None, reason="identity.delegation_boundaries")) as uow:
+        companies = list(uow.session.scalars(select(Company.id).where(Company.status == "active")))
+    for company_id in companies:
+        with UnitOfWork(ActorContext.system(company_id, reason="identity.delegation_boundaries")) as uow:
+            for k, v in notify_boundaries(uow).items():
+                totals[k] += v
+    return totals
+
+
 def _seed(ctx: SeedContext) -> None:
     from app.seed.world.identity import seed_identity
 
@@ -80,16 +117,30 @@ def _seed_activation(ctx: SeedContext) -> None:
 
 MANIFEST = ModuleManifest(
     name="identity",
-    models=("app.platform.identity.models", "app.platform.identity.auth_models"),
-    routers=[_router, _test_support_router],
-    jobs=[JobDef(kind="identity.purge_auth_state", handler=_purge_job, queue="default", max_attempts=3)],
+    models=(
+        "app.platform.identity.models",
+        "app.platform.identity.auth_models",
+        "app.platform.identity.credential_models",
+        "app.platform.identity.availability_models",
+    ),
+    routers=[_router, _auth_router, _admin_router, _people_router, _test_support_router],
+    jobs=[
+        JobDef(kind="identity.purge_auth_state", handler=_purge_job, queue="default", max_attempts=3),
+        JobDef(kind="identity.delegation_boundaries", handler=_delegation_job, queue="default", max_attempts=3),
+    ],
     schedules=[
         ScheduleDef(
             schedule_key="identity.purge_auth_state",
             kind="identity.purge_auth_state",
             schedule_type="interval",
             interval_seconds=3600,
-        )
+        ),
+        ScheduleDef(
+            schedule_key="identity.delegation_boundaries",
+            kind="identity.delegation_boundaries",
+            schedule_type="interval",
+            interval_seconds=300,
+        ),
     ],
     seeds=[
         SeedDef(name="identity", order=10, run=_seed, slice_no=1),

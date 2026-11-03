@@ -101,10 +101,6 @@ export const queryKeys = {
     all: () => ["audit"] as const,
     entries: (params: Record<string, string | number | boolean | null | undefined>) => ["audit", "entries", compact(params)] as const,
   },
-  identity: {
-    all: () => ["identity"] as const,
-    me: () => ["identity", "me"] as const,
-  },
   search: {
     all: () => ["search"] as const,
     query: (q: string) => ["search", "results", compact({ q: q.trim() })] as const,
@@ -112,6 +108,37 @@ export const queryKeys = {
   agents: {
     all: () => ["agents"] as const,
     run: (runId: string) => ["agents", "run", { run_id: runId }] as const,
+  },
+  // platform-2 (Slice 2): identity administration, self-service security, collaboration, recent searches
+  identity: {
+    all: () => ["identity"] as const,
+    me: () => ["identity", "me"] as const,
+    users: (params: { q?: string | null; status?: string | null; role?: string | null; offset?: number | null }) =>
+      ["identity", "users", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, role: params.role ?? null, offset: params.offset ?? null })] as const,
+    user: (userId: string) => ["identity", "user", { user_id: userId }] as const,
+    roles: () => ["identity", "roles"] as const,
+    role: (roleId: string) => ["identity", "role", { role_id: roleId }] as const,
+    catalogue: () => ["identity", "permissions"] as const,
+    effective: (params: { userId?: string | null; roleId?: string | null }) =>
+      ["identity", "effective", compact({ user_id: params.userId ?? null, role_id: params.roleId ?? null })] as const,
+    check: (params: { userId: string; key: string; scope: string }) =>
+      ["identity", "check", compact({ user_id: params.userId, key: params.key, scope: params.scope })] as const,
+    mfa: () => ["identity", "mfa"] as const,
+    sessions: () => ["identity", "sessions"] as const,
+    delegations: (scope: string) => ["identity", "delegations", { scope }] as const,
+    absences: (scope: string) => ["identity", "absences", { scope }] as const,
+    accessRequests: (scope: string) => ["identity", "access-requests", { scope }] as const,
+  },
+  collab: {
+    all: () => ["collab"] as const,
+    note: (resourceType: string, resourceId: string) => ["collab", "note", { resource_type: resourceType, resource_id: resourceId }] as const,
+    attachments: (resourceType: string, resourceId: string) =>
+      ["collab", "attachments", { resource_type: resourceType, resource_id: resourceId }] as const,
+    activity: (params: { resourceType?: string | null; resourceId?: string | null }) =>
+      ["collab", "activity", compact({ resource_type: params.resourceType ?? null, resource_id: params.resourceId ?? null })] as const,
+  },
+  searchRecent: {
+    all: () => ["search", "recent"] as const,
   },
 } as const;
 
@@ -128,6 +155,9 @@ export const invalidationMap = {
   "parties.party_changed": [queryKeys.parties.all(), queryKeys.sales.all(), queryKeys.search.all()],
   "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap()],
   "identity.password_changed": [queryKeys.identity.me()],
+  // platform-2: access changes alter navigation and capabilities, so the bootstrap is re-read too
+  "identity.access_changed": [queryKeys.identity.all(), queryKeys.session.bootstrap()],
+  "collab.changed": [queryKeys.collab.all()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

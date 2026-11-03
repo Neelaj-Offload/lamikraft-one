@@ -61,6 +61,8 @@ class Member:
             permissions=dict(self.permissions),
             channel="test",
             recent_auth_at=get_clock(self.company_id).now() if recent_auth else None,
+            # an MFA-verified browser session (Slice 2 enforces the MFA flag on admin settings)
+            auth_strength="mfa" if recent_auth else "password",
         )
         return ctx.with_(**changes) if changes else ctx
 

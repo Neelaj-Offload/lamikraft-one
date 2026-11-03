@@ -72,6 +72,7 @@ class IssuedSession:
     idle_expires_at: datetime
     absolute_expires_at: datetime
     auth_method: str
+    stage: str = SessionStage.ACTIVE.value
 
 
 def find_by_token(session: Session, token: str | None) -> AuthSession | None:
@@ -80,13 +81,13 @@ def find_by_token(session: Session, token: str | None) -> AuthSession | None:
     return session.scalars(select(AuthSession).where(AuthSession.token_hash == sha256(token))).first()
 
 
+def is_open(row: AuthSession, now: datetime) -> bool:
+    """Not revoked and not expired, whatever its stage (a pending MFA session is open but not live)."""
+    return row.revoked_at is None and now < row.idle_expires_at and now < row.absolute_expires_at
+
+
 def is_live(row: AuthSession, now: datetime) -> bool:
-    return (
-        row.revoked_at is None
-        and row.stage == SessionStage.ACTIVE.value
-        and now < row.idle_expires_at
-        and now < row.absolute_expires_at
-    )
+    return is_open(row, now) and row.stage == SessionStage.ACTIVE.value
 
 
 def create_session(
@@ -98,6 +99,9 @@ def create_session(
     method: AuthMethod,
     client: ClientInfo,
     now: datetime,
+    stage: SessionStage = SessionStage.ACTIVE,
+    mfa_verified: bool = False,
+    recent_auth: bool | None = None,
 ) -> IssuedSession:
     """Insert a new session, revoking the one this browser presented (rotation).
 
@@ -121,14 +125,19 @@ def create_session(
         membership_id=membership_id,
         token_hash=sha256(token),
         csrf_hash=sha256(csrf),
-        stage=SessionStage.ACTIVE.value,
+        stage=stage.value,
         auth_method=method.value,
         created_at=now,
         last_seen_at=now,
         idle_expires_at=min(now + IDLE_LIFETIME, absolute),
         absolute_expires_at=absolute,
-        # test-support sessions stand in for password sign-ins (same strength); demo links are not re-authentication
-        recent_auth_at=now if method in (AuthMethod.PASSWORD, AuthMethod.TEST_SUPPORT) else None,
+        # test-support sessions stand in for password sign-ins (same strength); demo links are not re-authentication;
+        # a session waiting for its MFA code has not authenticated yet
+        recent_auth_at=now
+        if (recent_auth if recent_auth is not None else method in (AuthMethod.PASSWORD, AuthMethod.TEST_SUPPORT))
+        and stage != SessionStage.MFA_PENDING
+        else None,
+        mfa_verified_at=now if mfa_verified else None,
         rotated_from_id=rotated_from,
         ip_hash=client.ip_hash,
         user_agent_hash=client.user_agent_hash,
@@ -146,6 +155,7 @@ def create_session(
         idle_expires_at=row.idle_expires_at,
         absolute_expires_at=absolute,
         auth_method=method.value,
+        stage=stage.value,
     )
 
 

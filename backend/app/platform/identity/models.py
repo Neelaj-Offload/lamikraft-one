@@ -199,11 +199,17 @@ class Role(IdMixin, TenantMixin, TimestampMixin, VersionMixin, ArchivableMixin, 
     kind: Mapped[str] = mapped_column(String(20), nullable=False, default=RoleKind.SYSTEM_TEMPLATE.value)
     template_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
     is_assignable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    #: custom roles inherit a parent role of the same company (no cycles, at most 4 levels; checked by the service)
+    inherits_role_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("role.id", ondelete="RESTRICT"), nullable=True
+    )
 
     __table_args__ = (
         Index("uq_role_company_key", "company_id", "role_key", unique=True),
         CheckConstraint("role_key ~ '^[a-z][a-z0-9_]{1,40}$'", name="role_key_format"),
         CheckConstraint(in_values("kind", RoleKind), name="kind_values"),
+        CheckConstraint("inherits_role_id IS NULL OR inherits_role_id <> id", name="no_self_inheritance"),
+        CheckConstraint("kind = 'custom' OR inherits_role_id IS NULL", name="templates_do_not_inherit"),
     )
 
 
