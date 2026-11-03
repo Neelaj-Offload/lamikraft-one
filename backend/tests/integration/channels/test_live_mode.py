@@ -148,3 +148,27 @@ def test_live_outbound_needs_the_flag_and_the_allowlist_and_statuses_are_real(wa
     message = next(m for m in wa.messages(identity.id, "outbound") if m["outbox_id"] == ok)
     assert message["status"] == "delivered" and message["simulated"] is False
     assert signature.verify_token() == "live-verify"
+
+
+def test_codes_invalidated_on_the_mode_switch(wa: WhatsApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A code issued in demo mode (no step-up) dies when the account switches to live."""
+    from sqlalchemy import select
+
+    from app.modules.channels.models import ChannelEnrolment
+    from app.modules.channels.whatsapp import enrolment
+
+    with UnitOfWork(wa.actor("MEERA", recent_auth=False)) as uow:
+        demo_code = enrolment.create(uow)
+    assert demo_code.mode == "demo"
+    for name, value in LIVE.items():
+        monkeypatch.setenv(name, value)
+    app_config.reset_settings_cache()
+    try:
+        with UnitOfWork(wa.system()) as uow:
+            account = accounts.ensure_account(uow)
+            assert account.mode == "live"
+            row = uow.session.scalars(select(ChannelEnrolment).where(ChannelEnrolment.id == demo_code.id)).one()
+            assert row.status == "cancelled"
+    finally:
+        monkeypatch.undo()
+        app_config.reset_settings_cache()

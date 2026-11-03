@@ -172,3 +172,43 @@ def test_identities_and_consents_through_the_api(wa: WhatsApp, client: TestClien
     assert client.delete(f"{API}/channels/whatsapp/identities/{meera.id}", headers={"x-test-persona": "NEHA"}).status_code == 404
     assert client.delete(f"{API}/channels/whatsapp/identities/{meera.id}", headers={"x-test-persona": "MEERA"}).status_code == 204
     assert wa.identity("MEERA").status == "revoked"  # type: ignore[union-attr]
+
+
+def test_unknown_mode_requires_recent_auth(wa: WhatsApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The step-up fails closed: only the explicit demo mode skips it; an unknown mode needs a recent sign-in."""
+    from app.modules.channels.whatsapp import accounts
+    from app.platform.org.stepup import ReauthRequired
+
+    real = accounts.ensure_account
+
+    def odd_mode(uow: UnitOfWork, purpose: str = "employee_assistant") -> object:
+        account = real(uow, purpose)
+        uow.session.expunge(account)  # never written back: the CHECK only knows demo and live
+        account.mode = "sandbox"
+        return account
+
+    monkeypatch.setattr(enrolment.accounts, "ensure_account", odd_mode)
+    with pytest.raises(ReauthRequired), UnitOfWork(wa.actor("MEERA", recent_auth=False)) as uow:
+        enrolment.create(uow)
+    monkeypatch.undo()
+    with UnitOfWork(wa.actor("MEERA", recent_auth=False)) as uow:
+        assert enrolment.create(uow).mode == "demo"  # demo mode: no step-up, and the code records its mode
+
+
+def test_demo_enrolment_rejected_on_a_live_account(wa: WhatsApp) -> None:
+    from sqlalchemy import update
+
+    from app.modules.channels.models import ChannelAccount
+
+    code = _code(wa, "MEERA")
+    with UnitOfWork(wa.system()) as uow:
+        enrolled = uow.session.scalars(select(ChannelEnrolment)).one()
+        assert enrolled.mode == "demo"
+        # the account is live now (without passing through ensure_account, which would also cancel the code)
+        uow.session.execute(update(ChannelAccount).where(ChannelAccount.id == enrolled.account_id).values(mode="live"))
+    wa.text(wa.wa_id("MEERA"), f"LINK {code}")
+    with UnitOfWork(wa.system()) as uow:
+        row = uow.session.scalars(select(ChannelEnrolment)).one()
+        identity = uow.session.scalars(select(ChannelIdentity).where(ChannelIdentity.wa_id == wa.wa_id("MEERA"))).one()
+    assert row.status == "cancelled" and row.identity_id is None
+    assert identity.kind == "unknown" and identity.user_id is None and identity.status == "pending"

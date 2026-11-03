@@ -32,6 +32,7 @@ CODE_TTL = timedelta(minutes=10)
 MAX_ATTEMPTS = 5
 LINK_PATTERN = re.compile(r"^\s*LINK\s+(\d{8})\s*$", re.IGNORECASE)
 ASSISTANT_USE = "agents.assistant.use"
+DEMO_MODE = "demo"
 
 
 def _hash(account: ChannelAccount, code: str) -> bytes:
@@ -59,9 +60,9 @@ def create(uow: UnitOfWork) -> EnrolmentRead:
     if not (actor.can(ASSISTANT_USE) or actor.can(IDENTITY_MANAGE)):
         raise Forbidden(code="permission_denied", permission=ASSISTANT_USE)
     account = accounts.ensure_account(uow)
-    if account.mode == "live":
-        # RA: linking a real phone to an account needs a recent sign-in. In demo mode the only "phone" is the
-        # simulator's synthetic number, so demo sign-in links (which carry no recent authentication) can link it.
+    if account.mode != DEMO_MODE:
+        # fail closed: only the explicit demo mode (whose only "phone" is the simulator's synthetic number) skips
+        # the step-up; live and any unknown or future mode need a recent sign-in (RA on channels.identity.manage)
         require_recent_auth(uow, IDENTITY_MANAGE)
     now = uow.now()
     uow.session.execute(
@@ -72,7 +73,7 @@ def create(uow: UnitOfWork) -> EnrolmentRead:
     code = f"{secrets.randbelow(10**8):08d}"
     row = ChannelEnrolment(
         id=uuid.uuid7(), user_id=actor.user_id, account_id=account.id, code_hash=_hash(account, code), expires_at=now + CODE_TTL,
-        attempts=0, status="pending",
+        attempts=0, status="pending", mode=account.mode,
     )
     uow.add(row)
     uow.flush()
@@ -89,6 +90,20 @@ class LinkOutcome:
     outcome: str
     identity: ChannelIdentity | None = None
     user_name: str | None = None
+
+
+def cancel_pending(uow: UnitOfWork, account: ChannelAccount, *, reason: str) -> int:
+    """Invalidate every outstanding code of the account (a mode switch: codes issued under the old mode die)."""
+    now = uow.now()
+    result = uow.session.execute(
+        update(ChannelEnrolment)
+        .where(ChannelEnrolment.company_id == uow.actor.company_id, ChannelEnrolment.account_id == account.id, ChannelEnrolment.status == "pending")
+        .values(status="cancelled", updated_at=now)
+    )
+    count = int(result.rowcount or 0)  # type: ignore[attr-defined]
+    if count:
+        uow.audit("channels.enrolment.cancelled", resource_type="channels.account", resource_id=account.id, details={"reason": reason, "count": count})
+    return count
 
 
 def parse_code(text: str | None) -> str | None:
@@ -119,6 +134,7 @@ def _failures(uow: UnitOfWork, bucket: str, *, count: bool) -> int:
 
 def try_link(
     uow: UnitOfWork, account: ChannelAccount, code: str, *, wa_id: str | None, bsuid: str | None, username: str | None,
+    simulated: bool,
 ) -> LinkOutcome:
     from app.platform.identity.models import AppUser
 
@@ -139,6 +155,13 @@ def try_link(
         row.status = "expired"
         _failures(uow, bucket, count=True)
         return LinkOutcome("expired")
+    if row.mode == DEMO_MODE and not (account.mode == DEMO_MODE and simulated):
+        # a code issued without step-up (demo) never links a number outside the demo/simulator path
+        row.status = "cancelled"
+        _failures(uow, bucket, count=True)
+        uow.audit("channels.enrolment.rejected", resource_type="channels.enrolment", resource_id=row.id, outcome="denied",
+                  details={"reason": "demo_code_outside_demo", "account_mode": account.mode})
+        return LinkOutcome("invalid")
     row.attempts = min(_failures(uow, bucket, count=False), MAX_ATTEMPTS)
     identity = identities.activate_employee(uow, account, user_id=row.user_id, wa_id=wa_id, bsuid=bsuid, username=username, now=now)
     row.status = "used"
@@ -150,4 +173,4 @@ def try_link(
     return LinkOutcome("linked", identity, user.display_name if user is not None else None)
 
 
-__all__ = ["CODE_TTL", "LINK_PATTERN", "MAX_ATTEMPTS", "LinkOutcome", "create", "link_text", "parse_code", "try_link", "wa_me_link"]
+__all__ = ["DEMO_MODE", "cancel_pending", "CODE_TTL", "LINK_PATTERN", "MAX_ATTEMPTS", "LinkOutcome", "create", "link_text", "parse_code", "try_link", "wa_me_link"]

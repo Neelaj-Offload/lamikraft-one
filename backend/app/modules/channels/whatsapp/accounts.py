@@ -94,6 +94,10 @@ def ensure_account(uow: UnitOfWork, purpose: str = "employee_assistant") -> Chan
         return account
     changed = False
     if account.mode != mode or account.phone_number_id != pnid:
+        from app.modules.channels.whatsapp import enrolment
+
+        # codes issued under the old mode (demo codes skip the step-up) must not survive the switch
+        enrolment.cancel_pending(uow, account, reason=f"mode_switch:{account.mode}->{mode}")
         account.mode = mode
         account.provider = "whatsapp_cloud" if mode == "live" else "demo"
         account.phone_number_id = pnid

@@ -49,6 +49,7 @@ ENUM_COLUMNS: dict[tuple[str, str], type[StrEnum]] = {
     ("channels_identity", "kind"): schemas.IdentityKind,
     ("channels_identity", "status"): schemas.IdentityStatus,
     ("channels_enrolment", "status"): schemas.EnrolmentStatus,
+    ("channels_enrolment", "mode"): schemas.AccountMode,
     ("channels_webhook_inbox", "status"): schemas.InboxStatus,
     ("channels_inbound_event", "kind"): schemas.InboundKind,
     ("channels_inbound_event", "status"): schemas.InboundStatus,

@@ -335,7 +335,7 @@ def _handle_system(uow: UnitOfWork, identity: ChannelIdentity | None, message: M
 
 def _handle_link(uow: UnitOfWork, account: ChannelAccount, event: InboundEvent, message: Message, code: str, *,
                  wa_id: str | None, bsuid: str | None, username: str | None) -> list[dict[str, Any]]:
-    outcome = enrolment.try_link(uow, account, code, wa_id=wa_id, bsuid=bsuid, username=username)
+    outcome = enrolment.try_link(uow, account, code, wa_id=wa_id, bsuid=bsuid, username=username, simulated=event.simulated)
     identity = outcome.identity or identities.ensure_unknown_identity(uow, account, wa_id=wa_id, bsuid=bsuid)
     event.identity_id = identity.id
     _touch_inbound(identity, message.provider_ts or uow.now())

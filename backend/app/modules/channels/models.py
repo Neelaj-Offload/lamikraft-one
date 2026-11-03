@@ -126,9 +126,12 @@ class ChannelEnrolment(TenantEntity, Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     identity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: the account mode the code was issued under: a demo-issued code links only through the demo/simulator path
+    mode: Mapped[str] = mapped_column(String(10), nullable=False)
 
     __table_args__ = (
         CheckConstraint(_in("status", ENROLMENT_STATUSES), name="status_values"),
+        CheckConstraint(_in("mode", ACCOUNT_MODES), name="mode_values"),
         CheckConstraint("attempts >= 0 AND attempts <= 5", name="attempts_bound"),
         Index("ix_channels_enrolment_open", "company_id", "account_id", "status", "expires_at"),
     )
