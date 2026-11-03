@@ -75,9 +75,16 @@ ASSISTANT_USE = "agents.assistant.use"
 
 def capability_flags(permission_keys: Iterable[str], installed: Iterable[str] | None = None) -> dict[str, bool]:
     """The reserved capability flags of ``features`` (api-conventions §8): ``assistant`` when the agents module is
-    installed and the actor may use the assistant; ``voice`` stays false until push-to-talk ships (Slice 3)."""
+    installed and the actor may use the assistant; ``voice`` when, in addition, the voice module is installed and a
+    speech-to-text path is configured (the Demo adapter, a vendor, or the enabled browser fallback)."""
     names = frozenset(installed) if installed is not None else installed_module_names()
-    return {"assistant": "agents" in names and ASSISTANT_USE in set(permission_keys), "voice": False}
+    assistant = "agents" in names and ASSISTANT_USE in set(permission_keys)
+    voice = False
+    if assistant and "voice" in names:
+        from app.modules.voice.service import stt_available
+
+        voice = stt_available()
+    return {"assistant": assistant, "voice": voice}
 
 
 def nav_for(permission_keys: Iterable[str], ready: dict[str, bool] | None = None) -> list[NavItem]:
