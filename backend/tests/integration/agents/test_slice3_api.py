@@ -96,3 +96,95 @@ def test_line_change_receipt_restores_the_previous_quantity(meera: Assistant, wo
     response = meera.client.post(f"{API}/receipts/{receipts[0]['undo']['receipt_id']}/undo", headers=meera.headers)
     assert response.status_code == 200, response.text
     assert _quote(world, card["quote_id"])[1] == [before]
+
+
+# ---- trace --------------------------------------------------------------------------------------------------------
+def test_trace_links_turn_run_steps_calls_receipt_and_events(meera: Assistant) -> None:
+    detail, _ = _draft(meera)
+    cid = detail["run"]["correlation_id"]
+    assert cid and uuid.UUID(cid).version == 7
+    response = meera.client.get(f"{API}/traces/{cid}", headers=meera.headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["access"] == "participant" and body["redacted"] is True and body["run_ids"] == [detail["run"]["id"]]
+    kinds = {e["kind"] for e in body["entries"]}
+    assert {"turn", "run", "step", "ai_call", "receipt", "event"} <= kinds, kinds
+    events = {e["name"] for e in body["entries"] if e["kind"] == "event"}
+    assert "agents.run.completed" in events and any(n.startswith("sales.quote") for n in events), events
+    raw = json.dumps(body)
+    assert "Nordhaus" not in raw and "oak tray" not in raw.lower(), "turn text and tool payloads are redacted"
+
+
+def test_trace_hidden_from_others_and_visible_to_auditors(meera: Assistant) -> None:
+    detail, _ = _draft(meera)
+    cid = detail["run"]["correlation_id"]
+    assert meera.client.get(f"{API}/traces/{cid}", headers={"x-test-persona": keys.USERS.NEHA}).status_code == 404
+    admin = meera.client.get(f"{API}/traces/{cid}", headers={"x-test-persona": keys.USERS.PRIYA})
+    assert admin.status_code == 200 and admin.json()["access"] == "auditor"
+    assert meera.client.get(f"{API}/traces/{uuid.uuid7()}", headers=meera.headers).status_code == 404
+
+
+# ---- AI admin -----------------------------------------------------------------------------------------------------
+def test_ai_status_usage_and_verify_in_demo(meera: Assistant) -> None:
+    meera.say(SCENARIO_C_TEXT)
+    admin = {"x-test-persona": keys.USERS.PRIYA}
+    assert meera.client.get(f"{API}/admin/ai/status", headers=meera.headers).status_code == 403
+    status = meera.client.get(f"{API}/admin/ai/status", headers=admin)
+    assert status.status_code == 200, status.text
+    body = status.json()
+    assert body["provider"]["state"] == "demo" and body["provider"]["label"] == "Demo"
+    assert body["provider"]["circuit"]["state"] == "closed" and body["models"]["orchestrator"]
+    assert body["quotas"]["orchestrator_runs_per_user"] == 150 and "DPDP" in body["dpdp_text"]
+    assert body["can_manage_routing"] is True
+
+    usage = meera.client.get(f"{API}/admin/ai/usage", params={"days": 7}, headers=admin)
+    assert usage.status_code == 200, usage.text
+    data = usage.json()
+    assert data["cost_is_estimate"] is True and data["price_currency"] == "USD"
+    orchestrate = next(w for w in data["by_workflow"] if w["workflow"] == "orchestrate")
+    assert orchestrate["calls"] >= 1 and orchestrate["runs"] == 1 and orchestrate["errors"] == 0
+    assert orchestrate["p50_latency_ms"] is not None and Decimal(orchestrate["estimated_cost"]) == 0
+    assert data["totals"]["calls"] == sum(w["calls"] for w in data["by_workflow"])
+
+    verified = meera.client.post(f"{API}/admin/ai/verify", headers=admin)
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["mode"] == "demo" and verified.json()["state"] == "connected"
+
+
+# ---- SSE (ADR-050) ------------------------------------------------------------------------------------------------
+def _events(text: str) -> list[tuple[str, dict]]:
+    out = []
+    for block in text.strip().split("\n\n"):
+        lines = block.splitlines()
+        name = next((line[7:] for line in lines if line.startswith("event: ")), None)
+        data = "\n".join(line[6:] for line in lines if line.startswith("data: "))
+        if name:
+            out.append((name, json.loads(data)))
+    return out
+
+
+def test_sse_stream_of_a_finished_run(meera: Assistant) -> None:
+    detail = meera.say(SCENARIO_C_TEXT)
+    response = meera.client.get(f"{API}/agents/runs/{detail['run']['id']}/events", headers=meera.headers)
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["cache-control"] == "no-cache, no-transform"
+    events = _events(response.text)
+    assert [name for name, _ in events] == ["done"]
+    assert events[0][1]["done"] is True and events[0][1]["cards"][0]["kind"] == "quote_draft"
+    resumed = meera.client.get(f"{API}/agents/runs/{detail['run']['id']}/events",
+                               headers={**meera.headers, "Last-Event-ID": str(detail["last_seq"])})
+    assert _events(resumed.text)[0][1]["steps"] == []
+    other = meera.client.get(f"{API}/agents/runs/{detail['run']['id']}/events", headers={"x-test-persona": keys.USERS.NEHA})
+    assert other.status_code == 404
+
+
+def test_sse_streams_progress_while_the_worker_runs(meera: Assistant, world: World) -> None:
+    accepted = meera.post_turn(SCENARIO_C_TEXT).json()
+    ticks: list[float] = []
+    stream = streaming.run_events(world.actor(keys.USERS.MEERA), uuid.UUID(accepted["run_id"]),
+                                  sleep=lambda s: (ticks.append(s), drain()))
+    events = _events("".join(stream))
+    names = [name for name, _ in events]
+    assert names[0] == "run" and names[-1] == "done" and ticks, names
+    assert events[0][1]["run"]["status"] == "queued" and events[-1][1]["run"]["status"] == "succeeded"
