@@ -78,6 +78,19 @@ class Settings(BaseSettings):
 
     # --- channels ----------------------------------------------------------------------------
     whatsapp_mode: Literal["demo", "live"] = "demo"
+    #: Meta WhatsApp Cloud API (live mode needs every value; verified against the Graph API changelog on 2026-11-03)
+    whatsapp_phone_number_id: str = ""
+    whatsapp_waba_id: str = ""
+    whatsapp_access_token: SecretStr = SecretStr("")
+    whatsapp_app_secret: SecretStr = SecretStr("")
+    #: accepted alongside the current secret while rotating (empty = no previous secret)
+    whatsapp_app_secret_previous: SecretStr = SecretStr("")
+    whatsapp_verify_token: SecretStr = SecretStr("")
+    whatsapp_api_version: str = "v26.0"
+    #: live mode only sends when this is true (a verified account alone never sends)
+    whatsapp_live_outbound: bool = False
+    #: development allowlist of E.164 numbers (comma separated); empty = no restriction outside development
+    whatsapp_dev_allowlist: str = ""
     email_mode: Literal["demo", "smtp"] = "demo"
 
     # --- behaviour ---------------------------------------------------------------------------

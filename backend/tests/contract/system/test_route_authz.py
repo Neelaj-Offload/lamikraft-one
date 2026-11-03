@@ -23,7 +23,7 @@ API = "/api/v1"
 VERBS = {"list", "get", "create", "update", "delete", "archive", "transition", "export", "run", "issue", "post",
          "decide", "resolve", "upload", "download", "poll"}
 #: api-conventions §1 documented path exceptions (owner module differs from the first path segment)
-PATH_EXCEPTIONS = {"health": "system", "session": "ui", "webhooks": "channels", "_test": "test"}
+PATH_EXCEPTIONS = {"health": "system", "session": "ui", "webhooks": "channels", "review-links": "channels", "_test": "test"}
 
 #: the platform lane's routes: (method, path) -> (kind, permission keys)
 PLATFORM_MATRIX: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
