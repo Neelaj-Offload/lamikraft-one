@@ -37,3 +37,19 @@ records the credentials and policy decisions in `BUILD_STATE` §5–§6.
 Every `PARITY_MATRIX` row implemented with a passing named test or an honest `deferred` reason; scenarios A–N
 green at three widths; every integration either live-verified or labelled Demo; handover docs; the remaining-work
 list naming exactly what needs credentials or business decisions.
+
+## Stopped 2026-11-03 (owner: "stop for now")
+
+All four wave-2b/3a lanes were stopped mid-work. Their partial work is **uncommitted in the worktrees** (nothing
+lost, nothing merged); resume each by relaunching its brief on its branch in the same worktree and telling it to
+continue from the state on disk:
+
+| Lane | Worktree / slot | Branch | State when stopped |
+|---|---|---|---|
+| Slice-2 integrator | `integ` / 8 | `lane/s2-merge` | platform lane merge in progress, 127 uncommitted files, 0 commits yet; it was running the backend tests |
+| Challans | `work` / 4 | `lane/s2w2-challans` | module scaffolded, CRUD tests passing, fixing history flush before the detail read; 9 uncommitted files |
+| Slice-3 agent runtime | `identity` / 1 | `lane/s3-agents` | 1 commit (Anthropic adapter with fake-transport contract tests), migration applied; 13 uncommitted files; next: routing table and setting, quotas, request classifier |
+| Slice-3 WhatsApp | `catalogue` / 3 | `lane/s3-whatsapp` | tables and migration written (3 uncommitted files); next: outbound sender, reconciliation, enrolment, templates, webhook route, inbound processing |
+
+`main` is at the Checkpoint-2 commits plus the Next 16.4.4 upgrade and these briefs; `npm run check` 7/7 and
+`npm run test:e2e` 96/0 as of the last run on `main`.
