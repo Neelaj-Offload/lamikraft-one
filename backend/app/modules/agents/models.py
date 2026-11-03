@@ -26,6 +26,9 @@ STEP_KINDS = ("route", "tool_call", "tool_result", "card", "text", "handoff")
 CONTEXT_ORIGINS = ("screen", "tool", "card")
 PROVIDERS = ("demo", "anthropic", "gemini")
 CALL_OUTCOMES = ("ok", "error", "refusal")
+WORKFLOWS = ("orchestrate", "route", "escalate", "phrase", "verify", "vision")
+RECEIPT_STATUSES = ("active", "undone", "expired", "target_changed")
+UNDO_KINDS = ("revert_draft", "restore_line", "none")
 
 
 class Conversation(TenantEntity, VersionMixin, Base):
@@ -66,6 +69,8 @@ class Turn(TenantEntity, Base):
     #: the run that produced (assistant) or was triggered by (user) this turn
     run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     client_utterance_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: UUIDv7 created at ingress (Slice 3 trace); the run, steps, call-log rows and receipts carry the same value
+    correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     __table_args__ = (
         CheckConstraint("role IN ('user','assistant')", name="role_values"),
@@ -109,11 +114,17 @@ class Run(TenantEntity, Base):
     assistant_turn_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: input-token budget of the task class (ai-routing.md section 2) and what the provider calls consumed
+    input_token_budget: Mapped[int] = mapped_column(Integer, nullable=False, default=120_000)
+    input_tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    #: set at enqueue when the run may only use deterministic paths (``quota_exceeded``), ai-routing.md section 7
+    degraded_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     __table_args__ = (
         CheckConstraint(
             "status IN ('queued','running','succeeded','failed','budget_exceeded','cancelled')", name="status_values"
         ),
+        Index("ix_agents_run_correlation", "correlation_id"),
         CheckConstraint("trigger IN ('user_turn','clarification_answer')", name="trigger_values"),
         CheckConstraint("provider IN ('demo','anthropic','gemini')", name="provider_values"),
         Index("ix_agents_run_conversation", "conversation_id", "created_at"),
@@ -140,6 +151,7 @@ class RunStep(IdMixin, TenantMixin, Base):
     error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     model_route: Mapped[str | None] = mapped_column(String(80), nullable=True)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (
@@ -199,6 +211,9 @@ class AiCallLog(IdMixin, TenantMixin, Base):
     outcome: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     request_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    #: the user whose quota the call counts against (None for system/batch workflows)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (
@@ -206,7 +221,66 @@ class AiCallLog(IdMixin, TenantMixin, Base):
         CheckConstraint("outcome IN ('ok','error','refusal')", name="outcome_values"),
         Index("ix_agents_ai_call_log_usage", "company_id", "workflow", "created_at"),
         Index("ix_agents_ai_call_log_run", "run_id"),
+        Index("ix_agents_ai_call_log_user_day", "company_id", "user_id", "created_at"),
     )
 
 
-__all__ = ["AiCallLog", "Conversation", "ObjectContext", "Run", "RunStep", "Turn"]
+class Receipt(TenantEntity, VersionMixin, Base):
+    """A draft receipt (design section 9 "Undo"): what an agent step wrote and how to revert it for 24 hours.
+
+    ``undo_spec`` is server-built from the tool output (never model text): ``revert_draft`` archives the agent-created
+    draft; ``restore_line`` puts the prior quantity back as a new version. Undo is refused once the target changed.
+    """
+
+    __tablename__ = "agents_receipt"
+
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("agents_run.id", ondelete="RESTRICT"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("app_user.id", ondelete="RESTRICT"), nullable=False
+    )
+    step_seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    action: Mapped[str] = mapped_column(String(80), nullable=False)
+    summary: Mapped[str] = mapped_column(String(300), nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    #: the target's row version right after the step; undo requires it to be unchanged
+    resource_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    undo_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="none")
+    undo_spec: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    undo_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    undone_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('active','undone','expired','target_changed')", name="status_values"),
+        CheckConstraint("undo_kind IN ('revert_draft','restore_line','none')", name="undo_kind_values"),
+        Index("ix_agents_receipt_run", "run_id", "step_seq"),
+        Index("ix_agents_receipt_target", "company_id", "resource_type", "resource_id"),
+    )
+
+
+class PhrasingCache(IdMixin, TenantMixin, Base):
+    """Phrased sentences keyed by the fact hash (facts + template version + language); unchanged items never
+    regenerate (ai-routing.md section 7)."""
+
+    __tablename__ = "agents_phrasing_cache"
+
+    fact_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    template_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    language: Mapped[str] = mapped_column(String(12), nullable=False, default="en")
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    #: ``model`` (validated model output) or ``template`` (the deterministic text, labelled "Standard wording")
+    source: Mapped[str] = mapped_column(String(20), nullable=False)
+    model: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("source IN ('model','template')", name="source_values"),
+        Index("uq_agents_phrasing_cache_hash", "company_id", "fact_hash", unique=True),
+    )
+
+
+__all__ = ["AiCallLog", "Conversation", "ObjectContext", "PhrasingCache", "Receipt", "Run", "RunStep", "Turn"]

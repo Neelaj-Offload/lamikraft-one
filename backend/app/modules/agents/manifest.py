@@ -22,6 +22,19 @@ def _run_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any] | None:
     return handle_agent_run(ctx, payload)
 
 
+def _settings() -> list[Any]:
+    from app.modules.agents.routing import AI_ROUTING_SETTING
+
+    return [AI_ROUTING_SETTING]
+
+
+def _on_load() -> None:
+    """Attach the AI verification routine to the ``ai.anthropic`` integration (idempotent)."""
+    from app.modules.agents.providers import register
+
+    register()
+
+
 MANIFEST = ModuleManifest(
     name="agents",
     models=("app.modules.agents.models",),
@@ -29,4 +42,6 @@ MANIFEST = ModuleManifest(
     #: one attempt: a run is a business outcome recorded on ``agents_run``; the handler never raises
     jobs=[JobDef(JOB_KIND, _run_job, queue=JOB_QUEUE, max_attempts=1, lease_seconds=120)],
     routers=[_router],
+    settings=_settings(),
+    on_load=_on_load,
 )
