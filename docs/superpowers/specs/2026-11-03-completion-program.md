@@ -70,3 +70,10 @@ Because the 3b lanes consume their interfaces (phrasing, `input_mode`, `register
 integration runs in two stages: stage 1 merges agents + WhatsApp onto CP3 as `lane/s3-merge` (`integ`/8) while
 `lane/s3-voice-vision` builds from CP3 (`work`/4); `lane/s3-briefings` then branches from the stage-1 tip
 (`sales`/6); stage 2 merges voice-vision and briefings and produces CP4.
+
+## Stage 1 done 2026-11-04 (CP4a on `lane/s3-merge` 74c8cd5)
+
+test:api 1479, check 7/7, e2e 203/0 with SSE proven in the browser (ADR-059) and scenario K through the Demo
+simulator. `lane/s3-briefings` branches from 74c8cd5 in `sales`/6. Wave 4a's `lane/s4-orders-inventory` starts
+early from the same tip in `identity`/1 (migration placeholders 0040+), because it is independent of voice and
+briefings and the other two Slice-4 lanes build on it; it is merged after CP4 by the Slice-4 integrator.
