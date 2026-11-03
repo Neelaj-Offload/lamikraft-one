@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { CustomProductList, customListStateFrom } from "@/features/custom-products/list";
+import { CustomProductList } from "@/features/custom-products/list";
+import { customListStateFrom } from "@/features/custom-products/list-state";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-custom-products");

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { UserListScreen, userListStateFrom } from "../_lib/users";
+import { userListStateFrom } from "../_lib/user-list-state";
+import { UserListScreen } from "../_lib/users";
 
 export const metadata: Metadata = { title: "Users · Settings" };
 

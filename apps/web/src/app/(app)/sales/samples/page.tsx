@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SampleList, sampleListStateFrom } from "@/features/samples/samples";
+import { sampleListStateFrom } from "@/features/samples/list-state";
+import { SampleList } from "@/features/samples/samples";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-samples");

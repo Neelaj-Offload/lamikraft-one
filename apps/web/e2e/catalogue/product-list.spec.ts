@@ -55,7 +55,8 @@ test("create_with_all_sections_and_server_errors", async ({ page }) => {
   await signInAs(page, PRIYA);
   await page.goto("/products/new");
   await page.getByRole("textbox", { name: "Product key" }).fill("E2E-FORM-01");
-  await page.getByRole("button", { name: /Category/ }).click();
+  // the picker reads "Loading…" until the taxonomy arrives
+  await page.getByRole("button", { name: /^Choose a category/ }).click();
   await page.getByRole("option").first().click();
   await page.getByRole("textbox", { name: "Carton quantity" }).fill("24");
   await page.getByRole("textbox", { name: "Unit weight (g)" }).fill("450");
@@ -90,7 +91,8 @@ test("history_tab_shows_versions", async ({ page }) => {
 test("taxonomy_pickers_only_active", async ({ page }) => {
   await signInAs(page, PRIYA);
   await page.goto("/products/new");
-  await page.getByRole("button", { name: /Category/ }).click();
+  // the picker reads "Loading…" until the taxonomy arrives
+  await page.getByRole("button", { name: /^Choose a category/ }).click();
   await expect(page.getByRole("option", { name: "Serveware" })).toBeVisible();
 });
 

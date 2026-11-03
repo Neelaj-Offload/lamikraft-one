@@ -31,6 +31,10 @@ MANIFEST = ModuleManifest(
     name="approvals",
     models=("app.modules.approvals.models",),
     jobs=[JobDef("approvals.expire_due", _expire_job, queue="default", max_attempts=3)],
-    schedules=[ScheduleDef("approvals.expire_due", "approvals.expire_due", "interval", interval_seconds=300)],
+    # Not run automatically outside production: fixture times are absolute (D0 = 2026-10-12), so the real-time sweep
+    # would expire every seeded review on the first run and empty the demo and e2e Inboxes (Slice-2 merge, ADR-057).
+    schedules=[
+        ScheduleDef("approvals.expire_due", "approvals.expire_due", "interval", interval_seconds=300, enabled_in_dev=False)
+    ],
     routers=[_router],
 )

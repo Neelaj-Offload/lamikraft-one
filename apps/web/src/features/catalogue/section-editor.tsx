@@ -109,7 +109,17 @@ export function SectionEditor({
       {groups.map((group) => (
         <fieldset key={group.title} className="flex flex-col gap-3">
           <legend className="mb-2 text-base font-semibold">{group.title}</legend>
-          <FieldGrid fields={group.fields} values={values} errors={errors} errorPrefix={prefix} onChange={(name, v) => setValues((cur) => ({ ...cur, [name]: v }))} />
+          <FieldGrid
+            fields={group.fields}
+            values={values}
+            errors={errors}
+            errorPrefix={prefix}
+            onChange={(name, v) => {
+              setValues((cur) => ({ ...cur, [name]: v }));
+              // see NewProductForm: an edit clears its own message, or the section's for specification/packaging
+              setErrors((cur) => (mode === "master" ? Object.fromEntries(Object.entries(cur).filter(([key]) => key !== name)) : {}));
+            }}
+          />
         </fieldset>
       ))}
       <div className="flex flex-wrap justify-end gap-2">

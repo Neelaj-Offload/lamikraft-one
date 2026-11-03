@@ -14,6 +14,18 @@ test("currency_dialog_reprice_or_convert_only", async ({ page, request }) => {
   const id = ref(world, number!);
   await signInAs(page, "MEERA");
   await page.goto(`/sales/quotes/${id}`);
+  // At D0 the Nordhaus draft is in internal review (fixtures.md); the currency changes only on the working copy,
+  // so withdraw the review first (adapted by the Slice-2 integrator).
+  const withdraw = page.getByRole("button", { name: "Withdraw review request" });
+  if (await withdraw.isVisible()) {
+    await withdraw.click();
+    const confirm = page.getByRole("dialog").getByRole("button", { name: "Withdraw review request" });
+    if (await confirm.isVisible().catch(() => false)) {
+      const note = page.getByRole("dialog").getByRole("textbox");
+      if (await note.count()) await note.first().fill("Currency check in the e2e suite");
+      await confirm.click();
+    }
+  }
   await page.getByRole("button", { name: "Change currency" }).click();
   const dialog = page.getByRole("dialog", { name: "Change the quote currency" });
   await expect(dialog).toBeVisible();

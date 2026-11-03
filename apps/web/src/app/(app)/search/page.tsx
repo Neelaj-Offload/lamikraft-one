@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SearchPage, searchPageStateFrom } from "@/features/search/search-page";
+import { searchPageStateFrom } from "@/features/search/page-state";
+import { SearchPage } from "@/features/search/search-page";
 
 export const metadata: Metadata = { title: "Search" };
 

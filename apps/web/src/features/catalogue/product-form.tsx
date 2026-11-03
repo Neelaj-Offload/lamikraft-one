@@ -41,7 +41,14 @@ export function NewProductForm() {
   const [idempotencyKey] = useState(() => uuidv7());
   const categories = useQuery({ queryKey: queryKeys.catalogue.categories(false), queryFn: ({ signal }) => fetchCategories(false, signal) });
   const options = useMemo(() => taxonomyOptions(categories.data ?? [], values.category_id ?? null), [categories.data, values.category_id]);
-  const set = (name: string, value: string) => setValues((cur) => ({ ...cur, [name]: value }));
+  const set = (name: string, value: string) => {
+    setValues((cur) => ({ ...cur, [name]: value }));
+    // An edited field drops the server's message for it; packaging and specification messages are cross-field
+    // (alias conflicts), so an edit in those sections clears the section's messages. Native validation would
+    // otherwise keep the form from submitting the correction.
+    const section = name.startsWith("pack.") ? "packaging." : name.startsWith("spec.") ? "specification." : null;
+    setErrors((cur) => Object.fromEntries(Object.entries(cur).filter(([key]) => (section ? !key.startsWith(section) && key !== section.slice(0, -1) : key !== name))));
+  };
   const create = useMutation({
     mutationFn: () => createProduct(createBody(values), idempotencyKey),
     onSuccess: (result) => {

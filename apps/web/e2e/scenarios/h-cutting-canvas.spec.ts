@@ -49,7 +49,10 @@ test("plan_calculate_save_reopen_svg", async ({ page }) => {
 test("svg_no_overlap_inside_boundary_counts_match", async ({ page }) => {
   await signInAs(page, "RAVI");
   await page.goto(planPath);
-  const boxes = await page.locator('svg[viewBox] > svg').evaluateAll((nodes) =>
+  // board 1's canvas (role=group) once the stored layout has rendered; its pieces are nested <svg> in mm
+  const board = page.getByRole("group").filter({ has: page.locator('g[role="img"]') }).first();
+  await expect(board.locator('g[role="img"]').first()).toBeVisible();
+  const boxes = await board.locator("svg[viewBox] > svg").evaluateAll((nodes) =>
     nodes.map((n) => ["x", "y", "width", "height"].map((a) => Number.parseFloat(n.getAttribute(a) ?? "0"))),
   );
   for (let i = 0; i < boxes.length; i += 1) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { LookupBrowser, lookupStateFrom } from "@/features/catalogue/lookups";
+import { lookupStateFrom } from "@/features/catalogue/lookup-state";
+import { LookupBrowser } from "@/features/catalogue/lookups";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("settings-lookups");
