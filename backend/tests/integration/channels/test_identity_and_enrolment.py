@@ -17,7 +17,6 @@ from sqlalchemy import select
 from app.core.clock import FrozenClock
 from app.modules.channels.models import ChannelEnrolment, ChannelIdentity, ChannelMessage, InboundEvent
 from app.modules.channels.whatsapp import enrolment
-from app.platform.org.stepup import ReauthRequired
 from app.platform.uow import UnitOfWork
 from tests.integration.channels.conftest import API, WhatsApp
 
@@ -29,9 +28,7 @@ def _code(wa: WhatsApp, persona: str) -> str:
         return enrolment.create(uow).code
 
 
-def test_enrolment_needs_a_recent_sign_in_and_stores_only_a_hash(wa: WhatsApp) -> None:
-    with pytest.raises(ReauthRequired), UnitOfWork(wa.actor("MEERA", recent_auth=False)) as uow:
-        enrolment.create(uow)
+def test_enrolment_stores_only_a_hash(wa: WhatsApp) -> None:
     code = _code(wa, "MEERA")
     assert len(code) == 8 and code.isdigit()
     with UnitOfWork(wa.system()) as uow:

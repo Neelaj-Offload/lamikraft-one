@@ -113,6 +113,16 @@ def test_verify_needs_a_recent_sign_in_and_the_admin_key(wa: WhatsApp, live: Fak
     assert sales.status_code == 403
 
 
+def test_live_enrolment_needs_a_recent_sign_in(wa: WhatsApp, live: FakeGraph) -> None:
+    from app.modules.channels.whatsapp import enrolment
+    from app.platform.org.stepup import ReauthRequired
+
+    with pytest.raises(ReauthRequired), UnitOfWork(wa.actor("MEERA", recent_auth=False)) as uow:
+        enrolment.create(uow)
+    with UnitOfWork(wa.actor("MEERA")) as uow:
+        assert enrolment.create(uow).wa_me_link is None  # no display number before the Graph check
+
+
 def test_live_outbound_needs_the_flag_and_the_allowlist_and_statuses_are_real(wa: WhatsApp, live: FakeGraph, monkeypatch: pytest.MonkeyPatch) -> None:
     from tests.integration.channels.test_scenario_k import _outbox, _queue
 

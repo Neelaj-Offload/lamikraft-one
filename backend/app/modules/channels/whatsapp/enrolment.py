@@ -58,8 +58,11 @@ def create(uow: UnitOfWork) -> EnrolmentRead:
         raise Forbidden(code="permission_denied", permission=ASSISTANT_USE)
     if not (actor.can(ASSISTANT_USE) or actor.can(IDENTITY_MANAGE)):
         raise Forbidden(code="permission_denied", permission=ASSISTANT_USE)
-    require_recent_auth(uow, IDENTITY_MANAGE)  # RA: linking a phone to an account needs a recent sign-in
     account = accounts.ensure_account(uow)
+    if account.mode == "live":
+        # RA: linking a real phone to an account needs a recent sign-in. In demo mode the only "phone" is the
+        # simulator's synthetic number, so demo sign-in links (which carry no recent authentication) can link it.
+        require_recent_auth(uow, IDENTITY_MANAGE)
     now = uow.now()
     uow.session.execute(
         update(ChannelEnrolment)
