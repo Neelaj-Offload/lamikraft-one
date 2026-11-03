@@ -65,6 +65,18 @@ def register_media(data: bytes, mime_type: str) -> str:
     return media_id
 
 
+def lookup_media(media_id: str) -> tuple[bytes, str] | None:
+    """Registered bytes, else a fixture voice note by its content-derived id. The simulator registers media in the API
+    process but the worker downloads them, so fixture media must resolve in any process (Slice-3 stage-1 merge)."""
+    entry = _media.get(media_id)
+    if entry is not None:
+        return entry
+    for data, mime, _transcript in DEMO_AUDIO_FIXTURES.values():
+        if DEMO_MEDIA_PREFIX + hashlib.sha256(data).hexdigest()[:24] == media_id:
+            return data, mime
+    return None
+
+
 def register_fixture_audio(key: str) -> tuple[str, str, str]:
     """(media id, mime, sha256) of a fixture voice note."""
     data, mime, _ = DEMO_AUDIO_FIXTURES[key]
@@ -166,14 +178,14 @@ class DemoProvider:
         return (_ingest or _default_ingest)(body, signature, "demo-provider")
 
     def get_media(self, account: AccountConfig, media_id: str) -> MediaInfo:
-        entry = _media.get(media_id)
+        entry = lookup_media(media_id)
         if entry is None:
             raise MediaError("media_url_expired", "demo media not registered")
         data, mime = entry
         return MediaInfo(media_id=media_id, url=f"demo://media/{media_id}", mime_type=mime, sha256=hashlib.sha256(data).hexdigest(), file_size=len(data))
 
     def download_media(self, account: AccountConfig, info: MediaInfo, *, max_bytes: int) -> bytes:
-        entry = _media.get(info.media_id)
+        entry = lookup_media(info.media_id)
         if entry is None:
             raise MediaError("media_url_expired", "demo media not registered")
         data = entry[0]
@@ -195,5 +207,5 @@ class DemoProvider:
 
 __all__ = [
     "DEMO_AUDIO_FIXTURES", "DEMO_MEDIA_PREFIX", "DEMO_TEMPLATES", "DEMO_WAMID_PREFIX", "DemoProvider", "inbound_payload", "is_simulated_wamid",
-    "new_wamid", "register_fixture_audio", "register_media", "set_ingest", "signed_webhook_body", "status_payload", "transcript_for_sha256",
+    "lookup_media", "new_wamid", "register_fixture_audio", "register_media", "set_ingest", "signed_webhook_body", "status_payload", "transcript_for_sha256",
 ]

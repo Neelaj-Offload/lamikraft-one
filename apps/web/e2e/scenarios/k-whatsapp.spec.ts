@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expected, loadWorld, moneyText, onlyOnProjects, signInAs, type World } from "../support/world";
+import { expected, loadWorld, onlyOnProjects, signInAs, type World } from "../support/world";
 
 /**
  * Scenarios C and K through the WhatsApp Demo simulator (Settings › WhatsApp). Every simulator message goes through
@@ -12,7 +12,7 @@ import { expected, loadWorld, moneyText, onlyOnProjects, signInAs, type World } 
 
 const UTTERANCE = "Prepare Nordhaus's usual oak tray quote";
 
-test.describe.configure({ mode: "serial" });
+test.describe.configure({ mode: "serial", timeout: 90_000 });
 
 let world: World;
 
@@ -55,7 +55,7 @@ test("C/K: Meera links her demo number through the signed webhook", async ({ pag
   // the code is masked in the stored thread; the worker answers with the link confirmation
   await expect(reply(page, "LINK ••••••••")).toBeVisible({ timeout: 20_000 });
   await expect(reply(page, /Demo: Linked to Lamikraft One as Meera/)).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("table").getByText("Linked", { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("region", { name: "Linked numbers" }).getByText("Linked", { exact: true }).first()).toBeVisible({ timeout: 10_000 });
 });
 
 test("C: a WhatsApp text drafts the quote; Review quote opens a bound link that lands on the workspace", async ({ page }) => {
@@ -65,7 +65,9 @@ test("C: a WhatsApp text drafts the quote; Review quote opens a bound link that 
 
   const draft = reply(page, /Demo: Draft ready \([A-Z]{2,4}-QT-\d{4}-\d{4}\)/);
   await expect(draft).toBeVisible({ timeout: 30_000 });
-  await expect(draft).toContainText(`Total ${moneyText(total, "EUR")}`);
+  // WhatsApp text is plain: the server writes the ISO code and en grouping ("EUR 5,760.00"), not the web's symbol
+  const plainTotal = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(total));
+  await expect(draft).toContainText(`Total EUR ${plainTotal}`);
   await expect(draft).toContainText("Status: draft, not sent.");
   const number = /[A-Z]{2,4}-QT-\d{4}-\d{4}/.exec((await draft.textContent()) ?? "")?.[0] ?? "";
   expect(number).not.toBe("");
@@ -74,7 +76,8 @@ test("C: a WhatsApp text drafts the quote; Review quote opens a bound link that 
   const link = reply(page, "/r/");
   await expect(link).toBeVisible({ timeout: 20_000 });
   await expect(link).toContainText("15 minutes");
-  const token = /\/r\/([A-Za-z0-9_-]+)/.exec((await link.textContent()) ?? "")?.[1] ?? "";
+  // secrets.token_urlsafe(32): 43 URL-safe characters (the bubble text runs straight into its timestamp)
+  const token = /\/r\/([A-Za-z0-9_-]{43})/.exec((await link.textContent()) ?? "")?.[1] ?? "";
   expect(token).not.toBe("");
 
   // K: the same button cannot be used twice

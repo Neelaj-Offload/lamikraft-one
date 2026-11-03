@@ -232,3 +232,17 @@ def test_window_is_24_hours_from_the_last_inbound() -> None:
     identity.last_inbound_at = now - timedelta(hours=24)
     assert not window.window_open(identity, now)  # type: ignore[arg-type]
     assert not window.window_open(SimpleNamespace(last_inbound_at=None), now)  # type: ignore[arg-type]
+
+
+def test_fixture_voice_notes_resolve_in_a_process_that_did_not_register_them(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The simulator registers a voice note in the API process; the worker downloads it (Slice-3 stage-1 merge e2e)."""
+    from app.modules.channels.whatsapp import demo_provider
+
+    media_id, mime, sha256 = demo_provider.register_fixture_audio("oak_tray_quote")
+    monkeypatch.setattr(demo_provider, "_media", {})  # a fresh process: nothing registered
+    entry = demo_provider.lookup_media(media_id)
+    assert entry is not None and entry[1] == mime
+    import hashlib
+
+    assert hashlib.sha256(entry[0]).hexdigest() == sha256
+    assert demo_provider.lookup_media(demo_provider.DEMO_MEDIA_PREFIX + "0" * 24) is None
