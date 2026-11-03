@@ -16,7 +16,7 @@ Status: **DONE_WITH_CONCERNS** — every gate green on the final tip; concerns a
 | 7 | e2e on the four lanes, defects fixed | `47d10a2`, `336a09a`, `586e50b`, `cf1c4bd` | run 1: build stopped (stale `node_modules`, Next 16.4.0; `npm ci`); run 2: 145 passed / 26 failed; run 3: 168 / 4; run 4: 170 / 2; both fixed and re-run green (targeted) |
 | 8 | Merge `lane/s2w2-challans` (report `challans-s2.md`) | `84d6b32` | migration → 0014; new 0015 cross-lane FKs; Kaveri seeded before Precision Edge; e2e at `--slice 2`; `test:api` 1308 passed; vitest 602 |
 | 9 | Merge `lane/s2w1-commercial` follow-up 8ff21bd..359a7ba (configurator; report `commercial-s2.md`) | `17a2f99` | server-safe list-state modules kept; scenario C number assertion relaxed; api:generate 243 paths |
-| 10 | Evidence spec; final gates; PARITY, BUILD_STATE, DECISIONS, evidence; merge `main` (docs-only 4609a3b..62d6447) | `7f…` docs, then the `main` merge | see "Gates" |
+| 10 | Evidence spec; final gates; PARITY, BUILD_STATE, DECISIONS, evidence; merge `main` (docs-only 4609a3b..62d6447) | `d00e10e` docs, then the `main` merge | see "Gates" |
 
 ## Migration chain
 
