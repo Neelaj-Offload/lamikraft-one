@@ -219,7 +219,8 @@ export function VoiceControls({ assistant, rootRef, ref }: VoiceControlsProps) {
       setMicProblem(problem);
       setPhaseBoth("idle");
       announce(m.micProblems[problem] ?? m.micProblems.unavailable!, "assertive");
-      focusText();
+      // after the press settles (react-aria returns focus to the pressed button on release)
+      window.setTimeout(focusText, 50);
     },
     [focusText, reset, setPhaseBoth],
   );

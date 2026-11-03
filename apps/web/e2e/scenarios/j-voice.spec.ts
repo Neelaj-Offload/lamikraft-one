@@ -26,12 +26,13 @@ test.beforeAll(async ({ request }) => {
   world = await loadWorld(request);
 });
 
-const talk = (page: Page) => page.getByRole("button", { name: /^(Hold to talk|Stop recording)$/ });
+const voice = (page: Page) => page.getByRole("group", { name: "Voice and screen" });
+const talk = (page: Page) => voice(page).getByRole("button", { name: /^(Hold to talk|Stop recording)$/ });
 
 async function recordOnce(page: Page): Promise<void> {
   await expect(talk(page)).toBeEnabled({ timeout: 10_000 });
   await talk(page).click(); // a short press toggles recording on
-  await expect(page.getByRole("status").filter({ hasText: "Recording" })).toBeVisible();
+  await expect(voice(page).getByRole("status").filter({ hasText: "Recording" })).toBeVisible();
   await page.waitForTimeout(700);
   await talk(page).click(); // and the second press stops it
   await expect(page.getByRole("textbox", { name: /What you said|Correction/ })).toBeVisible({ timeout: 15_000 });
@@ -41,7 +42,7 @@ test("fake_media_voice_turn_sends_once_and_reads_back", async ({ page }) => {
   await signInAs(page, "MEERA");
   await page.goto("/today");
   await recordOnce(page);
-  await expect(page.getByText("Demo transcript — not from your recording")).toBeVisible();
+  await expect(voice(page).getByText("Demo transcript — not from your recording")).toBeVisible();
   const transcript = page.getByRole("textbox", { name: /What you said/ });
   await transcript.fill(UTTERANCE);
   const send = page.getByRole("group", { name: "Voice and screen" }).getByRole("button", { name: "Send", exact: true });
@@ -53,7 +54,7 @@ test("fake_media_voice_turn_sends_once_and_reads_back", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Read-back" })).toContainText("Total EUR 5,760.00.");
   await expect(page.getByRole("region", { name: "Read-back" })).toContainText(/draft, not sent/);
   // one exchange: the transcript was sent once and the editor is gone
-  await expect(page.getByText(UTTERANCE, { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("region", { name: "Conversation with the assistant" }).getByText(UTTERANCE, { exact: true })).toHaveCount(1);
   await expect(page.getByRole("textbox", { name: /What you said/ })).toHaveCount(0);
 });
 
@@ -65,11 +66,11 @@ test("mic_denied_keeps_the_text_path", async ({ page }) => {
   await page.goto("/today");
   await expect(talk(page)).toBeEnabled({ timeout: 10_000 });
   await talk(page).click();
-  await expect(page.getByRole("alert").filter({ hasText: "The microphone is blocked" })).toBeVisible();
+  await expect(voice(page).getByRole("alert").filter({ hasText: "The microphone is blocked" })).toBeVisible();
   const text = page.getByRole("textbox", { name: /Ask about your day/ });
   await expect(text).toBeFocused();
   await expect(talk(page)).toBeDisabled(); // voice stays off until the person retries
-  await expect(page.getByRole("button", { name: "Try the microphone again" })).toBeVisible();
+  await expect(voice(page).getByRole("button", { name: "Try the microphone again" })).toBeVisible();
   await text.fill(UTTERANCE);
   await page.getByRole("button", { name: "Send", exact: true }).first().click();
   await expect(page.locator('[data-card="quote_draft"]')).toBeVisible({ timeout: 20_000 });
@@ -80,7 +81,8 @@ test("interrupt_stops_speech", async ({ page }) => {
   await page.goto("/today");
   const speak = page.getByRole("switch", { name: "Speak replies" });
   await expect(speak).toBeVisible({ timeout: 10_000 });
-  await speak.check();
+  await voice(page).getByText("Speak replies").click(); // the switch's input is visually hidden
+  await expect(speak).toBeChecked();
   await recordOnce(page);
   await page.getByRole("textbox", { name: /What you said/ }).fill(UTTERANCE);
   await page.getByRole("group", { name: "Voice and screen" }).getByRole("button", { name: "Send", exact: true }).click();
@@ -89,7 +91,7 @@ test("interrupt_stops_speech", async ({ page }) => {
   await expect(stop).toBeVisible({ timeout: 10_000 });
   await stop.click();
   await expect(stop).toHaveCount(0);
-  await expect(page.getByRole("status").filter({ hasText: "Speaking" })).toHaveCount(0);
+  await expect(voice(page).getByRole("status").filter({ hasText: "Speaking" })).toHaveCount(0);
 });
 
 test("offline_transcript_is_a_queued_draft_never_a_commit", async ({ page, context }) => {
