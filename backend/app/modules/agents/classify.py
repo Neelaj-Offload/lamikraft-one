@@ -99,10 +99,14 @@ def classify_deterministic(text: str, *, selected_option: Mapping[str, Any] | No
     """The request grammar (no model): a clarification answer or a parsed Demo intent; None when unrecognised."""
     if selected_option:
         return Classification("data_or_action", "clarification_answer", "grammar")
+    # "think harder" is an escalation marker, not part of the request: parse what remains
+    think_harder = bool(_THINK_HARDER.search(text))
+    if think_harder:
+        text = _THINK_HARDER.sub(" ", text).strip(" :,.;-") or text
     intent = parse_request(text)
     if intent is None:
         if _ANALYSIS.search(text):
-            return Classification("analysis", "analysis_pattern", "grammar", domains=domains_in(text), think_harder=bool(_THINK_HARDER.search(text)))
+            return Classification("analysis", "analysis_pattern", "grammar", domains=domains_in(text), think_harder=think_harder)
         return None
     if intent.kind == "screen_question":
         return Classification("screen_question", intent.kind, "grammar")
@@ -110,7 +114,7 @@ def classify_deterministic(text: str, *, selected_option: Mapping[str, Any] | No
              "quantity": str(intent.quantity) if intent.quantity is not None else None,
              "quantity_source": "user_turn" if intent.quantity is not None else None, "currency": intent.currency}
     return Classification("data_or_action", intent.kind, "grammar", slots=slots, domains=domains_in(text),
-                          think_harder=bool(_THINK_HARDER.search(text)))
+                          think_harder=think_harder)
 
 
 def router_request(text: str, *, model: str, context: Mapping[str, Any] | None = None) -> ModelRequest:
