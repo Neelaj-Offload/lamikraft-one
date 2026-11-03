@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/admin/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Status */
+        get: operations["agents_ai_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Usage */
+        get: operations["agents_ai_usage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ai Verify */
+        post: operations["agents_ai_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents/conversations": {
         parameters: {
             query?: never;
@@ -83,6 +134,26 @@ export interface paths {
         put?: never;
         /** Cancel Run */
         post: operations["agents_cancel_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/runs/{run_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Run Events
+         * @description ADR-050: run progress as SSE; the polling endpoint stays the fallback.
+         */
+        get: operations["agents_stream_run_events"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -966,6 +1037,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/receipts/{receipt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Receipt */
+        get: operations["agents_get_receipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/receipts/{receipt_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo Receipt */
+        post: operations["agents_undo_receipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/customer-messages": {
         parameters: {
             query?: never;
@@ -1558,6 +1663,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/traces/{correlation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trace
+         * @description Participants see their own traces; ``audit.trace.read`` holders see any in the company; else 404.
+         */
+        get: operations["agents_get_trace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ui/poll": {
         parameters: {
             query?: never;
@@ -1719,6 +1844,169 @@ export interface components {
             label: string;
             /** Line Key */
             line_key: string | null;
+        };
+        /** AiFailure */
+        AiFailure: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Correlation Id */
+            correlation_id: string | null;
+            /** Error Type */
+            error_type: string | null;
+            /** Model */
+            model: string;
+            /** Outcome */
+            outcome: string;
+            /** Provider */
+            provider: string;
+            /** Request Id */
+            request_id: string | null;
+            /** Run Id */
+            run_id: string | null;
+            /** Workflow */
+            workflow: string;
+        };
+        /** AiProviderStatus */
+        AiProviderStatus: {
+            /** Circuit */
+            circuit: {
+                [key: string]: unknown;
+            };
+            /** Label */
+            label: string;
+            /** Last Checked At */
+            last_checked_at: string | null;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Mode */
+            mode: string;
+            /** Provider */
+            provider: string;
+            /** Readiness */
+            readiness: string;
+            /** State */
+            state: string;
+            /** Verified At */
+            verified_at: string | null;
+        };
+        /** AiStatusOut */
+        AiStatusOut: {
+            /** Budgets */
+            budgets: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** Can Manage Routing */
+            can_manage_routing: boolean;
+            /** Dpdp */
+            dpdp: {
+                [key: string]: unknown;
+            };
+            /** Dpdp Text */
+            dpdp_text: string;
+            /** Effort */
+            effort: {
+                [key: string]: string;
+            };
+            /** Models */
+            models: {
+                [key: string]: string;
+            };
+            /** Price Currency */
+            price_currency: string;
+            /** Prices */
+            prices: {
+                [key: string]: unknown;
+            }[];
+            provider: components["schemas"]["AiProviderStatus"];
+            /** Quotas */
+            quotas: {
+                [key: string]: number;
+            };
+        };
+        /** AiUsageOut */
+        AiUsageOut: {
+            /** By Model */
+            by_model: {
+                [key: string]: unknown;
+            }[];
+            /** By Workflow */
+            by_workflow: components["schemas"]["AiWorkflowUsage"][];
+            /**
+             * Cost Is Estimate
+             * @default true
+             */
+            cost_is_estimate: boolean;
+            /** Failures */
+            failures: components["schemas"]["AiFailure"][];
+            /** Price Currency */
+            price_currency: string;
+            totals: components["schemas"]["AiWorkflowUsage"];
+            /** Window Days */
+            window_days: number;
+            /**
+             * Window From
+             * Format: date-time
+             */
+            window_from: string;
+            /**
+             * Window To
+             * Format: date-time
+             */
+            window_to: string;
+        };
+        /** AiVerifyOut */
+        AiVerifyOut: {
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            } | null;
+            /** Key */
+            key: string;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Mode */
+            mode: string;
+            /** State */
+            state: string;
+            /** Verified At */
+            verified_at: string | null;
+        };
+        /** AiWorkflowUsage */
+        AiWorkflowUsage: {
+            /** Cache Read Tokens */
+            cache_read_tokens: number;
+            /** Cache Write Tokens */
+            cache_write_tokens: number;
+            /** Calls */
+            calls: number;
+            /**
+             * Error Rate
+             * @example 5760.00
+             */
+            error_rate: string;
+            /** Errors */
+            errors: number;
+            /** Estimated Cost */
+            estimated_cost: string | null;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** P50 Latency Ms */
+            p50_latency_ms: number | null;
+            /** P95 Latency Ms */
+            p95_latency_ms: number | null;
+            /** Refusals */
+            refusals: number;
+            /** Runs */
+            runs: number;
+            /** Workflow */
+            workflow: string;
         };
         /** AllowedTransition */
         AllowedTransition: {
@@ -5464,6 +5752,52 @@ export interface components {
              * @default false
              */
             tainted: boolean;
+            undo?: components["schemas"]["UndoInfo"] | null;
+        };
+        /** ReceiptOut */
+        ReceiptOut: {
+            /** Action */
+            action: string;
+            /** Can Undo */
+            can_undo: boolean;
+            /** Correlation Id */
+            correlation_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+            /** Resource Version */
+            resource_version: number | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Step Seq */
+            step_seq: number;
+            /** Summary */
+            summary: string;
+            /** Undo Kind */
+            undo_kind: string;
+            /** Undo Until */
+            undo_until: string | null;
+            /** Undone At */
+            undone_at: string | null;
         };
         /** RecentProduct */
         RecentProduct: {
@@ -5842,11 +6176,15 @@ export interface components {
              * Format: uuid
              */
             conversation_id: string;
+            /** Correlation Id */
+            correlation_id?: string | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Degraded Reason */
+            degraded_reason?: string | null;
             /** Elapsed Ms */
             elapsed_ms: number | null;
             /** Error Code */
@@ -5860,6 +6198,16 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Input Token Budget
+             * @default 0
+             */
+            input_token_budget: number;
+            /**
+             * Input Tokens Used
+             * @default 0
+             */
+            input_tokens_used: number;
             /** Mode */
             mode: string;
             /** Model Route */
@@ -6576,6 +6924,49 @@ export interface components {
              */
             tier: "customer" | "customer_type" | "standard";
         };
+        /**
+         * TraceEntry
+         * @description One redacted timeline entry: kinds ``turn``, ``run``, ``step``, ``ai_call``, ``receipt``, ``event``, ``audit``.
+         */
+        TraceEntry: {
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Detail */
+            detail?: {
+                [key: string]: unknown;
+            };
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Ref Id */
+            ref_id?: string | null;
+            /** Ref Type */
+            ref_type?: string | null;
+            /** Status */
+            status?: string | null;
+        };
+        /** TraceOut */
+        TraceOut: {
+            /** Access */
+            access: string;
+            /** Correlation Id */
+            correlation_id: string;
+            /** Entries */
+            entries: components["schemas"]["TraceEntry"][];
+            /**
+             * Redacted
+             * @default true
+             */
+            redacted: boolean;
+            /** Run Ids */
+            run_ids: string[];
+        };
         /** TransitionRead */
         TransitionRead: {
             /** Action */
@@ -6709,6 +7100,32 @@ export interface components {
             sidebar_collapsed?: boolean | null;
             /** Theme */
             theme?: ("system" | "light" | "dark") | null;
+        };
+        /**
+         * UndoInfo
+         * @description Design section 9 "Undo": the receipt behind the card and whether it can still be reverted.
+         */
+        UndoInfo: {
+            /** Allowed */
+            allowed: boolean;
+            /**
+             * Kind
+             * @default none
+             */
+            kind: string;
+            /**
+             * Receipt Id
+             * Format: uuid
+             */
+            receipt_id: string;
+            /** Until */
+            until?: string | null;
+        };
+        /** UndoResult */
+        UndoResult: {
+            /** Card */
+            card: components["schemas"]["QuoteDraftCard"] | components["schemas"]["ClarificationCard"] | components["schemas"]["ErrorCard"] | components["schemas"]["RecordLinkCard"] | components["schemas"]["ReceiptCard"];
+            receipt: components["schemas"]["ReceiptOut"];
         };
         /** UomConversionRead */
         UomConversionRead: {
@@ -6849,6 +7266,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    agents_ai_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiStatusOut"];
+                };
+            };
+        };
+    };
+    agents_ai_usage: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_ai_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiVerifyOut"];
+                };
+            };
+        };
+    };
     agents_create_conversation: {
         parameters: {
             query?: never;
@@ -6999,6 +7487,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_stream_run_events: {
+        parameters: {
+            query?: {
+                after_seq?: number;
+            };
+            header?: {
+                "Last-Event-ID"?: string | null;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-Sent Events: `run` per change, a final `done` with the RunDetail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
                 };
             };
             /** @description Validation Error */
@@ -8808,6 +9331,68 @@ export interface operations {
             };
         };
     };
+    agents_get_receipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_undo_receipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UndoResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_list_customer_messages: {
         parameters: {
             query?: {
@@ -10270,6 +10855,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agents_get_trace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                correlation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceOut"];
                 };
             };
             /** @description Validation Error */
