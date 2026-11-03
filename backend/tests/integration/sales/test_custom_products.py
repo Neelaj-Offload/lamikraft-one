@@ -274,3 +274,20 @@ def test_spec_revisions_and_quote_link(world: SalesWorld) -> None:
         row = uow.session.get(CustomProduct, c.id)
         assert row is not None and row.status == "quoted"
     assert uuid.UUID(str(line.custom_product_id)) == c.id
+
+
+def test_internal_notes_on_custom_products(world: SalesWorld) -> None:
+    """LM-68 / FG-CP-17: the internal note of a custom product is a collab note authorised through the product
+    (another owner's product is 404; versioned saves are 409 when stale)."""
+    from app.platform.collab import service as collab
+
+    c = create(world)
+    with world.uow(MEERA) as uow:
+        saved = collab.save_note(uow, "sales.custom_product", c.id, body="Customer prefers brass, not steel", expected_version=0)
+    assert saved.body == "Customer prefers brass, not steel"
+    with pytest.raises(Conflict), world.uow(MEERA) as uow:
+        collab.save_note(uow, "sales.custom_product", c.id, body="stale", expected_version=0)
+    with pytest.raises(NotFound), world.uow(NEHA) as uow:
+        collab.get_note(uow, "sales.custom_product", c.id)
+    with world.uow(SAHIL) as uow:
+        assert collab.get_note(uow, "sales.custom_product", c.id).body == "Customer prefers brass, not steel"
