@@ -542,6 +542,11 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
 - **Consequences**: one more long-lived request per active run (bounded at 120 s); the worker remains the only writer.
   Tests: `test_sse_stream_of_a_finished_run`, `test_sse_streams_progress_while_the_worker_runs`,
   `run-stream.test.ts`. **Accepted** (lane number ADR-052, renumbered 059 at the Slice-3 stage-1 merge).
+- **E2E proof (2026-11-04, Slice-3 stage-1 merge)**: `e2e/scenario-c.spec.ts` on the production build (`next start`
+  behind the `/api` rewrite) records the browser's run requests: on desktop and phone the run arrived over
+  `/api/v1/agents/runs/{id}/events` with status 200 and `text/event-stream`, and no polling `GET /agents/runs/{id}`
+  was made before the draft card rendered. SSE is the proven default; `NEXT_PUBLIC_LK_ASSISTANT_SSE=0` stays as an
+  operational kill switch only.
 
 ## ADR-060 Slice-3 stage-1 merge: turn input mode, step-up on channel admin keys
 - **Context**: the WhatsApp lane recorded `input_mode` (`wa_text` / `wa_voice` / `card_action`) on `channels_message`

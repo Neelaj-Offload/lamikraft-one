@@ -24,6 +24,14 @@ are **in progress** (18). Renamed tests repointed at the merge: FG-PRC-05/06, FG
 `e2e/scenarios/l-legacy-parity.spec.ts` rows → `e2e/challans.spec.ts`. Totals: 436 implemented, 18 in progress,
 246 planned (Slices 3–6), 1 deferred.
 
+Checkpoint 4a (2026-11-04, Slice-3 stage-1 merge `lane/s3-merge`: agents runtime + WhatsApp; an intermediate state,
+CP4 follows in stage 2): rows moved only where the named tests passed on that branch — pytest from the full
+`npm run test:api` (1479 passed, 7 live-only skips), Playwright from `npm run test:e2e`. The scenario-K rows were
+repointed to the WhatsApp lane's tests (`docs/lanes/whatsapp-s3.md` §2): **implemented** SCN-K1, SCN-K2, SCN-K3, and
+SCN-C5 (`e2e/scenario-c.spec.ts`, desktop and phone, now also asserting SSE progress); **in progress** SCN-C4 (text
+and WhatsApp done, web voice is the voice lane's) and SCN-J2 (ambiguous customer done, ambiguous number/line/field
+not yet). Net: +4 implemented, +2 in progress, −6 planned.
+
 **Legend**
 - *New home*: backend path under `backend/app/` (`platform/<name>` kernel, `modules/<name>` domain) and web route under
   `apps/web/src/app/(app)` (detail routes use UUIDs; `/go/[type]/[key]` resolves business keys).
@@ -939,8 +947,8 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-C1 | "Prepare Nordhaus's usual oak tray quote" resolves customer/product from fixtures, current EUR export price snapshotted, 240 × 24 = 5,760, reviewable draft | sales tools + Demo orchestrator | 1 | implemented | `tests/integration/sales/test_nordhaus_quote_path.py::test_scenario_c_nordhaus_repeat_quote` |
 | SCN-C2 | Correctly scoped next-action item | tasks | 1 | implemented | `tests/integration/tasks/test_agent_quote_draft_creates_scoped_next_action.py::test_review_task_for_meera_only` |
 | SCN-C3 | Catalogue changes cannot mutate the draft's snapshot | snapshots | 1 | implemented | `tests/integration/sales/test_quote_lines.py::test_catalog_line_snapshot_immune_to_catalogue_change` |
-| SCN-C4 | Same path via text, voice and WhatsApp demo | agents, voice, channels | 3 | planned | `tests/integration/agents/test_agent_c_whatsapp_text_and_voice_note.py::test_same_draft_every_channel` |
-| SCN-C5 | E2E desktop and phone | web | 1 | planned | `e2e/scenarios/c-nordhaus-quote.spec.ts::prepare_review_and_preview` |
+| SCN-C4 | Same path via text, voice and WhatsApp demo | agents, voice, channels | 3 | in progress | `tests/integration/channels/test_scenario_c_whatsapp.py::test_c_whatsapp_text_drafts_the_quote_and_review_link_redirects`, `::test_c_whatsapp_voice_note_echoes_the_transcript_and_drafts`; `e2e/scenarios/k-whatsapp.spec.ts` (web voice: voice lane, stage 2) |
+| SCN-C5 | E2E desktop and phone | web | 1 | implemented | `e2e/scenario-c.spec.ts` (desktop and phone; run progress over SSE) |
 | SCN-D1 | EUR 24, carton 24 → recommended 216 | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
 | SCN-D2 | EUR 4,800: off → 4,800; on → 5,200; 5,000 → no surcharge | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
 | SCN-D3 | All output channels agree | documents | 1→2 | implemented | `tests/integration/documents/test_output_channels_agree.py::test_api_pdf_csv_print_totals_identical` |
@@ -965,11 +973,11 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-I3 | Fulfil partially; challan issue with exactly one movement | challans + inventory | 4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
 | SCN-I4 | Partial return linked to its original line; duplicate events cannot post again; cancellation auditable | returns, replay | 4 | planned | `tests/integration/flows/test_duplicate_events.py::test_replayed_outbox_events_have_single_effect` |
 | SCN-J1 | Corrected voice transcript does not submit twice | voice | 3 | planned | `tests/integration/voice/test_transcript_idempotency.py::test_same_utterance_id_one_turn` |
-| SCN-J2 | Ambiguous customer/number prompts clarification | agents | 3 | planned | `tests/integration/agents/test_clarification.py::test_ambiguous_number_line_or_field_clarifies` |
+| SCN-J2 | Ambiguous customer/number prompts clarification | agents | 3 | in progress | `tests/integration/agents/test_scenario_c.py::test_agent_c_ambiguous_customer_asks_one_question`, `tests/evals/test_golden.py::test_golden_demo` (ambiguous customer; ambiguous number/line/field not yet) |
 | SCN-J3 | Interrupt stops speech; mic denial and network loss keep text/draft paths; no offline stock commit shown as success | web voice | 3 | planned | `e2e/scenarios/j-voice.spec.ts::fake_media_denial_interrupt_offline` |
-| SCN-K1 | Webhook signature rejection, replay, out-of-order status | channels | 3 | planned | `tests/contract/whatsapp/test_webhooks.py::test_signature_replay_out_of_order` |
-| SCN-K2 | Employee unlink, expired approval, opt-out, closed messaging window | channels | 3 | planned | `tests/integration/channels/test_whatsapp_policies.py::test_unlink_expired_optout_closed_window` |
-| SCN-K3 | Duplicate delivery → one business effect; simulated delivery labelled; real status from provider evidence | channels | 3 | planned | `tests/integration/channels/test_demo_mode.py::test_demo_mode_labelled_never_connected` |
+| SCN-K1 | Webhook signature rejection, replay, out-of-order status | channels | 3 | implemented | `tests/integration/channels/test_webhook.py::test_k_signature_rejection_writes_a_rejection_row_without_the_payload`, `::test_k_replay_of_a_delivery_has_one_business_effect`, `::test_previous_secret_is_accepted_during_rotation`, `tests/integration/channels/test_scenario_k.py::test_k_out_of_order_status_never_lowers_the_rank_and_failed_does_not_override_delivered`, `::test_status_before_the_send_response_matches_by_biz_opaque` |
+| SCN-K2 | Employee unlink, expired approval, opt-out, closed messaging window | channels | 3 | implemented | `tests/integration/channels/test_scenario_k.py::test_k_employee_unlink_revokes_the_session_and_voids_armed_buttons`, `::test_k_button_for_an_expired_approval_does_nothing`, `::test_k_opt_out_confirms_and_blocks_proactive_messages_but_not_replies`, `::test_k_closed_window_blocks_with_a_reason`; `e2e/scenarios/k-whatsapp.spec.ts` |
+| SCN-K3 | Duplicate delivery → one business effect; simulated delivery labelled; real status from provider evidence | channels | 3 | implemented | `tests/integration/channels/test_webhook.py::test_k_replay_of_a_delivery_has_one_business_effect`, `tests/integration/channels/test_scenario_k.py::test_k_simulated_statuses_are_labelled_and_reach_read_through_the_webhook`, `tests/integration/channels/test_live_mode.py::test_live_outbound_needs_the_flag_and_the_allowlist_and_statuses_are_real` |
 | SCN-L1 | Quote/custom/challan duplication, notes, filters, histories, PDF/CSV/print, all field groups | legacy parity | 2 | implemented | `e2e/challans.spec.ts::quote_full_legacy_journey` |
 | SCN-L2 | Unicode names and € ₹ export correctly; long documents paginate; PDFs omit internal notes and costs | documents | 1→2 | planned | `tests/integration/documents/test_pdf_unicode_pagination.py::test_long_document_paginates_with_glyphs` |
 | SCN-M1 | Migration dry-run reconciles source counts and historical totals | migration | 5 | planned | `tests/integration/migration/test_dry_run.py::test_counts_reconcile_and_hashes_verified` |

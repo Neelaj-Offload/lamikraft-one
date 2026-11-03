@@ -1,8 +1,9 @@
 # Build state
 
-**Checkpoint 3 — Slice 2 (legacy parity) merged on `lane/s2-merge` 2026-11-04, ready to fast-forward `main`.**
-(Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 — 2026-10-30. Checkpoint 0 —
-Slice 0 — 2026-10-23.) Slice 3 (agents runtime, WhatsApp, vision/voice, briefings) next; see section 11.
+**Checkpoint 3 — Slice 2 (legacy parity) on `main` 2026-11-04.** Slice-3 stage 1 (agents runtime + WhatsApp) is
+merged on `lane/s3-merge` as an **intermediate state, Checkpoint 4a** (section 12); Checkpoint 4 comes with stage 2
+(voice/vision and briefings). (Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
+2026-10-30. Checkpoint 0 — Slice 0 — 2026-10-23.)
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
 "Next executable step". Nothing below is claimed as implemented unless it appears under **Implemented (verified)**
@@ -36,9 +37,10 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 
 ## 2. In progress
 
-Slice 2 is merged on `lane/s2-merge` (section 11; report `docs/lanes/merge-s2.md`) and waits only for the
-fast-forward of `main`. The Slice-3 lanes started early (`lane/s3-agents`, `lane/s3-whatsapp`) are reparented onto
-the Checkpoint-3 `main` at their merge.
+Slice 3, two-stage integration (completion program, "CP3 reached"). Stage 1 — `lane/s3-agents` and
+`lane/s3-whatsapp` reparented onto Checkpoint 3 — is merged on `lane/s3-merge` (section 12; report
+`docs/lanes/merge-s3a.md`). Stage 2 merges `lane/s3-voice-vision` (building from CP3) and `lane/s3-briefings`
+(branching from the stage-1 tip) and produces Checkpoint 4.
 
 ## 3. Blocked
 
@@ -127,13 +129,19 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-04 | CP3 | e2e on the same tip | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build, demo world `--slice 2`) | 193 passed, 0 failed, 395 skipped (project-scoped / opt-in) | scratchpad `e2e-final-1.log`; earlier runs on the four-lane merge found the defects listed in `docs/lanes/merge-s2.md` |
 | 2026-11-04 | CP3 | evidence screenshots | `LK_E2E_EVIDENCE=cp3 npm run test:e2e -- --no-build e2e/evidence-cp3.spec.ts --project=desktop` | 64 PNGs, 16 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-3/` |
 | 2026-11-04 | CP3 | migrations | `alembic upgrade head` → `downgrade -1` → `upgrade head`; `alembic check` on `lk_wt8` | chain 0009 → 0015, heads 1, no pending operations | console |
+| 2026-11-04 | CP4a | API suite on `lane/s3-merge` ca7cb96 | `npm run test:api` | 1479 passed, 7 skipped (live-only `test_golden_live`), 0 failed, 38 min 45 s | scratchpad `s3a-test-api.log` / `s3a-junit.xml` |
+| 2026-11-04 | CP4a | channels suite after the demo-media fix (8228d17) | `pytest tests/integration/channels tests/contract/channels tests/unit/channels` | 100 passed | scratchpad `s3a-channels-final.log` |
+| 2026-11-04 | CP4a | check on 8228d17 | `npm run check -- --keep-going` | 7/7 PASS (ruff; pytest unit+contract 633; alembic heads 1; api:check; web lint; typecheck; vitest 56 files / 628 tests) | scratchpad `s3a-check-final.log` |
+| 2026-11-04 | CP4a | e2e on 8228d17 | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (build from the first run, own database, `--slice 2`) | 203 passed, 0 failed, 436 skipped; SSE asserted in scenario C (desktop, phone); `scenarios/k-whatsapp.spec.ts` 4/4 | scratchpad `s3a-e2e-final.log`; the first run found the defects in `docs/lanes/merge-s3a.md` |
+| 2026-11-04 | CP4a | evidence screenshots | `LK_E2E_EVIDENCE=cp4a npm run test:e2e -- --no-build e2e/evidence-cp4a.spec.ts --project=desktop` | 24 PNGs, 6 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-4a/` |
+| 2026-11-04 | CP4a | migrations | `alembic downgrade 0015` → `upgrade head`; `alembic check` on `lk_wt8` | chain 0015 → 0016 → 0017 → 0018, heads 1, no pending operations | console |
 
 ## 8. Next executable step
 
-Fast-forward `main` to `lane/s2-merge` (Checkpoint 3, section 11), then continue the completion program
-(`docs/superpowers/specs/2026-11-03-completion-program.md`) with wave 3a/3b: reparent `lane/s3-agents` and
-`lane/s3-whatsapp` onto the new `main`, then the vision/voice and briefings lanes. Carry the Checkpoint-3 open items
-(section 11) into the Slice-3/4 briefs. The Next.js security upgrade (16.4.4) is on `main`; worktrees created before
+Fast-forward `main` to `lane/s3-merge` (Checkpoint 4a, section 12) if the owner wants stage 1 on `main` before
+stage 2; branch `lane/s3-briefings` from the stage-1 tip; when voice/vision and briefings finish, run the stage-2
+integrator onto `lane/s3-merge` (renumber their migrations after `0018_slice3_cross_lane_links`) to reach Checkpoint 4.
+Carry the Checkpoint-3 and 4a open items (sections 11–12) into the Slice-4 briefs. The Next.js security upgrade (16.4.4) is on `main`; worktrees created before
 it need `npm ci` (stale `node_modules` stopped the first Slice-2 e2e build).
 
 Open items carried from Slice 1 (owners in brackets):
@@ -274,3 +282,52 @@ Inventory movement for challans (Slice 4), cut-plan release and work-order links
 - Carried from Checkpoints 1–2 and still open: fixture times are absolute (seed with `--anchor-date 2026-10-12`);
   `tasks_issue` advisory-lock ordering; CSRF verifier in a threadpool; approvals `get` visibility; composer Enter;
   `queryKeys.sales.quotes()` has no `party_id` slot; `UiPreferencePatch` width.
+
+## 12. Checkpoint 4a — Slice-3 stage 1 (agents runtime + WhatsApp) on `lane/s3-merge` (2026-11-04) — intermediate
+
+**Intermediate state, not a slice exit.** Stage 1 of the two-stage Slice-3 integration merges the two wave-3a lanes
+onto Checkpoint 3; Checkpoint 4 (scenarios B, J, K and C via text, voice and WhatsApp; graceful AI outage) is declared
+in stage 2, after `lane/s3-voice-vision` and `lane/s3-briefings` merge. Merged in this order (reports under
+`docs/lanes/`): agents runtime (`agents-s3.md`), WhatsApp (`whatsapp-s3.md`); the merge, its decisions and the defects
+it fixed are in `docs/lanes/merge-s3a.md`. Migration chain `0015_slice2_cross_lane_links` → `0016_agents_slice3` →
+`0017_channels_slice3` → `0018_slice3_cross_lane_links` (integrator: `agents_turn.input_mode`); `alembic heads` = 1.
+`openapi.json` / `schema.d.ts` regenerated (264 paths). Decisions ADR-059 (the lane's SSE ADR-052, renumbered) and
+ADR-060.
+
+### Implemented (verified) — new at this intermediate checkpoint
+- **Agents runtime:** Anthropic adapter (contract-tested over a fake transport; no live call), routing table and
+  `ai_routing` setting, Haiku request classifier (live only), Opus escalation rules and caps, per-task budgets, quotas
+  with deterministic degradation, phrasing service with validator, fact-hash cache and batches (consumed by the
+  briefings lane), numeric-claim grounding, taint, redaction canary, circuit breaker, AI usage store and Settings → AI,
+  redacted trace view, draft receipts with Undo, golden evals on Demo, run progress over **SSE proven in the browser**
+  (ADR-059: scenario C on the production build streams `text/event-stream` with no polling on desktop and phone).
+- **WhatsApp channel (Demo through the real signed webhook):** webhook with byte-exact signatures and secret rotation,
+  inbox and worker, replay safety, enrolment with one-time codes (step-up fails closed outside demo), sessions,
+  outbox with window/template/consent gates, reconciliation and escalation of unknown outcomes, consent and STOP,
+  customers and the approved quote send, single-use review links (`/r/[token]`), Settings › WhatsApp with the
+  simulator; live mode proven only against a fake Graph transport.
+- **Cross-lane:** a WhatsApp turn carries its `input_mode` (`wa_text` / `wa_voice` / `card_action`) into the agents turn.
+- PARITY_MATRIX: SCN-K1, SCN-K2, SCN-K3, SCN-C5 implemented; SCN-C4 and SCN-J2 in progress (see the matrix note).
+
+### Simulated (Demo)
+Claude (Demo orchestrator and phraser; `LK_AI_MODE=demo`), WhatsApp (Demo provider, "Demo — not connected", simulated
+statuses), demo STT for WhatsApp voice notes (fixture transcripts) until the voice lane registers a transcriber.
+
+### Not in stage 1
+Gemini vision, masked screenshot, push-to-talk and TTS (voice/vision lane); Listen to my day, delta view, LLM-phrased
+briefings and the WhatsApp briefing push (briefings lane); `sales.quote_delivery_status`; vendor identities.
+
+### Open items carried (owners in brackets)
+- Settings › WhatsApp admin cards (Run checks, Sync templates) need the MFA step-up dialog: `channels.account.manage`
+  is MFA + RA and platform-2 enforces it (ADR-060). [channels web]
+- `channels.identity.manage` is granted to no role template; own-number linking uses `agents.assistant.use` + RA
+  (WhatsApp lane decision). Owner to confirm. [owner, permissions]
+- `channels_message` rows are not in the agents trace timeline yet (WhatsApp request 3, optional). [agents, channels]
+- `(company_id, correlation_id)` indexes on `domain_event` / `audit_log` if traces get slow. [platform]
+- `sales.quote_delivery_status` (consumer of `channels.message.status_changed`); a `tasks.rules` family for delivery
+  unknown instead of the direct `create_task`; `channels/crypto.py` → `app/platform`. [sales, tasks, platform]
+- No live call to Anthropic or Meta was made: `POST /api/v1/admin/ai/verify`, `test_golden_live`,
+  `POST /api/v1/channels/whatsapp/account/verify`, the Meta handshake and one signed event are the live checks once
+  credentials and the DPDP / WhatsApp decisions (§5 #6, #7) exist. [owner]
+- Settings → AI shows the provider as "Demo • Demo" (label and mode badge both). Cosmetic. [agents web]
+- Carried from Checkpoint 3 unchanged (section 11).
