@@ -231,6 +231,11 @@ export function ExplainDialog({ item, isOpen, onOpenChange }: { item: BriefingIt
               </ul>
             </div>
           ) : null}
+          {item ? (
+            <p className="text-sm">
+              <Link href={`/today/items/${encodeURIComponent(item.issue_id)}`}>{m.links.item}</Link>
+            </p>
+          ) : null}
         </div>
       )}
     </Dialog>

@@ -17,12 +17,14 @@ import {
   type BriefingFallback,
   type BriefingItem,
   type BriefingOverview,
+  type BriefingPin,
   type BriefingSection,
   type BriefingView,
   type DueKind,
   type PriorityBand,
   type SectionCode,
   type SourceRef,
+  type WhatsappSummaryState,
 } from "./types";
 
 export class BriefingShapeError extends Error {
@@ -148,6 +150,8 @@ function item(value: unknown, problems: string[], path: string): BriefingItem | 
           alternatives: arr(rec.alternatives)
             .filter((alt): alt is string => typeof alt === "string")
             .map((alt) => m.actions[alt] ?? alt),
+          text: text(rec.text),
+          text_source: rec.text_source === "llm" ? "llm" : rec.text_source === "template" ? "template" : null,
         }
       : null,
     uncertainty_flags: arr(value.uncertainty_flags).flatMap((flag) =>
@@ -243,6 +247,13 @@ export function parseBriefingView(raw: unknown): BriefingView {
   const snoozed = items(raw.snoozed, problems, "snoozed");
   if (problems.length > 0) throw new BriefingShapeError(problems);
 
+  // Rows show the model's wording only when it is real (live and validated); Demo and template text keep the label.
+  if (raw.ai_status === "ok") {
+    for (const entry of [...parsedItems, ...snoozed]) {
+      const rec = entry.recommendation;
+      if (rec && rec.text_source === "llm" && rec.text) rec.display_text = rec.text;
+    }
+  }
   const lastAck = isObject(raw.last_ack) && int(raw.last_ack.version) !== null ? raw.last_ack : null;
   const dayType = raw.day_type;
   return {
@@ -273,6 +284,32 @@ export function parseBriefingView(raw: unknown): BriefingView {
       : null,
     partial_families: [],
     fallback: parsedFallback,
+    pin: pinFrom(raw.pin),
+    whatsapp_summary: summaryFrom(raw.whatsapp_summary),
+  };
+}
+
+function pinFrom(value: unknown): BriefingPin | null {
+  if (!isObject(value) || !str(value.id) || int(value.pinned_version) === null) return null;
+  return {
+    id: str(value.id)!,
+    kind: str(value.kind) ?? "voice",
+    pinned_version: int(value.pinned_version)!,
+    state: str(value.state) ?? "active",
+    pending_updates: int(value.pending_updates) ?? 0,
+  };
+}
+
+function summaryFrom(value: unknown): WhatsappSummaryState | null {
+  if (!isObject(value) || (value.outcome !== "queued" && value.outcome !== "skipped") || !str(value.at)) return null;
+  return {
+    outcome: value.outcome,
+    reason: str(value.reason),
+    kind: str(value.kind),
+    simulated: value.simulated === true,
+    at: str(value.at)!,
+    acknowledged_at: str(value.acknowledged_at),
+    ack_channel: str(value.ack_channel),
   };
 }
 
@@ -304,4 +341,12 @@ export function parseExplanation(raw: unknown): BriefingExplanation {
     sources: arr(body.sources).map(sourceRef).filter((ref): ref is SourceRef => ref !== null),
     rule_version: str(body.rule_version),
   };
+}
+
+/** One `ItemView` (the item page, `GET /briefings/items/{issue_id}`), with the same checks as the list. */
+export function parseBriefingItem(raw: unknown): BriefingItem {
+  const problems: string[] = [];
+  const parsed = item(raw, problems, "item");
+  if (!parsed || problems.length > 0) throw new BriefingShapeError(problems.length > 0 ? problems : ["item"]);
+  return parsed;
 }

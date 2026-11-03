@@ -136,7 +136,7 @@ export function BriefingItemRow({
 
       {item.recommendation ? (
         <p className="rounded-md bg-sage px-3 py-2 text-[15px] text-ink">
-          <span className="font-semibold">{m.item.suggested}:</span> {item.recommendation.label}
+          <span className="font-semibold">{m.item.suggested}:</span> {item.recommendation.display_text ?? item.recommendation.label}
         </p>
       ) : null}
 

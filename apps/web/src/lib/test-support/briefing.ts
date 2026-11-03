@@ -226,6 +226,7 @@ export function meeraBriefingWire(): WireBriefingView {
       greeting: "Good morning, Meera.",
       sentence: "Two customer replies need attention and one quote expires today.",
       text_source: "template",
+      standard_sentence: "Two customer replies need attention and one quote expires today.",
       template_code: "S1_SALES",
       facts: { customer_replies: 2, quotes_expiring_today: 1 },
     },

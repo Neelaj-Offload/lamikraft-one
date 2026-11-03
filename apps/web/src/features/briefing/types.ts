@@ -108,6 +108,14 @@ export interface Recommendation {
   /** Rendered only from facts, e.g. "Unblocks WO-2026-0031, afternoon shift". */
   effect_text: string | null;
   alternatives: string[];
+  /**
+   * The recommendation as one or two sentences: the validated phrasing (`llm`) or the template sentence
+   * (`template`, "Standard wording" after a failure). Absent from older payloads.
+   */
+  text?: string | null;
+  text_source?: "template" | "llm" | null;
+  /** What the row shows: the model's validated wording when the briefing is phrased live, else `label`. */
+  display_text?: string | null;
 }
 
 export type BriefingActionCode =
@@ -280,6 +288,28 @@ export interface BriefingView {
   last_ack: BriefingAck | null;
   partial_families: PartialFamily[];
   fallback: BriefingFallback | null;
+  /** A live voice/chat pin: the list on screen is the pinned version and never re-sorts (briefing.md §13). */
+  pin?: BriefingPin | null;
+  /** Today's WhatsApp summary: queued (Demo or live) or skipped with its reason. */
+  whatsapp_summary?: WhatsappSummaryState | null;
+}
+
+export interface BriefingPin {
+  id: string;
+  kind: string;
+  pinned_version: number;
+  state: string;
+  pending_updates: number;
+}
+
+export interface WhatsappSummaryState {
+  outcome: "queued" | "skipped";
+  reason: string | null;
+  kind: string | null;
+  simulated: boolean;
+  at: string;
+  acknowledged_at: string | null;
+  ack_channel: string | null;
 }
 
 /** The `explain` action's `explanation`: deterministic text, reasons, rule version, sources. */
