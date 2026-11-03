@@ -18,24 +18,26 @@ from typing import Any
 from app.core.errors import AppError, NotConfigured
 from app.core.logging import get_logger
 from app.modules.agents import cards as card_builders
+from app.modules.agents import classify as classify_mod
 from app.modules.agents import context as ctx_mod
-from app.modules.agents import service
-from app.modules.agents.cards import Card, QuoteDraftCard, RecordLink
+from app.modules.agents import quotas, routing, service
+from app.modules.agents.cards import Card, QuoteDraftCard, RecordLink, UndoInfo
 from app.modules.agents.context import ContextRef
 from app.modules.agents.grounding import Provenance, check_claims, decimals_in, uuids_in
 from app.modules.agents.models import Run, Turn
-from app.modules.agents.providers import get_provider
+from app.modules.agents.providers import ai_mode, get_provider
 from app.modules.agents.providers.base import (
     Message,
     ModelRequest,
     ModelResponse,
+    OpaqueBlock,
     Stopwatch,
     TextBlock,
     ToolResultBlock,
     ToolSpec,
     ToolUseBlock,
 )
-from app.modules.agents.providers.demo import ASK_CLARIFICATION, PROVIDER_LABEL, parse_request
+from app.modules.agents.providers.demo import ASK_CLARIFICATION, PROVIDER_LABEL
 from app.modules.agents.providers.demo_intents import HELP_TEXT, Command, parse_command
 from app.modules.agents.schemas import ScreenContext
 from app.modules.agents.tools_runtime import (
@@ -60,6 +62,8 @@ SYSTEM_PROMPT = (
     "guess ids, never supply prices. Ask one clarifying question when a customer or product is ambiguous."
 )
 DRAFT_TOOLS = ("draft_quote", "revise_draft_line")
+STRICT_EFFECTS = ("draft", "propose")
+REFUSAL_TEXT = "The assistant declined this request; use the direct controls."
 BRIEFINGS_SERVICE = "app.modules.briefings.service"
 SALES_SERVICE = "app.modules.sales.service"
 SALES_SCHEMAS = "app.modules.sales.schemas"
@@ -89,6 +93,16 @@ class RunState:
     cancelled: bool = False
     provider_label: str = PROVIDER_LABEL
     clock: Stopwatch = field(default_factory=Stopwatch)
+    #: Slice 3: the resolved routing table, the task class after escalation rules, quota degradation and budgets
+    table: routing.RoutingTable = field(default_factory=routing.table_from)
+    task_class: str = "orchestration"
+    degraded_reason: str | None = None
+    repeated_clarifications: int = 0
+    input_tokens: int = 0
+    step_budget: int = STEP_BUDGET
+    time_budget_seconds: int = TIME_BUDGET_SECONDS
+    input_token_budget: int = 120_000
+    refused: bool = False
 
     @property
     def last_quote_card(self) -> dict[str, Any] | None:
@@ -151,6 +165,9 @@ def _build_state(actor: ActorContext, run_id: uuid.UUID) -> RunState:
         history = [t for t in service.turns_of(uow, run.conversation_id, limit=service.HISTORY_TURNS + 1) if t.id != turn.id]
         messages = [Message(role=t.role, content=(TextBlock(t.text),)) for t in history if t.text]  # type: ignore[arg-type]
         messages.append(Message(role="user", content=(TextBlock(turn.text),)))
+        # escalation rule "≥2 clarification failures on the same slot": consecutive earlier assistant turns that asked
+        earlier = [{"clarification_slot": _clarification_slot(t.cards)} for t in history if t.role == "assistant"]
+        last_slot = earlier[-1]["clarification_slot"] if earlier else None
         return RunState(
             run_id=run.id, conversation_id=run.conversation_id, actor=actor, user_text=turn.text,
             selected_option=turn.selected_option, screen=screen, refs=refs, last_cards=last_cards,
@@ -160,9 +177,33 @@ def _build_state(actor: ActorContext, run_id: uuid.UUID) -> RunState:
                 can_override_price=actor.can(PRICE_OVERRIDE_PERMISSION),
             ),
             messages=messages,
+            table=routing.resolve(uow),
+            degraded_reason=run.degraded_reason,
+            repeated_clarifications=classify_mod.clarification_failures(earlier, last_slot),
+            step_budget=run.step_budget, time_budget_seconds=run.time_budget_seconds,
+            input_token_budget=run.input_token_budget,
         )
 
     return _tx(actor, run_id, build)
+
+
+def _clarification_slot(cards: list[Any]) -> str | None:
+    for card in cards or []:
+        if isinstance(card, Mapping) and card.get("kind") == "clarification":
+            return str(card.get("slot") or "") or None
+    return None
+
+
+def _apply_task_class(state: RunState, task_class: str) -> None:
+    """Budgets per task class (ai-routing.md section 2); persisted on the run so the polling view shows them."""
+    state.task_class = task_class
+    budget = state.table.budget(task_class)
+    state.step_budget, state.time_budget_seconds, state.input_token_budget = budget["steps"], budget["seconds"], budget["input_tokens"]
+
+    def write(uow: UnitOfWork, run: Run) -> None:
+        run.step_budget, run.time_budget_seconds, run.input_token_budget = state.step_budget, state.time_budget_seconds, state.input_token_budget
+
+    _tx(state.actor, state.run_id, write)
 
 
 # ---- steps ---------------------------------------------------------------------------------------------------
@@ -211,13 +252,15 @@ def _tool_step(state: RunState, block: ToolUseBlock, model_route: str) -> ToolOu
     return outcome
 
 
-def _log_call(state: RunState, response: ModelResponse | None, error: Exception | None, provider: Any) -> None:
+def _log_call(state: RunState, response: ModelResponse | None, error: Exception | None, provider: Any, *, task_class: str | None = None) -> None:
     def write(uow: UnitOfWork, run: Run) -> None:
         service.log_call(
-            uow, run, step_seq=run.step_count, response=response, task_class="orchestration", error=error,
-            provider=getattr(provider, "name", "demo"), model=getattr(provider, "model", ""),
+            uow, run, step_seq=run.step_count, response=response, task_class=task_class or state.task_class, error=error,
+            provider=getattr(provider, "name", "demo"), model=state.table.model_for(task_class or state.task_class),
         )
 
+    if response is not None:
+        state.input_tokens += response.usage.input_tokens + response.usage.cache_read_tokens
     _tx(state.actor, state.run_id, write)
 
 
@@ -269,10 +312,17 @@ def _build_cards(state: RunState) -> tuple[list[Card], str | None, str | None]:
     cards: list[Card] = []
     if state.budget_exceeded:
         cards.append(card_builders.error_card(
-            "budget_exceeded", f"The run exceeded its budget ({STEP_BUDGET} steps / {TIME_BUDGET_SECONDS} s). "
-            "Any draft created so far is kept.", provider_label=label, tainted=tainted, recoverable_draft=_draft_link(state),
+            "budget_exceeded", f"The run exceeded its budget ({state.step_budget} steps / {state.time_budget_seconds} s / "
+            f"{state.input_token_budget:,} input tokens). Any draft created so far is kept.",
+            provider_label=label, tainted=tainted, recoverable_draft=_draft_link(state),
         ))
         return cards, "budget_exceeded", "run budget exceeded"
+    if state.refused:
+        cards.append(card_builders.error_card(
+            "refusal", REFUSAL_TEXT, provider_label=label, tainted=tainted, recoverable_draft=_draft_link(state),
+            direct_controls=[RecordLink(label="Quotes", path="/sales/quotes"), RecordLink(label="Today", path=TODAY_PATH)],
+        ))
+        return cards, "refusal", "the model declined"
     if state.cancelled:
         cards.append(card_builders.error_card("cancelled", "The run was cancelled.", provider_label=label, tainted=tainted,
                                               recoverable_draft=_draft_link(state)))
@@ -298,13 +348,20 @@ def _build_cards(state: RunState) -> tuple[list[Card], str | None, str | None]:
     for name in DRAFT_TOOLS:
         draft = state.last_ok(name)
         if draft and draft.output_for_user:
-            cards.append(card_builders.quote_draft_card(
+            card = card_builders.quote_draft_card(
                 draft.output_for_user, provider_label=label, tainted=tainted, party_label=_party_label(state),
-            ))
+            )
+            cards.append(card)
             if name == "revise_draft_line":
                 cards.append(card_builders.receipt_card(
                     "revise_draft_line", "Line quantity updated on the draft.", state_now(state),
-                    provider_label=label, tainted=tainted, record=cards[-1].review if isinstance(cards[-1], QuoteDraftCard) else None,
+                    provider_label=label, tainted=tainted, record=card.review,
+                ))
+            elif card.quote_id is not None and not card.preview_only:
+                undo = _record_draft_receipt(state, card)
+                cards.append(card_builders.receipt_card(
+                    "draft_quote", f"Draft {card.quote_number or ''} created by the assistant.".replace("  ", " "), state_now(state),
+                    provider_label=label, tainted=tainted, record=card.review, undo=undo,
                 ))
             return cards, None, None
     calc = state.last_ok("calculate_quote")
@@ -320,9 +377,10 @@ def _build_cards(state: RunState) -> tuple[list[Card], str | None, str | None]:
             return cards, None, None
         draft = card_builders.quote_draft_card(detail, provider_label=label, tainted=tainted, party_label=base.party_label)
         cards.append(draft)
+        undo = _record_line_receipt(state, base, draft, _changed_lines(base, calc.input))
         cards.append(card_builders.receipt_card(
             "update_line", "Line quantity applied to the draft through the sales service.", state_now(state),
-            provider_label=label, tainted=tainted, record=draft.review,
+            provider_label=label, tainted=tainted, record=draft.review, undo=undo,
         ))
         return cards, None, None
     if last is not None and last.output_for_user is not None:
@@ -343,6 +401,43 @@ def _build_cards(state: RunState) -> tuple[list[Card], str | None, str | None]:
 
 def state_now(state: RunState) -> Any:
     return _tx(state.actor, state.run_id, lambda uow, run: uow.now())
+
+
+# ---- receipts (design section 9 "Undo"): server-built from tool outputs, never from model text ---------------------
+def _record_draft_receipt(state: RunState, card: QuoteDraftCard) -> UndoInfo | None:
+    if card.quote_id is None:
+        return None
+    spec = {"kind": "revert_draft", "quote_id": str(card.quote_id), "expected_version": card.version}
+
+    def write(uow: UnitOfWork, run: Run) -> UndoInfo:
+        receipt = service.record_receipt(
+            uow, run, step_seq=run.step_count, action="draft_quote", summary=f"Draft {card.quote_number or ''} created",
+            resource_type="sales.quote", resource_id=card.quote_id, resource_version=card.version,  # type: ignore[arg-type]
+            undo_kind="revert_draft", undo_spec=spec,
+        )
+        return UndoInfo(receipt_id=receipt.id, allowed=True, until=receipt.undo_until, kind="revert_draft")
+
+    return _tx(state.actor, state.run_id, write)
+
+
+def _record_line_receipt(state: RunState, before: QuoteDraftCard, after: QuoteDraftCard, changes: list[tuple[uuid.UUID, Decimal]]) -> UndoInfo | None:
+    if after.quote_id is None or not changes:
+        return None
+    previous = {str(line.line_id): line.quantity for line in before.lines if line.line_id is not None}
+    restore = [{"line_id": str(line_id), "quantity": str(previous[str(line_id)])} for line_id, _ in changes if previous.get(str(line_id)) is not None]
+    if not restore:
+        return None
+    spec = {"kind": "restore_line", "quote_id": str(after.quote_id), "expected_version": after.version, "lines": restore}
+
+    def write(uow: UnitOfWork, run: Run) -> UndoInfo:
+        receipt = service.record_receipt(
+            uow, run, step_seq=run.step_count, action="update_line", summary="Line quantity changed on the draft",
+            resource_type="sales.quote", resource_id=after.quote_id, resource_version=after.version,  # type: ignore[arg-type]
+            undo_kind="restore_line", undo_spec=spec,
+        )
+        return UndoInfo(receipt_id=receipt.id, allowed=True, until=receipt.undo_until, kind="restore_line")
+
+    return _tx(state.actor, state.run_id, write)
 
 
 def _changed_lines(base: QuoteDraftCard, calc_input: Mapping[str, Any]) -> list[tuple[uuid.UUID, Decimal]]:
@@ -440,9 +535,12 @@ def _finish_from_state(state: RunState) -> str:
     else:
         status = "succeeded"
     text = "\n".join(p for p in state.text_parts if p.strip()).strip()
+    if state.refused:
+        text = REFUSAL_TEXT
     if not text:
-        text = {"budget_exceeded": "Demo: the run stopped at its budget; see the card.",
-                "cancelled": "Demo: cancelled.", "failed": "Demo: that did not work; see the card."}.get(status, "Demo: done; see the card.")
+        label = state.provider_label
+        text = {"budget_exceeded": f"{label}: the run stopped at its budget; see the card.",
+                "cancelled": f"{label}: cancelled.", "failed": f"{label}: that did not work; see the card."}.get(status, f"{label}: done; see the card.")
     _finish(state, status=status, text=text, cards=cards, error_code=error_code, error_message=error_message)
     return status
 
@@ -518,12 +616,16 @@ def _run_command(state: RunState, command: Command) -> str:
 # ---- the provider loop ------------------------------------------------------------------------------------------
 def _request(state: RunState, tools: list[Any]) -> ModelRequest:
     focus = next(({"type": r.resource_type, "id": str(r.resource_id)} for r in state.refs if r.role == "focus"), None)
+    task_class = state.task_class if state.task_class in ("orchestration", "escalation") else "orchestration"
     return ModelRequest(
-        task_class="orchestration",
+        task_class=task_class,  # type: ignore[arg-type]
         system=f"{SYSTEM_PROMPT_VERSION}\n{SYSTEM_PROMPT}",
         messages=tuple(state.messages),
         tools=tuple(ToolSpec(name=t.name, description=t.description, input_schema=t.json_schema(), effect=t.effect) for t in tools),
-        max_tokens=8192,
+        model=state.table.model_for(task_class),
+        effort=state.table.effort_for(task_class),  # type: ignore[arg-type]
+        max_tokens=state.table.budget(task_class)["max_tokens"],
+        strict_tools=frozenset(t.name for t in tools if t.effect in STRICT_EFFECTS),
         context={
             "selected_option": state.selected_option,
             "focus": focus,
@@ -536,19 +638,40 @@ def _request(state: RunState, tools: list[Any]) -> ModelRequest:
 
 
 def _over_budget(state: RunState) -> bool:
-    return state.tool_calls >= STEP_BUDGET or state.clock.elapsed_ms > TIME_BUDGET_SECONDS * 1000
+    step_budget = min(state.step_budget, STEP_BUDGET) if STEP_BUDGET != service.STEP_BUDGET else state.step_budget
+    time_budget = min(state.time_budget_seconds, TIME_BUDGET_SECONDS) if TIME_BUDGET_SECONDS != service.TIME_BUDGET_SECONDS else state.time_budget_seconds
+    return (state.tool_calls >= step_budget or state.clock.elapsed_ms > time_budget * 1000
+            or state.input_tokens > state.input_token_budget)
+
+
+def _provider_failure(state: RunState, exc: Exception, provider: Any) -> str:
+    """Provider outage, rate limit or open circuit: degrade with an ErrorCard and direct controls (section 1.4)."""
+    code = getattr(exc, "code", "provider_unavailable")
+    log.warning("agents.provider_failed", run_id=str(state.run_id), error_type=type(exc).__name__, code=code,
+                request_id=getattr(exc, "request_id", None))
+    _log_call(state, None, exc, provider)
+    retry_after = getattr(exc, "retry_after_seconds", None)
+    message = "Assistant unavailable — use direct controls."
+    if retry_after:
+        message = f"The assistant is busy; try again in about {retry_after} seconds, or use the direct controls."
+    _finish(state, status="failed", text=f"{state.provider_label}: the assistant is unavailable; use the direct controls.", cards=[
+        card_builders.error_card(
+            code, message, provider_label=state.provider_label, tainted=state.tainted, recoverable_draft=_draft_link(state),
+            direct_controls=[RecordLink(label="Quotes", path="/sales/quotes"), RecordLink(label="Today", path=TODAY_PATH)],
+        )], error_code=code, error_message=str(exc)[:500])
+    return "failed"
 
 
 def _orchestrate(state: RunState, request_type: str) -> str:
     try:
-        provider = get_provider()
+        provider = get_provider(state.task_class)
     except NotConfigured as exc:
-        _finish(state, status="failed", text="Demo: the assistant is not configured.", cards=[card_builders.error_card(
+        _finish(state, status="failed", text="The assistant is not configured.", cards=[card_builders.error_card(
             "not_configured", exc.detail, provider_label=state.provider_label, tainted=state.tainted)],
             error_code="not_configured", error_message=exc.detail)
         return "failed"
     state.provider_label = getattr(provider, "label", PROVIDER_LABEL)
-    model_route = getattr(provider, "model", "unknown")
+    model_route = state.table.model_for(state.task_class) if ai_mode() == "live" else getattr(provider, "model", "unknown")
     for _ in range(MAX_PROVIDER_ROUNDS):
         if _cancel_requested(state.actor, state.run_id):
             state.cancelled = True
@@ -560,24 +683,25 @@ def _orchestrate(state: RunState, request_type: str) -> str:
         try:
             response = provider.generate(_request(state, tools))
         except Exception as exc:  # provider outage: degrade with an ErrorCard and direct controls
-            log.warning("agents.provider_failed", run_id=str(state.run_id), error_type=type(exc).__name__)
-            _log_call(state, None, exc, provider)
-            _finish(state, status="failed", text="Demo: the assistant is unavailable; use the direct controls.", cards=[
-                card_builders.error_card(
-                    getattr(exc, "code", "provider_unavailable"), "Assistant unavailable — use direct controls.",
-                    provider_label=state.provider_label, tainted=state.tainted, recoverable_draft=_draft_link(state),
-                    direct_controls=[RecordLink(label="Quotes", path="/sales/quotes"), RecordLink(label="Today", path=TODAY_PATH)],
-                )], error_code=getattr(exc, "code", "provider_unavailable"), error_message=str(exc)[:500])
-            return "failed"
+            return _provider_failure(state, exc, provider)
         _log_call(state, response, None, provider)
+        if response.model:
+            model_route = response.model
         tool_blocks: list[ToolUseBlock] = []
         for block in response.iter_blocks():  # by type, never content[0]
             if isinstance(block, TextBlock):
                 state.text_parts.append(block.text)
             elif isinstance(block, ToolUseBlock):
                 tool_blocks.append(block)
+            elif isinstance(block, OpaqueBlock):
+                continue  # thinking and markers: replayed to the provider, never shown or persisted
         if response.stop_reason == "refusal":
-            state.text_parts.append("The assistant declined; use the direct controls.")
+            # section 5.1: deterministic fallback text plus direct-control links; stop_details goes to the trace
+            state.refused = True
+            refusal_output = {"stop_details": dict(response.stop_details or {}), "fallback_used": response.fallback_used}
+            _tx(state.actor, state.run_id, lambda uow, run, out=refusal_output, route=model_route: service.append_step(
+                uow, run, kind="handoff", name="refusal", output=out, model_route=route, is_error=True, error_code="refusal"))
+            return _finish_from_state(state)
         if not tool_blocks:
             return _finish_from_state(state)
         state.messages.append(Message(role="assistant", content=tuple(response.content)))
@@ -587,8 +711,8 @@ def _orchestrate(state: RunState, request_type: str) -> str:
                 slot = str(block.input.get("slot") or "unknown")
                 question = str(block.input.get("question") or "Which one do you mean?")
                 state.clarification = (slot, question)
-                _tx(state.actor, state.run_id, lambda uow, run, b=block: service.append_step(
-                    uow, run, kind="tool_call", name=ASK_CLARIFICATION, input=dict(b.input), model_route=model_route))
+                _tx(state.actor, state.run_id, lambda uow, run, b=block, route=model_route: service.append_step(
+                    uow, run, kind="tool_call", name=ASK_CLARIFICATION, input=dict(b.input), model_route=route))
                 return _finish_from_state(state)
             if _cancel_requested(state.actor, state.run_id):
                 state.cancelled = True
@@ -605,15 +729,39 @@ def _orchestrate(state: RunState, request_type: str) -> str:
 
 # ---- entry point ---------------------------------------------------------------------------------------------
 def classify(text: str, *, selected_option: Mapping[str, Any] | None) -> tuple[str, str]:
-    """Deterministic router (Haiku in live mode, Slice 3): (request_type, detail)."""
-    if selected_option:
-        return "data_or_action", "clarification_answer"
-    intent = parse_request(text)
-    if intent is None:
+    """Deterministic router (the grammar part of section 3): (request_type, detail); unknown is ``out_of_scope``."""
+    result = classify_mod.classify_deterministic(text, selected_option=selected_option)
+    if result is None:
         return "out_of_scope", "unrecognised"
-    if intent.kind == "screen_question":
-        return "screen_question", intent.kind
-    return "data_or_action", intent.kind
+    return result.request_type, result.detail
+
+
+def _classify(state: RunState) -> classify_mod.Classification:
+    """Grammar first; in live mode the Haiku low-effort classifier decides what the grammar could not."""
+    result = classify_mod.classify_deterministic(state.user_text, selected_option=state.selected_option)
+    if result is not None or ai_mode() != "live" or state.degraded_reason is not None:
+        return result or classify_mod.Classification("out_of_scope", "unrecognised", "grammar")
+    try:
+        provider = get_provider("routing")
+        request = classify_mod.router_request(state.user_text, model=state.table.model_for("routing"),
+                                              context={"tools": [t.name for t in advertised_tools(state.actor, tainted=state.tainted)]})
+        response = provider.generate(request)
+    except Exception as exc:  # the router is optional: fall back to help text, never to a guess
+        log.warning("agents.router_failed", run_id=str(state.run_id), error_type=type(exc).__name__)
+        _log_call(state, None, exc, None, task_class="routing")
+        return classify_mod.Classification("out_of_scope", "router_unavailable", "haiku")
+    _log_call(state, response, None, provider, task_class="routing")
+    return classify_mod.parse_router_output(response, text=state.user_text)
+
+
+def _quota_card(state: RunState) -> list[Card]:
+    message = ("The daily assistant quota is used up. Direct commands (open, snooze, navigate, today) still work; "
+               "drafts and lookups through the assistant are available again tomorrow.")
+    return [card_builders.error_card(
+        quotas.QUOTA_EXCEEDED if state.degraded_reason == quotas.QUOTA_EXCEEDED else str(state.degraded_reason), message,
+        provider_label=state.provider_label, tainted=state.tainted,
+        direct_controls=[RecordLink(label="Quotes", path="/sales/quotes"), RecordLink(label="Today", path=TODAY_PATH)],
+    )]
 
 
 def run_agent(actor: ActorContext, run_id: uuid.UUID) -> str:
@@ -624,8 +772,23 @@ def run_agent(actor: ActorContext, run_id: uuid.UUID) -> str:
         _route_step(state, "grammar", {"request_type": "command", "kind": command.kind, "pattern": command.pattern,
                                        "language": command.language}, "grammar", "command")
         return _run_command(state, command)
-    request_type, detail = classify(state.user_text, selected_option=state.selected_option)
-    _route_step(state, "router", {"request_type": request_type, "detail": detail}, "demo-router", request_type)
+    classification = _classify(state)
+    request_type = classification.request_type
+    if state.degraded_reason is not None and request_type != "out_of_scope":
+        # section 7: over quota → the deterministic path with a clear message; nothing reaches a model
+        _route_step(state, "router", {**classification.as_output(), "degraded": state.degraded_reason}, "grammar", request_type)
+        _finish(state, status="failed", text=f"{HELP_TEXT}", cards=_quota_card(state), error_code=str(state.degraded_reason),
+                error_message="daily quota reached")
+        return "failed"
+    escalation = classify_mod.decide_escalation(classification, repeated_clarifications=state.repeated_clarifications)
+    if escalation.escalate:
+        decision = _tx(state.actor, state.run_id, lambda uow, run: quotas.check_escalation_quota(uow, state.table, run.user_id))
+        if not decision.allowed:
+            escalation = classify_mod.Escalation(False, f"{escalation.reason}:{decision.reason}")
+    _apply_task_class(state, escalation.task_class)
+    router_route = {"grammar": "grammar", "haiku": state.table.model_for("routing")}.get(classification.source, "demo-router")
+    _route_step(state, "router", {**classification.as_output(), "escalation": escalation.reason, "task_class": state.task_class,
+                                  "repeated_clarifications": state.repeated_clarifications}, router_route, request_type)
     if request_type == "out_of_scope":
         _finish(state, status="succeeded", text=HELP_TEXT, cards=[], error_code=None, error_message=None)
         return "succeeded"

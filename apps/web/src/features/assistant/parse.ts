@@ -13,6 +13,7 @@ import type {
   CardMoney,
   ClarificationOption,
   QuoteDraftCardLine,
+  ReceiptUndo,
   RunStep,
   SelectedOption,
 } from "./types";
@@ -184,9 +185,18 @@ export function parseCard(raw: unknown): AssistantCard | null {
     case "receipt": {
       const title = str(raw.summary) ?? str(raw.title) ?? str(raw.text) ?? str(raw.label);
       if (!title) return null;
-      return { kind, demo, title, detail: str(raw.detail), link: link(raw.record ?? raw.link, "Open") };
+      return { kind, demo, title, detail: str(raw.detail), link: link(raw.record ?? raw.link, "Open"), undo: receiptUndo(raw.undo) };
     }
   }
+}
+
+const RECEIPT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function receiptUndo(value: unknown): ReceiptUndo | null {
+  if (!isObject(value)) return null;
+  const receiptId = str(value.receipt_id);
+  if (!receiptId || !RECEIPT_ID.test(receiptId)) return null;
+  return { receiptId, allowed: value.allowed === true, until: str(value.until), kind: str(value.kind) ?? "none" };
 }
 
 function step(value: unknown): RunStep | null {

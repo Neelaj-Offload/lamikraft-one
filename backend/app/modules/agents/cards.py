@@ -127,12 +127,22 @@ class RecordLinkCard(CardBase):
     ordinal: int | None = None
 
 
+class UndoInfo(BaseModel):
+    """Design section 9 "Undo": the receipt behind the card and whether it can still be reverted."""
+
+    receipt_id: uuid.UUID
+    allowed: bool
+    until: datetime | None = None
+    kind: str = "none"
+
+
 class ReceiptCard(CardBase):
     kind: Literal["receipt"] = "receipt"
     action: str
     summary: str
     record: RecordLink | None = None
     at: datetime
+    undo: UndoInfo | None = None
 
 
 Card = Annotated[
@@ -385,8 +395,11 @@ def record_link_card(
     )
 
 
-def receipt_card(action: str, summary: str, at: datetime, *, provider_label: str, tainted: bool, record: RecordLink | None) -> ReceiptCard:
-    return ReceiptCard(provider_label=provider_label, tainted=tainted, action=action, summary=summary, record=record, at=at)
+def receipt_card(
+    action: str, summary: str, at: datetime, *, provider_label: str, tainted: bool, record: RecordLink | None,
+    undo: UndoInfo | None = None,
+) -> ReceiptCard:
+    return ReceiptCard(provider_label=provider_label, tainted=tainted, action=action, summary=summary, record=record, at=at, undo=undo)
 
 
 def dump_cards(cards: list[Any]) -> list[dict[str, Any]]:

@@ -16,7 +16,8 @@ from typing import Any, Literal, Protocol
 
 Role = Literal["user", "assistant"]
 StopReason = Literal["end_turn", "tool_use", "max_tokens", "stop_sequence", "refusal", "pause_turn"]
-TaskClass = Literal["routing", "orchestration", "phrasing", "escalation", "vision"]
+TaskClass = Literal["routing", "orchestration", "phrasing", "escalation", "vision", "verify"]
+Effort = Literal["low", "medium", "high"]
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,19 @@ class ToolResultBlock:
     is_error: bool = False
 
 
-ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock
+@dataclass(frozen=True)
+class OpaqueBlock:
+    """A provider block the orchestrator does not interpret (thinking, redacted_thinking, fallback markers).
+
+    Passed back unchanged within the same run so the provider's reasoning stays valid; never persisted into the
+    conversation history (a new run starts from redacted text history, ai-routing.md section 5.1).
+    """
+
+    type: str
+    payload: Mapping[str, Any]
+
+
+ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | OpaqueBlock
 
 
 @dataclass(frozen=True)
@@ -70,6 +83,12 @@ class ModelRequest:
     max_tokens: int = 1024
     #: structured facts (selected option, re-read focus, last cards, advertised tool names ...)
     context: Mapping[str, Any] = field(default_factory=dict)
+    #: explicit ``output_config.effort`` (ai-routing.md section 2); None lets the adapter pick the class default
+    effort: Effort | None = None
+    #: a JSON schema the answer must follow (routing classifier, phrasing); the adapter maps it to structured output
+    output_schema: Mapping[str, Any] | None = None
+    #: names of tools whose definitions are sent strict (write/proposal tools), within the strict-tool budget
+    strict_tools: frozenset[str] = frozenset()
 
     @property
     def tool_names(self) -> frozenset[str]:
@@ -88,13 +107,17 @@ class Usage:
 class ModelResponse:
     provider: str
     model: str
-    content: tuple[TextBlock | ToolUseBlock, ...]
+    content: tuple[TextBlock | ToolUseBlock | OpaqueBlock, ...]
     stop_reason: StopReason
     usage: Usage = Usage()
     request_id: str | None = None
     latency_ms: int = 0
+    #: ``stop_details`` of a refusal ({category, explanation}); None otherwise
+    stop_details: Mapping[str, Any] | None = None
+    #: true when the provider served the reply through a server-side fallback model
+    fallback_used: bool = False
 
-    def iter_blocks(self) -> Iterator[TextBlock | ToolUseBlock]:
+    def iter_blocks(self) -> Iterator[TextBlock | ToolUseBlock | OpaqueBlock]:
         yield from self.content
 
     @property
@@ -105,10 +128,15 @@ class ModelResponse:
 class ProviderError(Exception):
     """A provider could not answer (outage, quota, refusal); the orchestrator degrades to deterministic paths."""
 
-    def __init__(self, message: str, *, code: str = "provider_unavailable", request_id: str | None = None) -> None:
+    def __init__(
+        self, message: str, *, code: str = "provider_unavailable", request_id: str | None = None,
+        retry_after_seconds: int | None = None, status: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
         self.request_id = request_id
+        self.retry_after_seconds = retry_after_seconds
+        self.status = status
 
 
 class Provider(Protocol):

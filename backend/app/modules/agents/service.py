@@ -5,14 +5,16 @@ conversation or run is a 404, never a 403, so existence is not revealed.
 
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Mapping, Sequence
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import select
 
 from app.core.errors import Forbidden, NotFound, ValidationFailed
-from app.modules.agents import providers
+from app.modules.agents import providers, quotas, routing
 from app.modules.agents.cards import Card, dump_cards
 from app.modules.agents.events import (
     JOB_KIND,
@@ -22,7 +24,7 @@ from app.modules.agents.events import (
     RunFailedPayload,
     payload,
 )
-from app.modules.agents.models import AiCallLog, Conversation, ObjectContext, Run, RunStep, Turn
+from app.modules.agents.models import AiCallLog, Conversation, ObjectContext, Receipt, Run, RunStep, Turn
 from app.modules.agents.policies import ASSISTANT_USE
 from app.modules.agents.providers.base import ModelResponse
 from app.modules.agents.providers.demo import PROVIDER_LABEL
@@ -43,6 +45,15 @@ from app.platform.uow import UnitOfWork
 STEP_BUDGET = 8
 TIME_BUDGET_SECONDS = 45
 HISTORY_TURNS = 8
+UNDO_WINDOW_HOURS = 24
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+
+def ingress_correlation_id(actor_correlation_id: str | None) -> str:
+    """The trace id (design section 13): the request's UUIDv7 correlation id when it is one, else a fresh UUIDv7."""
+    if actor_correlation_id and _UUID.match(actor_correlation_id.strip()):
+        return actor_correlation_id.strip().lower()
+    return str(uuid.uuid7())
 
 
 def _require_use(uow: UnitOfWork) -> None:
@@ -157,6 +168,11 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
     conversation.last_activity_at = now
     if conversation.title is None and data.text:
         conversation.title = data.text[:80]
+    correlation_id = ingress_correlation_id(uow.actor.correlation_id)
+    table = routing.resolve(uow)
+    budget = table.budget("orchestration")
+    # ai-routing.md section 7: quota checked before enqueue; over quota degrades to the deterministic path
+    quota = quotas.check_orchestrator_quota(uow, table, conversation.user_id)
     turn = Turn(
         id=uuid.uuid7(),
         conversation_id=conversation.id,
@@ -167,6 +183,7 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
         selected_option=selected,
         cards=[],
         client_utterance_id=data.client_utterance_id,
+        correlation_id=correlation_id,
     )
     run = Run(
         id=uuid.uuid7(),
@@ -177,9 +194,11 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
         trigger="clarification_answer" if selected else "user_turn",
         channel=conversation.channel,
         provider=providers.ai_mode() if providers.ai_mode() == "demo" else "anthropic",
-        step_budget=STEP_BUDGET,
-        time_budget_seconds=TIME_BUDGET_SECONDS,
-        correlation_id=uow.actor.correlation_id,
+        step_budget=budget["steps"],
+        time_budget_seconds=budget["seconds"],
+        input_token_budget=budget["input_tokens"],
+        correlation_id=correlation_id,
+        degraded_reason=None if quota.allowed else quota.reason,
     )
     turn.run_id = run.id
     uow.add(turn)
@@ -235,6 +254,7 @@ def append_step(
         error_code=error_code,
         model_route=model_route,
         duration_ms=duration_ms,
+        correlation_id=run.correlation_id,
         created_at=uow.now(),
     )
     uow.add(step)
@@ -242,15 +262,22 @@ def append_step(
     return step
 
 
+WORKFLOW_OF_TASK = {"orchestration": "orchestrate", "routing": "route", "escalation": "escalate", "phrasing": "phrase",
+                    "verify": "verify", "vision": "vision"}
+
+
 def log_call(
-    uow: UnitOfWork, run: Run, *, step_seq: int | None, response: ModelResponse | None, task_class: str,
-    error: Exception | None = None, provider: str = "demo", model: str = "",
+    uow: UnitOfWork, run: Run | None, *, step_seq: int | None, response: ModelResponse | None, task_class: str,
+    error: Exception | None = None, provider: str = "demo", model: str = "", user_id: uuid.UUID | None = None,
+    correlation_id: str | None = None,
 ) -> AiCallLog:
+    """One row per provider call in the single usage store (``agents_ai_call_log``); cost is never stored."""
+    refusal = response is not None and response.stop_reason == "refusal"
     row = AiCallLog(
         id=uuid.uuid7(),
-        run_id=run.id,
+        run_id=run.id if run is not None else None,
         step_seq=step_seq,
-        workflow="orchestrate",
+        workflow=WORKFLOW_OF_TASK.get(task_class, "orchestrate"),
         provider=response.provider if response else provider,
         model=(response.model if response else model)[:80],
         task_class=task_class,
@@ -259,12 +286,44 @@ def log_call(
         cache_read_tokens=response.usage.cache_read_tokens if response else 0,
         cache_write_tokens=response.usage.cache_write_tokens if response else 0,
         latency_ms=response.latency_ms if response else 0,
-        outcome="ok" if error is None else ("refusal" if response and response.stop_reason == "refusal" else "error"),
-        error_type=type(error).__name__ if error else None,
-        request_id=response.request_id if response else None,
+        outcome="refusal" if refusal else ("ok" if error is None else "error"),
+        error_type=(getattr(error, "code", None) or type(error).__name__) if error else None,
+        request_id=(response.request_id if response else getattr(error, "request_id", None)),
+        user_id=user_id if user_id is not None else (run.user_id if run is not None else None),
+        correlation_id=correlation_id or (run.correlation_id if run is not None else None),
         created_at=uow.now(),
     )
+    if run is not None and response is not None:
+        run.input_tokens_used += response.usage.input_tokens + response.usage.cache_read_tokens
     uow.add(row)
+    return row
+
+
+# ---- receipts (design section 9 "Undo") --------------------------------------------------------------------------
+def record_receipt(
+    uow: UnitOfWork, run: Run, *, step_seq: int, action: str, summary: str, resource_type: str,
+    resource_id: uuid.UUID, resource_version: int | None, undo_kind: str, undo_spec: Mapping[str, Any] | None,
+) -> Receipt:
+    receipt = Receipt(
+        id=uuid.uuid7(), run_id=run.id, user_id=run.user_id, step_seq=step_seq, action=action[:80], summary=summary[:300],
+        resource_type=resource_type[:80], resource_id=resource_id, resource_version=resource_version,
+        undo_kind=undo_kind, undo_spec=dict(undo_spec) if undo_spec else None,
+        undo_until=uow.now() + timedelta(hours=UNDO_WINDOW_HOURS) if undo_kind != "none" else None,
+        status="active", correlation_id=run.correlation_id,
+    )
+    uow.add(receipt)
+    uow.flush()
+    return receipt
+
+
+def own_receipt(uow: UnitOfWork, receipt_id: uuid.UUID, *, for_update: bool = False) -> Receipt:
+    _require_use(uow)
+    stmt = select(Receipt).where(Receipt.company_id == uow.actor.company_id, Receipt.id == receipt_id, Receipt.user_id == uow.actor.user_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    row = uow.session.scalars(stmt).first()
+    if row is None:
+        raise NotFound(code="not_found", resource_type="agents.receipt")
     return row
 
 
@@ -297,7 +356,7 @@ def finish_run(
     conversation.last_activity_at = now
     turn = Turn(
         id=uuid.uuid7(), conversation_id=conversation.id, seq=conversation.turn_count, role="assistant", text=text,
-        cards=dump_cards(cards), run_id=run.id,
+        cards=dump_cards(cards), run_id=run.id, correlation_id=run.correlation_id,
     )
     uow.add(turn)
     run.status = status
@@ -327,11 +386,13 @@ def run_summary(run: Run) -> RunSummary:
     return RunSummary(
         id=run.id, conversation_id=run.conversation_id, turn_id=run.turn_id, assistant_turn_id=run.assistant_turn_id,
         status=run.status, trigger=run.trigger, channel=run.channel, provider=run.provider,  # type: ignore[arg-type]
-        provider_label=PROVIDER_LABEL if run.provider == "demo" else run.provider.capitalize(), mode=_mode(),
+        provider_label=PROVIDER_LABEL if run.provider == "demo" else providers.provider_label(), mode=_mode(),
         model_route=run.model_route, request_type=run.request_type, tainted=run.tainted, error_code=run.error_code,
         error_message=run.error_message, step_count=run.step_count, tool_call_count=run.tool_call_count,
         step_budget=run.step_budget, time_budget_seconds=run.time_budget_seconds, elapsed_ms=run.elapsed_ms,
         started_at=run.started_at, finished_at=run.finished_at, created_at=run.created_at,
+        correlation_id=run.correlation_id, degraded_reason=run.degraded_reason,
+        input_token_budget=run.input_token_budget, input_tokens_used=run.input_tokens_used,
     )
 
 
@@ -369,7 +430,7 @@ def get_conversation(uow: UnitOfWork, conversation_id: uuid.UUID) -> Conversatio
     conversation = own_conversation(uow, conversation_id)
     return ConversationOut(
         id=conversation.id, channel=conversation.channel, title=conversation.title, status=conversation.status,  # type: ignore[arg-type]
-        provider_label=PROVIDER_LABEL, mode=_mode(), last_activity_at=conversation.last_activity_at,
+        provider_label=providers.provider_label(), mode=_mode(), last_activity_at=conversation.last_activity_at,
         created_at=conversation.created_at, version=conversation.version,
         turns=[_turn_out(t) for t in turns_of(uow, conversation.id)],
         runs=[run_summary(r) for r in runs_of(uow, conversation.id)],

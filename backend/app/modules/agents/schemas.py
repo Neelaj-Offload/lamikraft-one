@@ -14,6 +14,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
+from app.core.money import DecimalStr
 from app.modules.agents.cards import Card
 
 MAX_TURN_TEXT = 4_000
@@ -242,6 +243,11 @@ class RunSummary(BaseModel):
     started_at: datetime | None
     finished_at: datetime | None
     created_at: datetime
+    #: Slice 3: the trace id, quota degradation and the input-token budget
+    correlation_id: str | None = None
+    degraded_reason: str | None = None
+    input_token_budget: int = 0
+    input_tokens_used: int = 0
 
 
 class StepOut(BaseModel):
@@ -275,6 +281,131 @@ class TurnAccepted(BaseModel):
     conversation_id: uuid.UUID
     status: RunStatus
     replayed: bool = False
+
+
+# ---- Slice 3: receipts, trace, admin ----------------------------------------------------------------------------
+class ReceiptOut(BaseModel):
+    id: uuid.UUID
+    run_id: uuid.UUID
+    step_seq: int
+    action: str
+    summary: str
+    resource_type: str
+    resource_id: uuid.UUID
+    resource_version: int | None
+    undo_kind: str
+    undo_until: datetime | None
+    status: str
+    undone_at: datetime | None
+    correlation_id: str | None
+    created_at: datetime
+    #: server-decided: active, within the window and the target unchanged
+    can_undo: bool
+
+
+class UndoResult(BaseModel):
+    receipt: ReceiptOut
+    #: what the undo did, as a card the composer can show
+    card: Card
+
+
+class TraceEntry(BaseModel):
+    """One redacted timeline entry: kinds ``turn``, ``run``, ``step``, ``ai_call``, ``receipt``, ``event``, ``audit``."""
+
+    at: datetime
+    kind: str
+    name: str
+    status: str | None = None
+    actor_user_id: uuid.UUID | None = None
+    ref_type: str | None = None
+    ref_id: str | None = None
+    detail: dict[str, Any] = Field(default_factory=dict)
+
+
+class TraceOut(BaseModel):
+    correlation_id: str
+    #: ``participant`` (own run) or ``auditor`` (``audit.trace.read``)
+    access: str
+    run_ids: list[uuid.UUID]
+    entries: list[TraceEntry]
+    redacted: bool = True
+
+
+class AiProviderStatus(BaseModel):
+    mode: str
+    provider: str
+    label: str
+    #: demo | verified | failing | not_verified | misconfigured
+    state: str
+    verified_at: datetime | None
+    last_checked_at: datetime | None
+    last_error_code: str | None
+    circuit: dict[str, Any]
+    readiness: str
+
+
+class AiStatusOut(BaseModel):
+    provider: AiProviderStatus
+    models: dict[str, str]
+    effort: dict[str, str]
+    budgets: dict[str, dict[str, int]]
+    quotas: dict[str, int]
+    price_currency: str
+    prices: list[dict[str, Any]]
+    dpdp: dict[str, Any]
+    dpdp_text: str
+    can_manage_routing: bool
+
+
+class AiWorkflowUsage(BaseModel):
+    workflow: str
+    calls: int
+    runs: int
+    errors: int
+    refusals: int
+    #: 0..1 as a DecimalStr (two decimals of a percentage are shown client-side from this)
+    error_rate: DecimalStr
+    p50_latency_ms: int | None
+    p95_latency_ms: int | None
+    input_tokens: int
+    output_tokens: int
+    cache_read_tokens: int
+    cache_write_tokens: int
+    #: estimated at report time from the price table; None when a model has no price row
+    estimated_cost: DecimalStr | None
+
+
+class AiFailure(BaseModel):
+    at: datetime
+    workflow: str
+    provider: str
+    model: str
+    outcome: str
+    error_type: str | None
+    request_id: str | None
+    run_id: uuid.UUID | None
+    correlation_id: str | None
+
+
+class AiUsageOut(BaseModel):
+    window_days: int
+    window_from: datetime
+    window_to: datetime
+    price_currency: str
+    cost_is_estimate: bool = True
+    totals: AiWorkflowUsage
+    by_workflow: list[AiWorkflowUsage]
+    by_model: list[dict[str, Any]]
+    failures: list[AiFailure]
+
+
+class AiVerifyOut(BaseModel):
+    key: str
+    mode: str
+    state: str
+    verified_at: datetime | None
+    last_error_code: str | None
+    details: dict[str, Any] | None
 
 
 class ConversationOut(BaseModel):
@@ -311,7 +442,17 @@ __all__ = [
     "RunStatus",
     "RunSummary",
     "RunTrigger",
+    "ReceiptOut",
     "ScreenContext",
+    "TraceEntry",
+    "TraceOut",
+    "UndoResult",
+    "AiFailure",
+    "AiProviderStatus",
+    "AiStatusOut",
+    "AiUsageOut",
+    "AiVerifyOut",
+    "AiWorkflowUsage",
     "SelectedOption",
     "StepKind",
     "StepOut",

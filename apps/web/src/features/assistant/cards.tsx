@@ -1,11 +1,16 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId } from "react";
 import { DemoBadge } from "@/components/ui/badge";
 import { Button, unavailableWhen } from "@/components/ui/button";
-import { Money, Quantity } from "@/components/ui/format";
+import { LocalDateTime, Money, Quantity } from "@/components/ui/format";
 import { Link, LinkButton } from "@/components/ui/link";
+import { ProblemError } from "@/lib/api/errors";
+import { invalidationMap } from "@/lib/api/query-keys";
+import { aiMessages } from "@/messages/ai";
 import { assistantMessages as m } from "@/messages/assistant";
+import { undoReceipt } from "./api";
 import type { AssistantCard, ClarificationCard, ClarificationOption, ErrorCard, QuoteDraftCard, ReceiptCard, RecordLinkCard } from "./types";
 
 /**
@@ -195,8 +200,52 @@ export function RecordLinkCardView({ card }: { card: RecordLinkCard }) {
   );
 }
 
+/** Undo is offered while the server allowed it and the 24-hour window is open; the server re-checks everything. */
+export function canOfferUndo(card: Pick<ReceiptCard, "undo">, now: Date): boolean {
+  const undo = card.undo;
+  if (!undo?.allowed) return false;
+  return undo.until === null || new Date(undo.until).getTime() > now.getTime();
+}
+
+function ReceiptUndoControl({ card }: { card: ReceiptCard }) {
+  const client = useQueryClient();
+  const undo = useMutation({
+    mutationFn: () => undoReceipt(card.undo!.receiptId),
+    onSuccess: () => {
+      for (const key of invalidationMap["agents.receipt_undone"]) void client.invalidateQueries({ queryKey: key });
+    },
+  });
+  if (undo.isSuccess) {
+    const done = undo.data;
+    return (
+      <p role="status" className="text-sm font-semibold text-ink">
+        {aiMessages.receipt.undone}
+        {done && done.kind === "receipt" ? <span className="ms-2 font-normal text-ink-muted">{done.title}</span> : null}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button size="sm" onPress={() => undo.mutate()} isPending={undo.isPending} pendingLabel={aiMessages.receipt.undoing}>
+        {aiMessages.receipt.undo}
+      </Button>
+      {card.undo?.until ? (
+        <span className="text-xs text-ink-muted">
+          {aiMessages.receipt.until} <LocalDateTime value={card.undo.until} />
+        </span>
+      ) : null}
+      {undo.isError ? (
+        <p role="alert" className="w-full text-sm text-danger">
+          {undo.error instanceof ProblemError && undo.error.detail ? undo.error.detail : aiMessages.receipt.failed}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function ReceiptCardView({ card }: { card: ReceiptCard }) {
   const titleId = useId();
+  const offerUndo = canOfferUndo(card, new Date());
   return (
     <section aria-labelledby={titleId} className={`${surface} bg-sage`} data-card="receipt">
       <CardHeading id={titleId} demo={card.demo}>
@@ -204,6 +253,7 @@ export function ReceiptCardView({ card }: { card: ReceiptCard }) {
       </CardHeading>
       {card.detail ? <p className="text-sm text-ink">{card.detail}</p> : null}
       {card.link ? <Link href={card.link.href}>{card.link.label}</Link> : null}
+      {offerUndo ? <ReceiptUndoControl card={card} /> : null}
     </section>
   );
 }

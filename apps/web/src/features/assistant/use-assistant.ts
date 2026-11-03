@@ -8,6 +8,7 @@ import { agentRunPollInterval, isAgentRunActive } from "@/lib/api/polling";
 import { assistantMessages as m } from "@/messages/assistant";
 import { cancelRun, createConversation, fetchRun, postTurn } from "./api";
 import { lastSeq, mergeRun } from "./parse";
+import { openRunStream, sseEnabled } from "./run-stream";
 import { buildScreenContext, type ScreenContribution } from "./screen-context";
 import { currentContributions } from "./screen-context-store";
 import type { AgentRun, SelectedOption } from "./types";
@@ -52,7 +53,7 @@ export interface UseAssistant {
 
 /**
  * One conversation per mounted composer: created on the first message, then each message is a
- * turn with the current screen context; the run is polled every 500 ms until it ends.
+ * turn with the current screen context; the run streams over SSE (or is polled every 500 ms) until it ends.
  */
 export function useAssistant(extra: ScreenContribution | null = null): UseAssistant {
   const pathname = usePathname() ?? "/";
@@ -72,13 +73,28 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
     setExchanges((current) => current.map((exchange) => (exchange.id === id ? change(exchange) : exchange)));
   }, []);
 
-  // Poll the active run: every 500 ms while it is queued or running, then stop.
   const runId = activeRun?.id ?? null;
   const runStatus = activeRun?.status ?? null;
   const afterSeq = lastSeq(activeRun);
   const exchangeId = active?.id ?? null;
+  // Runs whose stream failed or timed out: polled from then on (ADR-059; polling is the fallback).
+  const [polled, setPolled] = useState<ReadonlySet<string>>(() => new Set());
+  const streaming = runId !== null && runActive && sseEnabled() && !polled.has(runId);
+  const afterSeqRef = useRef(afterSeq);
+  afterSeqRef.current = afterSeq;
+
+  // Stream the active run over SSE while it is queued or running.
   useEffect(() => {
-    if (!runId || !exchangeId) return;
+    if (!streaming || !runId || !exchangeId) return;
+    return openRunStream(runId, afterSeqRef.current, {
+      onUpdate: (update) => patch(exchangeId, (exchange) => ({ ...exchange, run: mergeRun(exchange.run, update) })),
+      onFallback: () => setPolled((current) => new Set(current).add(runId)),
+    });
+  }, [streaming, runId, exchangeId, patch]);
+
+  // Poll the active run: every 500 ms while it is queued or running, then stop.
+  useEffect(() => {
+    if (!runId || !exchangeId || streaming) return;
     const delay = agentRunPollInterval(runStatus);
     if (delay === false) return;
     const controller = new AbortController();
@@ -101,7 +117,7 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [runId, runStatus, afterSeq, exchangeId, patch, pollTick]);
+  }, [runId, runStatus, afterSeq, exchangeId, patch, pollTick, streaming]);
 
   const send = useCallback(
     async (text: string, options: { selectedOption?: SelectedOption } = {}) => {

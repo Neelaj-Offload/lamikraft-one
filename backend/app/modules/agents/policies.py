@@ -11,10 +11,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.modules.agents.models import AiCallLog, Conversation, ObjectContext, Run, RunStep, Turn
+from app.modules.agents.models import AiCallLog, Conversation, ObjectContext, Receipt, Run, RunStep, Turn
 from app.platform.authz.policy import ParentRef, ResourcePolicy
 
 ASSISTANT_USE = "agents.assistant.use"
+#: Slice 3 (permissions.md): the usage dashboard and the routing editor (MFA + recent authentication)
+AI_USAGE_READ = "agents.ai_usage.read"
+AI_ROUTING_MANAGE = "agents.ai_routing.manage"
+#: the trace view for non-participants (catalogue key; the design doc calls it ``audit.trace.view``)
+TRACE_READ = "audit.trace.read"
+#: platform key that runs an integration's verification routine (``system.service.run_verification``)
+INTEGRATION_MANAGE = "system.integration.manage"
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,14 @@ AI_CALL_LOG_POLICY = ResourcePolicy(
     archived_column=None,
 )
 
+RECEIPT_POLICY = ResourcePolicy(
+    resource_type="agents.receipt",
+    model=Receipt,
+    permission_prefix="agents.assistant",
+    parent=ParentRef("agents.run", "run_id"),
+    archived_column=None,
+)
+
 POLICIES = [
     CONVERSATION_POLICY,
     TURN_POLICY,
@@ -78,4 +93,5 @@ POLICIES = [
     RUN_STEP_POLICY,
     OBJECT_CONTEXT_POLICY,
     AI_CALL_LOG_POLICY,
+    RECEIPT_POLICY,
 ]

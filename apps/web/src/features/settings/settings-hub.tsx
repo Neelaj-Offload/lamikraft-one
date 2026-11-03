@@ -9,6 +9,7 @@ import { sectionLabelClasses } from "@/components/ui/styles";
 import { canAccessRoute, contextRoutesFor } from "@/lib/routes";
 import { useSession } from "@/lib/session/context";
 import type { IntegrationMode, SessionBootstrap } from "@/lib/session/types";
+import { aiMessages } from "@/messages/ai";
 import { settingsMessages as m } from "@/messages/settings";
 import { ModeBadge } from "./mode-badge";
 
@@ -29,6 +30,7 @@ const HINTS: Record<string, string> = {
   "settings-customer-types": m.hub.customerTypesHint,
   "settings-quotes": m.hub.quotesHint,
   "settings-fx-rates": m.hub.fxRatesHint,
+  "settings-ai": aiMessages.settings.hubHint,
 };
 
 export const SETTINGS_NAV_LEADING = [{ id: "settings", label: "Overview", href: "/settings" }] as const;

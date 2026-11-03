@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "description": "Assistant golden set: request type, tool choice, clarification and latency. Runs on Demo in CI; with LK_AI_MODE=live and ANTHROPIC_API_KEY set, test_golden_live runs the same cases against Claude (manual, never in CI).",
+  "cases": [
+    {"id": "usual-quote-en", "text": "Prepare Nordhaus's usual oak tray quote", "request_type": "data_or_action",
+     "must_call": ["resolve_party", "draft_quote"], "demo_tools": ["resolve_party", "find_usual_order", "resolve_price", "calculate_quote", "draft_quote"],
+     "card": "quote_draft", "clarification": false, "latency_ms": {"demo": 5000, "live": 45000}},
+    {"id": "usual-quote-hinglish", "text": "Nordhaus ka usual oak tray quote bana do", "request_type": "data_or_action",
+     "must_call": ["resolve_party", "draft_quote"], "demo_tools": ["resolve_party", "find_usual_order", "resolve_price", "calculate_quote", "draft_quote"],
+     "card": "quote_draft", "clarification": false, "latency_ms": {"demo": 5000, "live": 45000}},
+    {"id": "ambiguous-customer", "setup": "second_nordhaus", "text": "Prepare Nordhaus's usual oak tray quote", "request_type": "data_or_action",
+     "must_call": ["resolve_party"], "must_not_call": ["draft_quote"], "demo_tools": ["resolve_party", "ask_clarification"],
+     "card": "clarification", "clarification": true, "latency_ms": {"demo": 5000, "live": 45000}},
+    {"id": "navigate", "text": "go to quotes", "request_type": "command", "must_call": [], "demo_tools": [],
+     "card": "record_link", "clarification": false, "model_calls": 0, "latency_ms": {"demo": 2000, "live": 2000}},
+    {"id": "today", "text": "what should I handle today", "request_type": "command", "must_call": [], "demo_tools": [],
+     "card": null, "clarification": false, "model_calls": 0, "latency_ms": {"demo": 3000, "live": 3000}},
+    {"id": "out-of-scope", "text": "sing me a song about plywood", "request_type": "out_of_scope", "must_call": [], "demo_tools": [],
+     "card": null, "clarification": false, "latency_ms": {"demo": 2000, "live": 15000}},
+    {"id": "screen-question", "text": "what is on my screen?", "request_type": "screen_question", "must_call": [], "demo_tools": [],
+     "card": null, "clarification": false, "latency_ms": {"demo": 3000, "live": 15000}}
+  ]
+}
