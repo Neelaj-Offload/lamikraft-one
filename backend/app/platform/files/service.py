@@ -51,12 +51,15 @@ PURPOSE_LIMITS: dict[FilePurpose, int] = {
     FilePurpose.DOCUMENT: 25 * MIB,
     FilePurpose.IMPORT: 50 * MIB,
     FilePurpose.EXPORT: 50 * MIB,
+    FilePurpose.SCREEN_CAPTURE: 3 * MIB // 2,
 }
 PURPOSE_KINDS: dict[FilePurpose, frozenset[FileKind]] = {
     FilePurpose.IMAGE: frozenset({FileKind.PNG, FileKind.JPEG, FileKind.GIF, FileKind.WEBP}),
     FilePurpose.DOCUMENT: frozenset(FileKind),
     FilePurpose.IMPORT: frozenset({FileKind.XLSX, FileKind.CSV, FileKind.TXT}),
     FilePurpose.EXPORT: frozenset({FileKind.PDF, FileKind.XLSX, FileKind.CSV, FileKind.TXT}),
+    #: WebP from the client; PNG where the browser cannot encode WebP (Safari)
+    FilePurpose.SCREEN_CAPTURE: frozenset({FileKind.WEBP, FileKind.PNG}),
 }
 LOGO_KINDS = frozenset({FileKind.PNG, FileKind.JPEG})
 CHUNK = 64 * 1024
@@ -251,9 +254,9 @@ def _store(
 @command("files.file.create")
 def create_from_upload(uow: UnitOfWork, received: ReceivedUpload, *, purpose: FilePurpose | str) -> FileRead:
     purpose = FilePurpose(purpose)
-    if purpose == FilePurpose.EXPORT:
+    if purpose in (FilePurpose.EXPORT, FilePurpose.SCREEN_CAPTURE):
         raise ValidationFailed(
-            "Exports are created by the system.",
+            "Exports and screen captures are created through their own services.",
             errors=[{"loc": ["query", "purpose"], "msg": "not an upload purpose", "code": "invalid_choice"}],
         )
     return _store(

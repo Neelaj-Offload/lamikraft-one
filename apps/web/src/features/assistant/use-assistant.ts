@@ -6,7 +6,7 @@ import { createIdempotencyKey } from "@/lib/api/client";
 import { isEndpointUnavailable, isNetworkError, ProblemError } from "@/lib/api/errors";
 import { agentRunPollInterval, isAgentRunActive } from "@/lib/api/polling";
 import { assistantMessages as m } from "@/messages/assistant";
-import { cancelRun, createConversation, fetchRun, postTurn } from "./api";
+import { cancelRun, createConversation, fetchRun, postTurn, type TurnInput } from "./api";
 import { lastSeq, mergeRun } from "./parse";
 import { openRunStream, sseEnabled } from "./run-stream";
 import { buildScreenContext, type ScreenContribution } from "./screen-context";
@@ -44,10 +44,25 @@ export function runEndText(run: AgentRun): string | null {
   return null;
 }
 
+export interface SendOptions {
+  selectedOption?: SelectedOption;
+  /** A voice turn's utterance id (UUIDv7 created on press); a fresh one otherwise. */
+  clientUtteranceId?: string;
+  /** Posts the turn another way (voice: `/voice/utterances/{id}/submit`); resolves to the run and turn ids. */
+  submit?: (conversationId: string, turn: TurnInput) => Promise<{ runId: string; turnId: string | null }>;
+}
+
+export interface SendResult {
+  conversationId: string;
+  runId: string;
+  turnId: string | null;
+}
+
 export interface UseAssistant {
   exchanges: Exchange[];
   busy: boolean;
-  send: (text: string, options?: { selectedOption?: SelectedOption }) => Promise<void>;
+  /** Resolves to the accepted turn, or null when nothing was sent (busy, empty, or it failed). */
+  send: (text: string, options?: SendOptions) => Promise<SendResult | null>;
   cancel: () => Promise<void>;
 }
 
@@ -120,11 +135,12 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
   }, [runId, runStatus, afterSeq, exchangeId, patch, pollTick, streaming]);
 
   const send = useCallback(
-    async (text: string, options: { selectedOption?: SelectedOption } = {}) => {
+    async (text: string, options: SendOptions = {}): Promise<SendResult | null> => {
       const value = text.trim();
-      if (!value || sending || runActive) return;
-      const id = createIdempotencyKey();
-      setExchanges((current) => [...current, { id, text: value, run: null, problem: null }]);
+      if (!value || sending || runActive) return null;
+      const localId = createIdempotencyKey();
+      const id = options.clientUtteranceId ?? localId;
+      setExchanges((current) => [...current, { id: localId, text: value, run: null, problem: null }]);
       setSending(true);
       try {
         conversation.current ??= await createConversation();
@@ -135,10 +151,17 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
           now: new Date(),
           viewport: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight },
         });
-        const run = await postTurn(conversation.current, { text: value, context, selectedOption: options.selectedOption, clientUtteranceId: id }, id);
-        patch(id, (exchange) => ({ ...exchange, run: { id: run, status: "queued", error_code: null, tainted: false, provider: null, steps: [], text: null, cards: [] } }));
+        const turn: TurnInput = { text: value, context, selectedOption: options.selectedOption, clientUtteranceId: id };
+        const accepted = options.submit
+          ? await options.submit(conversation.current, turn)
+          : { runId: await postTurn(conversation.current, turn, id), turnId: null };
+        const run = accepted.runId;
+        patch(localId, (exchange) => ({ ...exchange, run: { id: run, status: "queued", error_code: null, tainted: false, provider: null, steps: [], text: null, cards: [] } }));
+        return { conversationId: conversation.current, runId: run, turnId: accepted.turnId };
       } catch (error) {
-        patch(id, (exchange) => ({ ...exchange, problem: assistantProblem(error) }));
+        patch(localId, (exchange) => ({ ...exchange, problem: assistantProblem(error) }));
+        if (options.submit) throw error; // the voice path keeps its transcript (offline drafts)
+        return null;
       } finally {
         setSending(false);
       }

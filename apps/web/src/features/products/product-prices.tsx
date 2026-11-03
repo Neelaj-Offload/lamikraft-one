@@ -74,44 +74,47 @@ function CostCard({ productId, cost }: { productId: string; cost: ProductCost })
   ];
   const earlier = history.data?.items.filter((entry) => entry.id !== cost.id) ?? [];
   return (
-    <SectionCard title={t.title} description={t.description}>
-      <KeyValueGrid items={items} columns={3} />
-      {cost.cost_components && cost.cost_components.length > 0 ? (
-        <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1 text-sm">
-          <dt className="col-span-2 font-semibold text-ink">{t.components}</dt>
-          {cost.cost_components.map((component) => (
-            <div key={component.label} className="contents">
-              <dt className="text-ink-muted">{component.label}</dt>
-              <dd className="text-end tabular text-ink">
-                <Money value={{ amount: component.amount, currency: cost.unit_cost?.currency ?? "" }} maxFractionDigits={4} />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      {canReadCost ? (
-        history.isError ? (
-          <ErrorState error={history.error} what={t.historyWhat} onRetry={() => void history.refetch()} backToToday={false} compact headingLevel={3} />
-        ) : earlier.length > 0 ? (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-ink">{t.history}</h3>
-            <ul aria-label={t.historyCaption} className="flex flex-col divide-y text-sm">
-              {earlier.map((entry) => (
-                <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2">
-                  <span className="text-ink-muted">
-                    <LocalDate value={entry.effective_from} /> · v{formatCount(entry.cost_version, zone.locale)} · {entry.source_kind}
-                  </span>
-                  <span className="tabular text-ink">
-                    {entry.unit_cost ? <Money value={entry.unit_cost} maxFractionDigits={4} /> : "—"}
-                    <span className="text-ink-muted"> / {entry.unit_code}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null
-      ) : null}
-    </SectionCard>
+    // costing is restricted: the whole card is blacked out in masked screenshots (ai-routing §4.2)
+    <div data-restricted="true">
+      <SectionCard title={t.title} description={t.description}>
+        <KeyValueGrid items={items} columns={3} />
+        {cost.cost_components && cost.cost_components.length > 0 ? (
+          <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1 text-sm">
+            <dt className="col-span-2 font-semibold text-ink">{t.components}</dt>
+            {cost.cost_components.map((component) => (
+              <div key={component.label} className="contents">
+                <dt className="text-ink-muted">{component.label}</dt>
+                <dd className="text-end tabular text-ink">
+                  <Money value={{ amount: component.amount, currency: cost.unit_cost?.currency ?? "" }} maxFractionDigits={4} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {canReadCost ? (
+          history.isError ? (
+            <ErrorState error={history.error} what={t.historyWhat} onRetry={() => void history.refetch()} backToToday={false} compact headingLevel={3} />
+          ) : earlier.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold text-ink">{t.history}</h3>
+              <ul aria-label={t.historyCaption} className="flex flex-col divide-y text-sm">
+                {earlier.map((entry) => (
+                  <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2">
+                    <span className="text-ink-muted">
+                      <LocalDate value={entry.effective_from} /> · v{formatCount(entry.cost_version, zone.locale)} · {entry.source_kind}
+                    </span>
+                    <span className="tabular text-ink">
+                      {entry.unit_cost ? <Money value={entry.unit_cost} maxFractionDigits={4} /> : "—"}
+                      <span className="text-ink-muted"> / {entry.unit_code}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null
+        ) : null}
+      </SectionCard>
+    </div>
   );
 }
 

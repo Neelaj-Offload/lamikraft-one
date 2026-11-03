@@ -71,7 +71,10 @@ Density = Literal["comfortable", "compact"]
 LocaleCode = Literal["en-IN", "en-GB", "en-US", "hi-IN"]
 BriefingLanguage = Literal["en", "hi"]
 DetailLevel = Literal["brief", "standard", "detailed"]
-SpeechLanguage = Literal["en-IN", "hi-IN"]
+#: hi-IN and Hinglish are labelled "Untested" until a recorded phrase set passes (BUILD_STATE section 5 #5)
+SpeechLanguage = Literal["en-IN", "hi-IN", "hinglish"]
+#: masked screenshots: ask before each one, or attach for router-classified visual requests (ai-routing.md 4.2)
+ScreenShare = Literal["ask", "auto"]
 ResponseStyle = Literal["concise", "detailed"]
 
 
@@ -114,6 +117,7 @@ class VoicePreferences(_Read):
 class AssistantPreferences(_Read):
     proactive_suggestions: bool = True
     response_style: ResponseStyle = "concise"
+    screen_share: ScreenShare = "ask"
 
 
 SECTIONS: dict[str, type[_Read]] = {
@@ -168,6 +172,7 @@ class VoicePreferencesPatch(_Patch):
 class AssistantPreferencesPatch(_Patch):
     proactive_suggestions: bool | None = None
     response_style: ResponseStyle | None = None
+    screen_share: ScreenShare | None = None
 
 
 class PreferencesPatch(_Patch):

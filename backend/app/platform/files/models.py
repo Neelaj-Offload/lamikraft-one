@@ -40,6 +40,8 @@ class FilePurpose(StrEnum):
     DOCUMENT = "document"
     IMPORT = "import"
     EXPORT = "export"
+    #: a masked screenshot of the app's own DOM for the assistant (ai-routing.md 4.2): restricted, purged after 24 h
+    SCREEN_CAPTURE = "screen_capture"
 
 
 class FileKind(StrEnum):
@@ -79,7 +81,7 @@ class FileObject(IdMixin, TenantMixin, TimestampMixin, ActorStampMixin, Base):
         Index("ix_file_object_creator", "company_id", "created_by", "created_at"),
         CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name="sha256_format"),
         CheckConstraint("size_bytes >= 0", name="size_non_negative"),
-        CheckConstraint("purpose IN ('image','document','import','export')", name="purpose_values"),
+        CheckConstraint("purpose IN ('image','document','import','export','screen_capture')", name="purpose_values"),
         CheckConstraint("kind IN ('png','jpeg','gif','webp','pdf','xlsx','csv','txt')", name="kind_values"),
         CheckConstraint("storage_backend IN ('local_fs','s3')", name="storage_backend_values"),
         CheckConstraint("jsonb_typeof(claims) = 'array'", name="claims_array"),

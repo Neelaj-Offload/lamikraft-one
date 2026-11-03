@@ -12,6 +12,7 @@ import { cx } from "@/lib/cx";
 import { useSession } from "@/lib/session/context";
 import type { SessionBootstrap } from "@/lib/session/types";
 import { assistantMessages as m } from "@/messages/assistant";
+import { VoiceControls, type VoiceControlsHandle } from "@/features/voice/voice-controls";
 import { AssistantCardView } from "./cards";
 import type { ScreenContribution } from "./screen-context";
 import { runOutput } from "./parse";
@@ -95,9 +96,10 @@ export interface ComposerProps {
 
 /**
  * The assistant composer: a text box that sends the message plus the structured screen context,
- * then shows what the assistant does (polled every 500 ms) and the server's cards. When the
- * assistant is not available for the role the box stays visible, disabled, and says why. There
- * is no voice control in Slice 1.
+ * then shows what the assistant does (streamed over SSE, polled every 500 ms as the fallback;
+ * ADR-059) and the server's cards. When the assistant is not available for the role the box
+ * stays visible, disabled, and says why. Voice, "Look at my screen" and photo extraction live in
+ * `VoiceControls` under the text box.
  */
 export function Composer({ variant = "today", context = null, className }: ComposerProps) {
   const { bootstrap } = useSession();
@@ -105,6 +107,8 @@ export function Composer({ variant = "today", context = null, className }: Compo
   const demo = assistantIsDemo(bootstrap);
   const { exchanges, busy, send, cancel } = useAssistant(context);
   const [text, setText] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const voiceRef = useRef<VoiceControlsHandle>(null);
   const hintId = useId();
   const listId = useId();
 
@@ -125,12 +129,14 @@ export function Composer({ variant = "today", context = null, className }: Compo
     const value = text.trim();
     if (!available || !value || busy) return;
     setText("");
+    voiceRef.current?.interrupt();
+    if (await voiceRef.current?.beforeSend(value)) return; // answered from the attached masked screenshot
     await send(value);
   };
 
   const label = variant === "dock" ? m.quoteLabel : m.label;
   return (
-    <div className={cx("flex flex-col gap-3", className)}>
+    <div ref={rootRef} className={cx("flex flex-col gap-3", className)}>
       {exchanges.length > 0 ? (
         <section aria-label={m.conversation} className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
           <ol id={listId} className="flex flex-col gap-3">
@@ -171,6 +177,7 @@ export function Composer({ variant = "today", context = null, className }: Compo
             </Button>
           )}
         </div>
+        {available ? <VoiceControls ref={voiceRef} rootRef={rootRef} assistant={{ send, exchanges, busy }} /> : null}
         <div className="flex flex-wrap items-center gap-2">
           {demo && available ? <DemoBadge label={m.demo} title={m.demoHint} /> : null}
           {available ? null : (

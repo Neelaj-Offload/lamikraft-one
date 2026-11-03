@@ -45,6 +45,11 @@ def ready() -> JSONResponse:
         checks["database"] = f"unavailable: {type(exc).__name__}"
         healthy = False
     checks["ai"] = _ai_check()
+    from app.platform.system.readiness import run_checks  # module checks registered in manifest on_load
+
+    module_checks, modules_ok = run_checks()
+    checks.update(module_checks)
+    healthy = healthy and modules_ok
     return JSONResponse({"status": "ok" if healthy else "degraded", "checks": checks}, status_code=200 if healthy else 503)
 
 
