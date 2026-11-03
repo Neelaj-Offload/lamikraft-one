@@ -49,7 +49,7 @@ class ChallanStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
-class LineType(StrEnum):
+class ChallanLineType(StrEnum):
     CATALOG = "catalog"
     CUSTOM = "custom"
     MANUAL = "manual"
@@ -80,7 +80,7 @@ class ReturnLinkKind(StrEnum):
     RETURNED = "returned"
 
 
-class Period(StrEnum):
+class ChallanPeriod(StrEnum):
     THIS_WEEK = "this_week"
     THIS_MONTH = "this_month"
 
@@ -177,7 +177,7 @@ class ChallanUpdate(_Header):
 class ChallanLineCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    line_type: LineType = LineType.MANUAL
+    line_type: ChallanLineType = ChallanLineType.MANUAL
     #: catalog lines: the product fills code, name, HSN/SAC and unit (overridable)
     product_id: uuid.UUID | None = None
     #: custom lines: the custom-product id (link checked when the custom-products module is installed)
@@ -243,7 +243,7 @@ class ChallanFilters(BaseModel):
     party_id: uuid.UUID | None = None
     #: free-text destination match (legacy "destination party" filter)
     destination: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
-    period: Period | None = None
+    period: ChallanPeriod | None = None
     date_from: date | None = None
     date_to: date | None = None
     pending_returnable: bool = False
@@ -254,7 +254,7 @@ class ChallanFilters(BaseModel):
 # =====================================================================================================
 # reads
 # =====================================================================================================
-class UserRef(BaseModel):
+class ChallanUserRef(BaseModel):
     id: uuid.UUID
     display_name: str | None
 
@@ -296,8 +296,8 @@ class ChallanSummaryRow(BaseModel):
     #: returnable quantity still out (issued returnable challans only)
     outstanding_quantity: DecimalStr
     expected_return_date: date | None
-    owner: UserRef
-    created_by: UserRef | None
+    owner: ChallanUserRef
+    created_by: ChallanUserRef | None
     branch_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
@@ -309,7 +309,7 @@ class ChallanSummaryRow(BaseModel):
 class ChallanLineRead(BaseModel):
     id: uuid.UUID
     line_no: int
-    line_type: LineType
+    line_type: ChallanLineType
     product_id: uuid.UUID | None
     custom_product_id: uuid.UUID | None
     item_code: str | None
@@ -335,11 +335,11 @@ class ReturnLinkRead(BaseModel):
     reversed_at: datetime | None
 
 
-class HistoryRead(BaseModel):
+class ChallanHistoryRead(BaseModel):
     action: str
     from_status: str
     to_status: str
-    actor: UserRef | None
+    actor: ChallanUserRef | None
     reason_code: str | None
     reason: str | None
     occurred_at: datetime
@@ -365,18 +365,18 @@ class ChallanDetail(ChallanSummaryRow):
     original_challan: ChallanLink | None
     duplicated_from: ChallanLink | None
     issued_at: datetime | None
-    issued_by: UserRef | None
+    issued_by: ChallanUserRef | None
     closed_at: datetime | None
     close_reason: str | None
     cancelled_at: datetime | None
     cancel_reason_code: str | None
     cancel_reason: str | None
-    updated_by: UserRef | None
+    updated_by: ChallanUserRef | None
     origin: ChallanOrigin
     lines: list[ChallanLineRead]
     #: returns recorded against this challan (as the original) and made by it (as a return challan)
     return_links: list[ReturnLinkRead]
-    history: list[HistoryRead]
+    history: list[ChallanHistoryRead]
     capabilities: dict[str, Capability]
     allowed_transitions: list[TransitionRead]
 
@@ -386,7 +386,7 @@ class ChallanRevisionSummary(BaseModel):
     revision_no: int
     kind: str
     issued_at: datetime
-    issued_by: UserRef | None
+    issued_by: ChallanUserRef | None
     document_sha256: str
     document_path: str
 
@@ -395,7 +395,7 @@ class ChallanRevisionRead(ChallanRevisionSummary):
     snapshot: dict[str, Any]
 
 
-class CountBucket(BaseModel):
+class ChallanCountBucket(BaseModel):
     key: str
     label: str
     count: int
@@ -411,15 +411,15 @@ class ChallanSummary(BaseModel):
     #: outstanding returnable quantity per unit
     pending_returnable_quantity: dict[str, DecimalStr]
     issued: int
-    by_type: list[CountBucket]
-    by_destination: list[CountBucket]
-    by_status: list[CountBucket]
+    by_type: list[ChallanCountBucket]
+    by_destination: list[ChallanCountBucket]
+    by_status: list[ChallanCountBucket]
     week_start: date
     month_start: date
     today: date
 
 
-class PrintLine(BaseModel):
+class ChallanPrintLine(BaseModel):
     line_no: int
     item_code: str | None
     item_name: str
@@ -429,7 +429,7 @@ class PrintLine(BaseModel):
     remarks: str | None
 
 
-class PrintParty(BaseModel):
+class ChallanPrintParty(BaseModel):
     title: str
     lines: list[str]
 
@@ -451,9 +451,9 @@ class ChallanPrint(BaseModel):
     company_lines: list[str]
     #: labels of company-identity values that are not configured (printed as placeholders)
     not_configured: list[str]
-    from_block: PrintParty
-    to_block: PrintParty
-    lines: list[PrintLine]
+    from_block: ChallanPrintParty
+    to_block: ChallanPrintParty
+    lines: list[ChallanPrintLine]
     total_quantity: dict[str, DecimalStr]
     remarks: str | None
     terms: list[str]
@@ -491,3 +491,13 @@ class DraftChallanInput(BaseModel):
     remarks: LongText | None = None
     expected_return_date: date | None = None
     lines: list[DraftChallanLine] = Field(default_factory=list, max_length=100)
+
+
+# short names used inside the module (the OpenAPI component names are the Challan-prefixed class names)
+LineType = ChallanLineType
+Period = ChallanPeriod
+CountBucket = ChallanCountBucket
+HistoryRead = ChallanHistoryRead
+PrintLine = ChallanPrintLine
+PrintParty = ChallanPrintParty
+UserRef = ChallanUserRef

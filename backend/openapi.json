@@ -1432,6 +1432,29 @@
         "title": "CategoryRead",
         "type": "object"
       },
+      "ChallanCountBucket": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count"
+        ],
+        "title": "ChallanCountBucket",
+        "type": "object"
+      },
       "ChallanCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1807,7 +1830,7 @@
           "created_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -1904,7 +1927,7 @@
           },
           "history": {
             "items": {
-              "$ref": "#/components/schemas/HistoryRead"
+              "$ref": "#/components/schemas/ChallanHistoryRead"
             },
             "title": "History",
             "type": "array"
@@ -1932,7 +1955,7 @@
           "issued_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -1982,7 +2005,7 @@
             "type": "string"
           },
           "owner": {
-            "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+            "$ref": "#/components/schemas/ChallanUserRef"
           },
           "party": {
             "anyOf": [
@@ -2104,7 +2127,7 @@
           "updated_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -2193,6 +2216,70 @@
         "title": "ChallanDuplicate",
         "type": "object"
       },
+      "ChallanHistoryRead": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_status": {
+            "title": "From Status",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "to_status": {
+            "title": "To Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "from_status",
+          "to_status",
+          "actor",
+          "reason_code",
+          "reason",
+          "occurred_at"
+        ],
+        "title": "ChallanHistoryRead",
+        "type": "object"
+      },
       "ChallanLineAdd": {
         "additionalProperties": false,
         "properties": {
@@ -2250,7 +2337,7 @@
             "title": "Item Name"
           },
           "line_type": {
-            "$ref": "#/components/schemas/app__modules__challans__schemas__LineType",
+            "$ref": "#/components/schemas/ChallanLineType",
             "default": "manual"
           },
           "original_line_id": {
@@ -2371,7 +2458,7 @@
             "title": "Item Name"
           },
           "line_type": {
-            "$ref": "#/components/schemas/app__modules__challans__schemas__LineType",
+            "$ref": "#/components/schemas/ChallanLineType",
             "default": "manual"
           },
           "original_line_id": {
@@ -2488,7 +2575,7 @@
             "type": "integer"
           },
           "line_type": {
-            "$ref": "#/components/schemas/app__modules__challans__schemas__LineType"
+            "$ref": "#/components/schemas/ChallanLineType"
           },
           "original_line_id": {
             "anyOf": [
@@ -2572,6 +2659,15 @@
         ],
         "title": "ChallanLineRead",
         "type": "object"
+      },
+      "ChallanLineType": {
+        "enum": [
+          "catalog",
+          "custom",
+          "manual"
+        ],
+        "title": "ChallanLineType",
+        "type": "string"
       },
       "ChallanLineUpdate": {
         "additionalProperties": false,
@@ -2718,6 +2814,14 @@
         "title": "ChallanOrigin",
         "type": "string"
       },
+      "ChallanPeriod": {
+        "enum": [
+          "this_week",
+          "this_month"
+        ],
+        "title": "ChallanPeriod",
+        "type": "string"
+      },
       "ChallanPrint": {
         "description": "Everything the browser print view shows; the same data the PDF is rendered from. Never includes internal\nnotes.",
         "properties": {
@@ -2763,11 +2867,11 @@
             "title": "Expected Return Date"
           },
           "from_block": {
-            "$ref": "#/components/schemas/PrintParty"
+            "$ref": "#/components/schemas/ChallanPrintParty"
           },
           "lines": {
             "items": {
-              "$ref": "#/components/schemas/PrintLine"
+              "$ref": "#/components/schemas/ChallanPrintLine"
             },
             "title": "Lines",
             "type": "array"
@@ -2827,7 +2931,7 @@
             "type": "boolean"
           },
           "to_block": {
-            "$ref": "#/components/schemas/PrintParty"
+            "$ref": "#/components/schemas/ChallanPrintParty"
           },
           "total_quantity": {
             "additionalProperties": {
@@ -2882,6 +2986,95 @@
         "title": "ChallanPrint",
         "type": "object"
       },
+      "ChallanPrintLine": {
+        "properties": {
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "title": "Item Name",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_no",
+          "item_code",
+          "item_name",
+          "hsn_sac",
+          "quantity",
+          "unit",
+          "remarks"
+        ],
+        "title": "ChallanPrintLine",
+        "type": "object"
+      },
+      "ChallanPrintParty": {
+        "properties": {
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "lines"
+        ],
+        "title": "ChallanPrintParty",
+        "type": "object"
+      },
       "ChallanRevisionRead": {
         "properties": {
           "document_path": {
@@ -2905,7 +3098,7 @@
           "issued_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -2962,7 +3155,7 @@
           "issued_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -3005,21 +3198,21 @@
         "properties": {
           "by_destination": {
             "items": {
-              "$ref": "#/components/schemas/CountBucket"
+              "$ref": "#/components/schemas/ChallanCountBucket"
             },
             "title": "By Destination",
             "type": "array"
           },
           "by_status": {
             "items": {
-              "$ref": "#/components/schemas/CountBucket"
+              "$ref": "#/components/schemas/ChallanCountBucket"
             },
             "title": "By Status",
             "type": "array"
           },
           "by_type": {
             "items": {
-              "$ref": "#/components/schemas/CountBucket"
+              "$ref": "#/components/schemas/ChallanCountBucket"
             },
             "title": "By Type",
             "type": "array"
@@ -3122,7 +3315,7 @@
           "created_by": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+                "$ref": "#/components/schemas/ChallanUserRef"
               },
               {
                 "type": "null"
@@ -3178,7 +3371,7 @@
             "type": "string"
           },
           "owner": {
-            "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
+            "$ref": "#/components/schemas/ChallanUserRef"
           },
           "party": {
             "anyOf": [
@@ -3580,6 +3773,32 @@
           "expected_version"
         ],
         "title": "ChallanUpdate",
+        "type": "object"
+      },
+      "ChallanUserRef": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "ChallanUserRef",
         "type": "object"
       },
       "Channel": {
@@ -4245,29 +4464,6 @@
         ],
         "title": "CostSourceKind",
         "type": "string"
-      },
-      "CountBucket": {
-        "properties": {
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "label",
-          "count"
-        ],
-        "title": "CountBucket",
-        "type": "object"
       },
       "CurrencyRead": {
         "properties": {
@@ -5812,70 +6008,6 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
-      "HistoryRead": {
-        "properties": {
-          "action": {
-            "title": "Action",
-            "type": "string"
-          },
-          "actor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/app__modules__challans__schemas__UserRef"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "from_status": {
-            "title": "From Status",
-            "type": "string"
-          },
-          "occurred_at": {
-            "format": "date-time",
-            "title": "Occurred At",
-            "type": "string"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
-          "reason_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason Code"
-          },
-          "to_status": {
-            "title": "To Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "action",
-          "from_status",
-          "to_status",
-          "actor",
-          "reason_code",
-          "reason",
-          "occurred_at"
-        ],
-        "title": "HistoryRead",
-        "type": "object"
-      },
       "HolidayRead": {
         "properties": {
           "date": {
@@ -6899,6 +7031,15 @@
         ],
         "title": "LineResultOut",
         "type": "object"
+      },
+      "LineType": {
+        "enum": [
+          "catalog",
+          "manual",
+          "custom"
+        ],
+        "title": "LineType",
+        "type": "string"
       },
       "LocalePreferences": {
         "properties": {
@@ -9304,14 +9445,6 @@
         "title": "PasswordChangeRequest",
         "type": "object"
       },
-      "Period": {
-        "enum": [
-          "this_week",
-          "this_month"
-        ],
-        "title": "Period",
-        "type": "string"
-      },
       "PermissionGrant": {
         "properties": {
           "key": {
@@ -10983,95 +11116,6 @@
         ],
         "title": "PriceType",
         "type": "string"
-      },
-      "PrintLine": {
-        "properties": {
-          "hsn_sac": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hsn Sac"
-          },
-          "item_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Item Code"
-          },
-          "item_name": {
-            "title": "Item Name",
-            "type": "string"
-          },
-          "line_no": {
-            "title": "Line No",
-            "type": "integer"
-          },
-          "quantity": {
-            "examples": [
-              "5760.00"
-            ],
-            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
-            "title": "Quantity",
-            "type": "string"
-          },
-          "remarks": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remarks"
-          },
-          "unit": {
-            "title": "Unit",
-            "type": "string"
-          }
-        },
-        "required": [
-          "line_no",
-          "item_code",
-          "item_name",
-          "hsn_sac",
-          "quantity",
-          "unit",
-          "remarks"
-        ],
-        "title": "PrintLine",
-        "type": "object"
-      },
-      "PrintParty": {
-        "properties": {
-          "lines": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Lines",
-            "type": "array"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "lines"
-        ],
-        "title": "PrintParty",
-        "type": "object"
       },
       "ProductCostRead": {
         "properties": {
@@ -14110,7 +14154,7 @@
             "title": "Line Total"
           },
           "line_type": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__LineType"
+            "$ref": "#/components/schemas/LineType"
           },
           "manual_preset": {
             "anyOf": [
@@ -19321,41 +19365,6 @@
         "title": "VoicePreferencesPatch",
         "type": "object"
       },
-      "app__modules__challans__schemas__LineType": {
-        "enum": [
-          "catalog",
-          "custom",
-          "manual"
-        ],
-        "title": "LineType",
-        "type": "string"
-      },
-      "app__modules__challans__schemas__UserRef": {
-        "properties": {
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "display_name"
-        ],
-        "title": "UserRef",
-        "type": "object"
-      },
       "app__modules__parties__schemas__UserRef": {
         "properties": {
           "display_name": {
@@ -19381,15 +19390,6 @@
         ],
         "title": "UserRef",
         "type": "object"
-      },
-      "app__modules__sales__schemas__LineType": {
-        "enum": [
-          "catalog",
-          "manual",
-          "custom"
-        ],
-        "title": "LineType",
-        "type": "string"
       },
       "app__modules__sales__schemas__UserRef": {
         "properties": {
@@ -21521,7 +21521,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/Period"
+                  "$ref": "#/components/schemas/ChallanPeriod"
                 },
                 {
                   "type": "null"
@@ -21833,7 +21833,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/Period"
+                  "$ref": "#/components/schemas/ChallanPeriod"
                 },
                 {
                   "type": "null"
@@ -22126,7 +22126,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/Period"
+                  "$ref": "#/components/schemas/ChallanPeriod"
                 },
                 {
                   "type": "null"

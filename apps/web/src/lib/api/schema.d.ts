@@ -2338,6 +2338,15 @@ export interface components {
             /** Subcategories */
             subcategories: components["schemas"]["SubcategoryRead"][];
         };
+        /** ChallanCountBucket */
+        ChallanCountBucket: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
         /** ChallanCreate */
         ChallanCreate: {
             /** Address */
@@ -2420,7 +2429,7 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            created_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            created_by: components["schemas"]["ChallanUserRef"] | null;
             /** Deleted At */
             deleted_at: string | null;
             /** Destination Party */
@@ -2446,7 +2455,7 @@ export interface components {
              */
             gstin_verified: boolean;
             /** History */
-            history: components["schemas"]["HistoryRead"][];
+            history: components["schemas"]["ChallanHistoryRead"][];
             /**
              * Id
              * Format: uuid
@@ -2455,7 +2464,7 @@ export interface components {
             inventory_effect: components["schemas"]["InventoryEffect"];
             /** Issued At */
             issued_at: string | null;
-            issued_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
             /** Line Count */
             line_count: number;
             /** Lines */
@@ -2468,7 +2477,7 @@ export interface components {
              * @example 5760.00
              */
             outstanding_quantity: string;
-            owner: components["schemas"]["app__modules__challans__schemas__UserRef"];
+            owner: components["schemas"]["ChallanUserRef"];
             party: components["schemas"]["PartyLink"] | null;
             /** Path */
             path: string;
@@ -2500,7 +2509,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            updated_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            updated_by: components["schemas"]["ChallanUserRef"] | null;
             /** Version */
             version: number;
         };
@@ -2508,6 +2517,25 @@ export interface components {
         ChallanDuplicate: {
             /** Challan Date */
             challan_date?: string | null;
+        };
+        /** ChallanHistoryRead */
+        ChallanHistoryRead: {
+            /** Action */
+            action: string;
+            actor: components["schemas"]["ChallanUserRef"] | null;
+            /** From Status */
+            from_status: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** To Status */
+            to_status: string;
         };
         /** ChallanLineAdd */
         ChallanLineAdd: {
@@ -2522,7 +2550,7 @@ export interface components {
             /** Item Name */
             item_name?: string | null;
             /** @default manual */
-            line_type: components["schemas"]["app__modules__challans__schemas__LineType"];
+            line_type: components["schemas"]["ChallanLineType"];
             /** Original Line Id */
             original_line_id?: string | null;
             /** Product Id */
@@ -2548,7 +2576,7 @@ export interface components {
             /** Item Name */
             item_name?: string | null;
             /** @default manual */
-            line_type: components["schemas"]["app__modules__challans__schemas__LineType"];
+            line_type: components["schemas"]["ChallanLineType"];
             /** Original Line Id */
             original_line_id?: string | null;
             /** Product Id */
@@ -2580,7 +2608,7 @@ export interface components {
             item_name: string;
             /** Line No */
             line_no: number;
-            line_type: components["schemas"]["app__modules__challans__schemas__LineType"];
+            line_type: components["schemas"]["ChallanLineType"];
             /** Original Line Id */
             original_line_id: string | null;
             /**
@@ -2605,6 +2633,11 @@ export interface components {
             /** Unit */
             unit: string;
         };
+        /**
+         * ChallanLineType
+         * @enum {string}
+         */
+        ChallanLineType: "catalog" | "custom" | "manual";
         /**
          * ChallanLineUpdate
          * @description A versioned line edit (the UI debounces quantity edits 600 ms and surfaces failures inline).
@@ -2646,6 +2679,11 @@ export interface components {
          */
         ChallanOrigin: "user" | "agent" | "seed" | "import" | "migration" | "duplicate";
         /**
+         * ChallanPeriod
+         * @enum {string}
+         */
+        ChallanPeriod: "this_week" | "this_month";
+        /**
          * ChallanPrint
          * @description Everything the browser print view shows; the same data the PDF is rendered from. Never includes internal
          *     notes.
@@ -2671,9 +2709,9 @@ export interface components {
             destination_label: string;
             /** Expected Return Date */
             expected_return_date: string | null;
-            from_block: components["schemas"]["PrintParty"];
+            from_block: components["schemas"]["ChallanPrintParty"];
             /** Lines */
-            lines: components["schemas"]["PrintLine"][];
+            lines: components["schemas"]["ChallanPrintLine"][];
             /** Not Configured */
             not_configured: string[];
             /** Reference No */
@@ -2689,7 +2727,7 @@ export interface components {
             terms: string[];
             /** Terms Are Demo */
             terms_are_demo: boolean;
-            to_block: components["schemas"]["PrintParty"];
+            to_block: components["schemas"]["ChallanPrintParty"];
             /** Total Quantity */
             total_quantity: {
                 [key: string]: string;
@@ -2698,6 +2736,33 @@ export interface components {
             type_label: string;
             /** Watermark */
             watermark: string | null;
+        };
+        /** ChallanPrintLine */
+        ChallanPrintLine: {
+            /** Hsn Sac */
+            hsn_sac: string | null;
+            /** Item Code */
+            item_code: string | null;
+            /** Item Name */
+            item_name: string;
+            /** Line No */
+            line_no: number;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Remarks */
+            remarks: string | null;
+            /** Unit */
+            unit: string;
+        };
+        /** ChallanPrintParty */
+        ChallanPrintParty: {
+            /** Lines */
+            lines: string[];
+            /** Title */
+            title: string;
         };
         /** ChallanRevisionRead */
         ChallanRevisionRead: {
@@ -2715,7 +2780,7 @@ export interface components {
              * Format: date-time
              */
             issued_at: string;
-            issued_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
             /** Kind */
             kind: string;
             /** Revision No */
@@ -2741,7 +2806,7 @@ export interface components {
              * Format: date-time
              */
             issued_at: string;
-            issued_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
             /** Kind */
             kind: string;
             /** Revision No */
@@ -2758,11 +2823,11 @@ export interface components {
          */
         ChallanSummary: {
             /** By Destination */
-            by_destination: components["schemas"]["CountBucket"][];
+            by_destination: components["schemas"]["ChallanCountBucket"][];
             /** By Status */
-            by_status: components["schemas"]["CountBucket"][];
+            by_status: components["schemas"]["ChallanCountBucket"][];
             /** By Type */
-            by_type: components["schemas"]["CountBucket"][];
+            by_type: components["schemas"]["ChallanCountBucket"][];
             /** Issued */
             issued: number;
             /**
@@ -2810,7 +2875,7 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            created_by: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
+            created_by: components["schemas"]["ChallanUserRef"] | null;
             /** Deleted At */
             deleted_at: string | null;
             /** Destination Party */
@@ -2830,7 +2895,7 @@ export interface components {
              * @example 5760.00
              */
             outstanding_quantity: string;
-            owner: components["schemas"]["app__modules__challans__schemas__UserRef"];
+            owner: components["schemas"]["ChallanUserRef"];
             party: components["schemas"]["PartyLink"] | null;
             /** Path */
             path: string;
@@ -2914,6 +2979,16 @@ export interface components {
             source_location?: string | null;
             /** Source Warehouse Id */
             source_warehouse_id?: string | null;
+        };
+        /** ChallanUserRef */
+        ChallanUserRef: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /**
          * Channel
@@ -3145,15 +3220,6 @@ export interface components {
          * @enum {string}
          */
         CostSourceKind: "manual" | "import" | "migration" | "rollup" | "seed";
-        /** CountBucket */
-        CountBucket: {
-            /** Count */
-            count: number;
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-        };
         /** CurrencyRead */
         CurrencyRead: {
             /** Code */
@@ -3635,25 +3701,6 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** HistoryRead */
-        HistoryRead: {
-            /** Action */
-            action: string;
-            actor: components["schemas"]["app__modules__challans__schemas__UserRef"] | null;
-            /** From Status */
-            from_status: string;
-            /**
-             * Occurred At
-             * Format: date-time
-             */
-            occurred_at: string;
-            /** Reason */
-            reason: string | null;
-            /** Reason Code */
-            reason_code: string | null;
-            /** To Status */
-            to_status: string;
-        };
         /** HolidayRead */
         HolidayRead: {
             /**
@@ -3998,6 +4045,11 @@ export interface components {
             recommendation: components["schemas"]["RecommendationOut"];
             unit_price: components["schemas"]["Money"] | null;
         };
+        /**
+         * LineType
+         * @enum {string}
+         */
+        LineType: "catalog" | "manual" | "custom";
         /** LocalePreferences */
         LocalePreferences: {
             /** Locale */
@@ -4728,11 +4780,6 @@ export interface components {
             /** New Password */
             new_password: string;
         };
-        /**
-         * Period
-         * @enum {string}
-         */
-        Period: "this_week" | "this_month";
         /** PermissionGrant */
         PermissionGrant: {
             /** Key */
@@ -5245,33 +5292,6 @@ export interface components {
          * @enum {string}
          */
         PriceType: "domestic" | "export" | "sample" | "distributor";
-        /** PrintLine */
-        PrintLine: {
-            /** Hsn Sac */
-            hsn_sac: string | null;
-            /** Item Code */
-            item_code: string | null;
-            /** Item Name */
-            item_name: string;
-            /** Line No */
-            line_no: number;
-            /**
-             * Quantity
-             * @example 5760.00
-             */
-            quantity: string;
-            /** Remarks */
-            remarks: string | null;
-            /** Unit */
-            unit: string;
-        };
-        /** PrintParty */
-        PrintParty: {
-            /** Lines */
-            lines: string[];
-            /** Title */
-            title: string;
-        };
         /** ProductCostRead */
         ProductCostRead: {
             /** Cost Components */
@@ -6089,7 +6109,7 @@ export interface components {
             line_no: number;
             /** Line Total */
             line_total: string | null;
-            line_type: components["schemas"]["app__modules__sales__schemas__LineType"];
+            line_type: components["schemas"]["LineType"];
             manual_preset: components["schemas"]["ManualPreset"] | null;
             media_snapshot: components["schemas"]["MediaSnapshot"] | null;
             /** Override Reason */
@@ -7814,21 +7834,6 @@ export interface components {
             /** Speech Language */
             speech_language?: ("en-IN" | "hi-IN") | null;
         };
-        /**
-         * LineType
-         * @enum {string}
-         */
-        app__modules__challans__schemas__LineType: "catalog" | "custom" | "manual";
-        /** UserRef */
-        app__modules__challans__schemas__UserRef: {
-            /** Display Name */
-            display_name: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-        };
         /** UserRef */
         app__modules__parties__schemas__UserRef: {
             /** Display Name */
@@ -7839,11 +7844,6 @@ export interface components {
              */
             id: string;
         };
-        /**
-         * LineType
-         * @enum {string}
-         */
-        app__modules__sales__schemas__LineType: "catalog" | "manual" | "custom";
         /** UserRef */
         app__modules__sales__schemas__UserRef: {
             /** Display Name */
@@ -8693,7 +8693,7 @@ export interface operations {
                 destination_type?: components["schemas"]["DestinationType"][] | null;
                 party_id?: string | null;
                 destination?: string | null;
-                period?: components["schemas"]["Period"] | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
                 date_from?: string | null;
                 date_to?: string | null;
                 pending_returnable?: boolean;
@@ -8772,7 +8772,7 @@ export interface operations {
                 destination_type?: components["schemas"]["DestinationType"][] | null;
                 party_id?: string | null;
                 destination?: string | null;
-                period?: components["schemas"]["Period"] | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
                 date_from?: string | null;
                 date_to?: string | null;
                 pending_returnable?: boolean;
@@ -8847,7 +8847,7 @@ export interface operations {
                 destination_type?: components["schemas"]["DestinationType"][] | null;
                 party_id?: string | null;
                 destination?: string | null;
-                period?: components["schemas"]["Period"] | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
                 date_from?: string | null;
                 date_to?: string | null;
                 pending_returnable?: boolean;
