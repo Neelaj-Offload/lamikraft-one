@@ -92,7 +92,7 @@ def test_work_tables_have_forced_rls_and_append_only_triggers(db: None) -> None:
     with UnitOfWork(ActorContext.system(None)) as uow:
         policies = set(uow.session.execute(text("SELECT tablename FROM pg_policies WHERE policyname = 'tenant_isolation'")).scalars())
         triggers = set(uow.session.execute(text("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal")).scalars())
-    assert len(tables) == 18
+    assert len(tables) == 20  # Slice 3: briefings_version_text, briefings_summary_push
     for mapper in tables:
         name = mapper.local_table.name
         assert name in policies, name
