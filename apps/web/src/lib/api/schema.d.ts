@@ -892,6 +892,292 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/challans/challans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Challans
+         * @description Challans within the actor's read scope (``scope=mine`` narrows to the actor's own); filters apply before paging.
+         */
+        get: operations["challans_list_challans"];
+        put?: never;
+        /**
+         * Create Challan
+         * @description Create a draft; ``DC-YYYY-NNNN`` is allocated atomically (yearly by the challan date) and never reused.
+         */
+        post: operations["challans_create_challan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Challans Csv
+         * @description One row per challan the actor may export (spreadsheet-inert text, UTF-8 with BOM).
+         */
+        get: operations["challans_export_challans_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Challan By Number */
+        get: operations["challans_get_challan_by_number"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Challan Summary
+         * @description The summary cards (total, this week, this month, pending returnable, by type / destination / status) over the
+         *     same filters and scope as the list; quantities are totals per unit and never added across units.
+         */
+        get: operations["challans_get_challan_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Challan
+         * @description Detail with lines, return links, history, ``capabilities`` and ``allowed_transitions``.
+         */
+        get: operations["challans_get_challan"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Challan
+         * @description Soft-delete a draft (admin template only); the number stays reserved.
+         */
+        delete: operations["challans_delete_challan"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Challan
+         * @description Header fields of a draft (dirty fields plus ``expected_version``; 409 ``version_conflict`` when stale,
+         *     409 ``challan_not_editable`` once issued).
+         */
+        patch: operations["challans_update_challan"];
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/document.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Challan Pdf
+         * @description The current document: the issued revision rendered deterministically from its snapshot, or a DRAFT-watermarked
+         *     live render of a draft (inline, nosniff, sandboxed).
+         */
+        get: operations["challans_download_challan_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Challan
+         * @description A new draft with a new number copying the header and the lines.
+         */
+        post: operations["challans_duplicate_challan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Challan Line
+         * @description Add a catalog line (code, name, HSN/SAC and unit from the product), a custom line or a manual line.
+         */
+        post: operations["challans_create_challan_line"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/lines/{line_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Challan Line
+         * @description Remove a line; the remaining lines are renumbered in the same transaction.
+         */
+        delete: operations["challans_delete_challan_line"];
+        options?: never;
+        head?: never;
+        /** Update Challan Line */
+        patch: operations["challans_update_challan_line"];
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Challan Print
+         * @description Everything the browser print view shows: the same data the PDF renders from; internal notes are never included.
+         */
+        get: operations["challans_get_challan_print"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Challan Revisions */
+        get: operations["challans_list_challan_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/revisions/{revision_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Challan Revision */
+        get: operations["challans_get_challan_revision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/revisions/{revision_no}/document.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Challan Revision Pdf */
+        get: operations["challans_download_challan_revision_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/challans/challans/{challan_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition Challan
+         * @description Apply a state-machine action (issue, close, cancel). An action that is unknown or not allowed in the current
+         *     status is 409 ``invalid_transition`` with ``allowed_transitions``. ``issue`` and the cancel of an issued challan
+         *     require ``Idempotency-Key``.
+         */
+        post: operations["challans_transition_challan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/collab/activity": {
         parameters: {
             query?: never;
@@ -4991,6 +5277,18 @@ export interface components {
              */
             id: string;
         };
+        /** BranchLink */
+        BranchLink: {
+            /** Branch Code */
+            branch_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** BranchRef */
         BranchRef: {
             /** Code */
@@ -5443,6 +5741,656 @@ export interface components {
              * @default 1
              */
             version: number;
+        };
+        /** ChallanCountBucket */
+        ChallanCountBucket: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** ChallanCreate */
+        ChallanCreate: {
+            /** Address */
+            address?: string | null;
+            /** Challan Date */
+            challan_date?: string | null;
+            /** @default outward */
+            challan_type: components["schemas"]["ChallanType"];
+            /** Consignee Party Id */
+            consignee_party_id?: string | null;
+            /** Destination Party */
+            destination_party?: string | null;
+            /** @default customer */
+            destination_type: components["schemas"]["DestinationType"];
+            /** Destination Warehouse Id */
+            destination_warehouse_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Expected Return Date */
+            expected_return_date?: string | null;
+            /** Gstin */
+            gstin?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["ChallanLineCreate"][];
+            /** Office Branch Id */
+            office_branch_id?: string | null;
+            /** Original Challan Id */
+            original_challan_id?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Reference No */
+            reference_no?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            return_type?: components["schemas"]["ReturnType"] | null;
+            /** Shipping Name */
+            shipping_name?: string | null;
+            /** Source Branch Id */
+            source_branch_id?: string | null;
+            /** Source Location */
+            source_location?: string | null;
+            /** Source Warehouse Id */
+            source_warehouse_id?: string | null;
+        };
+        /** ChallanDetail */
+        ChallanDetail: {
+            /** Address */
+            address: string | null;
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["app__core__http__capabilities__TransitionRead"][];
+            /** Branch Id */
+            branch_id: string | null;
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancel Reason Code */
+            cancel_reason_code: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Challan Date
+             * Format: date
+             */
+            challan_date: string;
+            /** Challan Number */
+            challan_number: string;
+            challan_type: components["schemas"]["ChallanType"];
+            /** Close Reason */
+            close_reason: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            consignee_party: components["schemas"]["PartyLink"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Destination Party */
+            destination_party: string;
+            destination_type: components["schemas"]["DestinationType"];
+            /** Destination Warehouse Id */
+            destination_warehouse_id: string | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "outward" | "inward";
+            duplicated_from: components["schemas"]["ChallanLink"] | null;
+            /** Email */
+            email: string | null;
+            /** Expected Return Date */
+            expected_return_date: string | null;
+            /** Gstin */
+            gstin: string | null;
+            /**
+             * Gstin Verified
+             * @default false
+             */
+            gstin_verified: boolean;
+            /** History */
+            history: components["schemas"]["ChallanHistoryRead"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            inventory_effect: components["schemas"]["InventoryEffect"];
+            /** Issued At */
+            issued_at: string | null;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Line Count */
+            line_count: number;
+            /** Lines */
+            lines: components["schemas"]["ChallanLineRead"][];
+            office_branch: components["schemas"]["BranchLink"] | null;
+            origin: components["schemas"]["ChallanOrigin"];
+            original_challan: components["schemas"]["ChallanLink"] | null;
+            /** Outstanding By Unit */
+            outstanding_by_unit: {
+                [key: string]: string;
+            };
+            owner: components["schemas"]["ChallanUserRef"];
+            party: components["schemas"]["PartyLink"] | null;
+            /** Path */
+            path: string;
+            /** Phone */
+            phone: string | null;
+            /** Quantity By Unit */
+            quantity_by_unit: {
+                [key: string]: string;
+            };
+            /** Reference No */
+            reference_no: string | null;
+            /** Remarks */
+            remarks: string | null;
+            /** Return Links */
+            return_links: components["schemas"]["ReturnLinkRead"][];
+            return_type: components["schemas"]["ReturnType"];
+            /** Revision No */
+            revision_no: number;
+            /** Shipping Name */
+            shipping_name: string | null;
+            source_branch: components["schemas"]["BranchLink"] | null;
+            /** Source Location */
+            source_location: string;
+            /** Source Warehouse Id */
+            source_warehouse_id: string | null;
+            status: components["schemas"]["ChallanStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            updated_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Version */
+            version: number;
+        };
+        /** ChallanDuplicate */
+        ChallanDuplicate: {
+            /** Challan Date */
+            challan_date?: string | null;
+        };
+        /** ChallanHistoryRead */
+        ChallanHistoryRead: {
+            /** Action */
+            action: string;
+            actor: components["schemas"]["ChallanUserRef"] | null;
+            /** From Status */
+            from_status: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** To Status */
+            to_status: string;
+        };
+        /** ChallanLineAdd */
+        ChallanLineAdd: {
+            /** Custom Product Id */
+            custom_product_id?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Hsn Sac */
+            hsn_sac?: string | null;
+            /** Item Code */
+            item_code?: string | null;
+            /** Item Name */
+            item_name?: string | null;
+            /** @default manual */
+            line_type: components["schemas"]["ChallanLineType"];
+            /** Original Line Id */
+            original_line_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Remarks */
+            remarks?: string | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** ChallanLineCreate */
+        ChallanLineCreate: {
+            /** Custom Product Id */
+            custom_product_id?: string | null;
+            /** Hsn Sac */
+            hsn_sac?: string | null;
+            /** Item Code */
+            item_code?: string | null;
+            /** Item Name */
+            item_name?: string | null;
+            /** @default manual */
+            line_type: components["schemas"]["ChallanLineType"];
+            /** Original Line Id */
+            original_line_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Remarks */
+            remarks?: string | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** ChallanLineRead */
+        ChallanLineRead: {
+            /** Custom Product Id */
+            custom_product_id: string | null;
+            /** Hsn Sac */
+            hsn_sac: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Code */
+            item_code: string | null;
+            /** Item Name */
+            item_name: string;
+            /** Line No */
+            line_no: number;
+            line_type: components["schemas"]["ChallanLineType"];
+            /** Original Line Id */
+            original_line_id: string | null;
+            /**
+             * Outstanding Quantity
+             * @example 5760.00
+             */
+            outstanding_quantity: string;
+            /** Product Id */
+            product_id: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Remarks */
+            remarks: string | null;
+            /**
+             * Returned Quantity
+             * @example 5760.00
+             */
+            returned_quantity: string;
+            /** Unit */
+            unit: string;
+        };
+        /**
+         * ChallanLineType
+         * @enum {string}
+         */
+        ChallanLineType: "catalog" | "custom" | "manual";
+        /**
+         * ChallanLineUpdate
+         * @description A versioned line edit (the UI debounces quantity edits 600 ms and surfaces failures inline).
+         */
+        ChallanLineUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** Hsn Sac */
+            hsn_sac?: string | null;
+            /** Item Code */
+            item_code?: string | null;
+            /** Item Name */
+            item_name?: string | null;
+            /** Original Line Id */
+            original_line_id?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** ChallanLink */
+        ChallanLink: {
+            /** Challan Number */
+            challan_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Path */
+            path: string;
+            status: components["schemas"]["ChallanStatus"];
+        };
+        /**
+         * ChallanOrigin
+         * @enum {string}
+         */
+        ChallanOrigin: "user" | "agent" | "seed" | "import" | "migration" | "duplicate";
+        /**
+         * ChallanPeriod
+         * @enum {string}
+         */
+        ChallanPeriod: "this_week" | "this_month";
+        /**
+         * ChallanPrint
+         * @description Everything the browser print view shows; the same data the PDF is rendered from. Never includes internal
+         *     notes.
+         */
+        ChallanPrint: {
+            /**
+             * Challan Date
+             * Format: date
+             */
+            challan_date: string;
+            /**
+             * Challan Id
+             * Format: uuid
+             */
+            challan_id: string;
+            /** Challan Number */
+            challan_number: string;
+            /** Company Lines */
+            company_lines: string[];
+            /** Company Name */
+            company_name: string;
+            /** Destination Label */
+            destination_label: string;
+            /** Expected Return Date */
+            expected_return_date: string | null;
+            from_block: components["schemas"]["ChallanPrintParty"];
+            /** Lines */
+            lines: components["schemas"]["ChallanPrintLine"][];
+            /** Not Configured */
+            not_configured: string[];
+            /** Reference No */
+            reference_no: string | null;
+            /** Remarks */
+            remarks: string | null;
+            /** Return Label */
+            return_label: string;
+            /** Signatures */
+            signatures: string[];
+            status: components["schemas"]["ChallanStatus"];
+            /** Terms */
+            terms: string[];
+            /** Terms Are Demo */
+            terms_are_demo: boolean;
+            to_block: components["schemas"]["ChallanPrintParty"];
+            /** Total Quantity */
+            total_quantity: {
+                [key: string]: string;
+            };
+            /** Type Label */
+            type_label: string;
+            /** Watermark */
+            watermark: string | null;
+        };
+        /** ChallanPrintLine */
+        ChallanPrintLine: {
+            /** Hsn Sac */
+            hsn_sac: string | null;
+            /** Item Code */
+            item_code: string | null;
+            /** Item Name */
+            item_name: string;
+            /** Line No */
+            line_no: number;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Remarks */
+            remarks: string | null;
+            /** Unit */
+            unit: string;
+        };
+        /** ChallanPrintParty */
+        ChallanPrintParty: {
+            /** Lines */
+            lines: string[];
+            /** Title */
+            title: string;
+        };
+        /** ChallanRevisionRead */
+        ChallanRevisionRead: {
+            /** Document Path */
+            document_path: string;
+            /** Document Sha256 */
+            document_sha256: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Kind */
+            kind: string;
+            /** Revision No */
+            revision_no: number;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** ChallanRevisionSummary */
+        ChallanRevisionSummary: {
+            /** Document Path */
+            document_path: string;
+            /** Document Sha256 */
+            document_sha256: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            issued_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Kind */
+            kind: string;
+            /** Revision No */
+            revision_no: number;
+        };
+        /**
+         * ChallanStatus
+         * @enum {string}
+         */
+        ChallanStatus: "draft" | "issued" | "closed" | "cancelled";
+        /**
+         * ChallanSummary
+         * @description The legacy summary cards, computed over the same filters and the same read scope as the list (LM-88).
+         */
+        ChallanSummary: {
+            /** By Destination */
+            by_destination: components["schemas"]["ChallanCountBucket"][];
+            /** By Status */
+            by_status: components["schemas"]["ChallanCountBucket"][];
+            /** By Type */
+            by_type: components["schemas"]["ChallanCountBucket"][];
+            /** Issued */
+            issued: number;
+            /**
+             * Month Start
+             * Format: date
+             */
+            month_start: string;
+            /** Pending Returnable */
+            pending_returnable: number;
+            /** Pending Returnable Quantity */
+            pending_returnable_quantity: {
+                [key: string]: string;
+            };
+            /** This Month */
+            this_month: number;
+            /** This Week */
+            this_week: number;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Total */
+            total: number;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+        };
+        /** ChallanSummaryRow */
+        ChallanSummaryRow: {
+            /** Branch Id */
+            branch_id: string | null;
+            /**
+             * Challan Date
+             * Format: date
+             */
+            challan_date: string;
+            /** Challan Number */
+            challan_number: string;
+            challan_type: components["schemas"]["ChallanType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["ChallanUserRef"] | null;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Destination Party */
+            destination_party: string;
+            destination_type: components["schemas"]["DestinationType"];
+            /** Expected Return Date */
+            expected_return_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Count */
+            line_count: number;
+            /** Outstanding By Unit */
+            outstanding_by_unit: {
+                [key: string]: string;
+            };
+            owner: components["schemas"]["ChallanUserRef"];
+            party: components["schemas"]["PartyLink"] | null;
+            /** Path */
+            path: string;
+            /** Quantity By Unit */
+            quantity_by_unit: {
+                [key: string]: string;
+            };
+            /** Reference No */
+            reference_no: string | null;
+            return_type: components["schemas"]["ReturnType"];
+            /** Revision No */
+            revision_no: number;
+            status: components["schemas"]["ChallanStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ChallanTransition */
+        ChallanTransition: {
+            /** Action */
+            action: string;
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+        };
+        /**
+         * ChallanType
+         * @enum {string}
+         */
+        ChallanType: "outward" | "inward" | "return" | "job_work" | "transfer" | "sample";
+        /**
+         * ChallanUpdate
+         * @description Dirty header fields of a draft plus ``expected_version`` (409 ``version_conflict`` when stale).
+         */
+        ChallanUpdate: {
+            /** Address */
+            address?: string | null;
+            /** Challan Date */
+            challan_date?: string | null;
+            challan_type?: components["schemas"]["ChallanType"] | null;
+            /** Consignee Party Id */
+            consignee_party_id?: string | null;
+            /** Destination Party */
+            destination_party?: string | null;
+            destination_type?: components["schemas"]["DestinationType"] | null;
+            /** Destination Warehouse Id */
+            destination_warehouse_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Expected Return Date */
+            expected_return_date?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Gstin */
+            gstin?: string | null;
+            /** Office Branch Id */
+            office_branch_id?: string | null;
+            /** Original Challan Id */
+            original_challan_id?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Reference No */
+            reference_no?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            return_type?: components["schemas"]["ReturnType"] | null;
+            /** Shipping Name */
+            shipping_name?: string | null;
+            /** Source Branch Id */
+            source_branch_id?: string | null;
+            /** Source Location */
+            source_location?: string | null;
+            /** Source Warehouse Id */
+            source_warehouse_id?: string | null;
+        };
+        /** ChallanUserRef */
+        ChallanUserRef: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /** ChangeOwner */
         ChangeOwner: {
@@ -6747,6 +7695,11 @@ export interface components {
             token: string;
         };
         /**
+         * DestinationType
+         * @enum {string}
+         */
+        DestinationType: "fabricator" | "customer" | "warehouse" | "vendor" | "office" | "transporter";
+        /**
          * DimensionKind
          * @enum {string}
          */
@@ -7591,6 +8544,11 @@ export interface components {
             /** Verified At */
             verified_at: string | null;
         };
+        /**
+         * InventoryEffect
+         * @enum {string}
+         */
+        InventoryEffect: "none" | "posting";
         /** InvitationAccept */
         InvitationAccept: {
             /** Display Name */
@@ -8840,6 +9798,17 @@ export interface components {
             /** Unit Weight G */
             unit_weight_g: string | null;
         };
+        /** Page[ChallanSummaryRow] */
+        Page_ChallanSummaryRow_: {
+            /** Items */
+            items: components["schemas"]["ChallanSummaryRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[ChangeRead] */
         Page_ChangeRead_: {
             /** Items */
@@ -9146,6 +10115,18 @@ export interface components {
             updated_at: string;
             /** Version */
             version: number;
+        };
+        /** PartyLink */
+        PartyLink: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Party Number */
+            party_number: string | null;
         };
         /** PartyMini */
         PartyMini: {
@@ -12311,6 +13292,49 @@ export interface components {
             /** Retire From */
             retire_from?: string | null;
         };
+        /**
+         * ReturnLinkKind
+         * @enum {string}
+         */
+        ReturnLinkKind: "returned";
+        /** ReturnLinkRead */
+        ReturnLinkRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ReturnLinkKind"];
+            original_challan: components["schemas"]["ChallanLink"];
+            /**
+             * Original Line Id
+             * Format: uuid
+             */
+            original_line_id: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            return_challan: components["schemas"]["ChallanLink"];
+            /**
+             * Return Line Id
+             * Format: uuid
+             */
+            return_line_id: string;
+            /** Reversed At */
+            reversed_at: string | null;
+        };
+        /**
+         * ReturnType
+         * @enum {string}
+         */
+        ReturnType: "returnable" | "non_returnable";
         /** ReviewRead */
         ReviewRead: {
             /** Approval Current */
@@ -16222,6 +17246,651 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaxonomyValidation"];
+                };
+            };
+        };
+    };
+    challans_list_challans: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Tokens matched against number, destination, shipping name and reference */
+                q?: string | null;
+                status?: components["schemas"]["ChallanStatus"][] | null;
+                challan_type?: components["schemas"]["ChallanType"][] | null;
+                return_type?: components["schemas"]["ReturnType"] | null;
+                destination_type?: components["schemas"]["DestinationType"][] | null;
+                party_id?: string | null;
+                destination?: string | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                pending_returnable?: boolean;
+                scope?: string;
+                include_deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ChallanSummaryRow_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_create_challan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_export_challans_csv: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against number, destination, shipping name and reference */
+                q?: string | null;
+                status?: components["schemas"]["ChallanStatus"][] | null;
+                challan_type?: components["schemas"]["ChallanType"][] | null;
+                return_type?: components["schemas"]["ReturnType"] | null;
+                destination_type?: components["schemas"]["DestinationType"][] | null;
+                party_id?: string | null;
+                destination?: string | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                pending_returnable?: boolean;
+                scope?: string;
+                include_deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_get_challan_by_number: {
+        parameters: {
+            query: {
+                challan_number: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_get_challan_summary: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against number, destination, shipping name and reference */
+                q?: string | null;
+                status?: components["schemas"]["ChallanStatus"][] | null;
+                challan_type?: components["schemas"]["ChallanType"][] | null;
+                return_type?: components["schemas"]["ReturnType"] | null;
+                destination_type?: components["schemas"]["DestinationType"][] | null;
+                party_id?: string | null;
+                destination?: string | null;
+                period?: components["schemas"]["ChallanPeriod"] | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                pending_returnable?: boolean;
+                scope?: string;
+                include_deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_get_challan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_delete_challan: {
+        parameters: {
+            query?: {
+                expected_version?: number | null;
+            };
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_update_challan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_download_challan_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_duplicate_challan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanDuplicate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_create_challan_line: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanLineAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_delete_challan_line: {
+        parameters: {
+            query?: {
+                expected_version?: number | null;
+            };
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_update_challan_line: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanLineUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_get_challan_print: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanPrint"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_list_challan_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanRevisionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_get_challan_revision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+                revision_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanRevisionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_download_challan_revision_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challan_id: string;
+                revision_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    challans_transition_challan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                challan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallanTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallanDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

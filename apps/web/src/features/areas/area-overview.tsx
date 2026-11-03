@@ -32,7 +32,7 @@ export function AreaOverview({ area }: { area: PlannedArea }) {
         }
       >
         <p>{copy.stateBody}</p>
-        <p className="mt-1">{areaMessages.nothingOn}</p>
+        <p className="mt-1">{copy.liveNote ?? areaMessages.nothingOn}</p>
       </StateView>
       <section aria-labelledby={`${area}-parts`} className="flex flex-col gap-2">
         <h2 id={`${area}-parts`} className={sectionLabelClasses}>

@@ -87,6 +87,7 @@ def published_facts() -> dict[str, dict[str, str]]:
         "expected": {k: v for k, v in vars(keys.EXPECTED).items() if isinstance(v, str)},
         "quotes": dict(vars(keys.QUOTES)),
         "enquiries": dict(vars(keys.ENQUIRIES)),
+        "challans": dict(vars(keys.CHALLANS)),
     }
 
 
@@ -96,6 +97,7 @@ def business_key_refs(ctx: SeedContext) -> dict[str, str]:
     out: dict[str, str] = {}
     pairs = [(f"Q_{name}", number) for name, number in vars(keys.QUOTES).items()]
     pairs += [(f"ENQ_{name}", number) for name, number in vars(keys.ENQUIRIES).items()]
+    pairs += [(f"DC_{name}", number) for name, number in vars(keys.CHALLANS).items()]
     for fixture_key, business_key in pairs:
         if fixture_key in ctx.refs:
             out[business_key] = str(ctx.refs[fixture_key])

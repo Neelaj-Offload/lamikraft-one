@@ -1787,6 +1787,30 @@
         "title": "BootstrapUser",
         "type": "object"
       },
+      "BranchLink": {
+        "properties": {
+          "branch_code": {
+            "title": "Branch Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "branch_code",
+          "name"
+        ],
+        "title": "BranchLink",
+        "type": "object"
+      },
       "BranchRef": {
         "properties": {
           "code": {
@@ -3025,6 +3049,2381 @@
           "subcategories"
         ],
         "title": "CategoryRead",
+        "type": "object"
+      },
+      "ChallanCountBucket": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count"
+        ],
+        "title": "ChallanCountBucket",
+        "type": "object"
+      },
+      "ChallanCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "challan_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Date"
+          },
+          "challan_type": {
+            "$ref": "#/components/schemas/ChallanType",
+            "default": "outward"
+          },
+          "consignee_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consignee Party Id"
+          },
+          "destination_party": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Party"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/DestinationType",
+            "default": "customer"
+          },
+          "destination_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Warehouse Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]{1,64}@[^@\\s]{1,189}\\.[^@\\s]{2,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expected_return_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Return Date"
+          },
+          "gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gstin"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanLineCreate"
+            },
+            "maxItems": 200,
+            "title": "Lines",
+            "type": "array"
+          },
+          "office_branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Office Branch Id"
+          },
+          "original_challan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Challan Id"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "pattern": "^\\+?[0-9][0-9 ()\\-]{5,24}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "reference_no": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference No"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "return_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReturnType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shipping_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Name"
+          },
+          "source_branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Branch Id"
+          },
+          "source_location": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location"
+          },
+          "source_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Warehouse Id"
+          }
+        },
+        "title": "ChallanCreate",
+        "type": "object"
+      },
+      "ChallanDetail": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/app__core__http__capabilities__TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "cancel_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason Code"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "challan_date": {
+            "format": "date",
+            "title": "Challan Date",
+            "type": "string"
+          },
+          "challan_number": {
+            "title": "Challan Number",
+            "type": "string"
+          },
+          "challan_type": {
+            "$ref": "#/components/schemas/ChallanType"
+          },
+          "close_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Reason"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "consignee_party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "destination_party": {
+            "title": "Destination Party",
+            "type": "string"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/DestinationType"
+          },
+          "destination_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Warehouse Id"
+          },
+          "direction": {
+            "enum": [
+              "outward",
+              "inward"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "duplicated_from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expected_return_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Return Date"
+          },
+          "gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gstin"
+          },
+          "gstin_verified": {
+            "default": false,
+            "title": "Gstin Verified",
+            "type": "boolean"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inventory_effect": {
+            "$ref": "#/components/schemas/InventoryEffect"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanLineRead"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "office_branch": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BranchLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/ChallanOrigin"
+          },
+          "original_challan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outstanding_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Outstanding By Unit",
+            "type": "object"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ChallanUserRef"
+          },
+          "party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "quantity_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Quantity By Unit",
+            "type": "object"
+          },
+          "reference_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference No"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "return_links": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnLinkRead"
+            },
+            "title": "Return Links",
+            "type": "array"
+          },
+          "return_type": {
+            "$ref": "#/components/schemas/ReturnType"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "shipping_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Name"
+          },
+          "source_branch": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BranchLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_location": {
+            "title": "Source Location",
+            "type": "string"
+          },
+          "source_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Warehouse Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChallanStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "challan_number",
+          "revision_no",
+          "challan_date",
+          "challan_type",
+          "return_type",
+          "destination_type",
+          "destination_party",
+          "party",
+          "reference_no",
+          "status",
+          "line_count",
+          "quantity_by_unit",
+          "outstanding_by_unit",
+          "expected_return_date",
+          "owner",
+          "created_by",
+          "branch_id",
+          "created_at",
+          "updated_at",
+          "deleted_at",
+          "version",
+          "path",
+          "source_location",
+          "source_branch",
+          "source_warehouse_id",
+          "consignee_party",
+          "destination_warehouse_id",
+          "office_branch",
+          "shipping_name",
+          "gstin",
+          "phone",
+          "email",
+          "address",
+          "remarks",
+          "direction",
+          "inventory_effect",
+          "original_challan",
+          "duplicated_from",
+          "issued_at",
+          "issued_by",
+          "closed_at",
+          "close_reason",
+          "cancelled_at",
+          "cancel_reason_code",
+          "cancel_reason",
+          "updated_by",
+          "origin",
+          "lines",
+          "return_links",
+          "history",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "ChallanDetail",
+        "type": "object"
+      },
+      "ChallanDuplicate": {
+        "additionalProperties": false,
+        "properties": {
+          "challan_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Date"
+          }
+        },
+        "title": "ChallanDuplicate",
+        "type": "object"
+      },
+      "ChallanHistoryRead": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_status": {
+            "title": "From Status",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "to_status": {
+            "title": "To Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "from_status",
+          "to_status",
+          "actor",
+          "reason_code",
+          "reason",
+          "occurred_at"
+        ],
+        "title": "ChallanHistoryRead",
+        "type": "object"
+      },
+      "ChallanLineAdd": {
+        "additionalProperties": false,
+        "properties": {
+          "custom_product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Product Id"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4,8}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name"
+          },
+          "line_type": {
+            "$ref": "#/components/schemas/ChallanLineType",
+            "default": "manual"
+          },
+          "original_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Line Id"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "quantity",
+          "expected_version"
+        ],
+        "title": "ChallanLineAdd",
+        "type": "object"
+      },
+      "ChallanLineCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "custom_product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Product Id"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4,8}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name"
+          },
+          "line_type": {
+            "$ref": "#/components/schemas/ChallanLineType",
+            "default": "manual"
+          },
+          "original_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Line Id"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "quantity"
+        ],
+        "title": "ChallanLineCreate",
+        "type": "object"
+      },
+      "ChallanLineRead": {
+        "properties": {
+          "custom_product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Product Id"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "title": "Item Name",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "line_type": {
+            "$ref": "#/components/schemas/ChallanLineType"
+          },
+          "original_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Line Id"
+          },
+          "outstanding_quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Outstanding Quantity",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "returned_quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Returned Quantity",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "line_no",
+          "line_type",
+          "product_id",
+          "custom_product_id",
+          "item_code",
+          "item_name",
+          "hsn_sac",
+          "quantity",
+          "unit",
+          "remarks",
+          "original_line_id",
+          "returned_quantity",
+          "outstanding_quantity"
+        ],
+        "title": "ChallanLineRead",
+        "type": "object"
+      },
+      "ChallanLineType": {
+        "enum": [
+          "catalog",
+          "custom",
+          "manual"
+        ],
+        "title": "ChallanLineType",
+        "type": "string"
+      },
+      "ChallanLineUpdate": {
+        "additionalProperties": false,
+        "description": "A versioned line edit (the UI debounces quantity edits 600 ms and surfaces failures inline).",
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4,8}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name"
+          },
+          "original_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Line Id"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "gt": 0,
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ChallanLineUpdate",
+        "type": "object"
+      },
+      "ChallanLink": {
+        "properties": {
+          "challan_number": {
+            "title": "Challan Number",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChallanStatus"
+          }
+        },
+        "required": [
+          "id",
+          "challan_number",
+          "status",
+          "path"
+        ],
+        "title": "ChallanLink",
+        "type": "object"
+      },
+      "ChallanOrigin": {
+        "enum": [
+          "user",
+          "agent",
+          "seed",
+          "import",
+          "migration",
+          "duplicate"
+        ],
+        "title": "ChallanOrigin",
+        "type": "string"
+      },
+      "ChallanPeriod": {
+        "enum": [
+          "this_week",
+          "this_month"
+        ],
+        "title": "ChallanPeriod",
+        "type": "string"
+      },
+      "ChallanPrint": {
+        "description": "Everything the browser print view shows; the same data the PDF is rendered from. Never includes internal\nnotes.",
+        "properties": {
+          "challan_date": {
+            "format": "date",
+            "title": "Challan Date",
+            "type": "string"
+          },
+          "challan_id": {
+            "format": "uuid",
+            "title": "Challan Id",
+            "type": "string"
+          },
+          "challan_number": {
+            "title": "Challan Number",
+            "type": "string"
+          },
+          "company_lines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Company Lines",
+            "type": "array"
+          },
+          "company_name": {
+            "title": "Company Name",
+            "type": "string"
+          },
+          "destination_label": {
+            "title": "Destination Label",
+            "type": "string"
+          },
+          "expected_return_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Return Date"
+          },
+          "from_block": {
+            "$ref": "#/components/schemas/ChallanPrintParty"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanPrintLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "not_configured": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Configured",
+            "type": "array"
+          },
+          "reference_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference No"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "return_label": {
+            "title": "Return Label",
+            "type": "string"
+          },
+          "signatures": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Signatures",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChallanStatus"
+          },
+          "terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Terms",
+            "type": "array"
+          },
+          "terms_are_demo": {
+            "title": "Terms Are Demo",
+            "type": "boolean"
+          },
+          "to_block": {
+            "$ref": "#/components/schemas/ChallanPrintParty"
+          },
+          "total_quantity": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Total Quantity",
+            "type": "object"
+          },
+          "type_label": {
+            "title": "Type Label",
+            "type": "string"
+          },
+          "watermark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watermark"
+          }
+        },
+        "required": [
+          "challan_id",
+          "challan_number",
+          "challan_date",
+          "status",
+          "type_label",
+          "return_label",
+          "destination_label",
+          "reference_no",
+          "expected_return_date",
+          "company_name",
+          "company_lines",
+          "not_configured",
+          "from_block",
+          "to_block",
+          "lines",
+          "total_quantity",
+          "remarks",
+          "terms",
+          "terms_are_demo",
+          "signatures",
+          "watermark"
+        ],
+        "title": "ChallanPrint",
+        "type": "object"
+      },
+      "ChallanPrintLine": {
+        "properties": {
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "item_name": {
+            "title": "Item Name",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_no",
+          "item_code",
+          "item_name",
+          "hsn_sac",
+          "quantity",
+          "unit",
+          "remarks"
+        ],
+        "title": "ChallanPrintLine",
+        "type": "object"
+      },
+      "ChallanPrintParty": {
+        "properties": {
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "lines"
+        ],
+        "title": "ChallanPrintParty",
+        "type": "object"
+      },
+      "ChallanRevisionRead": {
+        "properties": {
+          "document_path": {
+            "title": "Document Path",
+            "type": "string"
+          },
+          "document_sha256": {
+            "title": "Document Sha256",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "revision_no",
+          "kind",
+          "issued_at",
+          "issued_by",
+          "document_sha256",
+          "document_path",
+          "snapshot"
+        ],
+        "title": "ChallanRevisionRead",
+        "type": "object"
+      },
+      "ChallanRevisionSummary": {
+        "properties": {
+          "document_path": {
+            "title": "Document Path",
+            "type": "string"
+          },
+          "document_sha256": {
+            "title": "Document Sha256",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision_no",
+          "kind",
+          "issued_at",
+          "issued_by",
+          "document_sha256",
+          "document_path"
+        ],
+        "title": "ChallanRevisionSummary",
+        "type": "object"
+      },
+      "ChallanStatus": {
+        "enum": [
+          "draft",
+          "issued",
+          "closed",
+          "cancelled"
+        ],
+        "title": "ChallanStatus",
+        "type": "string"
+      },
+      "ChallanSummary": {
+        "description": "The legacy summary cards, computed over the same filters and the same read scope as the list (LM-88).",
+        "properties": {
+          "by_destination": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanCountBucket"
+            },
+            "title": "By Destination",
+            "type": "array"
+          },
+          "by_status": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanCountBucket"
+            },
+            "title": "By Status",
+            "type": "array"
+          },
+          "by_type": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanCountBucket"
+            },
+            "title": "By Type",
+            "type": "array"
+          },
+          "issued": {
+            "title": "Issued",
+            "type": "integer"
+          },
+          "month_start": {
+            "format": "date",
+            "title": "Month Start",
+            "type": "string"
+          },
+          "pending_returnable": {
+            "title": "Pending Returnable",
+            "type": "integer"
+          },
+          "pending_returnable_quantity": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Pending Returnable Quantity",
+            "type": "object"
+          },
+          "this_month": {
+            "title": "This Month",
+            "type": "integer"
+          },
+          "this_week": {
+            "title": "This Week",
+            "type": "integer"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total",
+          "this_week",
+          "this_month",
+          "pending_returnable",
+          "pending_returnable_quantity",
+          "issued",
+          "by_type",
+          "by_destination",
+          "by_status",
+          "week_start",
+          "month_start",
+          "today"
+        ],
+        "title": "ChallanSummary",
+        "type": "object"
+      },
+      "ChallanSummaryRow": {
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "challan_date": {
+            "format": "date",
+            "title": "Challan Date",
+            "type": "string"
+          },
+          "challan_number": {
+            "title": "Challan Number",
+            "type": "string"
+          },
+          "challan_type": {
+            "$ref": "#/components/schemas/ChallanType"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "destination_party": {
+            "title": "Destination Party",
+            "type": "string"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/DestinationType"
+          },
+          "expected_return_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Return Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "outstanding_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Outstanding By Unit",
+            "type": "object"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ChallanUserRef"
+          },
+          "party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quantity_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Quantity By Unit",
+            "type": "object"
+          },
+          "reference_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference No"
+          },
+          "return_type": {
+            "$ref": "#/components/schemas/ReturnType"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChallanStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "challan_number",
+          "revision_no",
+          "challan_date",
+          "challan_type",
+          "return_type",
+          "destination_type",
+          "destination_party",
+          "party",
+          "reference_no",
+          "status",
+          "line_count",
+          "quantity_by_unit",
+          "outstanding_by_unit",
+          "expected_return_date",
+          "owner",
+          "created_by",
+          "branch_id",
+          "created_at",
+          "updated_at",
+          "deleted_at",
+          "version",
+          "path"
+        ],
+        "title": "ChallanSummaryRow",
+        "type": "object"
+      },
+      "ChallanTransition": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "pattern": "^[a-z][a-z_]{1,39}$",
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          }
+        },
+        "required": [
+          "action",
+          "expected_version"
+        ],
+        "title": "ChallanTransition",
+        "type": "object"
+      },
+      "ChallanType": {
+        "enum": [
+          "outward",
+          "inward",
+          "return",
+          "job_work",
+          "transfer",
+          "sample"
+        ],
+        "title": "ChallanType",
+        "type": "string"
+      },
+      "ChallanUpdate": {
+        "additionalProperties": false,
+        "description": "Dirty header fields of a draft plus ``expected_version`` (409 ``version_conflict`` when stale).",
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "challan_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Date"
+          },
+          "challan_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChallanType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consignee_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consignee Party Id"
+          },
+          "destination_party": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Party"
+          },
+          "destination_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DestinationType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destination_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Warehouse Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^@\\s]{1,64}@[^@\\s]{1,189}\\.[^@\\s]{2,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expected_return_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Return Date"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gstin"
+          },
+          "office_branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Office Branch Id"
+          },
+          "original_challan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Challan Id"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "pattern": "^\\+?[0-9][0-9 ()\\-]{5,24}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "reference_no": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference No"
+          },
+          "remarks": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remarks"
+          },
+          "return_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReturnType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shipping_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Name"
+          },
+          "source_branch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Branch Id"
+          },
+          "source_location": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location"
+          },
+          "source_warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Warehouse Id"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ChallanUpdate",
+        "type": "object"
+      },
+      "ChallanUserRef": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "ChallanUserRef",
         "type": "object"
       },
       "ChangeOwner": {
@@ -7672,6 +10071,18 @@
         "title": "DemoSignInRequest",
         "type": "object"
       },
+      "DestinationType": {
+        "enum": [
+          "fabricator",
+          "customer",
+          "warehouse",
+          "vendor",
+          "office",
+          "transporter"
+        ],
+        "title": "DestinationType",
+        "type": "string"
+      },
       "DimensionKind": {
         "enum": [
           "master_size",
@@ -10029,6 +12440,14 @@
         ],
         "title": "IntegrationRead",
         "type": "object"
+      },
+      "InventoryEffect": {
+        "enum": [
+          "none",
+          "posting"
+        ],
+        "title": "InventoryEffect",
+        "type": "string"
       },
       "InvitationAccept": {
         "additionalProperties": false,
@@ -14092,6 +16511,37 @@
         "title": "PackagingSnapshot",
         "type": "object"
       },
+      "Page_ChallanSummaryRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChallanSummaryRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ChallanSummaryRow]",
+        "type": "object"
+      },
       "Page_ChangeRead_": {
         "properties": {
           "items": {
@@ -14998,6 +17448,44 @@
           "capabilities"
         ],
         "title": "PartyDetail",
+        "type": "object"
+      },
+      "PartyLink": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Number"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name"
+        ],
+        "title": "PartyLink",
         "type": "object"
       },
       "PartyMini": {
@@ -26171,6 +28659,87 @@
         "title": "RetireItem",
         "type": "object"
       },
+      "ReturnLinkKind": {
+        "enum": [
+          "returned"
+        ],
+        "title": "ReturnLinkKind",
+        "type": "string"
+      },
+      "ReturnLinkRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ReturnLinkKind"
+          },
+          "original_challan": {
+            "$ref": "#/components/schemas/ChallanLink"
+          },
+          "original_line_id": {
+            "format": "uuid",
+            "title": "Original Line Id",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "return_challan": {
+            "$ref": "#/components/schemas/ChallanLink"
+          },
+          "return_line_id": {
+            "format": "uuid",
+            "title": "Return Line Id",
+            "type": "string"
+          },
+          "reversed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reversed At"
+          }
+        },
+        "required": [
+          "id",
+          "return_challan",
+          "original_challan",
+          "return_line_id",
+          "original_line_id",
+          "quantity",
+          "kind",
+          "created_at",
+          "reversed_at"
+        ],
+        "title": "ReturnLinkRead",
+        "type": "object"
+      },
+      "ReturnType": {
+        "enum": [
+          "returnable",
+          "non_returnable"
+        ],
+        "title": "ReturnType",
+        "type": "string"
+      },
       "ReviewRead": {
         "properties": {
           "approval_current": {
@@ -36855,6 +39424,1758 @@
           "kind": "permission",
           "permissions": [
             "catalogue.product.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans": {
+      "get": {
+        "description": "Challans within the actor's read scope (``scope=mine`` narrows to the actor's own); filters apply before paging.",
+        "operationId": "challans_list_challans",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tokens matched against number, destination, shipping name and reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against number, destination, shipping name and reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "challan_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Challan Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "return_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReturnType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/DestinationType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ChallanPeriod"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pending_returnable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pending Returnable",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Deleted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ChallanSummaryRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Challans",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Create a draft; ``DC-YYYY-NNNN`` is allocated atomically (yearly by the challan date) and never reused.",
+        "operationId": "challans_create_challan",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/export.csv": {
+      "get": {
+        "description": "One row per challan the actor may export (spreadsheet-inert text, UTF-8 with BOM).",
+        "operationId": "challans_export_challans_csv",
+        "parameters": [
+          {
+            "description": "Tokens matched against number, destination, shipping name and reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against number, destination, shipping name and reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "challan_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Challan Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "return_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReturnType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/DestinationType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ChallanPeriod"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pending_returnable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pending Returnable",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Deleted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Challans Csv",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/lookup": {
+      "get": {
+        "operationId": "challans_get_challan_by_number",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "challan_number",
+            "required": true,
+            "schema": {
+              "maxLength": 20,
+              "minLength": 5,
+              "title": "Challan Number",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Challan By Number",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/summary": {
+      "get": {
+        "description": "The summary cards (total, this week, this month, pending returnable, by type / destination / status) over the\nsame filters and scope as the list; quantities are totals per unit and never added across units.",
+        "operationId": "challans_get_challan_summary",
+        "parameters": [
+          {
+            "description": "Tokens matched against number, destination, shipping name and reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against number, destination, shipping name and reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "challan_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Challan Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "return_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReturnType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/DestinationType"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ChallanPeriod"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pending_returnable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pending Returnable",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_deleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Deleted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Challan Summary",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}": {
+      "delete": {
+        "description": "Soft-delete a draft (admin template only); the number stays reserved.",
+        "operationId": "challans_delete_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expected Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.delete"
+          ]
+        }
+      },
+      "get": {
+        "description": "Detail with lines, return links, history, ``capabilities`` and ``allowed_transitions``.",
+        "operationId": "challans_get_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Header fields of a draft (dirty fields plus ``expected_version``; 409 ``version_conflict`` when stale,\n409 ``challan_not_editable`` once issued).",
+        "operationId": "challans_update_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/document.pdf": {
+      "get": {
+        "description": "The current document: the issued revision rendered deterministically from its snapshot, or a DRAFT-watermarked\nlive render of a draft (inline, nosniff, sandboxed).",
+        "operationId": "challans_download_challan_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Challan Pdf",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/duplicate": {
+      "post": {
+        "description": "A new draft with a new number copying the header and the lines.",
+        "operationId": "challans_duplicate_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanDuplicate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Duplicate Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/lines": {
+      "post": {
+        "description": "Add a catalog line (code, name, HSN/SAC and unit from the product), a custom line or a manual line.",
+        "operationId": "challans_create_challan_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanLineAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Challan Line",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/lines/{line_id}": {
+      "delete": {
+        "description": "Remove a line; the remaining lines are renumbered in the same transaction.",
+        "operationId": "challans_delete_challan_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expected Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Challan Line",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.update"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "challans_update_challan_line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanLineUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Challan Line",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/print": {
+      "get": {
+        "description": "Everything the browser print view shows: the same data the PDF renders from; internal notes are never included.",
+        "operationId": "challans_get_challan_print",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanPrint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Challan Print",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/revisions": {
+      "get": {
+        "operationId": "challans_list_challan_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChallanRevisionSummary"
+                  },
+                  "title": "Response Challans List Challan Revisions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Challan Revisions",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/revisions/{revision_no}": {
+      "get": {
+        "operationId": "challans_get_challan_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_no",
+            "required": true,
+            "schema": {
+              "title": "Revision No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanRevisionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Challan Revision",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/revisions/{revision_no}/document.pdf": {
+      "get": {
+        "operationId": "challans_download_challan_revision_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_no",
+            "required": true,
+            "schema": {
+              "title": "Revision No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Challan Revision Pdf",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/challans/challans/{challan_id}/transitions": {
+      "post": {
+        "description": "Apply a state-machine action (issue, close, cancel). An action that is unknown or not allowed in the current\nstatus is 409 ``invalid_transition`` with ``allowed_transitions``. ``issue`` and the cancel of an issued challan\nrequire ``Idempotency-Key``.",
+        "operationId": "challans_transition_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "challan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Challan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallanTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Challan",
+        "tags": [
+          "challans"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "challans.challan.transition",
+            "challans.challan.issue",
+            "challans.challan.reverse"
           ]
         }
       }

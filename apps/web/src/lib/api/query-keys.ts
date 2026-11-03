@@ -96,6 +96,14 @@ export const queryKeys = {
     lookupTypes: () => ["catalogue", "lookup-types"] as const,
     references: (kind: string, id: string) => ["catalogue", "references", { kind, id }] as const,
   },
+  challans: {
+    all: () => ["challans"] as const,
+    list: (params: Record<string, string | number | boolean | null | undefined>) => ["challans", "list", compact(params)] as const,
+    summary: (params: Record<string, string | number | boolean | null | undefined>) => ["challans", "summary", compact(params)] as const,
+    challan: (challanId: string) => ["challans", "challan", { challan_id: challanId }] as const,
+    print: (challanId: string) => ["challans", "print", { challan_id: challanId }] as const,
+    note: (challanId: string) => ["challans", "note", { challan_id: challanId }] as const,
+  },
   pricing: {
     all: () => ["pricing"] as const,
     priceLists: (params: Record<string, string | number | boolean | null | undefined>) => ["pricing", "price-lists", compact(params)] as const,
@@ -200,6 +208,8 @@ export const invalidationMap = {
   "sales.quote_changed": [queryKeys.sales.all(), queryKeys.briefings.today()],
   "sales.quote_transition": [queryKeys.sales.all(), queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "sales.message_replied": [queryKeys.sales.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
+  "challans.challan_changed": [queryKeys.challans.all(), queryKeys.search.all()],
+  "challans.challan_transition": [queryKeys.challans.all(), queryKeys.search.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "parties.party_changed": [queryKeys.parties.all(), queryKeys.sales.all(), queryKeys.search.all()],
   "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap()],
   "identity.password_changed": [queryKeys.identity.me()],

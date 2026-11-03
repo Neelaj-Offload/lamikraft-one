@@ -178,6 +178,22 @@ CUT_PLANS = SimpleNamespace(WALNUT="CUT-2026-0001")
 CUT_PLAN_REFS = SimpleNamespace(WALNUT="CUT_PLAN_WALNUT")
 ENQUIRY_REFS = SimpleNamespace(**{k: f"ENQ_{k}" for k in vars(ENQUIRIES)})
 
+# ---- delivery challans (Slice 2; fixtures.md §8) ---------------------------------------------
+#: business numbers follow from creation order through the yearly ``DC`` allocator
+CHALLANS = SimpleNamespace(
+    JOB_WORK="DC-2026-0001",  # Job Work, returnable, to Precision Edge Fabricators; issued D-7 by Ravi, expected return D0+1
+    SAMPLE_MAISON="DC-2026-0002",  # Sample, returnable, to Maison; issued D-3 by Ravi
+    OUTWARD_DRAFT="DC-2026-0003",  # Outward, non-returnable, to Nordhaus; Ravi's draft at D0 08:30
+)
+#: SeedContext.refs keys of the challans ("DC_" + CHALLANS attribute)
+CHALLAN_REFS = SimpleNamespace(**{k: f"DC_{k}" for k in vars(CHALLANS)})
+#: (product key attribute, quantity) of each fixture challan's single line
+CHALLAN_LINES = {
+    "JOB_WORK": ("WALNUT_BOARD", "12"),
+    "SAMPLE_MAISON": ("ASH_BOARD", "2"),
+    "OUTWARD_DRAFT": ("OAK_TRAY", "40"),
+}
+
 # ---- tasks and reminders ---------------------------------------------------------------------
 TASKS = SimpleNamespace(KABIR_COUNT="TASK_KABIR_COUNT", ARJUN_WALKTHROUGH="TASK_ARJUN_WALKTHROUGH")
 REMINDERS = SimpleNamespace(MEERA="REMINDER_MEERA")

@@ -3,13 +3,14 @@ scope, the challan subscription and feedback copied to the spec revision."""
 
 from __future__ import annotations
 
-import uuid
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 
 from app.core.errors import InvalidTransition, NotFound, ValidationFailed
+from app.modules.challans import service as challans
+from app.modules.challans.schemas import ChallanCreate
 from app.modules.sales import service as sales
 from app.modules.sales.models import CustomProductSpecRevision
 from app.modules.sales.samples import dispatch_by_challan
@@ -81,7 +82,9 @@ def test_sample_lifecycle_lineage_and_numbering(world: SalesWorld) -> None:
 def test_challan_issue_dispatches_the_sample(world: SalesWorld) -> None:
     with world.uow(MEERA) as uow:
         s, _ = sales.create_sample_command(uow, SampleCreate(party_id=world.ref("NORDHAUS"), description="Decor chips", quantity=Decimal("5")))
-    challan = uuid.uuid7()
+    # a real draft challan: sales_sample.challan_id is a foreign key since the Slice-2 merge (migration 0015)
+    with world.uow(keys.USERS.RAVI) as uow:
+        challan = challans.create_challan(uow, ChallanCreate(party_id=world.ref("NORDHAUS"))).id
     with world.uow(SAHIL) as uow:
         assert dispatch_by_challan(uow, s.id, challan) is True
         assert dispatch_by_challan(uow, s.id, challan) is False  # idempotent

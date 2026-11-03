@@ -87,9 +87,8 @@ describe("area overviews", () => {
   it("say what is planned, with slice badges and links to Today and the Inbox, and show no figures", () => {
     const html = renderInSession(<AreaOverview area="operations" />);
     const text = textOf(html);
-    expect(text).toContain("the rest of Operations arrives in Slices 2 and 4");
+    expect(text).toContain("the rest of Operations arrives in Slice 4");
     expect(text).toContain("Available");
-    expect(text).toContain("Planned · Slice 2");
     expect(text).toContain("Planned · Slice 4");
     expect(html).toContain('href="/today"');
     expect(html).toContain('href="/inbox"');

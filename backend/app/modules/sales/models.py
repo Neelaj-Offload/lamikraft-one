@@ -653,7 +653,10 @@ class Sample(TenantEntity, VersionMixin, BranchMixin, Base):
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     dispatch_reference: Mapped[str | None] = mapped_column(String(120), nullable=True)
     #: the delivery challan that carried the sample (challans module; no FK across lanes yet)
-    challan_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: the challan that dispatched the sample (FK added at the Slice-2 merge, migration 0015)
+    challan_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("challans_challan.id", ondelete="RESTRICT"), nullable=True
+    )
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivery_evidence_kind: Mapped[str | None] = mapped_column(String(30), nullable=True)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)

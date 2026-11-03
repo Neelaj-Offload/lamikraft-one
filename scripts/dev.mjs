@@ -623,7 +623,7 @@ async function testE2e(argv) {
     await lkOrThrow(['db', 'drop', '--yes'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'create'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'migrate'], { env: childEnv(overrides) });
-    await lkOrThrow(['seed', 'demo', '--anchor-date', '2026-10-12'], { env: childEnv(overrides) });
+    await lkOrThrow(['seed', 'demo', '--anchor-date', '2026-10-12', '--slice', '2'], { env: childEnv(overrides) });
     await assertPortsFree([
       ['e2e api', base.e2eApiPort],
       ['e2e web', base.e2eWebPort],

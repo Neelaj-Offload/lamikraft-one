@@ -84,7 +84,8 @@ def test_tool_input_extra_fields_and_unknown_tools_are_errors(world: World, sale
     nordhaus = world.ref("NORDHAUS")
     extra = execute_tool(_tool_ctx(world, known_ids={nordhaus}), "find_usual_order", {"party_id": str(nordhaus), "user_id": str(nordhaus)})
     assert extra.is_error and extra.error_code == "invalid_input"
-    missing = execute_tool(_tool_ctx(world), "draft_challan", {})
+    # draft_challan is installed since the Slice-2 challans module; propose_stock_movement arrives with Slice 4
+    missing = execute_tool(_tool_ctx(world), "propose_stock_movement", {})
     assert missing.is_error and missing.error_code == "capability_not_installed" and missing.status == 501
 
 

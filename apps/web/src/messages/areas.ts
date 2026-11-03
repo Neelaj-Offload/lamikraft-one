@@ -17,6 +17,8 @@ export interface AreaCopy {
   stateBody: string;
   partsHeading: string;
   parts: readonly PlannedPart[];
+  /** Replaces the shared "nothing is switched on" line once a part of the area is live. */
+  liveNote?: string;
 }
 
 export const areaMessages = {
@@ -28,13 +30,14 @@ export const areaMessages = {
   operations: {
     title: "Operations",
     intro: "Cutting, challans, stock, purchasing, production, quality and dispatch.",
-    stateTitle: "The cutting optimiser is here; the rest of Operations arrives in Slices 2 and 4",
+    stateTitle: "Cutting and challans are here; the rest of Operations arrives in Slice 4",
     stateBody:
-      "Saved cut plans with a true-scale board canvas are available now. Delivery challans as documents complete Slice 2; Slice 4 connects inventory, reservations, purchasing, production, quality, dispatch and logistics.",
+      "Saved cut plans with a true-scale board canvas and delivery challans as documents (numbering, transitions, PDF and CSV; no stock is moved) are available now. Slice 4 connects inventory, reservations, purchasing, production, quality, dispatch and logistics.",
+    liveNote: "The cutting optimiser and delivery challans are available now; the other parts below are not switched on yet.",
     partsHeading: "What this area will hold",
     parts: [
       { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },
-      { label: "Delivery challans as documents: numbering, transitions, PDF and CSV", slice: 2 },
+      { label: "Delivery challans as documents: numbering, transitions, PDF and CSV", slice: 2, routeId: "operations-challans" },
       { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4 },
       { label: "Reservations and pick lists with no oversell", slice: 4 },
       { label: "Purchasing: requisition, purchase order, goods receipt", slice: 4 },
