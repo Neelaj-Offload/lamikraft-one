@@ -25,6 +25,7 @@ from app.platform.audit.models import AuditLog
 from app.platform.events.models import DomainEvent
 from app.platform.search import service as search
 from app.seed.world import keys
+
 # The sales world's fixtures, imported here so they override security/conftest.py's identity `world` in this module.
 from tests.integration.catalogue.world import member_actors, personas  # noqa: F401
 from tests.integration.sales.world import SalesWorld, sales_world, world  # noqa: F401
@@ -34,7 +35,7 @@ SENTINEL = "13.5791"
 MEERA, SAHIL, PRIYA, ANANYA = keys.USERS.MEERA, keys.USERS.SAHIL, keys.USERS.PRIYA, keys.USERS.ANANYA
 
 
-def test_costing_absent_without_pricing_cost_read(world: SalesWorld) -> None:
+def test_costing_absent_without_pricing_cost_read(world: SalesWorld) -> None:  # noqa: F811 (the imported fixture)
     with world.uow(MEERA) as uow:
         custom = sales.create_custom_product(uow, CustomProductCreate(product_name="Sentinel tray", quoted_price=Decimal("30"), quoted_currency="EUR"))  # type: ignore[arg-type]
     with pytest.raises(Forbidden), world.uow(MEERA) as uow:  # sales cannot write or read costing
