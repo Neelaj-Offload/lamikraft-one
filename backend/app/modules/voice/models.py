@@ -77,8 +77,7 @@ class VoiceUtterance(TenantEntity, VersionMixin, Base):
     edited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     turn_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
-    #: a correction after submission: the earlier user turn this one corrects (a new turn, never an edit)
-    corrects_turn_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    # a correction's ``corrects_turn_id`` lives on the agents turn (design section 4; Slice-3 stage-2 merge, 0020)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (

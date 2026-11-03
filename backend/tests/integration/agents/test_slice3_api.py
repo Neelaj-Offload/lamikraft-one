@@ -149,6 +149,9 @@ def test_ai_status_usage_and_verify_in_demo(meera: Assistant) -> None:
     verified = meera.client.post(f"{API}/admin/ai/verify", headers=admin)
     assert verified.status_code == 200, verified.text
     assert verified.json()["mode"] == "demo" and verified.json()["state"] == "connected"
+    # Slice-3 stage-2 merge: the vision module's ai.gemini routine runs in the same verify (voice-vision report section 5)
+    vision = verified.json()["vision"]
+    assert vision["key"] == "ai.gemini" and vision["mode"] == "demo" and vision["state"] == "connected"
 
 
 # ---- SSE (ADR-050) ------------------------------------------------------------------------------------------------

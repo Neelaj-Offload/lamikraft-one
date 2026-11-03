@@ -8,6 +8,7 @@ Placeholder number (completion program: parallel lanes use 0030+; the Slice-3 in
 after the agents-s3 ``0020`` and WhatsApp ``0022`` migrations).
 
 - ``voice_utterance``: the primary key is the client's UUIDv7; ``turn_id`` unique when set; audio purged after 7 days.
+  (Integrator: the lane's ``corrects_turn_id`` column moved to ``agents_turn`` in ``0020``, design section 4.)
 - ``voice_speech``: synthesised replies (text hash only, never the text); ``voice_readback``: presented read-backs.
 - ``vision_capture``: one live capture per (company, user, conversation, sha256) — partial unique index over
   ``coalesce(conversation_id, nil uuid)`` while not purged; ``vision_request`` is always tainted (CHECK).
@@ -88,7 +89,6 @@ def upgrade() -> None:
         sa.Column("edited", sa.Boolean(), nullable=False),
         sa.Column("turn_id", sa.Uuid(), nullable=True),
         sa.Column("run_id", sa.Uuid(), nullable=True),
-        sa.Column("corrects_turn_id", sa.Uuid(), nullable=True),
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint("audio_sha256 IS NULL OR audio_sha256 ~ '^[0-9a-f]{64}$'", name=op.f("ck_voice_utterance_audio_sha256_format")),
         sa.CheckConstraint("duration_ms IS NULL OR duration_ms BETWEEN 0 AND 60000", name=op.f("ck_voice_utterance_duration_bounds")),

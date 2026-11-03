@@ -79,6 +79,10 @@ def test_agent_c_voice_path_same_result(voice: Voice, world: World) -> None:
     with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
         turn = uow.session.get(Turn, uuid.UUID(submitted["turn"]["turn_id"]))
         assert turn is not None and str(turn.client_utterance_id) == submitted["utterance"]["id"]
+        # Slice-3 stage-2 merge: a voice turn says how it arrived and carries its transcript facts (design section 4)
+        assert turn.input_mode == "voice" and turn.corrects_turn_id is None
+        assert turn.transcript_meta == {"provider": "demo", "language": "en-IN", "confidence": turn.transcript_meta["confidence"],
+                                        "edited": False, "original_text": None, "simulated": False}
         row = uow.session.get(VoiceUtterance, uuid.UUID(submitted["utterance"]["id"]))
         assert row is not None and row.status == "submitted" and row.edited is False
         assert row.turn_id == turn.id and row.audio_key is not None and row.audio_mime == "audio/wav"
@@ -143,7 +147,7 @@ def test_recordings_are_checked_by_magic_bytes_size_and_length(voice: Voice) -> 
     assert webm_claimed_long.status_code == 422 and webm_claimed_long.json()["code"] == "audio_too_long"
 
 
-def test_correction_after_submission_is_a_new_turn_that_revises_the_draft(voice: Voice) -> None:
+def test_correction_after_submission_is_a_new_turn_that_revises_the_draft(voice: Voice, world: World) -> None:
     first, detail = _say_by_voice(voice, "usual_oak_tray")
     card = cards_of(detail, "quote_draft")[0]
     line_id, quote_id = card["lines"][0]["line_id"], card["quote_id"]
@@ -157,6 +161,11 @@ def test_correction_after_submission_is_a_new_turn_that_revises_the_draft(voice:
                                         corrects_turn_id=first["turn"]["turn_id"])
     assert correction["turn"]["turn_id"] != first["turn"]["turn_id"]
     assert correction["utterance"]["corrects_turn_id"] == first["turn"]["turn_id"]
+    again = voice.client.get(f"{API}/voice/utterances/{correction['utterance']['id']}", headers=voice.headers)
+    assert again.status_code == 200 and again.json()["corrects_turn_id"] == first["turn"]["turn_id"]
+    with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:  # the correction link lives on the agents turn (0020)
+        turn = uow.session.get(Turn, uuid.UUID(correction["turn"]["turn_id"]))
+        assert turn is not None and str(turn.corrects_turn_id) == first["turn"]["turn_id"] and turn.input_mode == "voice"
     assert revised["run"]["status"] == "succeeded", revised
     assert Decimal(cards_of(revised, "quote_draft")[0]["totals"]["grand_total"]) == Decimal("7200.00")
     bad = voice.submit(voice.transcribe(fixture_audio("change_to_300")).json()["id"], "change it to 300",

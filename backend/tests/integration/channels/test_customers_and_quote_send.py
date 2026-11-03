@@ -12,13 +12,14 @@ import pytest
 from sqlalchemy import select, update
 
 from app.core.clock import FrozenClock
-from app.core.errors import Forbidden, ValidationFailed
+from app.core.errors import Conflict, Forbidden, ValidationFailed
 from app.modules.approvals import service as approvals
-from app.modules.approvals.models import Proposal
+from app.modules.approvals.models import Proposal, ProposalDecision
 from app.modules.channels.models import ChannelIdentity, OutboxMessage
 from app.modules.channels.tools import PrepareQuoteSendInput, prepare_quote_send
 from app.modules.parties.models import PartyContact
 from app.modules.sales.models import CustomerMessage, Quote
+from app.modules.voice import readback
 from app.platform.uow import UnitOfWork
 from app.seed.world import keys
 from tests.integration.catalogue.world import World
@@ -81,6 +82,35 @@ def test_quote_send_needs_another_persons_approval_then_sends_the_bound_pdf(wa: 
         assert outbox.kind == "media" and outbox.purpose == "transactional" and outbox.state == "accepted"
         assert outbox.payload["document_sha256"] == prepared.document_sha256 and outbox.payload["revision_id"]
         assert outbox.provider_message_id and outbox.provider_message_id.startswith("wamid.demo.")
+
+
+def test_a_voice_approval_of_the_quote_send_needs_a_fresh_readback(wa: WhatsApp, nordhaus: World) -> None:
+    """Slice-3 stage-2 merge (voice-vision request 2): an approval spoken to the assistant names the quote out loud
+    first — ``approvals.decide(channel="voice")`` calls ``voice.readback.require_presented_readback`` per readable
+    target and records ``decided_via = voice``; the read-back is consumed by that one approval."""
+    wa.text(LENA, "Can you send the quote here?")
+    quote = _quote(wa, keys.QUOTES.PRIOR_WON)
+    with UnitOfWork(wa.actor(keys.USERS.MEERA)) as uow:
+        prepared = prepare_quote_send(uow, PrepareQuoteSendInput(quote_id=quote.id))
+    with UnitOfWork(wa.system()) as uow:
+        proposal = uow.session.get(Proposal, prepared.proposal_id)
+        assert proposal is not None
+        content_hash, version = proposal.content_hash, proposal.version
+
+    def decide() -> Proposal:
+        with UnitOfWork(wa.actor(keys.USERS.SAHIL)) as uow:
+            return approvals.decide(uow, prepared.proposal_id, decision="approve", content_hash_seen=content_hash,
+                                    expected_version=version, channel="voice")
+
+    with pytest.raises(Conflict) as refused:
+        decide()
+    assert refused.value.code == "readback_required" and refused.value.extra["reason"] == "missing"
+    with UnitOfWork(wa.actor(keys.USERS.SAHIL)) as uow:
+        readback.present(uow, "sales.quote", quote.id)
+    assert decide().status == "approved"
+    with UnitOfWork(wa.system()) as uow:
+        decision = uow.session.scalars(select(ProposalDecision).where(ProposalDecision.proposal_id == prepared.proposal_id)).one()
+        assert decision.decided_via == "voice" and decision.decision == "approve"
 
 
 def test_quote_send_outside_the_window_is_blocked_with_the_reason(wa: WhatsApp, nordhaus: World, frozen_clock: FrozenClock) -> None:

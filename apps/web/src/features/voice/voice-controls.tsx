@@ -606,7 +606,7 @@ export function VoiceControls({ assistant, rootRef, ref }: VoiceControlsProps) {
         </section>
       ) : null}
 
-      {extraction ? <ExtractionCardView key={`${extraction.request_id}-${extraction.version}`} card={extraction} onChange={setExtraction} onUse={(summary) => void assistant.send(summary)} /> : null}
+      {extraction ? <ExtractionCardView key={`${extraction.request_id}-${extraction.version}`} card={extraction} onChange={setExtraction} onUse={(summary) => void assistant.send(summary, { extractionId: extraction.request_id })} /> : null}
     </div>
   );
 }

@@ -205,6 +205,8 @@ class TurnCreate(BaseModel):
     selected_option: SelectedOption | None = None
     client_utterance_id: uuid.UUID | None = None
     input_mode: TurnInputMode = TurnInputMode.TEXT
+    #: a confirmed vision extraction (``POST /vision/extractions/{id}/confirm``) the run may use; the run is tainted
+    extraction_id: uuid.UUID | None = None
 
     @field_validator("text")
     @classmethod
@@ -228,6 +230,9 @@ class TurnOut(BaseModel):
     run_id: uuid.UUID | None
     selected_option: dict[str, Any] | None
     input_mode: TurnInputMode = TurnInputMode.TEXT
+    #: a correction after submission names the earlier user turn it corrects (voice)
+    corrects_turn_id: uuid.UUID | None = None
+    extraction_id: uuid.UUID | None = None
     created_at: datetime
 
 
@@ -411,13 +416,19 @@ class AiUsageOut(BaseModel):
     failures: list[AiFailure]
 
 
-class AiVerifyOut(BaseModel):
+class AiVerifyCheck(BaseModel):
     key: str
     mode: str
     state: str
     verified_at: datetime | None
     last_error_code: str | None
     details: dict[str, Any] | None
+
+
+class AiVerifyOut(AiVerifyCheck):
+    """The ``ai.anthropic`` result at the top level (Slice 3 shape) plus ``ai.gemini`` (vision) when registered."""
+
+    vision: AiVerifyCheck | None = None
 
 
 class ConversationOut(BaseModel):

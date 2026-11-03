@@ -28,6 +28,7 @@ from app.modules.agents.schemas import (
     AiProviderStatus,
     AiStatusOut,
     AiUsageOut,
+    AiVerifyCheck,
     AiVerifyOut,
     AiWorkflowUsage,
 )
@@ -212,13 +213,25 @@ def get_usage(uow: UnitOfWork, *, days: int = 7) -> AiUsageOut:
     )
 
 
+VISION_INTEGRATION_KEY = "ai.gemini"
+
+
 def verify(uow: UnitOfWork) -> AiVerifyOut:
+    """``ai.anthropic`` and, when the vision module registered its routine, ``ai.gemini`` (``verify_gemini``: a 1×1
+    PNG classification in live, deterministic in demo)."""
+    from app.platform.system.integrations import integration_def
     from app.platform.system.service import run_verification
 
     providers.register()
     result = run_verification(uow, INTEGRATION_KEY)
+    vision = None
+    definition = integration_def(VISION_INTEGRATION_KEY)
+    if definition is not None and definition.verify is not None:
+        checked = run_verification(uow, VISION_INTEGRATION_KEY)
+        vision = AiVerifyCheck(key=checked.key, mode=checked.mode, state=checked.state, verified_at=checked.verified_at,
+                               last_error_code=checked.last_error_code, details=checked.details)
     return AiVerifyOut(key=result.key, mode=result.mode, state=result.state, verified_at=result.verified_at,
-                       last_error_code=result.last_error_code, details=result.details)
+                       last_error_code=result.last_error_code, details=result.details, vision=vision)
 
 
 __all__ = ["circuit_from_log", "get_status", "get_usage", "provider_status", "verify"]

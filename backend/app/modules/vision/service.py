@@ -70,7 +70,7 @@ ASSISTANT_USE = "agents.assistant.use"
 MAX_CAPTURE_BYTES = 3 * 1024 * 1024 // 2
 MAX_EDGE_PX = 1568
 CAPTURE_RETENTION = timedelta(hours=24)
-#: ai-routing.md section 7 default; the routing table's ``vision_calls_per_user`` wins once agents-s3 is merged
+#: ai-routing.md section 7 default; the routing table's ``vision_calls_per_user`` wins
 DEFAULT_VISION_CALLS_PER_USER = 60
 EXTRACTABLE_KINDS = {FileKind.PNG: "image/png", FileKind.JPEG: "image/jpeg", FileKind.WEBP: "image/webp",
                      FileKind.PDF: "application/pdf"}
@@ -93,10 +93,26 @@ def capture_setting(uow: UnitOfWork) -> ScreenCaptureSetting:
     return value if isinstance(value, ScreenCaptureSetting) else ScreenCaptureSetting.model_validate(value.model_dump())
 
 
+def dpdp_approved(uow: UnitOfWork) -> bool:
+    """ai-routing.md section 8: live capture also needs the owner's recorded DPDP approval (``ai_routing.dpdp``)."""
+    table = _routing_table(uow)
+    return bool(table is not None and table.dpdp.approved)
+
+
+def capture_allowed(uow: UnitOfWork) -> bool:
+    """``screen_capture.enabled`` and, in live mode, the recorded DPDP approval."""
+    return capture_setting(uow).enabled and (not is_live() or dpdp_approved(uow))
+
+
 def _require_capture_enabled(uow: UnitOfWork) -> None:
     if not capture_setting(uow).enabled:
         raise Forbidden(
             "Masked screenshots are switched off for this company.", code="screen_capture_disabled",
+        )
+    if is_live() and not dpdp_approved(uow):
+        raise Forbidden(
+            "Masked screenshots need the recorded DPDP approval before they reach Gemini (Settings → AI).",
+            code="dpdp_approval_required",
         )
 
 
@@ -110,11 +126,10 @@ def screen_share_preference(uow: UnitOfWork) -> str:
 
 # ---- provider selection ----------------------------------------------------------------------------------------
 def _routing_table(uow: UnitOfWork) -> Any | None:
-    """agents-s3 seam: the configurable routing table (``agents/routing.py``) when that lane is merged."""
-    try:
-        from app.modules.agents import routing  # type: ignore[attr-defined]
-    except ImportError:
-        return None
+    """The configurable routing table (``agents/routing.py``): the vision model, the ``vision_calls_per_user`` quota
+    and the DPDP approval."""
+    from app.modules.agents import routing
+
     try:
         return routing.resolve(uow)
     except Exception:  # noqa: BLE001 - a broken setting must not break vision; defaults apply
@@ -164,7 +179,7 @@ def provider_label() -> str:
 def capabilities(uow: UnitOfWork) -> VisionCapabilities:
     _require_use(uow)
     return VisionCapabilities(
-        screen_capture_enabled=capture_setting(uow).enabled,
+        screen_capture_enabled=capture_allowed(uow),
         screen_share=screen_share_preference(uow),  # type: ignore[arg-type]
         provider_label=provider_label(),
         mode="live" if is_live() else "demo",
@@ -210,11 +225,11 @@ def _log_call(uow: UnitOfWork, *, provider: str, model: str, latency_ms: int, in
         task_class="vision", input_tokens=input_tokens, output_tokens=output_tokens, latency_ms=latency_ms,
         outcome="ok" if error is None else "error", error_type=error, request_id=request_id, created_at=uow.now(),
     )
-    # agents-s3 adds the quota owner and the trace id to the call log; set them when the columns exist
-    if hasattr(AiCallLog, "user_id"):
-        row.user_id = uow.actor.user_id  # type: ignore[attr-defined]
-    if hasattr(AiCallLog, "correlation_id"):
-        row.correlation_id = uow.actor.correlation_id  # type: ignore[attr-defined]
+    # the quota owner and the trace id (agents-s3 call-log columns)
+    row.user_id = uow.actor.user_id
+    from app.modules.agents.service import ingress_correlation_id
+
+    row.correlation_id = ingress_correlation_id(uow.actor.correlation_id)
     uow.add(row)
     return row.id
 
@@ -289,6 +304,16 @@ def _own_capture(uow: UnitOfWork, capture_id: uuid.UUID, *, for_update: bool = F
     if row is None:
         raise NotFound(code="not_found", resource_type="vision.capture")
     return row
+
+
+def latest_capture(uow: UnitOfWork, conversation_id: uuid.UUID) -> VisionCapture | None:
+    """The router seam: this person's newest attached (not removed, not purged, not due) capture in a conversation."""
+    user_id = _require_use(uow)
+    return uow.session.scalars(select(VisionCapture).where(
+        VisionCapture.company_id == uow.actor.company_id, VisionCapture.user_id == user_id,
+        VisionCapture.conversation_id == conversation_id, VisionCapture.status == CaptureStatus.ATTACHED.value,
+        VisionCapture.purge_at > uow.now(),
+    ).order_by(VisionCapture.created_at.desc(), VisionCapture.id.desc()).limit(1)).first()
 
 
 def remove_capture(uow: UnitOfWork, capture_id: uuid.UUID) -> ScreenCaptureOut:
@@ -581,12 +606,15 @@ __all__ = [
     "MAX_EDGE_PX",
     "answer_screen",
     "capabilities",
+    "capture_allowed",
     "capture_setting",
     "card_for",
     "confirm_extraction",
+    "dpdp_approved",
     "extract",
     "get_extraction",
     "get_provider",
+    "latest_capture",
     "purge_due",
     "remove_capture",
     "store_capture",

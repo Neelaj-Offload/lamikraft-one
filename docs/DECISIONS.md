@@ -561,3 +561,26 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
   session as the catalogue says; the channels test client presents one by default (`x-test-mfa`).
 - **Consequences**: the web Settings › WhatsApp admin cards need the step-up dialog for admins without a fresh MFA
   session (open item, like the FX policy screen at Checkpoint 3). **Accepted.**
+
+## ADR-061 Slice-3 stage-2 merge: voice and vision facts on the turn, router → vision, voice approvals need a read-back
+- **Context**: the voice/vision lane was built from Checkpoint 3, before the agents runtime it plugs into, so it left
+  its cross-lane facts behind guarded seams (voice-vision report §4): `corrects_turn_id` and the transcript facts on
+  `voice_utterance`, the client summarising a confirmed extraction as a plain (untainted) turn, `screen_question` /
+  `visual_extraction` routed nowhere, no read-back check on any approval, `screen_capture.enabled` honoured in live
+  mode without the DPDP approval, and `verify_gemini` registered but unreachable from `POST /admin/ai/verify`.
+- **Decision**: migration `0020_slice3_stage2_cross_lane_links` adds `agents_turn.corrects_turn_id`,
+  `transcript_meta` (`{provider, language, confidence, edited, original_text, simulated}`) and `vision_request_id`;
+  `corrects_turn_id` moves off `voice_utterance` (the lane migration, renumbered `0019`, no longer creates it; the
+  utterance API reads it from the turn). Voice turns are `input_mode="voice"`. `TurnCreate.extraction_id` names a
+  confirmed extraction (404/409 otherwise); the run reads it only as the `{"untrusted": true}` block of
+  ai-routing.md §6 and is tainted from creation. The orchestrator sends `screen_question` to the vision service when
+  the person has a live masked screenshot attached in the conversation (a hand-off, vision unavailable, switched off
+  or over quota falls through to the normal path); `visual_extraction` without a confirmed extraction asks for one.
+  `approvals.decide(channel="voice")` (API: `DecideIn.channel`) calls `voice.readback.require_presented_readback`
+  for every readable target and records `decided_via = voice`; a voice approval with nothing readable is refused.
+  Live capture needs `ai_routing.dpdp.approved` as well as `screen_capture.enabled` (403 `dpdp_approval_required`).
+  `POST /admin/ai/verify` also runs `ai.gemini` and returns it as `vision`.
+- **Consequences**: no web control sends `channel: "voice"` yet (the assistant has no spoken approve; approvals are
+  on screen) — the guard is the server seam a spoken approve must use. Vision usage has no price row (no Gemini
+  price recorded), so Settings → AI shows it unpriced. The lane's expression index `uq_vision_capture_conversation_sha`
+  lives in the migration only, so `alembic check` reports it as a model drift (known, harmless). **Accepted.**

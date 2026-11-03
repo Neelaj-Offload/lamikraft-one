@@ -51,6 +51,8 @@ class DecideIn(BaseModel):
     content_hash: str = Field(min_length=64, max_length=64)
     expected_version: int
     reason: str | None = Field(default=None, max_length=1000)
+    #: ``voice``: the approval was spoken to the assistant; it needs a fresh read-back of the target (409 otherwise)
+    channel: Literal["web", "voice"] = "web"
 
 
 def _out(uow: UnitOfWork, p: Proposal) -> ProposalOut:
@@ -102,6 +104,7 @@ def decide_proposal(actor: Actor, proposal_id: uuid.UUID, body: DecideIn) -> Pro
             content_hash_seen=body.content_hash,
             expected_version=body.expected_version,
             reason=body.reason,
+            channel="voice" if body.channel == "voice" else None,
         )
         out = _out(uow, proposal)
     service.raise_if_not_decided(proposal)

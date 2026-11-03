@@ -75,10 +75,17 @@ class Turn(TenantEntity, Base):
     correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: one of TURN_INPUT_MODES; WhatsApp turns carry wa_text / wa_voice / card_action (Slice-3 stage-1 merge, 0018)
     input_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="text", server_default="text")
+    #: a correction after submission: the earlier user turn this one corrects (a new turn, never an edit; 0020)
+    corrects_turn_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: a voice turn's transcript facts: {provider, language, confidence, edited, original_text} (design section 4; 0020)
+    transcript_meta: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    #: a confirmed vision extraction handed to the run as an untrusted block; the run is tainted (0020)
+    vision_request_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint("role IN ('user','assistant')", name="role_values"),
         CheckConstraint("input_mode IN ('text','voice','wa_text','wa_voice','card_action')", name="input_mode_values"),
+        CheckConstraint("transcript_meta IS NULL OR jsonb_typeof(transcript_meta) = 'object'", name="transcript_meta_object"),
         Index("uq_agents_turn_seq", "conversation_id", "seq", unique=True),
         Index("ix_agents_turn_run", "run_id"),
     )

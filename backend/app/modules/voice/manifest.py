@@ -74,10 +74,9 @@ def _on_load() -> None:
         if integration_def(definition.key) is None:
             register_integration(definition)
     register_readiness_check("voice", service.readiness)
-    try:  # the WhatsApp lane's seam (lane/s3-whatsapp); absent until that lane is merged
-        from app.modules.channels.whatsapp.stt import register_transcriber  # type: ignore[import-not-found]
-    except ImportError:
-        return
+    # WhatsApp voice notes use the configured STT adapter (channels seam; Slice-3 stage-2 merge)
+    from app.modules.channels.whatsapp.stt import register_transcriber
+
     register_transcriber(service.whatsapp_transcriber)
 
 

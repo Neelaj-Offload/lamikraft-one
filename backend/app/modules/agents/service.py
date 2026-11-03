@@ -149,8 +149,15 @@ def _offered_option(uow: UnitOfWork, conversation_id: uuid.UUID, option: Selecte
     )
 
 
-def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -> TurnAccepted:
-    """Store the user turn, create the run and enqueue ``agent.run``; returns the accepted run (202)."""
+def create_turn(
+    uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate, *,
+    corrects_turn_id: uuid.UUID | None = None, transcript_meta: Mapping[str, Any] | None = None,
+) -> TurnAccepted:
+    """Store the user turn, create the run and enqueue ``agent.run``; returns the accepted run (202).
+
+    ``corrects_turn_id`` and ``transcript_meta`` are set by the voice module only (not part of the public body): a
+    voice correction names the user turn it corrects, and a voice turn records its transcript facts (design section 4).
+    """
     providers.check_configured()
     conversation = own_conversation(uow, conversation_id, for_update=True)
     if conversation.status != "active":
@@ -165,6 +172,18 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
             return TurnAccepted(run_id=run.id, turn_id=existing.id, conversation_id=conversation.id, status=run.status, replayed=True)  # type: ignore[arg-type]
     if data.input_mode in (TurnInputMode.WA_TEXT, TurnInputMode.WA_VOICE) and conversation.channel != "whatsapp":
         raise ValidationFailed("WhatsApp input modes belong to WhatsApp conversations", code="input_mode_channel")
+    if corrects_turn_id is not None:
+        corrected = uow.session.scalars(select(Turn).where(
+            Turn.id == corrects_turn_id, Turn.conversation_id == conversation.id, Turn.role == "user",
+        )).first()
+        if corrected is None:
+            raise ValidationFailed("The corrected turn is not in this conversation.", code="invalid_correction",
+                                   errors=[{"loc": ["body", "corrects_turn_id"], "msg": "unknown turn", "type": "invalid_correction"}])
+    if data.extraction_id is not None:
+        # only a confirmed extraction of this person's may reach a run (raises 404 / 409 confirmation_required)
+        from app.modules.vision import service as vision
+
+        vision.untrusted_payload(uow, data.extraction_id)
     selected = _offered_option(uow, conversation.id, data.selected_option) if data.selected_option else None
     now = uow.now()
     conversation.turn_count += 1
@@ -188,6 +207,9 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
         client_utterance_id=data.client_utterance_id,
         correlation_id=correlation_id,
         input_mode=data.input_mode.value,
+        corrects_turn_id=corrects_turn_id,
+        transcript_meta=dict(transcript_meta) if transcript_meta is not None else None,
+        vision_request_id=data.extraction_id,
     )
     run = Run(
         id=uuid.uuid7(),
@@ -203,6 +225,8 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
         input_token_budget=budget["input_tokens"],
         correlation_id=correlation_id,
         degraded_reason=None if quota.allowed else quota.reason,
+        # ai-routing.md section 6: a run that reads an extracted document is tainted from the start
+        tainted=data.extraction_id is not None,
     )
     turn.run_id = run.id
     uow.add(turn)
@@ -403,7 +427,8 @@ def run_summary(run: Run) -> RunSummary:
 def _turn_out(turn: Turn) -> TurnOut:
     return TurnOut(
         id=turn.id, seq=turn.seq, role=turn.role, text=turn.text, cards=turn.cards, run_id=turn.run_id,  # type: ignore[arg-type]
-        selected_option=turn.selected_option, input_mode=turn.input_mode, created_at=turn.created_at,  # type: ignore[arg-type]
+        selected_option=turn.selected_option, input_mode=turn.input_mode, corrects_turn_id=turn.corrects_turn_id,  # type: ignore[arg-type]
+        extraction_id=turn.vision_request_id, created_at=turn.created_at,
     )
 
 

@@ -141,14 +141,24 @@ def readiness() -> tuple[str, bool]:
 
 
 # ---- utterances ------------------------------------------------------------------------------------------------
-def _out(row: VoiceUtterance, *, replayed: bool = False) -> UtteranceOut:
+def _corrects_of(uow: UnitOfWork, row: VoiceUtterance) -> uuid.UUID | None:
+    """The correction link lives on the agents turn the utterance became (design section 4)."""
+    if row.turn_id is None:
+        return None
+    from app.modules.agents.models import Turn
+
+    turn = uow.session.get(Turn, row.turn_id)
+    return turn.corrects_turn_id if turn is not None else None
+
+
+def _out(row: VoiceUtterance, *, replayed: bool = False, corrects_turn_id: uuid.UUID | None = None) -> UtteranceOut:
     label = {"demo": "Demo", "browser": "Browser fallback", "vendor": "Speech vendor"}.get(row.provider, row.provider)
     return UtteranceOut(
         id=row.id, status=row.status, source=row.source, provider_label=label,  # type: ignore[arg-type]
         text=row.transcript or "", language=row.language, confidence=row.confidence,
         segments=[Segment(**s) for s in row.segments or []], simulated=row.simulated,
         untested_language=row.language in UNTESTED, duration_ms=row.duration_ms, error_code=row.error_code,
-        turn_id=row.turn_id, run_id=row.run_id, corrects_turn_id=row.corrects_turn_id, replayed=replayed,
+        turn_id=row.turn_id, run_id=row.run_id, corrects_turn_id=corrects_turn_id, replayed=replayed,
     )
 
 
@@ -167,7 +177,7 @@ def get_utterance(uow: UnitOfWork, utterance_id: uuid.UUID) -> UtteranceOut:
     row = _own_utterance(uow, utterance_id)
     if row is None:
         raise NotFound(code="not_found", resource_type="voice.utterance")
-    return _out(row)
+    return _out(row, corrects_turn_id=_corrects_of(uow, row))
 
 
 @dataclass(frozen=True)
@@ -265,11 +275,11 @@ def create_browser_utterance(uow: UnitOfWork, data: BrowserUtteranceCreate) -> U
 
 def submit_utterance(uow: UnitOfWork, utterance_id: uuid.UUID, data: UtteranceSubmit) -> UtteranceSubmitted:
     """Send the final (possibly edited) transcript as one agents turn with ``client_utterance_id`` = the utterance
-    id. Resending — the same button twice, a retry after a network blip, a queued offline draft — returns the same
-    turn and run."""
+    id, ``input_mode="voice"`` and the transcript facts. Resending — the same button twice, a retry after a network
+    blip, a queued offline draft — returns the same turn and run. A correction names the turn it corrects on the
+    agents turn (``corrects_turn_id``, design section 4)."""
     from app.modules.agents import service as agents
-    from app.modules.agents.models import Turn
-    from app.modules.agents.schemas import TurnCreate
+    from app.modules.agents.schemas import TurnCreate, TurnInputMode
 
     _require(uow)
     row = _own_utterance(uow, utterance_id, for_update=True)
@@ -282,27 +292,28 @@ def submit_utterance(uow: UnitOfWork, utterance_id: uuid.UUID, data: UtteranceSu
     conversation = agents.own_conversation(uow, data.conversation_id)
     if row.status == UtteranceStatus.SUBMITTED.value and row.turn_id is not None:
         accepted = agents.create_turn(uow, conversation.id, TurnCreate(text=row.submitted_text or data.text,
-                                                                        client_utterance_id=row.id))
-        return UtteranceSubmitted(utterance=_out(row, replayed=True), turn=accepted)
-    if data.corrects_turn_id is not None:
-        corrected = uow.session.scalars(select(Turn).where(
-            Turn.id == data.corrects_turn_id, Turn.conversation_id == conversation.id, Turn.role == "user",
-        )).first()
-        if corrected is None:
-            raise ValidationFailed("The corrected turn is not in this conversation.", code="invalid_correction",
-                                   errors=[{"loc": ["body", "corrects_turn_id"], "msg": "unknown turn", "type": "invalid_correction"}])
-    accepted = agents.create_turn(uow, conversation.id, TurnCreate(text=data.text, context=data.context,
-                                                                    client_utterance_id=row.id))
+                                                                        client_utterance_id=row.id,
+                                                                        input_mode=TurnInputMode.VOICE))
+        return UtteranceSubmitted(utterance=_out(row, replayed=True, corrects_turn_id=_corrects_of(uow, row)),
+                                  turn=accepted)
+    edited = data.text != (row.transcript or "")
+    meta = {"provider": row.provider, "language": row.language, "confidence": row.confidence, "edited": edited,
+            "original_text": (row.transcript or "") if edited else None, "simulated": row.simulated}
+    accepted = agents.create_turn(
+        uow, conversation.id,
+        TurnCreate(text=data.text, context=data.context, client_utterance_id=row.id, input_mode=TurnInputMode.VOICE),
+        corrects_turn_id=data.corrects_turn_id, transcript_meta=meta,
+    )
     row.conversation_id = conversation.id
     row.status = UtteranceStatus.SUBMITTED.value
     row.submitted_text = data.text
-    row.edited = data.text != (row.transcript or "")
+    row.edited = edited
     row.turn_id = accepted.turn_id
     row.run_id = accepted.run_id
-    row.corrects_turn_id = data.corrects_turn_id
     row.submitted_at = uow.now()
     uow.flush()
-    return UtteranceSubmitted(utterance=_out(row, replayed=accepted.replayed), turn=accepted)
+    return UtteranceSubmitted(utterance=_out(row, replayed=accepted.replayed, corrects_turn_id=data.corrects_turn_id),
+                              turn=accepted)
 
 
 # ---- spoken replies ----------------------------------------------------------------------------------------------
@@ -394,7 +405,7 @@ def purge_due(uow: UnitOfWork) -> int:
 def whatsapp_transcriber(data: bytes, mime_type: str | None, sha256: str) -> Any:
     """``channels.whatsapp.stt.register_transcriber`` target: the configured STT adapter, with the channel's own
     Demo transcriber as the fallback for recordings this adapter does not know (Demo) or cannot handle."""
-    from app.modules.channels.whatsapp import stt as wa_stt  # type: ignore[import-not-found]
+    from app.modules.channels.whatsapp import stt as wa_stt
 
     adapter = adapters.stt_adapter()
     if adapter is None or adapter.status() not in ("demo", "configured"):

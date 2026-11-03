@@ -224,7 +224,10 @@ def decide(
     content_hash_seen: str,
     expected_version: int,
     reason: str | None = None,
+    channel: str | None = None,
 ) -> Proposal:
+    """Decide a pending proposal. ``channel="voice"`` (an approval spoken to the assistant) needs a fresh read-back of
+    every target that has one, presented to this person and unchanged since (``voice.readback``; Slice-3 stage 2)."""
     if decision not in ("approve", "reject"):
         raise ValidationFailed("decision must be approve or reject", code="invalid_decision")
     proposal = uow.session.scalars(
@@ -247,6 +250,9 @@ def decide(
         raise Forbidden("You cannot decide your own request", code="separation_of_duties")
     if not is_eligible(uow, proposal):
         raise Forbidden(code="not_an_eligible_approver")
+    via = channel or uow.actor.channel
+    if via == "voice" and decision == "approve":
+        _require_voice_readback(uow, proposal)
     handler = handler_for(proposal.kind)
     for target in targets_of(uow, proposal):
         current = handler.current_version(uow, target)
@@ -274,7 +280,7 @@ def decide(
             content_hash=proposal.content_hash,
             requested_by=proposal.requested_by,
             decided_by=uow.actor.user_id,  # type: ignore[arg-type]
-            decided_via=uow.actor.channel,
+            decided_via=via,
             reason=reason,
             decided_at=now,
         )
@@ -299,6 +305,20 @@ def decide(
     uow.emit(f"approvals.proposal.{proposal.status}", aggregate_id=proposal.id, aggregate_version=proposal.version, payload=decided_payload)
     uow.audit(f"approvals.proposal.{decision}", resource_type="approvals.proposal", resource_id=proposal.id, resource_label=proposal.title, reason=reason)
     return proposal
+
+
+def _require_voice_readback(uow: UnitOfWork, proposal: Proposal) -> None:
+    """A voice approval names what it approves out loud first: each readable target needs its latest read-back
+    (raises 409 ``readback_required``); a proposal with nothing readable is approved on screen instead."""
+    from app.modules.voice import readback
+
+    readable = [t for t in targets_of(uow, proposal) if t.target_type in readback.SUPPORTED_SUBJECTS]
+    if not readable:
+        raise Conflict("This request cannot be read back; approve it on screen.", code="readback_required",
+                       reason="unsupported")
+    for target in readable:
+        readback.require_presented_readback(uow, target.target_type, target.target_id,
+                                            action=f"approvals.{proposal.kind}.approve")
 
 
 def withdraw(uow: UnitOfWork, proposal_id: uuid.UUID) -> Proposal:

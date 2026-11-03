@@ -24,12 +24,15 @@ export interface TurnInput {
   selectedOption?: SelectedOption;
   /** Client id of the utterance (the turn's Idempotency-Key, a UUIDv7) so a resend is recognised. */
   clientUtteranceId?: string;
+  /** A confirmed photo/document extraction the run may use (the run is tainted server-side). */
+  extractionId?: string;
 }
 
 export async function postTurn(conversationId: string, turn: TurnInput, idempotencyKey: string, client: ApiClient = api): Promise<string> {
   const body: Record<string, unknown> = { text: turn.text, context: turn.context };
   if (turn.selectedOption !== undefined) body.selected_option = { slot: turn.selectedOption.slot, value: turn.selectedOption.value };
   if (turn.clientUtteranceId) body.client_utterance_id = turn.clientUtteranceId;
+  if (turn.extractionId) body.extraction_id = turn.extractionId;
   const raw = await requestUntyped<unknown>(client, "post", `${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/turns`, {
     body,
     headers: idempotencyHeaders(idempotencyKey),

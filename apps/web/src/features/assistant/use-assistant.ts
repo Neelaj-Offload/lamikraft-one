@@ -48,6 +48,8 @@ export interface SendOptions {
   selectedOption?: SelectedOption;
   /** A voice turn's utterance id (UUIDv7 created on press); a fresh one otherwise. */
   clientUtteranceId?: string;
+  /** A confirmed vision extraction handed to the run as untrusted data. */
+  extractionId?: string;
   /** Posts the turn another way (voice: `/voice/utterances/{id}/submit`); resolves to the run and turn ids. */
   submit?: (conversationId: string, turn: TurnInput) => Promise<{ runId: string; turnId: string | null }>;
 }
@@ -151,7 +153,7 @@ export function useAssistant(extra: ScreenContribution | null = null): UseAssist
           now: new Date(),
           viewport: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight },
         });
-        const turn: TurnInput = { text: value, context, selectedOption: options.selectedOption, clientUtteranceId: id };
+        const turn: TurnInput = { text: value, context, selectedOption: options.selectedOption, clientUtteranceId: id, extractionId: options.extractionId };
         const accepted = options.submit
           ? await options.submit(conversation.current, turn)
           : { runId: await postTurn(conversation.current, turn, id), turnId: null };
