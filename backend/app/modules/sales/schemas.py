@@ -184,6 +184,11 @@ class ProductSnapshot(BaseModel):
     thickness_mm: DecimalStr | None
     specification_summary: str | None
     product_version: int
+    #: FG-QLN-05: the canonical millimetres behind ``size_text`` (absent on snapshots taken before Slice 2)
+    length_mm: DecimalStr | None = None
+    width_mm: DecimalStr | None = None
+    height_mm: DecimalStr | None = None
+    diameter_mm: DecimalStr | None = None
 
 
 class PackagingSnapshot(BaseModel):

@@ -182,6 +182,10 @@ def product_snapshots(uow: UnitOfWork, product_id: uuid.UUID) -> tuple[ProductSn
         thickness_mm=spec.thickness_mm if spec else None,
         specification_summary=" · ".join(spec_bits) or None,
         product_version=p.version,
+        length_mm=p.size.length_mm,
+        width_mm=p.size.width_mm,
+        height_mm=p.size.height_mm,
+        diameter_mm=p.size.diameter_mm,
     )
     pk = p.packaging
     packaging = PackagingSnapshot(
