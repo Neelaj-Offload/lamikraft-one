@@ -239,10 +239,12 @@ describe("TodayView (server render)", () => {
     expect(html).toContain('href="/sales/quotes/q38"');
   });
 
-  it("renders the assistant composer as the command bar, with no voice control in Slice 1", () => {
+  it("renders the assistant composer as the command bar, with push-to-talk only when voice is on (Slice 3)", () => {
     const bootstrap = testBootstrap({ capabilities: { assistant: true, voice: true } });
     const html = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, meeraBriefing()), bootstrap);
-    expect(html).not.toContain("Hold to talk");
+    expect(html).toContain("Hold to talk");
+    const silent = renderWithQueries(<TodayView />, (client) => client.setQueryData(TODAY, meeraBriefing()), testBootstrap({ capabilities: { assistant: true, voice: false } }));
+    expect(silent).not.toContain("Hold to talk");
     expect(textOf(html)).toContain("Ask about your day, or tell me what to do");
     expect(html).not.toMatch(/<textarea[^>]*disabled=""/);
   });

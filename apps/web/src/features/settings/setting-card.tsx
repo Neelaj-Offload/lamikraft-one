@@ -18,6 +18,9 @@ import type { SettingRead, SettingRevision } from "./types";
 const m = settingsMessages.company;
 
 /** The flattened value as grid rows: booleans Yes/No, absent values a muted "Not configured". */
+/** Settings whose values are restricted (masked in screenshots for the assistant). */
+export const RESTRICTED_SETTINGS: ReadonlySet<string> = new Set(["bank_details"]);
+
 export function settingItems(setting: Pick<SettingRead, "value" | "redacted_fields" | "not_configured_fields">): KeyValue[] {
   const missing = new Set(setting.not_configured_fields);
   return flattenValue(setting.value, setting.redacted_fields).map((row) => {
@@ -125,7 +128,14 @@ export function SettingCard({ setting }: { setting: SettingRead }) {
         </>
       }
     >
-      {items.length === 0 ? <EmptyState title={m.empty} headingLevel={3} /> : <KeyValueGrid items={items} />}
+      {items.length === 0 ? (
+        <EmptyState title={m.empty} headingLevel={3} />
+      ) : (
+        // restricted values (bank details) are blacked out in masked screenshots (ai-routing §4.2)
+        <div data-restricted={RESTRICTED_SETTINGS.has(setting.key) ? "true" : undefined}>
+          <KeyValueGrid items={items} />
+        </div>
+      )}
       {setting.redacted_fields.length > 0 ? <p className="text-sm text-ink-muted">{m.redacted(setting.redacted_fields.length)}</p> : null}
       {historyOpen ? (
         <div id={historyId} className="flex flex-col gap-2">
