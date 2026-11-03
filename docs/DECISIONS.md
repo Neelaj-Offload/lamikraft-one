@@ -455,3 +455,72 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
 - **Decision**: `python -m uvicorn` instead of the `uvicorn.exe` console-script shim, which Windows Application Control
   blocks on this machine (os error 4551). Applies to `npm run dev` and `npm run test:e2e`.
 - **Consequences**: identical behaviour; no unsigned launcher needed. **Accepted.**
+
+## ADR-052 Who must use MFA, and step-up (platform-2, Slice 2)
+- **Decision**: members holding an MFA-flagged key of `identity`, `org`, `audit`, `system` or `numbering`
+  ("privileged") must enrol and verify TOTP at sign-in; the `security_policy` setting (`identity.mfa.manage`) can
+  require it of everyone. Other MFA-flagged keys are enforced at use time by `authz.stepup.require_step_up`, which owning
+  modules call. Step-up is `POST /identity/session/reauthentication` (password = recent auth; code = recent auth +
+  MFA); problem codes `mfa_required` / `reauth_required` (401). Demo-link sessions are not forced to enrol at sign-in
+  (MFA-flagged actions still need a step-up); test-support sessions (`LK_ENV=test` only) count as MFA-verified.
+- **Consequences**: only platform services call `require_step_up` so far; catalogue enforces recent-auth (`ra`) for
+  its flagged keys. Other lanes wire step-up as they meet MFA-flagged keys. **Accepted.**
+
+## ADR-053 Activity, delegation, deny, invitations and email (platform-2)
+- **Decision**: (1) the activity feed is computed from the outbox (`domain_event`), filtered by the parent record's
+  registered `ResourcePolicy`; collaboration events are attributed to their parent. (2) Delegation stores explicit keys;
+  only delegable keys held by both people count at resolution. (3) Deny entries never remove keys of the implicit
+  employee base. (4) An invitation to an email that already has an account confirms the existing password. (5) Email
+  `smtp` mode is not implemented (409 `not_configured`); demo mode writes `.eml` under `<LK_STORAGE_DIR>/mail/` after
+  commit and shows the link once to the administrator.
+- **Consequences**: live email waits for SMTP credentials (BUILD_STATE §6). **Accepted.**
+
+## ADR-054 Customer types are a table; catalogue media; imports run as the requester (catalogue-imports)
+- **Decision**: `parties_party.customer_type` is a composite FK to `parties_customer_type(company_id, code)`; built-in
+  `standard`/`dealer`/`distributor` rows are provisioned per company; inactive types cannot be newly assigned. Product
+  media live in `platform/files` (sniffed, deduplicated, one live primary image, soft delete with reason). Import jobs
+  run as the requesting user (`actor_for_member`), commit in 500-row batches re-planned under lock, and roll back from a
+  hashed plan; the demo reset is `is_demo` only, recent sign-in, a 5-minute HMAC token and a typed phrase.
+- **Consequences**: `pricing_price_list.customer_type` is not yet an FK (open item); web party forms still offer the
+  three built-in types only (open item). **Accepted.**
+
+## ADR-055 Canonical decor key for cutting (cutting, Slice 2)
+- **Decision**: the cutting optimiser groups by the catalogue identifier rule: `120.0` → `120` with a warning, `0120`
+  stays distinct (PARITY FG-GRN-01, PLAN). This supersedes `operations.md` §14, which kept `'120'` and `'120.0'` apart.
+  Calculation results are stored as normalised append-only rows (not JSONB); configuration tables (settings, machine
+  profiles, grain locks) are read with an explicit company filter plus RLS, gated by any `cutting.` key, because the
+  frozen catalogue has no `.read` key for them. The grain-lock audit field is `decor` (the redactor blanks fields
+  containing "key").
+- **Consequences**: release and work-order links arrive in Slice 4. **Accepted.**
+
+## ADR-056 Slice-2 merge: one screen per route, main's chrome with the lanes' editors
+- **Decision**: where a Slice-2 lane rebuilt a screen that Checkpoint 2 had already built, the merged route keeps the
+  Checkpoint-2 screen (PageHeader/RecordHeader chrome, facets, fact strips, the Material tab, rail context) and takes
+  the lane's forms and commands into it: the product record gains inline section editors, archive/restore, Media and
+  History tabs (`?tab=`; the server's `/products/{id}/{section}` paths redirect to the tab); the catalogue list gains
+  Add product / Export CSV; the price-list list gains New price list; the customer record gains archive/restore.
+  Screens the lane owns outright (taxonomy manager, price-list detail editor, imports, lookups, customer types, custom
+  products, samples, FX rates, quote settings) keep the lane's body with the shared header chrome. The product record
+  cache holds the raw server record so the editors round-trip every field; the view parses it with `select`.
+- **Consequences**: one implementation per route and per query key; the lanes' duplicate list/detail components were
+  removed with their tests ported. **Accepted.**
+
+## ADR-057 Approval expiry is not scheduled outside production (Slice-2 merge)
+- **Decision**: `approvals.expire_due` keeps its 5-minute schedule in production but is created disabled in
+  development and test (`enabled_in_dev=False`). Fixture times are absolute (D0 = 2026-10-12), so the real-time sweep
+  expired every seeded review on its first run and emptied the demo and e2e Inboxes part-way through a run. The
+  service function stays tested directly (`tasks/test_rules.py`).
+- **Consequences**: an expired review still leaves its quote in `internal_review` with no open approval (no
+  `on_expired` handler); recorded as an open item for the sales/approvals owners. Revisit when fixture times become
+  relative to the anchor. **Accepted.**
+
+## ADR-058 Slice-2 e2e world and cross-lane links (Slice-2 merge)
+- **Decision**: `npm run test:e2e` seeds the demo world at `--slice 2` (cut plan, challans, Kaveri and Precision Edge
+  parties), so the axe sweep covers challan and cut-plan records. Scenario C asserts that its draft number follows
+  the seeded quotes rather than equals `SCENARIO_C_NEW`, because Slice-2 specs that run earlier create drafts.
+  Migration `0015_slice2_cross_lane_links` adds `challans_challan_line.custom_product_id → sales_custom_product.id`
+  and `sales_sample.challan_id → challans_challan.id` (RESTRICT); the challans service validates a custom line's
+  product as a field error. The Slice-2 migration chain is 0010 platform → 0011 catalogue → 0012 commercial → 0013
+  cutting → 0014 challans → 0015 links.
+- **Consequences**: `challans.challan.issued` carries `sample_id = null` until a challan can reference the sample it
+  ships (owners: challans + sales). **Accepted.**

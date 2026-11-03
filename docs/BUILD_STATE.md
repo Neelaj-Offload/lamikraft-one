@@ -1,7 +1,8 @@
 # Build state
 
-**Checkpoint 2 — web surfaces for every API that exists, plus the showcase motion system, on `main` 2026-11-02.**
-(Checkpoint 1 — Slice 1 — merged 2026-10-30. Checkpoint 0 — Slice 0 — verified 2026-10-23.) Slice 2 backend next.
+**Checkpoint 3 — Slice 2 (legacy parity) merged on `lane/s2-merge` 2026-11-04, ready to fast-forward `main`.**
+(Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 — 2026-10-30. Checkpoint 0 —
+Slice 0 — 2026-10-23.) Slice 3 (agents runtime, WhatsApp, vision/voice, briefings) next; see section 11.
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
 "Next executable step". Nothing below is claimed as implemented unless it appears under **Implemented (verified)**
@@ -35,8 +36,9 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 
 ## 2. In progress
 
-Nothing in flight. Slice 1 is merged on `main` (see section 9 for what it contains and its evidence). Slice-0 lanes
-and spikes are complete; their results are in `docs/DECISIONS.md` ADR-048…051 and `docs/evidence/slice-0/`.
+Slice 2 is merged on `lane/s2-merge` (section 11; report `docs/lanes/merge-s2.md`) and waits only for the
+fast-forward of `main`. The Slice-3 lanes started early (`lane/s3-agents`, `lane/s3-whatsapp`) are reparented onto
+the Checkpoint-3 `main` at their merge.
 
 ## 3. Blocked
 
@@ -120,19 +122,19 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-02 | CP2 | dev boot and route sweep | `npm run dev` on 127.0.0.1:3200 / 8200, signed in as Meera and Sahil through `lk demo sign-in-link` | 21 routes rendered real data or an honest state; no console errors on the clean server | `docs/evidence/checkpoint-2/README.md` |
 | 2026-11-02 | CP2 | showcase surfaces in the browser | sign-in light/dark/phone, story scroll, Today reveal, sidebar indicator, product Material tab (WebGL canvas 838×627, three presets) | as designed; reveal gate and entrance hold under Strict Mode and hidden tabs | `docs/evidence/checkpoint-2/*.jpg` |
 | 2026-11-02 | CP2 | e2e on the working tree | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build) | 96 passed, 0 failed, 165 skipped (project-scoped / opt-in); axe sweep in light and dark now includes `/products/[productId]`, `/sales/parties/[partyId]`, `/products/price-lists/[priceListId]` | scratchpad `e2e-cp2-run2.log`; the first run found 7 login failures (sand numerals at 2.21:1, missing h1 "Sign in"), fixed before the rerun |
+| 2026-11-04 | CP3 | API suite on `lane/s2-merge` 17a2f99 | `npm run test:api` | 1313 passed, 0 failed | scratchpad `test-api-final.log` / `junit-final.xml` |
+| 2026-11-04 | CP3 | check on 17a2f99 + evidence spec | `npm run check -- --keep-going` | 7/7 PASS (ruff; pytest unit+contract 545; alembic heads 1; api:check; web lint; typecheck; vitest 53 files / 611 tests) | scratchpad `check-final.log` |
+| 2026-11-04 | CP3 | e2e on the same tip | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build, demo world `--slice 2`) | 193 passed, 0 failed, 395 skipped (project-scoped / opt-in) | scratchpad `e2e-final-1.log`; earlier runs on the four-lane merge found the defects listed in `docs/lanes/merge-s2.md` |
+| 2026-11-04 | CP3 | evidence screenshots | `LK_E2E_EVIDENCE=cp3 npm run test:e2e -- --no-build e2e/evidence-cp3.spec.ts --project=desktop` | 64 PNGs, 16 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-3/` |
+| 2026-11-04 | CP3 | migrations | `alembic upgrade head` → `downgrade -1` → `upgrade head`; `alembic check` on `lk_wt8` | chain 0009 → 0015, heads 1, no pending operations | console |
 
 ## 8. Next executable step
 
-Slice 2 (complete legacy parity) per `docs/PLAN.md`, in waves of at most three lanes, starting from `main` at the
-Checkpoint-2 commit. The web side of Slice 2 (product and price-list forms, imports workbench, cutting canvas,
-challans) builds on the screens and recipes in `docs/superpowers/specs/2026-11-02-checkpoint-2-build-guide.md`.
-Before the first Slice-2 wave:
-1. Re-run `npm run test:e2e` on `main` once the machine has memory to spare: the 2026-10-30 run after c0d2c7e
-   stopped in `next build` with an out-of-memory error (machine had 1.6 GB free of 15.7 GB). The same code passed
-   e2e on the merge branch earlier the same day; c0d2c7e changes only three components (vitest-covered, checked live).
-2. Decide the Next.js 16.4.0 security advisory: `next build`/`next dev` stop once and recommend an upgrade. It
-   changes lockfiles, so it waits for the owner (also on the Slice-6 `npm audit` list).
-3. Carry the open items below into the Slice-2 lane briefs.
+Fast-forward `main` to `lane/s2-merge` (Checkpoint 3, section 11), then continue the completion program
+(`docs/superpowers/specs/2026-11-03-completion-program.md`) with wave 3a/3b: reparent `lane/s3-agents` and
+`lane/s3-whatsapp` onto the new `main`, then the vision/voice and briefings lanes. Carry the Checkpoint-3 open items
+(section 11) into the Slice-3/4 briefs. The Next.js security upgrade (16.4.4) is on `main`; worktrees created before
+it need `npm ci` (stale `node_modules` stopped the first Slice-2 e2e build).
 
 Open items carried from Slice 1 (owners in brackets):
 - Rendered quote PDFs are rendered on demand from the immutable snapshot; storing them through
@@ -216,3 +218,59 @@ What runs (all against the existing API, every figure from the server, honest st
   `--font-display` token; procedural fixture swatches and their generator.
 
 Verification at this checkpoint is in §7 (rows dated 2026-11-02).
+
+---
+
+## 11. Checkpoint 3 — Slice 2 (legacy parity) on `lane/s2-merge` (2026-11-04)
+
+Merged in this order (lane reports under `docs/lanes/`): platform-2 (`platform-s2.md`), catalogue + imports
+(`catalogue-s2.md`), commercial-2 (`commercial-s2.md`), cutting (`cutting-s2.md`), challans (`challans-s2.md`), the
+commercial configurator follow-up; the merge, its conflict decisions and the defects it fixed are in
+`docs/lanes/merge-s2.md`. Migration chain `0009` → `0010_platform_slice2` → `0011_catalogue_slice2` →
+`0012_commercial_slice2` → `0013_cutting_slice2` → `0014_challans_slice2` → `0015_slice2_cross_lane_links`;
+`alembic heads` = 1. `openapi.json` / `schema.d.ts` regenerated (243 paths). Decisions ADR-052…058.
+
+### Implemented (verified) — new at this checkpoint
+- **Platform:** TOTP MFA with recovery codes (privileged at sign-in, step-up on MFA-flagged actions), invitations and
+  password resets (demo `.eml`), custom roles with inheritance and deny, overrides UI, role simulator, user admin
+  (invite, deactivate, reactivate), delegation, leave, access requests, notes, attachments, activity, global search
+  page and `/` dialog, S3 adapter (moto contract), image variants, isolation matrix.
+- **Catalogue and imports:** product create/edit/archive with section editors, media (upload, primary, soft delete,
+  restore), taxonomy management with rename aliases and delete-or-reassign, completeness rules, lookups, customer
+  types table, party archive/restore, import workbench for all seven types (preview, validation, batched commit,
+  quarantine and recheck, rollback, demo reset).
+- **Commercial:** price-list edit/activate/retire/duplicate, item supersede and history, FX rates with second-person
+  approval and policy, full quote state machine (revise, extend validity, archive, corrections), revision compare
+  and restore, duplicate, currency change without relabelling, owner change, CSV exports, custom products with
+  promotion, samples, quote settings, quote configurator.
+- **Cutting:** MaxRects + guillotine packer with exact metrics, saved plans, sync and job calculation, exports (CSV,
+  PDF, SVG), true-scale board canvas, grain locks, board verification.
+- **Challans:** challans as documents (numbering, transitions, revisions, PDF, print view, CSV, returns, internal note),
+  returnables sweep.
+- PARITY_MATRIX: 436 implemented, 18 in progress, 246 planned, 1 deferred.
+
+### Simulated (Demo)
+Email (invitations, resets) as `.eml` files in the demo outbox; S3 only through the moto contract (LocalFs in dev);
+everything listed as Demo at Checkpoint 2 stays Demo.
+
+### Backlog / not in Slice 2
+Inventory movement for challans (Slice 4), cut-plan release and work-order links (Slice 4), `ops.cut_plans` and
+`ops.returnables` task rules, SMTP delivery.
+
+### Open items carried (owners in brackets)
+- An expired quote review leaves the quote in `internal_review` with no open approval (no `on_expired` handler);
+  the expiry sweep is off outside production (ADR-057). [sales, approvals]
+- `challans.challan.issued` carries `sample_id = null`: a challan cannot yet reference the sample it ships. [challans, sales]
+- Web party forms offer only the three built-in customer types; company-defined types (`/settings/customer-types`)
+  are not offered or shown yet; `pricing_price_list.customer_type` is not yet a foreign key. [parties web, pricing]
+- Imports write prices through `pricing.service` primitives, not `import_standard_price`; `imports/bridges.py` reads
+  pricing tables instead of a pricing `active_price_exists`. [catalogue, commercial]
+- Media thumbnails use originals (variants exist only for new uploads); configurator rows do not show
+  `primary_image`; line `media_snapshot` has no file ids (FG-QLN-13). [catalogue, sales, web]
+- `INTERIM(api-generate)` untyped adapters remain in settings, collab, search, catalogue, cutting, pricing. [web]
+- MFA step-up is enforced in platform services and wherever `require_recent_auth` is used; the FX policy screen
+  needs the step-up dialog for users without MFA. [commercial web]
+- Price lists: `LK_E2E_ADMIN` gates the management half of `e2e/commercial/price-lists.spec.ts`. [e2e]
+- Carried from Checkpoints 1–2 and still open: fixture times are absolute (seed with `--anchor-date 2026-10-12`);
+  `tasks_issue` advisory-lock ordering; CSRF verifier in a threadpool; approvals `get` visibility; composer Enter;
+  `queryKeys.sales.quotes()` has no `party_id` slot; `UiPreferencePatch` width.
