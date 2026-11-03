@@ -294,6 +294,7 @@ def _log(uow: Any, response: Any, error: Exception | None, provider: Any, model:
     log_call(uow, None, step_seq=None, response=response, task_class="phrasing", error=error,
              provider=getattr(provider, "name", "demo"), model=model, user_id=uow.actor.user_id,
              correlation_id=uow.actor.correlation_id)
+    uow.flush()
 
 
 def _result_of(request: PhraseRequest, digest: str, response: Any, model: str) -> PhraseResult:
