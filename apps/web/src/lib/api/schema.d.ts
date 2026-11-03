@@ -852,6 +852,188 @@ export interface paths {
         patch: operations["parties_update_party"];
         trace?: never;
     };
+    "/api/v1/pricing/fx-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Fx Policy
+         * @description Whether approved rates convert prices, the source currency converted from, and the maximum rate age.
+         */
+        get: operations["pricing_get_fx_policy"];
+        /**
+         * Update Fx Policy
+         * @description Change the FX policy (``pricing.fx_policy.manage`` with a recent sign-in); 409 when stale.
+         */
+        put: operations["pricing_update_fx_policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Fx Rates */
+        get: operations["pricing_list_fx_rates"];
+        put?: never;
+        /**
+         * Propose Fx Rate
+         * @description Propose a dated, sourced rate; it converts prices only after a second person approves it.
+         */
+        post: operations["pricing_propose_fx_rate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx-rates/{fx_rate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Fx Rate */
+        get: operations["pricing_get_fx_rate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx-rates/{fx_rate_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Fx Rate
+         * @description Approve or reject a proposed rate (never by its proposer; 409 when it is no longer pending).
+         */
+        post: operations["pricing_decide_fx_rate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx-rates/{fx_rate_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw Fx Rate
+         * @description The proposer withdraws a pending rate.
+         */
+        post: operations["pricing_withdraw_fx_rate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/price-list-items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Price List Item
+         * @description Edit a price of a draft list (an active list's prices change only by an effective-dated supersede).
+         */
+        patch: operations["pricing_update_price_list_item"];
+        trace?: never;
+    };
+    "/api/v1/pricing/price-list-items/{item_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Price List Item History
+         * @description Append-only history of the product's price in this list (created, edited, superseded, retired).
+         */
+        get: operations["pricing_list_price_list_item_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/price-list-items/{item_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire Price List Item
+         * @description Retire the current price of a product (it stops resolving from ``retire_from``); history keeps it.
+         */
+        post: operations["pricing_retire_price_list_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/price-list-items/{item_id}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Supersede Price List Item
+         * @description Effective-dated price change on an active list: the current price ends the day before ``valid_from``.
+         */
+        post: operations["pricing_supersede_price_list_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pricing/price-lists": {
         parameters: {
             query?: never;
@@ -865,7 +1047,11 @@ export interface paths {
          */
         get: operations["pricing_list_price_lists"];
         put?: never;
-        post?: never;
+        /**
+         * Create Price List
+         * @description A new draft list (standard, customer-type or customer agreement); items are added before activation.
+         */
+        post: operations["pricing_create_price_list"];
         delete?: never;
         options?: never;
         head?: never;
@@ -886,6 +1072,50 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update Price List
+         * @description Draft lists: every field; active lists: name, notes and a shorter ``valid_to``; 409 when stale.
+         */
+        patch: operations["pricing_update_price_list"];
+        trace?: never;
+    };
+    "/api/v1/pricing/price-lists/{price_list_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate Price List
+         * @description Draft -> active; 409 ``price_list_overlap`` with a conflict report when another active list overlaps.
+         */
+        post: operations["pricing_activate_price_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/price-lists/{price_list_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Price List
+         * @description A new draft list with a copy of the source's current prices (e.g. next year's list).
+         */
+        post: operations["pricing_duplicate_price_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -902,7 +1132,31 @@ export interface paths {
          */
         get: operations["pricing_list_price_list_items"];
         put?: never;
-        post?: never;
+        /**
+         * Create Price List Item
+         * @description Add a price to a draft list (409 ``price_item_overlap`` when the product already has one for the period).
+         */
+        post: operations["pricing_create_price_list_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/price-lists/{price_list_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire Price List
+         * @description Retire a list (reason required); its prices stop resolving and stay as history.
+         */
+        post: operations["pricing_retire_price_list"];
         delete?: never;
         options?: never;
         head?: never;
@@ -918,7 +1172,9 @@ export interface paths {
         };
         /**
          * Resolve Price
-         * @description Customer agreement -> customer-type list -> standard list, then currency, unit and effective date.
+         * @description Customer agreement -> customer-type list -> standard list, then currency, unit and effective date. With
+         *     ``allow_fx`` a missing price in the currency is converted from the FX policy's source currency at an approved,
+         *     dated rate (provenance in ``fx``); otherwise prices are only ever in their list currency.
          */
         get: operations["pricing_resolve_price"];
         put?: never;
@@ -942,7 +1198,11 @@ export interface paths {
          */
         get: operations["pricing_list_product_costs"];
         put?: never;
-        post?: never;
+        /**
+         * Record Product Cost
+         * @description Append a new protected cost version (``pricing.cost.update``; never logged or sent to a model).
+         */
+        post: operations["pricing_record_product_cost"];
         delete?: never;
         options?: never;
         head?: never;
@@ -960,6 +1220,277 @@ export interface paths {
         get: operations["pricing_list_product_prices"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Custom Products */
+        get: operations["sales_list_custom_products"];
+        put?: never;
+        /**
+         * Create Custom Product
+         * @description Create a custom product; ``CP-NNNN`` is allocated atomically and never reused.
+         */
+        post: operations["sales_create_custom_product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Custom Products Csv
+         * @description Custom products as CSV within the export scope; costing columns only with ``pricing.cost.read`` and the flag.
+         */
+        get: operations["sales_export_custom_products_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/status-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Custom Product Status Counts */
+        get: operations["sales_get_custom_product_status_counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Custom Product
+         * @description Every legacy field, spec revisions, promotions, quotes using it, capabilities (never costing).
+         */
+        get: operations["sales_get_custom_product"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Custom Product */
+        patch: operations["sales_update_custom_product"];
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Custom Product
+         * @description Archive (rejected, dormant, converted or never quoted); the code is never reused.
+         */
+        post: operations["sales_archive_custom_product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/costing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Custom Product Costing
+         * @description Protected costing versions (``pricing.cost.read``; every read is audited).
+         */
+        get: operations["sales_list_custom_product_costing"];
+        put?: never;
+        /** Create Custom Product Costing */
+        post: operations["sales_create_custom_product_costing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Custom Product
+         * @description A new inquiry with a new code and the product name "X (Copy)"; costing and history are not copied.
+         */
+        post: operations["sales_duplicate_custom_product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Custom Product History */
+        get: operations["sales_list_custom_product_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/promotion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Custom Product Promotion
+         * @description Request promotion to a catalogue product (validated, bound to an approval by its payload hash).
+         */
+        post: operations["sales_request_custom_product_promotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/promotions/{promotion_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute Custom Product Promotion
+         * @description Create the master product for an approved promotion (idempotent; a failed one is retried).
+         */
+        post: operations["sales_execute_custom_product_promotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/spec-revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Custom Product Spec Revision
+         * @description Record the current specification (optionally with its sample) as the next spec revision.
+         */
+        post: operations["sales_create_custom_product_spec_revision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/spec-revisions/{revision_id}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Custom Product Spec Revision */
+        post: operations["sales_decide_custom_product_spec_revision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition Custom Product
+         * @description develop, sample, quote, approve (needs an approved spec revision), reject/park/reopen (reason), reactivate.
+         */
+        post: operations["sales_transition_custom_product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custom-products/{custom_product_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Custom Product */
+        post: operations["sales_unarchive_custom_product"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1067,6 +1598,30 @@ export interface paths {
         patch: operations["sales_update_enquiry"];
         trace?: never;
     };
+    "/api/v1/sales/quote-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Quote Settings
+         * @description Quote defaults plus previews of the next quote, custom-product and sample numbers (never allocated).
+         */
+        get: operations["sales_get_quote_settings"];
+        /**
+         * Update Quote Settings
+         * @description Validated write of the quote defaults (``sales.quote_settings.manage``, recent sign-in); 409 when stale.
+         */
+        put: operations["sales_update_quote_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quotes": {
         parameters: {
             query?: never;
@@ -1105,6 +1660,47 @@ export interface paths {
          * @description Run the commercial engine on proposed lines without persisting anything (live totals in the UI).
          */
         post: operations["sales_calculate_quote_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/configurator/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Quote Configurator
+         * @description Search-first product finder for a quote: filters before paging, narrowed facets, ``exact_match``, and each row
+         *     priced for the customer (agreement -> type -> standard, approved FX when needed) with its recommendation.
+         */
+        post: operations["sales_resolve_quote_configurator"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Quotes Csv
+         * @description The filtered quote list as CSV, bounded by the actor's export scope (never other owners' quotes for sales).
+         */
+        get: operations["sales_export_quotes_csv"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1173,6 +1769,50 @@ export interface paths {
         patch: operations["sales_update_quote"];
         trace?: never;
     };
+    "/api/v1/sales/quotes/{quote_id}/currency-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Quote Currency Change
+         * @description Per line: the new price from a list in that currency, the custom product's own price, or an approved FX rate.
+         */
+        get: operations["sales_preview_quote_currency_change"];
+        put?: never;
+        /**
+         * Change Quote Currency
+         * @description Apply a currency change atomically; 409 ``currency_change_blocked`` (with lines) when a line has no price.
+         */
+        post: operations["sales_change_quote_currency"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/{quote_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Quote
+         * @description A new draft from this quote (or one of its revisions) with real totals and the customer reference cleared.
+         */
+        post: operations["sales_duplicate_quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quotes/{quote_id}/history": {
         parameters: {
             query?: never;
@@ -1210,6 +1850,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/quotes/{quote_id}/lines.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Quote Lines Csv */
+        get: operations["sales_export_quote_lines_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quotes/{quote_id}/lines/{line_id}": {
         parameters: {
             query?: never;
@@ -1229,6 +1886,23 @@ export interface paths {
         head?: never;
         /** Update Quote Line */
         patch: operations["sales_update_quote_line"];
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/{quote_id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change Quote Owner */
+        put: operations["sales_change_quote_owner"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/sales/quotes/{quote_id}/refresh-snapshots": {
@@ -1260,6 +1934,26 @@ export interface paths {
         };
         /** List Quote Revisions */
         get: operations["sales_list_quote_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/{quote_id}/revisions/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare Quote Revisions
+         * @description Header, lines by ``line_key`` and totals between two issued revisions (or a revision and the working copy).
+         */
+        get: operations["sales_compare_quote_revisions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1305,6 +1999,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/quotes/{quote_id}/revisions/{revision_no}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Quote Revision
+         * @description Copy an issued revision into the working copy (a sent quote is revised first); issued revisions never change.
+         */
+        post: operations["sales_restore_quote_revision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quotes/{quote_id}/transitions": {
         parameters: {
             query?: never;
@@ -1316,12 +2030,89 @@ export interface paths {
         put?: never;
         /**
          * Transition Quote
-         * @description Apply a state-machine action (submit_review, withdraw_review, mark_sent, mark_won, mark_lost, cancel).
+         * @description Apply a state-machine action: submit_review, withdraw_review, mark_sent, revise, discard_revision,
+         *     extend_validity, mark_won, mark_lost, cancel, archive, unarchive, correct_status.
          *
          *     An action that is unknown or not allowed in the current status is 409 ``invalid_transition`` with
-         *     ``allowed_transitions``. ``mark_sent``, ``mark_won``, ``mark_lost`` and ``cancel`` require ``Idempotency-Key``.
+         *     ``allowed_transitions``. Issue-like and closing actions require ``Idempotency-Key``.
          */
         post: operations["sales_transition_quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Samples */
+        get: operations["sales_list_samples"];
+        put?: never;
+        /**
+         * Create Sample
+         * @description Record a sample request; ``SMP-YYYY-NNNN`` is allocated atomically (yearly reset).
+         */
+        post: operations["sales_create_sample"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/samples/status-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sample Status Counts */
+        get: operations["sales_get_sample_status_counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/samples/{sample_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sample */
+        get: operations["sales_get_sample"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Sample */
+        patch: operations["sales_update_sample"];
+        trace?: never;
+    };
+    "/api/v1/sales/samples/{sample_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition Sample
+         * @description dispatch (courier reference or challan), deliver (evidence), record_feedback, close, cancel (reason).
+         */
+        post: operations["sales_transition_sample"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2040,6 +2831,18 @@ export interface components {
             /** Subcategories */
             subcategories: components["schemas"]["SubcategoryRead"][];
         };
+        /** ChangeOwner */
+        ChangeOwner: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            /** Reason */
+            reason?: string | null;
+        };
         /**
          * Channel
          * @enum {string}
@@ -2180,6 +2983,88 @@ export interface components {
             /** Total Products */
             total_products: number;
         };
+        /** ConfiguratorPrice */
+        ConfiguratorPrice: {
+            /** Converted With Fx */
+            converted_with_fx: boolean;
+            /** Explanation */
+            explanation: string;
+            /** Price List Code */
+            price_list_code: string | null;
+            product_moq: components["schemas"]["Quantity"] | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** Status */
+            status: string;
+            /** Tier */
+            tier: string | null;
+            /** Unit Code */
+            unit_code: string | null;
+            unit_price: components["schemas"]["Money"] | null;
+        };
+        /** ConfiguratorRequest */
+        ConfiguratorRequest: {
+            /** Category Id */
+            category_id?: string | null;
+            /**
+             * Currency
+             * @default EUR
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Decor */
+            decor?: string | null;
+            /** Family */
+            family?: string | null;
+            /** Finish */
+            finish?: string | null;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /** Party Id */
+            party_id?: string | null;
+            /** @default export */
+            price_type: components["schemas"]["PriceType"];
+            /** Q */
+            q?: string | null;
+            /** Size */
+            size?: string | null;
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+            /** Thickness */
+            thickness?: string | null;
+        };
+        /** ConfiguratorResult */
+        ConfiguratorResult: {
+            /** Currency */
+            currency: string;
+            /** Exact Match */
+            exact_match: string | null;
+            facets: components["schemas"]["ProductFacets"];
+            /** Items */
+            items: components["schemas"]["ConfiguratorRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ConfiguratorRow */
+        ConfiguratorRow: {
+            /** Packaging Summary */
+            packaging_summary: string | null;
+            price: components["schemas"]["ConfiguratorPrice"] | null;
+            product: components["schemas"]["ProductSummary"];
+            recommendation: components["schemas"]["OrderValueRecommendationRead"] | null;
+        };
         /** ContactIn */
         ContactIn: {
             /** Email */
@@ -2265,11 +3150,130 @@ export interface components {
          * @enum {string}
          */
         ConversationStatus: "active" | "archived";
+        /** CostComponent */
+        CostComponent: {
+            /**
+             * Amount
+             * @example 5760.00
+             */
+            amount: string;
+            /** Label */
+            label: string;
+        };
         /**
          * CostSourceKind
          * @enum {string}
          */
         CostSourceKind: "manual" | "import" | "migration" | "rollup" | "seed";
+        /** CostingCreate */
+        CostingCreate: {
+            /** Basis Note */
+            basis_note?: string | null;
+            /** Components */
+            components?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Cost Amount
+             * @example 5760.00
+             */
+            cost_amount: string;
+            /**
+             * Cost Currency
+             * @enum {string}
+             */
+            cost_currency: "INR" | "EUR" | "USD" | "GBP";
+        };
+        /** CostingRead */
+        CostingRead: {
+            /** Basis Note */
+            basis_note: string | null;
+            /** Components */
+            components: {
+                [key: string]: unknown;
+            }[] | null;
+            cost: components["schemas"]["Money"];
+            /** Cost Version */
+            cost_version: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            recorded_by: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+        };
+        /** CurrencyChange */
+        CurrencyChange: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * To Currency
+             * @enum {string}
+             */
+            to_currency: "INR" | "EUR" | "USD" | "GBP";
+        };
+        /** CurrencyChangePreview */
+        CurrencyChangePreview: {
+            /** Applicable */
+            applicable: boolean;
+            /** Blocked Count */
+            blocked_count: number;
+            /** From Currency */
+            from_currency: string;
+            /** Lines */
+            lines: components["schemas"]["CurrencyLinePreview"][];
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** To Currency */
+            to_currency: string;
+        };
+        /** CurrencyLinePreview */
+        CurrencyLinePreview: {
+            /** Description */
+            description: string;
+            /** Explanation */
+            explanation: string;
+            /** From Unit Price */
+            from_unit_price: string | null;
+            /** Fx Rate */
+            fx_rate?: string | null;
+            /** Fx Rate Date */
+            fx_rate_date?: string | null;
+            /** Fx Rate Id */
+            fx_rate_id?: string | null;
+            /**
+             * Line Id
+             * Format: uuid
+             */
+            line_id: string;
+            /** Line No */
+            line_no: number;
+            line_type: components["schemas"]["LineType"];
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "list" | "fx" | "custom_price" | "none";
+            /** Reason Code */
+            reason_code: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "blocked";
+            /** To Default Unit Price */
+            to_default_unit_price: string | null;
+            /** To Unit Price */
+            to_unit_price: string | null;
+        };
         /** CurrencyRead */
         CurrencyRead: {
             /** Code */
@@ -2290,6 +3294,414 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /**
+         * CustomHistoryAction
+         * @enum {string}
+         */
+        CustomHistoryAction: "create" | "transition" | "auto_quoted" | "promote" | "archive" | "unarchive" | "duplicate";
+        /** CustomHistoryRead */
+        CustomHistoryRead: {
+            action: components["schemas"]["CustomHistoryAction"];
+            actor: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+            /** From Status */
+            from_status: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Quote Id */
+            quote_id: string | null;
+            /** Reason */
+            reason: string | null;
+            /** To Status */
+            to_status: string;
+        };
+        /** CustomPackaging */
+        CustomPackaging: {
+            /** Carton Height Cm */
+            carton_height_cm?: string | null;
+            /** Carton Length Cm */
+            carton_length_cm?: string | null;
+            /** Carton Qty */
+            carton_qty?: number | null;
+            /** Carton Width Cm */
+            carton_width_cm?: string | null;
+            /** Cbm */
+            cbm?: string | null;
+            /** Inner Qty */
+            inner_qty?: number | null;
+            /** Packing Type */
+            packing_type?: string | null;
+            /** Unit Weight G */
+            unit_weight_g?: string | null;
+        };
+        /** CustomProductArchive */
+        CustomProductArchive: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CustomProductCreate */
+        CustomProductCreate: {
+            /** Base Product Id */
+            base_product_id?: string | null;
+            /** Bowl Count */
+            bowl_count?: number | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Category Id */
+            category_id?: string | null;
+            /** @default fully_new */
+            custom_type: components["schemas"]["CustomType"];
+            /** Customer Specific Flag */
+            customer_specific_flag?: boolean | null;
+            /** Decor Name */
+            decor_name?: string | null;
+            /** Decor No */
+            decor_no?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Dimensions Text */
+            dimensions_text?: string | null;
+            /** Finish */
+            finish?: string | null;
+            /** Groove Count */
+            groove_count?: number | null;
+            /** Handle Type */
+            handle_type?: string | null;
+            /** Height Mm */
+            height_mm?: string | null;
+            /** Inquiry Reference */
+            inquiry_reference?: string | null;
+            /** Legacy Customer Name */
+            legacy_customer_name?: string | null;
+            /** Length Mm */
+            length_mm?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            packaging?: components["schemas"]["CustomPackaging"] | null;
+            /** Packaging Notes */
+            packaging_notes?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Product Name */
+            product_name: string;
+            /** Quoted Currency */
+            quoted_currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+            /** Quoted Price */
+            quoted_price?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Shape */
+            shape?: string | null;
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+            /** Thickness Mm */
+            thickness_mm?: string | null;
+            /** Thickness Text */
+            thickness_text?: string | null;
+            /** Unit Code */
+            unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Width Mm */
+            width_mm?: string | null;
+        };
+        /** CustomProductDetail */
+        CustomProductDetail: {
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["TransitionRead"][];
+            /** Archived At */
+            archived_at: string | null;
+            /** Base Product Id */
+            base_product_id: string | null;
+            /** Base Product Key */
+            base_product_key: string | null;
+            /** Bowl Count */
+            bowl_count: number | null;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Category Id */
+            category_id: string | null;
+            /** Category Name */
+            category_name: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+            /** Custom Code */
+            custom_code: string;
+            custom_type: components["schemas"]["CustomType"];
+            /** Customer Specific Flag */
+            customer_specific_flag: boolean;
+            /** Decor Name */
+            decor_name: string | null;
+            /** Decor No */
+            decor_no: string | null;
+            /** Description */
+            description: string | null;
+            /** Dimensions Text */
+            dimensions_text: string | null;
+            /** Dormant From Status */
+            dormant_from_status: string | null;
+            /** Duplicated From Id */
+            duplicated_from_id: string | null;
+            /** Finish */
+            finish: string | null;
+            /** Groove Count */
+            groove_count: number | null;
+            /** Handle Type */
+            handle_type: string | null;
+            /** Height Mm */
+            height_mm: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inquiry Reference */
+            inquiry_reference: string | null;
+            /** Legacy Customer Name */
+            legacy_customer_name: string | null;
+            /** Length Mm */
+            length_mm: string | null;
+            owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
+            packaging: components["schemas"]["CustomPackaging"] | null;
+            /** Packaging Notes */
+            packaging_notes: string | null;
+            party: components["schemas"]["PartyRef"] | null;
+            /** Path */
+            path: string;
+            /** Product Name */
+            product_name: string;
+            /** Promoted Product Id */
+            promoted_product_id: string | null;
+            /** Promotions */
+            promotions: components["schemas"]["PromotionRead"][];
+            quoted_price: components["schemas"]["Money"] | null;
+            /** Quotes */
+            quotes: components["schemas"]["CustomQuoteRef"][];
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            /** Remarks */
+            remarks: string | null;
+            /** Shape */
+            shape: string | null;
+            /** Spec Revisions */
+            spec_revisions: components["schemas"]["SpecRevisionRead"][];
+            status: components["schemas"]["CustomProductStatus"];
+            /** Status Reason */
+            status_reason: string | null;
+            /** Subcategory Id */
+            subcategory_id: string | null;
+            /** Subcategory Name */
+            subcategory_name: string | null;
+            /** Thickness Mm */
+            thickness_mm: string | null;
+            /** Thickness Text */
+            thickness_text: string | null;
+            /** Unit Code */
+            unit_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Width Mm */
+            width_mm: string | null;
+        };
+        /**
+         * CustomProductSnapshot
+         * @description The spec of a custom product on a quote line (``product_snapshot`` of a custom line; document-compatible keys).
+         */
+        CustomProductSnapshot: {
+            /** Custom Code */
+            custom_code: string;
+            /**
+             * Custom Product Id
+             * Format: uuid
+             */
+            custom_product_id: string;
+            /** Custom Type */
+            custom_type: string;
+            /** Decor Name */
+            decor_name: string | null;
+            /** Decor No */
+            decor_no: string | null;
+            /** Display Sku */
+            display_sku: string;
+            /** Finish */
+            finish: string | null;
+            /** Product Key */
+            product_key: string;
+            /** Product Name */
+            product_name: string;
+            /** Product Version */
+            product_version: number;
+            /** Shape */
+            shape: string | null;
+            /** Size Text */
+            size_text: string | null;
+            /** Specification Summary */
+            specification_summary: string | null;
+            /** Thickness Mm */
+            thickness_mm: string | null;
+            /** Unit Of Sale */
+            unit_of_sale: string | null;
+        };
+        /**
+         * CustomProductStatus
+         * @enum {string}
+         */
+        CustomProductStatus: "inquiry" | "under_development" | "sample_stage" | "quoted" | "approved" | "rejected" | "dormant" | "converted_to_standard";
+        /** CustomProductSummary */
+        CustomProductSummary: {
+            /** Archived At */
+            archived_at: string | null;
+            /** Base Product Key */
+            base_product_key: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Custom Code */
+            custom_code: string;
+            custom_type: components["schemas"]["CustomType"];
+            /** Decor No */
+            decor_no: string | null;
+            /** Dimensions Text */
+            dimensions_text: string | null;
+            /** Finish */
+            finish: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inquiry Reference */
+            inquiry_reference: string | null;
+            /** Legacy Customer Name */
+            legacy_customer_name: string | null;
+            owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
+            party: components["schemas"]["PartyRef"] | null;
+            /** Path */
+            path: string;
+            /** Product Name */
+            product_name: string;
+            /** Promoted Product Id */
+            promoted_product_id: string | null;
+            quoted_price: components["schemas"]["Money"] | null;
+            status: components["schemas"]["CustomProductStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** CustomProductTransition */
+        CustomProductTransition: {
+            /** Action */
+            action: string;
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CustomProductUpdate */
+        CustomProductUpdate: {
+            /** Base Product Id */
+            base_product_id?: string | null;
+            /** Bowl Count */
+            bowl_count?: number | null;
+            /** Category Id */
+            category_id?: string | null;
+            custom_type?: components["schemas"]["CustomType"] | null;
+            /** Customer Specific Flag */
+            customer_specific_flag?: boolean | null;
+            /** Decor Name */
+            decor_name?: string | null;
+            /** Decor No */
+            decor_no?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Dimensions Text */
+            dimensions_text?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Finish */
+            finish?: string | null;
+            /** Groove Count */
+            groove_count?: number | null;
+            /** Handle Type */
+            handle_type?: string | null;
+            /** Height Mm */
+            height_mm?: string | null;
+            /** Inquiry Reference */
+            inquiry_reference?: string | null;
+            /** Legacy Customer Name */
+            legacy_customer_name?: string | null;
+            /** Length Mm */
+            length_mm?: string | null;
+            packaging?: components["schemas"]["CustomPackaging"] | null;
+            /** Packaging Notes */
+            packaging_notes?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Product Name */
+            product_name?: string | null;
+            /** Quoted Currency */
+            quoted_currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+            /** Quoted Price */
+            quoted_price?: string | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Shape */
+            shape?: string | null;
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+            /** Thickness Mm */
+            thickness_mm?: string | null;
+            /** Thickness Text */
+            thickness_text?: string | null;
+            /** Unit Code */
+            unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Width Mm */
+            width_mm?: string | null;
+        };
+        /** CustomQuoteRef */
+        CustomQuoteRef: {
+            /** Line No */
+            line_no: number;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            status: components["schemas"]["QuoteStatus"];
+        };
+        /**
+         * CustomType
+         * @enum {string}
+         */
+        CustomType: "modified_catalog" | "fully_new" | "quote_only";
         /** CustomerMessageCreate */
         CustomerMessageCreate: {
             /** Assignee User Id */
@@ -2421,6 +3833,11 @@ export interface components {
             /** Decor Primary */
             decor_primary: string | null;
         };
+        /**
+         * DeliveryEvidence
+         * @enum {string}
+         */
+        DeliveryEvidence: "customer_confirmation" | "courier_tracking" | "challan_signed" | "other";
         /** DeltaChange */
         DeltaChange: {
             actor: components["schemas"]["PersonRef"] | null;
@@ -2534,6 +3951,19 @@ export interface components {
             values?: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * DuplicateQuote
+         * @description Copy a quote into a new draft: new number, real totals, ``customer_reference`` cleared, the owner per the
+         *     ``quote_defaults.duplicate_copies_assignee`` policy. ``price_mode=refresh`` re-resolves catalog prices.
+         */
+        DuplicateQuote: {
+            /** From Revision No */
+            from_revision_no?: number | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** @default keep */
+            price_mode: components["schemas"]["PriceMode"];
         };
         /** EnquiryCreate */
         EnquiryCreate: {
@@ -2707,6 +4137,20 @@ export interface components {
             /** Tasks */
             tasks: components["schemas"]["InboxItem"][];
         };
+        /**
+         * FeedbackOutcome
+         * @enum {string}
+         */
+        FeedbackOutcome: "positive" | "negative" | "changes_requested" | "no_response";
+        /** FieldChange */
+        FieldChange: {
+            /** After */
+            after: unknown;
+            /** Before */
+            before: unknown;
+            /** Field */
+            field: string;
+        };
         /** FileRead */
         FileRead: {
             /** Content Type */
@@ -2741,6 +4185,171 @@ export interface components {
             /** Size Bytes */
             size_bytes: number;
         };
+        /**
+         * FxConversion
+         * @description An approved rate applied to an amount (provenance for converted quote lines).
+         */
+        FxConversion: {
+            /** Base Currency */
+            base_currency: string;
+            /**
+             * Fx Rate Id
+             * Format: uuid
+             */
+            fx_rate_id: string;
+            /** Quote Currency */
+            quote_currency: string;
+            /**
+             * Rate
+             * @example 1.0850000000
+             * @example 0.09290304
+             */
+            rate: string;
+            /**
+             * Rate Date
+             * Format: date
+             */
+            rate_date: string;
+            /** Source Reference */
+            source_reference: string;
+        };
+        /** FxDecision */
+        FxDecision: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /** Reason */
+            reason?: string | null;
+        };
+        /** FxPolicyRead */
+        FxPolicyRead: {
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Conversion Enabled
+             * @default true
+             */
+            conversion_enabled: boolean;
+            /**
+             * Conversion Source Currency
+             * @default EUR
+             * @enum {string}
+             */
+            conversion_source_currency: "INR" | "EUR" | "USD" | "GBP";
+            /**
+             * Max Rate Age Days
+             * @default 7
+             */
+            max_rate_age_days: number;
+            /** Version */
+            version: number;
+        };
+        /** FxPolicyUpdate */
+        FxPolicyUpdate: {
+            /** Conversion Enabled */
+            conversion_enabled?: boolean | null;
+            /** Conversion Source Currency */
+            conversion_source_currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Max Rate Age Days */
+            max_rate_age_days?: number | null;
+        };
+        /**
+         * FxRateCreate
+         * @description Propose a dated, sourced rate: 1 ``base_currency`` = ``rate`` ``quote_currency``. A second person approves it.
+         */
+        FxRateCreate: {
+            /**
+             * Base Currency
+             * @enum {string}
+             */
+            base_currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Quote Currency
+             * @enum {string}
+             */
+            quote_currency: "INR" | "EUR" | "USD" | "GBP";
+            /**
+             * Rate
+             * @example 1.0850000000
+             * @example 0.09290304
+             */
+            rate: string;
+            /**
+             * Rate Date
+             * Format: date
+             */
+            rate_date: string;
+            /** @default manual */
+            source_kind: components["schemas"]["FxSourceKind"];
+            /** Source Reference */
+            source_reference: string;
+        };
+        /** FxRateRead */
+        FxRateRead: {
+            /** Base Currency */
+            base_currency: string;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Decision Reason */
+            decision_reason: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Notes */
+            notes: string | null;
+            /** Proposal Id */
+            proposal_id: string | null;
+            /**
+             * Proposed At
+             * Format: date-time
+             */
+            proposed_at: string;
+            /** Proposed By Name */
+            proposed_by_name: string | null;
+            /** Quote Currency */
+            quote_currency: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Rate Date
+             * Format: date
+             */
+            rate_date: string;
+            source_kind: components["schemas"]["FxSourceKind"];
+            /** Source Reference */
+            source_reference: string;
+            status: components["schemas"]["FxRateStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * FxRateStatus
+         * @enum {string}
+         */
+        FxRateStatus: "proposed" | "approved" | "rejected" | "withdrawn";
+        /**
+         * FxSourceKind
+         * @enum {string}
+         */
+        FxSourceKind: "manual" | "bank" | "ecb_reference" | "seed" | "other";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3058,6 +4667,24 @@ export interface components {
              * Format: date
              */
             work_date: string;
+        };
+        /** LineDiff */
+        LineDiff: {
+            /**
+             * Change
+             * @enum {string}
+             */
+            change: "added" | "removed" | "changed" | "moved" | "unchanged";
+            /** Changes */
+            changes: components["schemas"]["FieldChange"][];
+            /** Description */
+            description: string;
+            /** Line Key */
+            line_key: string;
+            /** Line No After */
+            line_no_after: number | null;
+            /** Line No Before */
+            line_no_before: number | null;
         };
         /** LineResultOut */
         LineResultOut: {
@@ -3465,6 +5092,17 @@ export interface components {
             /** Unit Weight G */
             unit_weight_g: string | null;
         };
+        /** Page[CustomProductSummary] */
+        Page_CustomProductSummary_: {
+            /** Items */
+            items: components["schemas"]["CustomProductSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[CustomerMessageRead] */
         Page_CustomerMessageRead_: {
             /** Items */
@@ -3480,6 +5118,17 @@ export interface components {
         Page_EnquiryRead_: {
             /** Items */
             items: components["schemas"]["EnquiryRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[FxRateRead] */
+        Page_FxRateRead_: {
+            /** Items */
+            items: components["schemas"]["FxRateRead"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -3557,6 +5206,17 @@ export interface components {
         Page_RuleSetRead_: {
             /** Items */
             items: components["schemas"]["RuleSetRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[SampleRead] */
+        Page_SampleRead_: {
+            /** Items */
+            items: components["schemas"]["SampleRead"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -4069,10 +5729,99 @@ export interface components {
             valid_to: string | null;
         };
         /**
+         * PriceHistoryKind
+         * @enum {string}
+         */
+        PriceHistoryKind: "created" | "edited_draft" | "superseded" | "retired" | "list_activated" | "list_retired";
+        /** PriceHistoryRead */
+        PriceHistoryRead: {
+            /** Actor Name */
+            actor_name: string | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            change_kind: components["schemas"]["PriceHistoryKind"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Price List Id
+             * Format: uuid
+             */
+            price_list_id: string;
+            /** Reason */
+            reason: string | null;
+        };
+        /**
          * PriceItemStatus
          * @enum {string}
          */
         PriceItemStatus: "active" | "retired";
+        /**
+         * PriceListCommand
+         * @description ``activate`` / ``retire`` with the version the user saw (``retire`` needs a reason).
+         */
+        PriceListCommand: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** PriceListCreate */
+        PriceListCreate: {
+            /** Code */
+            code: string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Customer Type */
+            customer_type?: ("standard" | "dealer" | "distributor") | null;
+            /** Default Unit Code */
+            default_unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            price_type: components["schemas"]["PriceType"];
+            /** Priority */
+            priority?: number | null;
+            /** @default standard */
+            scope_kind: components["schemas"]["PriceScope"];
+            /** @default manual */
+            source_kind: components["schemas"]["PriceSourceKind"];
+            /** Source Ref */
+            source_ref?: string | null;
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
+            /** Valid To */
+            valid_to?: string | null;
+        };
         /** PriceListDetail */
         PriceListDetail: {
             /** Activated At */
@@ -4129,6 +5878,75 @@ export interface components {
             valid_to: string | null;
             /** Version */
             version: number;
+        };
+        /**
+         * PriceListDuplicate
+         * @description Copy the current prices of a list into a new draft list (e.g. next year's list), to edit before activation.
+         */
+        PriceListDuplicate: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
+            /** Valid To */
+            valid_to?: string | null;
+        };
+        /** PriceListItemCreate */
+        PriceListItemCreate: {
+            /** Addon Price */
+            addon_price?: string | null;
+            /** Addon Price Label */
+            addon_price_label?: string | null;
+            /** Base Price */
+            base_price?: string | null;
+            /** Base Price Label */
+            base_price_label?: string | null;
+            /** Final Price */
+            final_price?: string | null;
+            /** Moq */
+            moq?: string | null;
+            /** Moq Unit Code */
+            moq_unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Notes */
+            notes?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** @default manual */
+            source_kind: components["schemas"]["PriceSourceKind"];
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Source Row */
+            source_row?: string | null;
+            /** Source Sheet */
+            source_sheet?: string | null;
+            /** Thickness Mm */
+            thickness_mm?: string | null;
+            /**
+             * Unit Code
+             * @enum {string}
+             */
+            unit_code: "pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton";
+            /**
+             * Unit Price
+             * @example 5760.00
+             */
+            unit_price: string;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+            /** Yield Qty Per Board */
+            yield_qty_per_board?: string | null;
         };
         /** PriceListItemRead */
         PriceListItemRead: {
@@ -4196,6 +6014,36 @@ export interface components {
             yield_qty_per_board?: string | null;
         };
         /**
+         * PriceListItemUpdate
+         * @description Edit an item of a **draft** list (dirty fields plus ``expected_version``).
+         */
+        PriceListItemUpdate: {
+            /** Addon Price */
+            addon_price?: string | null;
+            /** Addon Price Label */
+            addon_price_label?: string | null;
+            /** Base Price */
+            base_price?: string | null;
+            /** Base Price Label */
+            base_price_label?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Moq */
+            moq?: string | null;
+            /** Moq Unit Code */
+            moq_unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Notes */
+            notes?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /** Unit Price */
+            unit_price?: string | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+        };
+        /**
          * PriceListStatus
          * @enum {string}
          */
@@ -4236,6 +6084,34 @@ export interface components {
             valid_to: string | null;
         };
         /**
+         * PriceListUpdate
+         * @description Dirty fields plus ``expected_version``. A draft list accepts every field; an active list only its name and
+         *     notes and a shorter ``valid_to`` (prices of an active list change only by superseding them).
+         */
+        PriceListUpdate: {
+            /** Default Unit Code */
+            default_unit_code?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Price Basis */
+            price_basis?: string | null;
+            /** Priority */
+            priority?: number | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+        };
+        /**
+         * PriceMode
+         * @enum {string}
+         */
+        PriceMode: "keep" | "refresh";
+        /**
          * PriceResolution
          * @description The result of ``resolve_price``. ``found`` carries provenance (tier, list code, item id); ``ambiguous``
          *     lists the candidates and never falls through to a less specific tier; a price is only ever returned in the
@@ -4252,6 +6128,7 @@ export interface components {
             customer_type: string | null;
             /** Explanation */
             explanation: string;
+            fx?: components["schemas"]["FxConversion"] | null;
             /** Hints */
             hints?: string[];
             /** Item Id */
@@ -4286,6 +6163,7 @@ export interface components {
             requested_currency: string;
             /** Requested Uom */
             requested_uom: string;
+            source_unit_price?: components["schemas"]["Money"] | null;
             /**
              * Status
              * @enum {string}
@@ -4305,10 +6183,46 @@ export interface components {
          */
         PriceScope: "standard" | "customer_type" | "customer";
         /**
+         * PriceSourceKind
+         * @enum {string}
+         */
+        PriceSourceKind: "manual" | "import" | "migration" | "seed";
+        /**
          * PriceType
          * @enum {string}
          */
         PriceType: "domestic" | "export" | "sample" | "distributor";
+        /** ProductCostCreate */
+        ProductCostCreate: {
+            /** Cost Components */
+            cost_components?: components["schemas"]["CostComponent"][];
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Notes */
+            notes?: string | null;
+            /** @default manual */
+            source_kind: components["schemas"]["CostSourceKind"];
+            /** Source Ref */
+            source_ref?: string | null;
+            /**
+             * Unit Code
+             * @enum {string}
+             */
+            unit_code: "pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton";
+            /**
+             * Unit Cost Amount
+             * @example 5760.00
+             */
+            unit_cost_amount: string;
+            /**
+             * Unit Cost Currency
+             * @enum {string}
+             */
+            unit_cost_currency: "INR" | "EUR" | "USD" | "GBP";
+        };
         /** ProductCostRead */
         ProductCostRead: {
             /** Cost Components */
@@ -4709,6 +6623,71 @@ export interface components {
             /** Time Zone */
             time_zone: string | null;
         };
+        /** PromotionRead */
+        PromotionRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decision Reason */
+            decision_reason: string | null;
+            /** Executed At */
+            executed_at: string | null;
+            /** Executed Product Id */
+            executed_product_id: string | null;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Payload Hash */
+            payload_hash: string;
+            /** Proposal Id */
+            proposal_id: string | null;
+            requested_by: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+            /**
+             * Spec Revision Id
+             * Format: uuid
+             */
+            spec_revision_id: string;
+            status: components["schemas"]["PromotionStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * PromotionRequest
+         * @description The master product to create from an approved custom product (validated against the catalogue first).
+         */
+        PromotionRequest: {
+            /** Brand */
+            brand?: string | null;
+            /** Category Id */
+            category_id?: string | null;
+            /** Display Sku */
+            display_sku?: string | null;
+            /** Hsn Sac */
+            hsn_sac?: string | null;
+            /** Product Key */
+            product_key: string;
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+            /** Unit Of Sale */
+            unit_of_sale?: ("pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton") | null;
+        };
+        /**
+         * PromotionStatus
+         * @enum {string}
+         */
+        PromotionStatus: "pending_approval" | "approved" | "executed" | "rejected" | "withdrawn" | "failed";
         /** ProposalOut */
         ProposalOut: {
             /** Capabilities */
@@ -4826,19 +6805,15 @@ export interface components {
             apply_minimum_surcharge: boolean;
             /** Branch Id */
             branch_id?: string | null;
-            /**
-             * Brand
-             * @default LK
-             */
-            brand: string;
+            /** Brand */
+            brand?: string | null;
             /** Currency */
             currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
             /** Customer Reference */
             customer_reference?: string | null;
             /** Enquiry Id */
             enquiry_id?: string | null;
-            /** @default FOB */
-            incoterm: components["schemas"]["Incoterm"] | null;
+            incoterm?: components["schemas"]["Incoterm"] | null;
             /** Incoterm Place */
             incoterm_place?: string | null;
             /** Origin Message Id */
@@ -4852,15 +6827,11 @@ export interface components {
             party_id: string;
             /** Payment Terms */
             payment_terms?: string | null;
-            /** @default export */
-            price_type: components["schemas"]["PriceType"];
+            price_type?: components["schemas"]["PriceType"] | null;
             /** Remarks */
             remarks?: string | null;
-            /**
-             * Validity Days
-             * @default 30
-             */
-            validity_days: number;
+            /** Validity Days */
+            validity_days?: number | null;
         };
         /** QuoteDetail */
         QuoteDetail: {
@@ -4870,6 +6841,8 @@ export interface components {
             allowed_transitions: components["schemas"]["TransitionRead"][];
             /** Apply Minimum Surcharge */
             apply_minimum_surcharge: boolean;
+            /** Archived From Status */
+            archived_from_status?: string | null;
             /** Branch Id */
             branch_id: string | null;
             /** Brand */
@@ -4895,6 +6868,8 @@ export interface components {
             customer_reference: string | null;
             /** Deleted At */
             deleted_at: string | null;
+            /** Duplicated From Quote Id */
+            duplicated_from_quote_id?: string | null;
             /** Enquiry Id */
             enquiry_id: string | null;
             grand_total: components["schemas"]["Money"] | null;
@@ -4907,6 +6882,11 @@ export interface components {
             incoterm: string | null;
             /** Incoterm Place */
             incoterm_place: string | null;
+            /**
+             * Is Expired
+             * @default false
+             */
+            is_expired: boolean;
             /** Issued At */
             issued_at: string | null;
             /** Line Count */
@@ -4932,6 +6912,8 @@ export interface components {
             redacted_fields?: string[];
             /** Remarks */
             remarks: string | null;
+            /** Restored From Revision No */
+            restored_from_revision_no?: number | null;
             review: components["schemas"]["ReviewRead"];
             /** Revision No */
             revision_no: number;
@@ -5056,6 +7038,8 @@ export interface components {
         };
         /** QuoteLineCreate */
         QuoteLineCreate: {
+            /** Custom Product Id */
+            custom_product_id?: string | null;
             /** Description */
             description?: string | null;
             /** Discount Pct */
@@ -5069,7 +7053,7 @@ export interface components {
              * @default catalog
              * @enum {string}
              */
-            line_type: "catalog" | "manual";
+            line_type: "catalog" | "manual" | "custom";
             manual_preset?: components["schemas"]["ManualPreset"] | null;
             /** Override Reason */
             override_reason?: string | null;
@@ -5098,6 +7082,9 @@ export interface components {
             currency: string;
             /** Current Unit Price */
             current_unit_price?: string | null;
+            /** Custom Product Id */
+            custom_product_id?: string | null;
+            custom_snapshot?: components["schemas"]["CustomProductSnapshot"] | null;
             /** Default Unit Price */
             default_unit_price: string | null;
             /** Description */
@@ -5106,6 +7093,10 @@ export interface components {
             discount_amount: string | null;
             /** Discount Pct */
             discount_pct: string | null;
+            /** Fx Rate */
+            fx_rate?: string | null;
+            /** Fx Rate Id */
+            fx_rate_id?: string | null;
             /** Gross Amount */
             gross_amount: string | null;
             /**
@@ -5145,6 +7136,12 @@ export interface components {
             recommendation: components["schemas"]["RecommendationRead"] | null;
             /** Remarks */
             remarks: string | null;
+            /** Restored From Revision No */
+            restored_from_revision_no?: number | null;
+            /** Source Currency */
+            source_currency?: string | null;
+            /** Source Unit Price */
+            source_unit_price?: string | null;
             /** Unit Code */
             unit_code: string;
             /** Unit Price */
@@ -5273,6 +7270,46 @@ export interface components {
              * Format: date
              */
             valid_until: string;
+        };
+        /**
+         * QuoteSettingsRead
+         * @description Quote defaults (the ``quote_defaults`` setting) plus the numbering display (next number previews, never
+         *     allocating one).
+         */
+        QuoteSettingsRead: {
+            /** Brands */
+            brands: string[];
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Defaults */
+            defaults: {
+                [key: string]: unknown;
+            };
+            /** Next Custom Product Code */
+            next_custom_product_code: string;
+            /** Next Quote Numbers */
+            next_quote_numbers: {
+                [key: string]: string;
+            };
+            /** Next Sample Number */
+            next_sample_number: string;
+            /** Quote Sequence Reset Policy */
+            quote_sequence_reset_policy: string;
+            /** Version */
+            version: number;
+        };
+        /** QuoteSettingsUpdate */
+        QuoteSettingsUpdate: {
+            /** Change Reason */
+            change_reason?: string | null;
+            /** Defaults */
+            defaults: {
+                [key: string]: unknown;
+            };
+            /** Expected Version */
+            expected_version: number;
         };
         /**
          * QuoteStatus
@@ -5409,6 +7446,8 @@ export interface components {
             reason_code?: string | null;
             /** Sent To */
             sent_to?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /**
          * QuoteUpdate
@@ -5710,6 +7749,28 @@ export interface components {
             /** Text */
             text?: string | null;
         };
+        /**
+         * RestoreRevision
+         * @description Copy an issued revision into the working copy (a sent quote is revised first); history is never overwritten.
+         */
+        RestoreRevision: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * RetireItem
+         * @description Retire a price: it stops resolving from ``retire_from`` (default today) onward; history keeps it.
+         */
+        RetireItem: {
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Reason */
+            reason: string;
+            /** Retire From */
+            retire_from?: string | null;
+        };
         /** ReviewRead */
         ReviewRead: {
             /** Approval Current */
@@ -5722,6 +7783,34 @@ export interface components {
             requires_approval: boolean;
             /** Review Proposal Id */
             review_proposal_id: string | null;
+        };
+        /**
+         * RevisionCompare
+         * @description Header fields, lines by ``line_key`` (added, removed, changed, moved) and totals between two issued revisions,
+         *     or between an issued revision and the working copy (``to_revision_no`` null).
+         */
+        RevisionCompare: {
+            /** Currency After */
+            currency_after: string;
+            /** Currency Before */
+            currency_before: string;
+            /** From Revision No */
+            from_revision_no: number;
+            /** Header */
+            header: components["schemas"]["FieldChange"][];
+            /** Lines */
+            lines: components["schemas"]["LineDiff"][];
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Summary */
+            summary: string;
+            /** To Revision No */
+            to_revision_no: number | null;
+            /** Totals */
+            totals: components["schemas"]["TotalDiff"][];
         };
         /**
          * RevisionKind
@@ -5894,6 +7983,162 @@ export interface components {
          * @enum {string}
          */
         RunTrigger: "user_turn" | "clarification_answer";
+        /** SampleCreate */
+        SampleCreate: {
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Custom Product Id */
+            custom_product_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Quote Id */
+            quote_id?: string | null;
+            /** Spec Revision Id */
+            spec_revision_id?: string | null;
+            /**
+             * Unit Code
+             * @default pcs
+             * @enum {string}
+             */
+            unit_code: "pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton";
+        };
+        /** SampleRead */
+        SampleRead: {
+            /** Allowed Transitions */
+            allowed_transitions?: components["schemas"]["TransitionRead"][];
+            /** Branch Id */
+            branch_id: string | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Challan Id */
+            challan_id: string | null;
+            /** Close Reason */
+            close_reason: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Custom Code */
+            custom_code: string | null;
+            /** Custom Product Id */
+            custom_product_id: string | null;
+            /** Delivered At */
+            delivered_at: string | null;
+            delivery_evidence_kind: components["schemas"]["DeliveryEvidence"] | null;
+            /** Description */
+            description: string;
+            /** Dispatch Reference */
+            dispatch_reference: string | null;
+            /** Dispatched At */
+            dispatched_at: string | null;
+            /** Feedback */
+            feedback: string | null;
+            /** Feedback At */
+            feedback_at: string | null;
+            feedback_outcome: components["schemas"]["FeedbackOutcome"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
+            party: components["schemas"]["PartyRef"];
+            /** Path */
+            path: string;
+            /** Product Id */
+            product_id: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Quote Id */
+            quote_id: string | null;
+            /** Quote Number */
+            quote_number: string | null;
+            /**
+             * Requested On
+             * Format: date
+             */
+            requested_on: string;
+            /** Sample Number */
+            sample_number: string;
+            /** Spec Revision Id */
+            spec_revision_id: string | null;
+            status: components["schemas"]["SampleStatus"];
+            /** Unit Code */
+            unit_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * SampleStatus
+         * @enum {string}
+         */
+        SampleStatus: "requested" | "dispatched" | "delivered" | "feedback_received" | "closed" | "cancelled";
+        /**
+         * SampleTransition
+         * @description ``dispatch`` (dispatch_reference or challan_id), ``deliver`` (evidence), ``record_feedback`` (outcome + text),
+         *     ``close`` and ``cancel`` (reason).
+         */
+        SampleTransition: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "dispatch" | "deliver" | "record_feedback" | "close" | "cancel";
+            /** Challan Id */
+            challan_id?: string | null;
+            /** Dispatch Reference */
+            dispatch_reference?: string | null;
+            evidence_kind?: components["schemas"]["DeliveryEvidence"] | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Feedback */
+            feedback?: string | null;
+            feedback_outcome?: components["schemas"]["FeedbackOutcome"] | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** SampleUpdate */
+        SampleUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Notes */
+            notes?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+        };
         /** ScreenContext */
         ScreenContext: {
             briefing_pin?: components["schemas"]["BriefingPin"] | null;
@@ -6226,6 +8471,72 @@ export interface components {
             /** Version */
             version?: number | null;
         };
+        /**
+         * SpecOutcome
+         * @enum {string}
+         */
+        SpecOutcome: "pending" | "approved" | "rejected" | "superseded";
+        /** SpecOutcomeIn */
+        SpecOutcomeIn: {
+            /** Expected Version */
+            expected_version: number;
+            /** Feedback */
+            feedback?: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "approved" | "rejected";
+        };
+        /**
+         * SpecRevisionCreate
+         * @description Record the current specification as a revision (optionally with the sample it was sent as).
+         */
+        SpecRevisionCreate: {
+            /** Feedback */
+            feedback?: string | null;
+            /** Sample Id */
+            sample_id?: string | null;
+            /** Sample Reference */
+            sample_reference?: string | null;
+            /** Sample Sent On */
+            sample_sent_on?: string | null;
+        };
+        /** SpecRevisionRead */
+        SpecRevisionRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            decided_by: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+            /** Feedback */
+            feedback: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            outcome: components["schemas"]["SpecOutcome"];
+            /** Revision No */
+            revision_no: number;
+            /** Sample Id */
+            sample_id: string | null;
+            /** Sample Number */
+            sample_number: string | null;
+            /** Sample Reference */
+            sample_reference: string | null;
+            /** Sample Sent On */
+            sample_sent_on: string | null;
+            /** Spec Snapshot */
+            spec_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Version */
+            version: number;
+        };
         /** SpecificationRead */
         SpecificationRead: {
             /** Bowl Count */
@@ -6345,6 +8656,23 @@ export interface components {
             name: string;
             /** Product Count */
             product_count: number;
+        };
+        /** SupersedeItemCommand */
+        SupersedeItemCommand: {
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Unit Price
+             * @example 5760.00
+             */
+            unit_price: string;
+            /**
+             * Valid From
+             * Format: date
+             */
+            valid_from: string;
         };
         /** SurchargeOut */
         SurchargeOut: {
@@ -6575,6 +8903,17 @@ export interface components {
              * @enum {string}
              */
             tier: "customer" | "customer_type" | "standard";
+        };
+        /** TotalDiff */
+        TotalDiff: {
+            /** After */
+            after: string | null;
+            /** Before */
+            before: string | null;
+            /** Delta */
+            delta: string | null;
+            /** Field */
+            field: string;
         };
         /** TransitionRead */
         TransitionRead: {
@@ -8596,6 +10935,360 @@ export interface operations {
             };
         };
     };
+    pricing_get_fx_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxPolicyRead"];
+                };
+            };
+        };
+    };
+    pricing_update_fx_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxPolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxPolicyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_list_fx_rates: {
+        parameters: {
+            query?: {
+                base_currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+                quote_currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+                status?: components["schemas"]["FxRateStatus"][] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_FxRateRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_propose_fx_rate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxRateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_get_fx_rate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fx_rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_decide_fx_rate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fx_rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_withdraw_fx_rate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fx_rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_update_price_list_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_list_price_list_item_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceHistoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_retire_price_list_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireItem"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_supersede_price_list_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupersedeItemCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pricing_list_price_lists: {
         parameters: {
             query?: {
@@ -8635,6 +11328,39 @@ export interface operations {
             };
         };
     };
+    pricing_create_price_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pricing_get_price_list: {
         parameters: {
             query?: never;
@@ -8648,6 +11374,111 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_update_price_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                price_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_activate_price_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                price_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_duplicate_price_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                price_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListDuplicate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8704,6 +11535,76 @@ export interface operations {
             };
         };
     };
+    pricing_create_price_list_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                price_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_retire_price_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                price_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceListCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pricing_resolve_price: {
         parameters: {
             query: {
@@ -8714,6 +11615,7 @@ export interface operations {
                 party_id?: string | null;
                 on_date?: string | null;
                 price_type?: components["schemas"]["PriceType"] | null;
+                allow_fx?: boolean;
             };
             header?: never;
             path?: never;
@@ -8775,6 +11677,41 @@ export interface operations {
             };
         };
     };
+    pricing_record_product_cost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCostCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCostRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pricing_list_product_prices: {
         parameters: {
             query?: {
@@ -8795,6 +11732,599 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductPrices"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_list_custom_products: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Tokens matched against product name, code, decor, customer */
+                q?: string | null;
+                status?: components["schemas"]["CustomProductStatus"][] | null;
+                custom_type?: components["schemas"]["CustomType"] | null;
+                party_id?: string | null;
+                category_id?: string | null;
+                scope?: string;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CustomProductSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_create_custom_product: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomProductCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_export_custom_products_csv: {
+        parameters: {
+            query?: {
+                include_costing?: boolean;
+                /** @description Tokens matched against product name, code, decor, customer */
+                q?: string | null;
+                status?: components["schemas"]["CustomProductStatus"][] | null;
+                custom_type?: components["schemas"]["CustomType"] | null;
+                party_id?: string | null;
+                category_id?: string | null;
+                scope?: string;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_custom_product_status_counts: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against product name, code, decor, customer */
+                q?: string | null;
+                status?: components["schemas"]["CustomProductStatus"][] | null;
+                custom_type?: components["schemas"]["CustomType"] | null;
+                party_id?: string | null;
+                category_id?: string | null;
+                scope?: string;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_custom_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_update_custom_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomProductUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_archive_custom_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomProductArchive"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_list_custom_product_costing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostingRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_create_custom_product_costing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CostingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_duplicate_custom_product: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_list_custom_product_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomHistoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_request_custom_product_promotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_execute_custom_product_promotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+                promotion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_create_custom_product_spec_revision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpecRevisionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecRevisionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_decide_custom_product_spec_revision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpecOutcomeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_transition_custom_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomProductTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_unarchive_custom_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomProductArchive"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomProductDetail"];
                 };
             };
             /** @description Validation Error */
@@ -9123,6 +12653,59 @@ export interface operations {
             };
         };
     };
+    sales_get_quote_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteSettingsRead"];
+                };
+            };
+        };
+    };
+    sales_update_quote_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuoteSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteSettingsRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_list_quotes: {
         parameters: {
             query?: {
@@ -9134,6 +12717,7 @@ export interface operations {
                 scope?: string;
                 owner_user_id?: string | null;
                 party_id?: string | null;
+                currency?: string | null;
                 include_deleted?: boolean;
             };
             header?: never;
@@ -9230,6 +12814,77 @@ export interface operations {
             };
         };
     };
+    sales_resolve_quote_configurator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfiguratorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfiguratorResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_export_quotes_csv: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against number, customer name and country */
+                q?: string | null;
+                status?: components["schemas"]["QuoteStatus"][] | null;
+                scope?: string;
+                owner_user_id?: string | null;
+                party_id?: string | null;
+                currency?: string | null;
+                include_deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_get_quote_by_number: {
         parameters: {
             query: {
@@ -9270,6 +12925,7 @@ export interface operations {
                 scope?: string;
                 owner_user_id?: string | null;
                 party_id?: string | null;
+                currency?: string | null;
                 include_deleted?: boolean;
             };
             header?: never;
@@ -9403,6 +13059,113 @@ export interface operations {
             };
         };
     };
+    sales_preview_quote_currency_change: {
+        parameters: {
+            query: {
+                to_currency: string;
+            };
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyChangePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_change_quote_currency: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurrencyChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_duplicate_quote: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateQuote"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_list_quote_history: {
         parameters: {
             query?: never;
@@ -9471,6 +13234,37 @@ export interface operations {
             };
         };
     };
+    sales_export_quote_lines_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_delete_quote_line: {
         parameters: {
             query?: {
@@ -9522,6 +13316,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["QuoteLineUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_change_quote_owner: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOwner"];
             };
         };
         responses: {
@@ -9613,6 +13444,40 @@ export interface operations {
             };
         };
     };
+    sales_compare_quote_revisions: {
+        parameters: {
+            query: {
+                from_revision_no: number;
+                to_revision_no?: number | null;
+            };
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionCompare"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_get_quote_revision: {
         parameters: {
             query?: never;
@@ -9677,6 +13542,44 @@ export interface operations {
             };
         };
     };
+    sales_restore_quote_revision: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                quote_id: string;
+                revision_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreRevision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_transition_quote: {
         parameters: {
             query?: never;
@@ -9701,6 +13604,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_list_samples: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                q?: string | null;
+                status?: components["schemas"]["SampleStatus"][] | null;
+                party_id?: string | null;
+                quote_id?: string | null;
+                custom_product_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_SampleRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_create_sample: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_sample_status_counts: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                status?: components["schemas"]["SampleStatus"][] | null;
+                party_id?: string | null;
+                quote_id?: string | null;
+                custom_product_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_sample: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_update_sample: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_transition_sample: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleRead"];
                 };
             };
             /** @description Validation Error */
