@@ -112,6 +112,10 @@ export const queryKeys = {
   agents: {
     all: () => ["agents"] as const,
     run: (runId: string) => ["agents", "run", { run_id: runId }] as const,
+    receipt: (receiptId: string) => ["agents", "receipt", { receipt_id: receiptId }] as const,
+    trace: (correlationId: string) => ["agents", "trace", { correlation_id: correlationId }] as const,
+    aiStatus: () => ["agents", "ai-status"] as const,
+    aiUsage: (days: number) => ["agents", "ai-usage", { days }] as const,
   },
 } as const;
 
@@ -126,7 +130,9 @@ export const invalidationMap = {
   "sales.quote_transition": [queryKeys.sales.all(), queryKeys.approvals.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "sales.message_replied": [queryKeys.sales.all(), queryKeys.tasks.all(), queryKeys.briefings.today(), queryKeys.ui.poll()],
   "parties.party_changed": [queryKeys.parties.all(), queryKeys.sales.all(), queryKeys.search.all()],
-  "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap()],
+  "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap(), queryKeys.agents.aiStatus()],
+  "agents.receipt_undone": [queryKeys.agents.all(), queryKeys.sales.all(), queryKeys.briefings.today()],
+  "agents.ai_verified": [queryKeys.agents.aiStatus(), queryKeys.system.integrations()],
   "identity.password_changed": [queryKeys.identity.me()],
 } as const;
 

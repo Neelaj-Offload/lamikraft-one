@@ -4,8 +4,8 @@
  */
 
 import { api, createIdempotencyKey, idempotencyHeaders, requestUntyped, type ApiClient } from "@/lib/api/client";
-import { parseConversationId, parseRun, parseTurnAccepted } from "./parse";
-import type { AgentRun, ScreenContext, SelectedOption } from "./types";
+import { parseCard, parseConversationId, parseRun, parseTurnAccepted } from "./parse";
+import type { AgentRun, AssistantCard, ScreenContext, SelectedOption } from "./types";
 
 export const CONVERSATIONS_PATH = "/api/v1/agents/conversations";
 
@@ -54,4 +54,20 @@ export async function cancelRun(runId: string, client: ApiClient = api): Promise
   } catch {
     return null;
   }
+}
+
+export const RECEIPTS_PATH = "/api/v1/receipts";
+
+/** Design §9 "Undo" (`agents_undo_receipt`): 409 `undo_not_available` with a `reason` once it can no longer be undone. */
+export async function undoReceipt(receiptId: string, client: ApiClient = api): Promise<AssistantCard | null> {
+  const raw = await requestUntyped<unknown>(client, "post", `${RECEIPTS_PATH}/${encodeURIComponent(receiptId)}/undo`, {
+    headers: idempotencyHeaders(createIdempotencyKey()),
+  });
+  const card = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>).card : null;
+  return parseCard(card);
+}
+
+/** The run's Server-Sent Events URL (ADR-052); same-origin through the Next `/api` rewrite. */
+export function runEventsUrl(runId: string, afterSeq: number): string {
+  return `/api/v1/agents/runs/${encodeURIComponent(runId)}/events?after_seq=${afterSeq}`;
 }

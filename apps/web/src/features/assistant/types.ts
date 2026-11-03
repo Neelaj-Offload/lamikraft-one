@@ -164,12 +164,22 @@ export interface RecordLinkCard {
   href: string;
 }
 
+/** Design §9 "Undo": the receipt behind a draft change and whether the server still allows reverting it. */
+export interface ReceiptUndo {
+  receiptId: string;
+  allowed: boolean;
+  /** ISO instant the 24-hour window closes. */
+  until: string | null;
+  kind: string;
+}
+
 export interface ReceiptCard {
   kind: "receipt";
   demo: boolean;
   title: string;
   detail: string | null;
   link: CardLink | null;
+  undo: ReceiptUndo | null;
 }
 
 export type AssistantCard = QuoteDraftCard | ClarificationCard | ErrorCard | RecordLinkCard | ReceiptCard;
