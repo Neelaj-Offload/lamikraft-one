@@ -23,34 +23,12 @@ import { isProblemError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useSession } from "@/lib/session/context";
 import { commercialMessages as c } from "@/messages/commercial";
-import { createSample, fetchSample, fetchSamples, SAMPLE_STATUSES, SAMPLES_PAGE_SIZE, transitionSample, type Sample, type SampleStatus, type SampleTransitionRequest } from "./api";
+import { createSample, fetchSample, fetchSamples, SAMPLE_STATUSES, SAMPLES_PAGE_SIZE, transitionSample, type Sample, type SampleTransitionRequest } from "./api";
 
 const m = c.samples;
-type Search = Record<string, string | string[] | undefined>;
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
-export interface SampleListState {
-  q: string;
-  status: SampleStatus | null;
-  offset: number;
-}
-
-export function sampleListStateFrom(search: Search): SampleListState {
-  const q = (first(search.q) ?? "").slice(0, 200);
-  const status = SAMPLE_STATUSES.find((candidate) => candidate === first(search.status)) ?? null;
-  const raw = Number.parseInt(first(search.offset) ?? "0", 10);
-  const offset = Number.isFinite(raw) && raw > 0 ? raw - (raw % SAMPLES_PAGE_SIZE) : 0;
-  return { q, status, offset };
-}
-
-export function sampleListHref(state: Partial<SampleListState>): string {
-  const query = new URLSearchParams();
-  if (state.q?.trim()) query.set("q", state.q.trim());
-  if (state.status) query.set("status", state.status);
-  if (state.offset) query.set("offset", String(state.offset));
-  const search = query.toString();
-  return search ? `/sales/samples?${search}` : "/sales/samples";
-}
+export { sampleListStateFrom, sampleListHref, type SampleListState } from "./list-state";
+import { sampleListHref, type SampleListState } from "./list-state";
 
 const TONE: Record<string, Tone> = { requested: "neutral", dispatched: "info", delivered: "info", feedback_received: "success", closed: "neutral", cancelled: "neutral" };
 

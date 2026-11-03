@@ -47,32 +47,10 @@ import {
 } from "./api";
 
 const m = c.priceLists;
-type Search = Record<string, string | string[] | undefined>;
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export interface PriceListState {
-  q: string;
-  status: string | null;
-  offset: number;
-}
-
-export function priceListStateFrom(search: Search): PriceListState {
-  const q = (first(search.q) ?? "").slice(0, 200);
-  const status = PRICE_LIST_STATUSES.find((candidate) => candidate === first(search.status)) ?? null;
-  const raw = Number.parseInt(first(search.offset) ?? "0", 10);
-  const offset = Number.isFinite(raw) && raw > 0 ? raw - (raw % PRICE_LISTS_PAGE_SIZE) : 0;
-  return { q, status, offset };
-}
-
-export function priceListHref(state: Partial<PriceListState>): string {
-  const query = new URLSearchParams();
-  if (state.q?.trim()) query.set("q", state.q.trim());
-  if (state.status) query.set("status", state.status);
-  if (state.offset) query.set("offset", String(state.offset));
-  const search = query.toString();
-  return search ? `/products/price-lists?${search}` : "/products/price-lists";
-}
+export { priceListStateFrom, priceListHref, type PriceListState } from "./list-state";
+import { priceListHref, type PriceListState } from "./list-state";
 
 const TONE: Record<string, Tone> = { draft: "neutral", active: "success", retired: "neutral" };
 export function PriceListStatusPill({ status }: { status: string }) {

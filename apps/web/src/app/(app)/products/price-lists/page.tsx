@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { PriceLists, priceListStateFrom } from "@/features/pricing/price-lists";
+import { PriceLists } from "@/features/pricing/price-lists";
+import { priceListStateFrom } from "@/features/pricing/list-state";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("products-price-lists");

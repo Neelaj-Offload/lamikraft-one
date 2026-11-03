@@ -1,19 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { fact, loadWorld, onlyOnProjects, ref, signInAs } from "../support/world";
+import { addCatalogLine, newDraftQuote } from "../support/quotes";
+import { onlyOnProjects, signInAs } from "../support/world";
 
 /**
  * Scenario E (UI-67, UI-70): the currency dialog reprices from a list or converts at an approved rate, never
  * relabels; a sales user never sees costing. Run by the integrator.
  */
 
-test("currency_dialog_reprice_or_convert_only", async ({ page, request }) => {
+test("currency_dialog_reprice_or_convert_only", async ({ page }) => {
   onlyOnProjects("desktop");
-  const world = await loadWorld(request);
-  const number = fact(world, "quotes", "NORDHAUS_DRAFT");
-  test.skip(!number, "the fixture world does not publish the Nordhaus draft");
-  const id = ref(world, number!);
+  // a fresh draft with one catalog line: the seeded Nordhaus draft is in review (not editable) at D0
   await signInAs(page, "MEERA");
-  await page.goto(`/sales/quotes/${id}`);
+  await newDraftQuote(page, "Nordhaus");
+  await addCatalogLine(page, "LK-OT-0450", "240");
   await page.getByRole("button", { name: "Change currency" }).click();
   const dialog = page.getByRole("dialog", { name: "Change the quote currency" });
   await expect(dialog).toBeVisible();
