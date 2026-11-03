@@ -25,11 +25,13 @@ export async function newDraftQuote(page: Page, customer = "Nordhaus"): Promise<
   return new URL(page.url()).pathname;
 }
 
-/** Adds a catalog line through the workspace's product picker. */
-export async function addCatalogLine(page: Page, productText: string, quantity: string): Promise<void> {
+/** Adds a catalog line through the workspace's product picker (`option` matches the product's option name). */
+export async function addCatalogLine(page: Page, productText: string, option: RegExp, quantity: string): Promise<void> {
   const section = page.getByRole("region", { name: "Add a product" });
-  await chooseFromCombobox(page, section.getByRole("combobox", { name: "Product" }), productText, /./);
-  await section.getByRole("textbox", { name: /^Quantity/ }).fill(quantity);
+  await chooseFromCombobox(page, section.getByRole("combobox", { name: "Product" }), productText, option);
+  const field = section.getByRole("textbox", { name: /^Quantity/ });
+  await field.fill(quantity);
+  await field.press("Tab"); // the decimal field commits its value on blur
   await section.getByRole("button", { name: "Add line" }).click();
   await expect(page.getByText("Line added").first()).toBeVisible();
 }

@@ -34,8 +34,9 @@ test("configurator_keyboard_filters_paging_and_advisories", async ({ page }) => 
   // the pick form: packaging summary, default price, amber advisories
   await expect(drawer.getByRole("heading", { name: /oak/i })).toBeVisible();
   await expect(drawer.getByText("450g · 24/ctn · Poly bag").first()).toBeVisible();
-  await expect(drawer.getByText(/Order-value recommendation/).first()).toBeVisible();
-  await expect(drawer.getByText(/\bMOQ\b/)).toHaveCount(0);
+  // the engine's order-value recommendation, never presented as the product MOQ
+  await expect(drawer.getByText(/^Order-value recommendation/).first()).toBeVisible();
+  await expect(drawer.getByText(/Recommended MOQ|^MOQ/)).toHaveCount(0);
   const quantity = drawer.getByRole("textbox", { name: /^Quantity/ });
   await quantity.fill("100");
   await quantity.press("Tab");
@@ -54,15 +55,17 @@ test("configurator_keyboard_filters_paging_and_advisories", async ({ page }) => 
   await drawer.getByRole("button", { name: "Choose another product" }).click();
   await drawer.getByRole("button", { name: "Clear filters" }).click();
   await expect(search).toHaveValue("");
-  await drawer.getByRole("button", { name: /^Category/ }).click();
+  await drawer.getByRole("button", { name: /Category$/ }).click();
   await page.getByRole("option", { name: /Serveware/ }).click();
-  await expect(drawer.getByRole("button", { name: /^Category/ })).toContainText("Serveware");
+  await expect(drawer.getByRole("button", { name: /Category$/ })).toContainText("Serveware");
   await expect(drawer.getByText(/\d+–\d+ of \d+/)).toBeVisible();
   await expect(drawer.getByRole("button", { name: "Previous page" })).toBeDisabled();
 
   // add the line
   await drawer.getByRole("button", { name: /^Choose .*oak/i }).first().click();
-  await drawer.getByRole("textbox", { name: /^Quantity/ }).fill("240");
+  const lineQuantity = drawer.getByRole("textbox", { name: /^Quantity/ });
+  await lineQuantity.fill("240");
+  await lineQuantity.press("Tab");
   await drawer.getByRole("button", { name: "Add to quote" }).click();
   await expect(drawer).toBeHidden();
   await expect(page.getByText("Line added").first()).toBeVisible();

@@ -12,7 +12,7 @@ test("currency_dialog_reprice_or_convert_only", async ({ page }) => {
   // a fresh draft with one catalog line: the seeded Nordhaus draft is in review (not editable) at D0
   await signInAs(page, "MEERA");
   await newDraftQuote(page, "Nordhaus");
-  await addCatalogLine(page, "LK-OT-0450", "240");
+  await addCatalogLine(page, "LK-OT-0450", /oak serving tray/i, "240");
   await page.getByRole("button", { name: "Change currency" }).click();
   const dialog = page.getByRole("dialog", { name: "Change the quote currency" });
   await expect(dialog).toBeVisible();
