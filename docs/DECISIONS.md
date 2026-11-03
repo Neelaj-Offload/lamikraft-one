@@ -455,3 +455,21 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
 - **Decision**: `python -m uvicorn` instead of the `uvicorn.exe` console-script shim, which Windows Application Control
   blocks on this machine (os error 4551). Applies to `npm run dev` and `npm run test:e2e`.
 - **Consequences**: identical behaviour; no unsigned launcher needed. **Accepted.**
+
+## ADR-052 Slice-3: assistant run progress over Server-Sent Events, polling as the fallback
+- **Context**: ADR-050 kept agent progress on 500 ms polling until a Slice-3 SSE spike proved the stream survives the
+  Next `/api` rewrite in dev and in `next start` without buffering or compression.
+- **Decision**: `GET /api/v1/agents/runs/{id}/events` (`text/event-stream`, `Cache-Control: no-cache, no-transform`,
+  `X-Accel-Buffering: no`) streams the same `RunDetail` payload as polling: `event: run` per change, `event: done` with
+  the finished run, a `: ping` heartbeat every 15 s, `event: timeout` after 120 s; event ids are the last step
+  sequence so `Last-Event-ID` resumes. Each tick reads the run in its own short unit of work as the member (own scope,
+  RLS). The composer streams by default and falls back to polling from the last sequence on any error, timeout or
+  unreadable event; `NEXT_PUBLIC_LK_ASSISTANT_SSE=0` forces polling (kept until the SSE path is proven in e2e).
+- **Evidence (2026-11-03, slot 1)**: through the Next dev rewrite (`127.0.0.1:3010`) with no worker running, the first
+  `run` (queued) event arrived at 0.06 s, the heartbeat at 15.3 s, `running` at 17.4 s once a worker started and
+  `done` at 18.2 s; response headers `content-type: text/event-stream`, `cache-control: no-cache, no-transform`,
+  `transfer-encoding: chunked`, no `content-encoding`. Through `next start` (production build, same rewrite): `queued` at
+  0.11 s, `running` at 25.6 s once a worker started, `done` at 26.8 s, the same headers and no compression.
+- **Consequences**: one more long-lived request per active run (bounded at 120 s); the worker remains the only writer.
+  Tests: `test_sse_stream_of_a_finished_run`, `test_sse_streams_progress_while_the_worker_runs`,
+  `run-stream.test.ts`. **Accepted** (the integrator renumbers if another lane took 052).

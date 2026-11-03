@@ -91,7 +91,8 @@ export const aiMessages = {
       modelRoles: { phrasing: "Routing and phrasing", orchestrator: "Assistant", escalation: "Escalation", vision: "Vision" } as Record<string, string>,
       effort: "Effort",
       budgets: "Run budgets",
-      budget: (steps: number, seconds: number, tokens: string, maxTokens: string) => `${steps} steps · ${seconds} s · ${tokens} input tokens · ${maxTokens} per call`,
+      budget: (steps: number, seconds: number, tokens: string, maxTokens: string) =>
+        `${steps} step${steps === 1 ? "" : "s"} · ${seconds} s · ${tokens} input tokens · ${maxTokens} per call`,
       quotas: "Daily quotas",
       quotaNames: {
         orchestrator_runs_per_user: "Assistant runs per person",
