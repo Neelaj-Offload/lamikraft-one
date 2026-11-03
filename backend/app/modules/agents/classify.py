@@ -156,6 +156,9 @@ def clarification_failures(previous_runs: Sequence[Mapping[str, Any]], slot: str
 def decide_escalation(classification: Classification, *, repeated_clarifications: int) -> Escalation:
     """Opus only by rule (section 2); the router may never select it directly for a single-domain request."""
     if classification.request_type == "analysis":
+        # escalation guard (section 7): the model router may not pick Opus for a single-domain request
+        if classification.source == "haiku" and len(set(classification.domains)) < 2 and not classification.think_harder:
+            return Escalation(False, "escalation_guard")
         return Escalation(True, "analysis")
     if classification.think_harder:
         return Escalation(True, "think_harder")

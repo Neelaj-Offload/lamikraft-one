@@ -62,9 +62,11 @@ def runs_today(uow: UnitOfWork, *, user_id: uuid.UUID | None, request_type: str 
     return int(uow.session.execute(stmt).scalar_one())
 
 
-def calls_today(uow: UnitOfWork, *, user_id: uuid.UUID | None, workflow: str) -> int:
+def calls_today(uow: UnitOfWork, *, user_id: uuid.UUID | None, workflow: str, distinct_runs: bool = False) -> int:
+    """Provider calls of a workflow today, or (``distinct_runs``) the runs that made at least one such call."""
     start = company_day_start(uow)
-    stmt = select(func.count()).select_from(AiCallLog).where(
+    counted = func.count(AiCallLog.run_id.distinct()) if distinct_runs else func.count()
+    stmt = select(counted).select_from(AiCallLog).where(
         AiCallLog.company_id == uow.actor.company_id, AiCallLog.created_at >= start, AiCallLog.workflow == workflow
     )
     if user_id is not None:
@@ -83,8 +85,8 @@ def check_escalation_quota(uow: UnitOfWork, table: RoutingTable, user_id: uuid.U
     """Per user and per company (section 2: the per-company daily Opus cap)."""
     user_limit = int(table.quotas.get("escalations_per_user", 0))
     company_limit = int(table.quotas.get("company_escalations", 0))
-    user_used = calls_today(uow, user_id=user_id, workflow="escalate")
-    company_used = calls_today(uow, user_id=None, workflow="escalate")
+    user_used = calls_today(uow, user_id=user_id, workflow="escalate", distinct_runs=True)
+    company_used = calls_today(uow, user_id=None, workflow="escalate", distinct_runs=True)
     if user_used >= user_limit:
         return QuotaDecision(False, "escalations", user_used, user_limit, QUOTA_EXCEEDED)
     if company_used >= company_limit:
