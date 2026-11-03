@@ -53,3 +53,11 @@ continue from the state on disk:
 
 `main` is at the Checkpoint-2 commits plus the Next 16.4.4 upgrade and these briefs; `npm run check` 7/7 and
 `npm run test:e2e` 96/0 as of the last run on `main`.
+
+## Resumed 2026-11-03 (owner: "complete the entirety of the app")
+
+Relaunched from the stopped state, three building lanes at a time: the Slice-2 integrator (`integ`/8, continuing
+the platform merge), challans (`work`/4, brief now recorded as `s2-challans.md`) and the Slice-3 agent runtime
+(`identity`/1). Queued until a lane frees memory: Slice-3 WhatsApp (`catalogue`/3) and the commercial configurator
+follow-up (`sales`/6, brief `s2-commercial-configurator.md`). Challans and the configurator merge into
+`lane/s2-merge` after the four wave-2a lanes; CP3 is that branch on `main`.
