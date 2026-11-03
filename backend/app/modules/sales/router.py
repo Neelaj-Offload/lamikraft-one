@@ -13,6 +13,7 @@ from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor, IdempotencyKeyHeader
 from app.core.http.pagination import MAX_LIMIT, Page
 from app.modules.sales import service
+from app.modules.sales.configurator import ConfiguratorRequest, ConfiguratorResult
 from app.modules.sales.schemas import (
     ChangeOwner,
     CostingCreate,
@@ -144,6 +145,13 @@ def update_quote_settings(actor: Actor, body: QuoteSettingsUpdate) -> QuoteSetti
 @router.get("/quotes/status-counts", openapi_extra=requires("sales.quote.read"))
 def get_quote_status_counts(actor: Actor, filters: Annotated[QuoteFilters, Depends(_quote_filters)]) -> dict[str, int]:
     return service.status_counts(actor, filters)
+
+
+@router.post("/quotes/configurator/resolve", openapi_extra=requires("sales.quote.read"))
+def resolve_quote_configurator(actor: Actor, body: ConfiguratorRequest) -> ConfiguratorResult:
+    """Search-first product finder for a quote: filters before paging, narrowed facets, ``exact_match``, and each row
+    priced for the customer (agreement -> type -> standard, approved FX when needed) with its recommendation."""
+    return service.configurator_resolve(actor, body)
 
 
 @router.post("/quotes/calculate", openapi_extra=requires("pricing.price.read"))
