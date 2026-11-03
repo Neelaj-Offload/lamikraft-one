@@ -6,6 +6,8 @@
 export interface PlannedPart {
   label: string;
   slice: number;
+  /** Set once the part is delivered: the manifest route it opens. */
+  routeId?: string;
 }
 
 export interface AreaCopy {
@@ -19,18 +21,19 @@ export interface AreaCopy {
 
 export const areaMessages = {
   planned: (slice: number) => `Planned · Slice ${slice}`,
+  available: "Available",
   today: "Go to Today",
   inbox: "Open the Inbox",
   nothingOn: "Nothing in this area is switched on yet, so there are no figures to show.",
   operations: {
     title: "Operations",
     intro: "Cutting, challans, stock, purchasing, production, quality and dispatch.",
-    stateTitle: "Operations is planned for Slices 2 and 4",
+    stateTitle: "The cutting optimiser is here; the rest of Operations arrives in Slices 2 and 4",
     stateBody:
-      "Slice 2 brings the cutting optimiser and delivery challans as documents. Slice 4 connects inventory, reservations, purchasing, production, quality, dispatch and logistics. Nothing here is switched on yet.",
+      "Saved cut plans with a true-scale board canvas are available now. Delivery challans as documents complete Slice 2; Slice 4 connects inventory, reservations, purchasing, production, quality, dispatch and logistics.",
     partsHeading: "What this area will hold",
     parts: [
-      { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2 },
+      { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },
       { label: "Delivery challans as documents: numbering, transitions, PDF and CSV", slice: 2 },
       { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4 },
       { label: "Reservations and pick lists with no oversell", slice: 4 },
@@ -56,4 +59,4 @@ export const areaMessages = {
       { label: "Margin policy and exceptions", slice: 5 },
     ],
   },
-} as const satisfies { planned: (slice: number) => string; today: string; inbox: string; nothingOn: string; operations: AreaCopy; finance: AreaCopy };
+} as const satisfies { planned: (slice: number) => string; available: string; today: string; inbox: string; nothingOn: string; operations: AreaCopy; finance: AreaCopy };

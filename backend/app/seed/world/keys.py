@@ -172,6 +172,10 @@ QUOTES = SimpleNamespace(
 PROPOSALS = SimpleNamespace(MAISON="PROP_MAISON", THORNBURY="PROP_THORNBURY", NORDHAUS="PROP_NORDHAUS")
 #: SeedContext.refs keys of the quotes and enquiries (QUOTES and ENQUIRIES hold their business numbers)
 QUOTE_REFS = SimpleNamespace(**{k: f"Q_{k}" for k in vars(QUOTES)})
+
+# Slice 2 (cutting): the saved and calculated walnut plan, owned by Ravi (seed `cutting.world`, D0 08:15)
+CUT_PLANS = SimpleNamespace(WALNUT="CUT-2026-0001")
+CUT_PLAN_REFS = SimpleNamespace(WALNUT="CUT_PLAN_WALNUT")
 ENQUIRY_REFS = SimpleNamespace(**{k: f"ENQ_{k}" for k in vars(ENQUIRIES)})
 
 # ---- tasks and reminders ---------------------------------------------------------------------
