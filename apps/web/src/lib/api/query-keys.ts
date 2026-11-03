@@ -113,6 +113,14 @@ export const queryKeys = {
     all: () => ["agents"] as const,
     run: (runId: string) => ["agents", "run", { run_id: runId }] as const,
   },
+  channels: {
+    all: () => ["channels"] as const,
+    account: () => ["channels", "account"] as const,
+    identities: (scope: "mine" | "all") => ["channels", "identities", { scope }] as const,
+    messages: () => ["channels", "messages"] as const,
+    templates: () => ["channels", "templates"] as const,
+    demoThread: () => ["channels", "demo-thread"] as const,
+  },
 } as const;
 
 /** Prefixes a mutation invalidates; one table so screens never guess (frontend_verification §5). */
@@ -128,6 +136,7 @@ export const invalidationMap = {
   "parties.party_changed": [queryKeys.parties.all(), queryKeys.sales.all(), queryKeys.search.all()],
   "org.setting_changed": [queryKeys.org.all(), queryKeys.session.bootstrap()],
   "identity.password_changed": [queryKeys.identity.me()],
+  "channels.changed": [queryKeys.channels.all()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

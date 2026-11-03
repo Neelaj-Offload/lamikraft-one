@@ -121,9 +121,11 @@ def _gate(uow: UnitOfWork, outbox: OutboxMessage, identity: ChannelIdentity, acc
     if not allowed:
         return reason or "consent_missing"
     if outbox.kind == "template":
-        _template, reason = window.template_check(uow, outbox.template_id)
+        template, reason = window.template_check(uow, outbox.template_id)
         if reason:
             return reason
+        if outbox.purpose == "daily_briefing" and template is not None and template.category.upper() != "UTILITY":
+            return "template_not_utility"  # a briefing push outside the window needs an approved utility template
     elif not window.window_open(identity, now):
         return "window_closed"
     if account.mode == "live":

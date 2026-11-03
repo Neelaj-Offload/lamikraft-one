@@ -430,6 +430,27 @@ export const routes = [
     requiredPermission: "audit.",
     access: "session",
   },
+  // --- Slice 3 WhatsApp lane: Settings › WhatsApp and the review-link landing page --------------
+  {
+    id: "settings-whatsapp",
+    path: "/settings/whatsapp",
+    label: "WhatsApp",
+    area: "settings",
+    navGroup: "context",
+    mobileTab: "more",
+    requiredPermission: null,
+    access: "session",
+  },
+  {
+    id: "review-link",
+    path: "/r/[token]",
+    label: "Review link",
+    area: "inbox",
+    navGroup: null,
+    mobileTab: "inbox",
+    requiredPermission: null,
+    access: "session",
+  },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];

@@ -117,13 +117,20 @@ def update_consent(uow: UnitOfWork, data: ConsentUpdate) -> ConsentRead:
 
 
 # ---- messages ------------------------------------------------------------------------------------------------------
-def _buttons(outbox: OutboxMessage | None) -> list[dict[str, str]]:
+def _buttons(outbox: OutboxMessage | None, *, with_ids: bool) -> list[dict[str, str]]:
+    """Reply-button titles; the button ids (bound nonces) only in the owner's own simulator thread."""
     if outbox is None:
         return []
-    return [{"title": str(b.get("title", ""))} for b in (outbox.payload or {}).get("buttons") or []]
+    out = []
+    for b in (outbox.payload or {}).get("buttons") or []:
+        item = {"title": str(b.get("title", ""))}
+        if with_ids:
+            item["id"] = str(b.get("id", ""))
+        out.append(item)
+    return out
 
 
-def message_read(uow: UnitOfWork, message: ChannelMessage, outbox: OutboxMessage | None, *, admin: bool) -> MessageRead:
+def message_read(uow: UnitOfWork, message: ChannelMessage, outbox: OutboxMessage | None, *, admin: bool, own_thread: bool = False) -> MessageRead:
     try:
         body = crypto.decrypt_text(message.body_encrypted)
     except crypto.DecryptError:
@@ -139,7 +146,7 @@ def message_read(uow: UnitOfWork, message: ChannelMessage, outbox: OutboxMessage
         provider_message_id=message.provider_message_id if admin else None, outbox_id=outbox.id if outbox else None,
         outbox_state=outbox.state if outbox else None, blocked_reason=outbox.blocked_reason if outbox else None,  # type: ignore[arg-type]
         last_error=outbox.last_error if outbox and admin else None, created_at=message.created_at, correlation_id=message.correlation_id,
-        buttons=_buttons(outbox),
+        buttons=_buttons(outbox, with_ids=own_thread),
         capabilities={"resend": _cap(resendable, "permission_denied" if not (admin or own) else "not_resendable"),
                       "cancel": _cap(outbox is not None and outbox.state in ("pending", "blocked", "unknown", "escalated") and (admin or own))},
     )
@@ -251,7 +258,7 @@ def demo_thread(uow: UnitOfWork) -> DemoThread:
         rows.reverse()
         for row in rows:
             outbox = uow.session.get(OutboxMessage, row.outbox_id) if row.outbox_id else None
-            messages.append(message_read(uow, row, outbox, admin=False))
+            messages.append(message_read(uow, row, outbox, admin=False, own_thread=True))
     # the demo number is derived from the signed-in user's id, so this thread is theirs alone
     return DemoThread(
         identity=identity_read(uow, identity) if identity is not None else None, messages=messages,

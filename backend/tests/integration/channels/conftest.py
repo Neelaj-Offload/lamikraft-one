@@ -35,9 +35,9 @@ API = "/api/v1"
 class WhatsApp:
     """Drive WhatsApp as Meta would: signed deliveries into the real ingest, then the worker inline."""
 
-    def __init__(self, world: World) -> None:
-        self.world = world
-        self.company_id = world.company_id
+    def __init__(self, fixture_world: World) -> None:
+        self.world = fixture_world
+        self.company_id = fixture_world.company_id
         self._seq = 0
 
     # ---- actors and account --------------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ export const settingsMessages = {
     integrationsHint: "Which connections run live and which are simulated.",
     audit: "Audit log",
     auditHint: "Who did what, when, and whether it was allowed.",
+    whatsappHint: "Link your phone to use the assistant on WhatsApp, and choose which messages you get.",
   },
   profile: {
     title: "Profile",

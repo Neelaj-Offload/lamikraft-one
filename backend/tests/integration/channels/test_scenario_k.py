@@ -20,8 +20,8 @@ from app.modules.approvals import service as approvals
 from app.modules.channels import action_refs
 from app.modules.channels.models import ActionRef, ChannelSession, MessageStatusEvent, OutboxMessage
 from app.modules.channels.whatsapp import outbound, reconcile
-from app.modules.channels.whatsapp.provider import SendResult, set_provider_override
 from app.modules.channels.whatsapp.demo_provider import DemoProvider
+from app.modules.channels.whatsapp.provider import SendResult, set_provider_override
 from app.platform.uow import UnitOfWork
 from tests.integration.channels.conftest import WhatsApp, unix
 from tests.support import drain
@@ -211,7 +211,7 @@ def test_k_employee_unlink_revokes_the_session_and_voids_armed_buttons(wa: Whats
 
 
 def test_deactivation_revokes_through_the_event(wa: WhatsApp) -> None:
-    identity = wa.enrol("NEHA")
+    wa.enrol("NEHA")
     with UnitOfWork(wa.system()) as uow:
         uow.emit("identity.membership.deactivated", aggregate_id=uuid.uuid7(),
                  payload={"membership_id": str(uuid.uuid7()), "user_id": str(wa.world.user_id("NEHA"))})

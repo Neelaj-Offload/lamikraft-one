@@ -1,6 +1,216 @@
 {
   "components": {
     "schemas": {
+      "AccountChecks": {
+        "properties": {
+          "graph_ok_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Ok At"
+          },
+          "handshake_ok_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handshake Ok At"
+          },
+          "signed_event_ok_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed Event Ok At"
+          }
+        },
+        "title": "AccountChecks",
+        "type": "object"
+      },
+      "AccountMode": {
+        "enum": [
+          "demo",
+          "live"
+        ],
+        "title": "AccountMode",
+        "type": "string"
+      },
+      "AccountProvider": {
+        "enum": [
+          "whatsapp_cloud",
+          "demo"
+        ],
+        "title": "AccountProvider",
+        "type": "string"
+      },
+      "AccountPurpose": {
+        "enum": [
+          "employee_assistant",
+          "customer_service"
+        ],
+        "title": "AccountPurpose",
+        "type": "string"
+      },
+      "AccountRead": {
+        "properties": {
+          "api_version": {
+            "title": "Api Version",
+            "type": "string"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/AccountChecks"
+          },
+          "display_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Phone"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "label_text": {
+            "title": "Label Text",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "live_outbound": {
+            "title": "Live Outbound",
+            "type": "boolean"
+          },
+          "missing_settings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Settings",
+            "type": "array"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/AccountMode"
+          },
+          "phone_number_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number Id"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AccountProvider"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AccountPurpose"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "waba_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waba Id"
+          }
+        },
+        "required": [
+          "id",
+          "purpose",
+          "provider",
+          "mode",
+          "status",
+          "label_text",
+          "phone_number_id",
+          "waba_id",
+          "display_phone",
+          "api_version",
+          "checks",
+          "missing_settings",
+          "live_outbound",
+          "last_error",
+          "verified_at",
+          "capabilities"
+        ],
+        "title": "AccountRead",
+        "type": "object"
+      },
+      "AccountStatus": {
+        "enum": [
+          "not_configured",
+          "configured_unverified",
+          "verified",
+          "error",
+          "disabled"
+        ],
+        "title": "AccountStatus",
+        "type": "string"
+      },
       "AckView": {
         "properties": {
           "accepted": {
@@ -1419,6 +1629,54 @@
         "title": "Channel",
         "type": "string"
       },
+      "CheckResult": {
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "name": {
+            "enum": [
+              "graph_api",
+              "handshake",
+              "signed_event"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "ok",
+          "at",
+          "detail"
+        ],
+        "title": "CheckResult",
+        "type": "object"
+      },
       "ClarificationCard": {
         "properties": {
           "kind": {
@@ -1812,6 +2070,80 @@
           "not_evaluated"
         ],
         "title": "CompletenessSummary",
+        "type": "object"
+      },
+      "ConsentPurpose": {
+        "enum": [
+          "assistant_replies",
+          "daily_briefing",
+          "transactional",
+          "marketing"
+        ],
+        "title": "ConsentPurpose",
+        "type": "string"
+      },
+      "ConsentRead": {
+        "properties": {
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ConsentPurpose"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          }
+        },
+        "required": [
+          "identity_id",
+          "purpose",
+          "status",
+          "recorded_at",
+          "source"
+        ],
+        "title": "ConsentRead",
+        "type": "object"
+      },
+      "ConsentStatus": {
+        "enum": [
+          "opted_in",
+          "opted_out"
+        ],
+        "title": "ConsentStatus",
+        "type": "string"
+      },
+      "ConsentUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ConsentPurpose"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          }
+        },
+        "required": [
+          "identity_id",
+          "purpose",
+          "status"
+        ],
+        "title": "ConsentUpdate",
         "type": "object"
       },
       "ContactIn": {
@@ -2397,7 +2729,7 @@
             "title": "Reply Ref Type"
           },
           "status": {
-            "$ref": "#/components/schemas/MessageStatus"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__MessageStatus"
           },
           "subject": {
             "anyOf": [
@@ -2788,6 +3120,84 @@
         "title": "DeltaView",
         "type": "object"
       },
+      "DemoInbound": {
+        "additionalProperties": false,
+        "properties": {
+          "audio_fixture": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Fixture"
+          },
+          "button_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Button Id"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "DemoInbound",
+        "type": "object"
+      },
+      "DemoInboundResult": {
+        "properties": {
+          "identity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
+          "inbox_id": {
+            "format": "uuid",
+            "title": "Inbox Id",
+            "type": "string"
+          },
+          "processed": {
+            "title": "Processed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "inbox_id",
+          "identity_id",
+          "processed"
+        ],
+        "title": "DemoInboundResult",
+        "type": "object"
+      },
       "DemoSignInRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2802,6 +3212,54 @@
           "token"
         ],
         "title": "DemoSignInRequest",
+        "type": "object"
+      },
+      "DemoThread": {
+        "properties": {
+          "identity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label_text": {
+            "title": "Label Text",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageRead"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/AccountMode"
+          },
+          "wa_id_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wa Id Masked"
+          }
+        },
+        "required": [
+          "identity",
+          "messages",
+          "mode",
+          "label_text",
+          "wa_id_masked"
+        ],
+        "title": "DemoThread",
         "type": "object"
       },
       "DimensionKind": {
@@ -2932,6 +3390,14 @@
         ],
         "title": "DimensionRead",
         "type": "object"
+      },
+      "Direction": {
+        "enum": [
+          "inbound",
+          "outbound"
+        ],
+        "title": "Direction",
+        "type": "string"
       },
       "DispatchChannel": {
         "enum": [
@@ -3351,6 +3817,72 @@
         "title": "EnquiryUpdate",
         "type": "object"
       },
+      "EnrolmentCreate": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "EnrolmentCreate",
+        "type": "object"
+      },
+      "EnrolmentRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message_text": {
+            "title": "Message Text",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/AccountMode"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnrolmentStatus"
+          },
+          "wa_me_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wa Me Link"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "expires_at",
+          "wa_me_link",
+          "message_text",
+          "status",
+          "mode"
+        ],
+        "title": "EnrolmentRead",
+        "type": "object"
+      },
+      "EnrolmentStatus": {
+        "enum": [
+          "pending",
+          "used",
+          "expired",
+          "cancelled"
+        ],
+        "title": "EnrolmentStatus",
+        "type": "string"
+      },
       "ErrorCard": {
         "properties": {
           "code": {
@@ -3626,6 +4158,170 @@
         ],
         "title": "HolidayRead",
         "type": "object"
+      },
+      "IdentityKind": {
+        "enum": [
+          "employee",
+          "customer",
+          "vendor",
+          "unknown"
+        ],
+        "title": "IdentityKind",
+        "type": "string"
+      },
+      "IdentityRead": {
+        "properties": {
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "consents": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ConsentStatus"
+            },
+            "title": "Consents",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/IdentityKind"
+          },
+          "last_inbound_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Inbound At"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "phone_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Masked"
+          },
+          "session_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Expires At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IdentityStatus"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "user_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "wa_id_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wa Id Masked"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "wa_id_masked",
+          "phone_masked",
+          "username",
+          "user_id",
+          "user_name",
+          "party_id",
+          "last_inbound_at",
+          "session_expires_at",
+          "created_at",
+          "consents",
+          "capabilities"
+        ],
+        "title": "IdentityRead",
+        "type": "object"
+      },
+      "IdentityStatus": {
+        "enum": [
+          "pending",
+          "active",
+          "suspended",
+          "revoked"
+        ],
+        "title": "IdentityStatus",
+        "type": "string"
       },
       "InboxCounts": {
         "properties": {
@@ -4992,13 +5688,163 @@
         "title": "MembershipView",
         "type": "object"
       },
-      "MessageStatus": {
-        "enum": [
-          "received",
-          "replied"
+      "MessageRead": {
+        "properties": {
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "buttons": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Buttons",
+            "type": "array"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "outbox_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outbox Id"
+          },
+          "outbox_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutboxState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/app__modules__channels__schemas__MessageStatus"
+          },
+          "status_provider_ts": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Provider Ts"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity_id",
+          "direction",
+          "type",
+          "body",
+          "status",
+          "status_provider_ts",
+          "simulated",
+          "provider_message_id",
+          "outbox_id",
+          "outbox_state",
+          "blocked_reason",
+          "last_error",
+          "created_at",
+          "correlation_id"
         ],
-        "title": "MessageStatus",
-        "type": "string"
+        "title": "MessageRead",
+        "type": "object"
       },
       "MinimumOut": {
         "properties": {
@@ -5505,6 +6351,184 @@
         ],
         "title": "OrderValueRecommendationRead",
         "type": "object"
+      },
+      "OutboxKind": {
+        "enum": [
+          "session",
+          "interactive",
+          "template",
+          "media"
+        ],
+        "title": "OutboxKind",
+        "type": "string"
+      },
+      "OutboxRead": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escalated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalated At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OutboxKind"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ConsentPurpose"
+          },
+          "resend_of_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resend Of Id"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OutboxState"
+          }
+        },
+        "required": [
+          "id",
+          "identity_id",
+          "message_id",
+          "kind",
+          "purpose",
+          "state",
+          "attempts",
+          "blocked_reason",
+          "last_error",
+          "provider_message_id",
+          "sent_at",
+          "escalated_at",
+          "resend_of_id",
+          "created_at"
+        ],
+        "title": "OutboxRead",
+        "type": "object"
+      },
+      "OutboxResolve": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "resend",
+              "cancel"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "confirm": {
+            "default": false,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "OutboxResolve",
+        "type": "object"
+      },
+      "OutboxState": {
+        "enum": [
+          "pending",
+          "sending",
+          "accepted",
+          "unknown",
+          "failed",
+          "blocked",
+          "cancelled",
+          "escalated"
+        ],
+        "title": "OutboxState",
+        "type": "string"
       },
       "OverviewView": {
         "properties": {
@@ -13530,6 +14554,61 @@
         "title": "ReminderUpdate",
         "type": "object"
       },
+      "ReviewLinkResolve": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "ReviewLinkResolve",
+        "type": "object"
+      },
+      "ReviewLinkResolved": {
+        "properties": {
+          "proposal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Id"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ReviewPurpose"
+          },
+          "redirect_path": {
+            "title": "Redirect Path",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirect_path",
+          "target_type",
+          "target_id",
+          "proposal_id",
+          "purpose"
+        ],
+        "title": "ReviewLinkResolved",
+        "type": "object"
+      },
+      "ReviewPurpose": {
+        "enum": [
+          "view",
+          "decide"
+        ],
+        "title": "ReviewPurpose",
+        "type": "string"
+      },
       "ReviewRead": {
         "properties": {
           "approval_current": {
@@ -16116,6 +17195,64 @@
         "title": "TeamRef",
         "type": "object"
       },
+      "TemplateRead": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TemplateStatus"
+          },
+          "synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synced At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "language",
+          "category",
+          "status",
+          "synced_at"
+        ],
+        "title": "TemplateRead",
+        "type": "object"
+      },
+      "TemplateStatus": {
+        "enum": [
+          "approved",
+          "pending",
+          "rejected",
+          "paused",
+          "disabled",
+          "unknown"
+        ],
+        "title": "TemplateStatus",
+        "type": "string"
+      },
       "ThresholdParams": {
         "additionalProperties": false,
         "properties": {
@@ -16658,6 +17795,26 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VerifyResult": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountRead"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "title": "Checks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "account",
+          "checks"
+        ],
+        "title": "VerifyResult",
+        "type": "object"
+      },
       "Viewport": {
         "properties": {
           "height": {
@@ -16802,6 +17959,21 @@
         "title": "VoicePreferencesPatch",
         "type": "object"
       },
+      "app__modules__channels__schemas__MessageStatus": {
+        "enum": [
+          "queued",
+          "accepted",
+          "sent",
+          "delivered",
+          "read",
+          "played",
+          "failed",
+          "unknown",
+          "blocked"
+        ],
+        "title": "MessageStatus",
+        "type": "string"
+      },
       "app__modules__parties__schemas__UserRef": {
         "properties": {
           "display_name": {
@@ -16827,6 +17999,14 @@
         ],
         "title": "UserRef",
         "type": "object"
+      },
+      "app__modules__sales__schemas__MessageStatus": {
+        "enum": [
+          "received",
+          "replied"
+        ],
+        "title": "MessageStatus",
+        "type": "string"
       },
       "app__modules__sales__schemas__UserRef": {
         "properties": {
@@ -18793,6 +19973,506 @@
           "kind": "permission",
           "permissions": [
             "catalogue.product.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/account": {
+      "get": {
+        "operationId": "channels_get_account",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Account",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/account/verify": {
+      "post": {
+        "operationId": "channels_run_account_verify",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Run Account Verify",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "channels.account.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/consents": {
+      "put": {
+        "operationId": "channels_update_consent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Consent",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/demo/inbound": {
+      "post": {
+        "description": "Simulate a message from the signed-in user's demo number: signed and delivered through the real webhook\ningest (signature check, inbox, worker) exactly like a Meta delivery.",
+        "operationId": "channels_create_demo_inbound",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoInbound"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoInboundResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Demo Inbound",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/demo/thread": {
+      "get": {
+        "operationId": "channels_get_demo_thread",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoThread"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Demo Thread",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/enrolments": {
+      "post": {
+        "operationId": "channels_create_enrolment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EnrolmentCreate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Enrolment",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "agents.assistant.use"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/identities": {
+      "get": {
+        "operationId": "channels_list_identities",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "mine",
+              "enum": [
+                "mine",
+                "all"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IdentityRead"
+                  },
+                  "title": "Response Channels List Identities",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Identities",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/identities/{identity_id}": {
+      "delete": {
+        "operationId": "channels_delete_identity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Identity",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/messages": {
+      "get": {
+        "operationId": "channels_list_messages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "unknown",
+                    "failed",
+                    "blocked",
+                    "escalated"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MessageRead"
+                  },
+                  "title": "Response Channels List Messages",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Messages",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "channels.outbox.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/outbox/{outbox_id}/resolve": {
+      "post": {
+        "operationId": "channels_resolve_outbox",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "outbox_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Outbox Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutboxResolve"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Outbox",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/templates": {
+      "get": {
+        "operationId": "channels_list_templates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateRead"
+                  },
+                  "title": "Response Channels List Templates",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Templates",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "channels.account.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/channels/whatsapp/templates/sync": {
+      "post": {
+        "operationId": "channels_run_templates_sync",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateRead"
+                  },
+                  "title": "Response Channels Run Templates Sync",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Run Templates Sync",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "channels.account.manage"
           ]
         }
       }
@@ -21107,6 +22787,68 @@
         }
       }
     },
+    "/api/v1/review-links/{token}/resolve": {
+      "post": {
+        "operationId": "channels_resolve_review_link",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ReviewLinkResolve"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewLinkResolved"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Review Link",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "authenticated"
+        }
+      }
+    },
     "/api/v1/sales/customer-messages": {
       "get": {
         "operationId": "sales_list_customer_messages",
@@ -21142,7 +22884,7 @@
               "anyOf": [
                 {
                   "items": {
-                    "$ref": "#/components/schemas/MessageStatus"
+                    "$ref": "#/components/schemas/app__modules__sales__schemas__MessageStatus"
                   },
                   "type": "array"
                 },
@@ -24159,6 +25901,116 @@
         ],
         "x-authz": {
           "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/webhooks/whatsapp": {
+      "get": {
+        "description": "Meta's subscription handshake: echoes the challenge when the verify token matches.",
+        "operationId": "channels_verify_subscription",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hub.mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hub.verify_token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Verify Token"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hub.challenge",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Challenge"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Subscription",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "webhook",
+          "provider": "whatsapp"
+        }
+      },
+      "post": {
+        "description": "A signed delivery from Meta (or the Demo provider): stored and queued; 200 within the time budget.",
+        "operationId": "channels_receive_delivery",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Receive Delivery",
+        "tags": [
+          "channels"
+        ],
+        "x-authz": {
+          "kind": "webhook",
+          "provider": "whatsapp"
         }
       }
     }

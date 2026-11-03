@@ -18,6 +18,7 @@ const HINTS: Record<string, string> = {
   "settings-reference": m.hub.referenceHint,
   "settings-integrations": m.hub.integrationsHint,
   "settings-audit": m.hub.auditHint,
+  "settings-whatsapp": m.hub.whatsappHint,
 };
 
 export const SETTINGS_NAV_LEADING = [{ id: "settings", label: "Overview", href: "/settings" }] as const;

@@ -215,10 +215,23 @@ def sweep(company_id: uuid.UUID) -> dict[str, int]:
     return {"escalated": escalated, "matched": matched, "gave_up": gave_up, "requeued": requeued}
 
 
+def purge_inbox_payloads() -> int:
+    """Raw webhook payloads are kept 30 days (design §4); the row, its hash and status stay as evidence."""
+    from sqlalchemy import update
+
+    from app.modules.channels.models import WebhookInbox
+
+    with UnitOfWork(ActorContext.system(None, reason="channels.inbox.purge")) as uow:
+        result = uow.session.execute(
+            update(WebhookInbox).where(WebhookInbox.purge_at <= uow.now(), WebhookInbox.payload != {}).values(payload={})
+        )
+        return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+
 def reconcile_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any] | None:
     from app.modules.channels.whatsapp.accounts import active_company_ids
 
-    totals: dict[str, int] = {}
+    totals: dict[str, int] = {"purged": purge_inbox_payloads()}
     companies = [uuid.UUID(str(payload["company_id"]))] if payload.get("company_id") else active_company_ids()
     for company_id in companies:
         for key, value in sweep(company_id).items():
