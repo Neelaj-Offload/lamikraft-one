@@ -14,7 +14,15 @@ from app.modules.agents.models import AiCallLog
 from app.platform.uow import UnitOfWork
 from app.seed.world import keys
 from tests.integration.agents.conftest import Assistant, tool_calls
-from tests.integration.agents.live_fake import FakeClaude, is_router, live_mode, message, text, tool_results, tool_use
+from tests.integration.agents.live_fake import (
+    FakeClaude,
+    is_router,
+    live_mode,
+    message,
+    text,
+    tool_results,
+    tool_use,
+)
 from tests.integration.catalogue.world import World
 
 pytestmark = pytest.mark.db

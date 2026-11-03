@@ -1,10 +1,10 @@
 /**
  * Shapes of the AI administration and trace endpoints (INTERIM(api-generate): hand-written until the generated
  * schema is consumed here; `parse.ts` reads every response defensively):
- * - agents_ai_status   GET  /api/v1/admin/ai/status            (agents.ai_usage.read)
- * - agents_ai_usage    GET  /api/v1/admin/ai/usage?days=N      (agents.ai_usage.read)
- * - agents_ai_verify   POST /api/v1/admin/ai/verify            (system.integration.manage)
- * - agents_get_trace   GET  /api/v1/traces/{correlation_id}    (participants, audit.trace.read)
+ * - admin_get_ai_status   GET  /api/v1/admin/ai/status            (agents.ai_usage.read)
+ * - admin_get_ai_usage    GET  /api/v1/admin/ai/usage?days=N      (agents.ai_usage.read)
+ * - admin_verify_ai       POST /api/v1/admin/ai/verify            (system.integration.manage)
+ * - agents_get_trace      GET  /api/v1/traces/{correlation_id}    (participants, audit.trace.read)
  */
 
 export type ProviderState = "demo" | "verified" | "failing" | "not_verified" | "misconfigured";

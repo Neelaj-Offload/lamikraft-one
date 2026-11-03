@@ -113,22 +113,22 @@ def get_trace(actor: Actor, correlation_id: str) -> TraceOut:
 
 
 # ---- AI administration (ai-routing.md sections 7-8) ---------------------------------------------------------------
-admin_router = APIRouter(prefix="/admin/ai", tags=["agents"])
+admin_router = APIRouter(prefix="/admin/ai", tags=["admin"])
 
 
-@admin_router.get("/status", openapi_extra=requires(AI_USAGE_READ), operation_id="agents_ai_status")
+@admin_router.get("/status", openapi_extra=requires(AI_USAGE_READ), operation_id="admin_get_ai_status")
 def ai_status(actor: Actor) -> AiStatusOut:
     with UnitOfWork(actor) as uow:
         return admin.get_status(uow)
 
 
-@admin_router.get("/usage", openapi_extra=requires(AI_USAGE_READ), operation_id="agents_ai_usage")
+@admin_router.get("/usage", openapi_extra=requires(AI_USAGE_READ), operation_id="admin_get_ai_usage")
 def ai_usage(actor: Actor, days: int = Query(default=7, ge=1, le=admin.MAX_WINDOW_DAYS)) -> AiUsageOut:
     with UnitOfWork(actor) as uow:
         return admin.get_usage(uow, days=days)
 
 
-@admin_router.post("/verify", openapi_extra=requires(INTEGRATION_MANAGE), operation_id="agents_ai_verify")
+@admin_router.post("/verify", openapi_extra=requires(INTEGRATION_MANAGE), operation_id="admin_verify_ai")
 def ai_verify(actor: Actor) -> AiVerifyOut:
     with UnitOfWork(actor) as uow:
         return admin.verify(uow)

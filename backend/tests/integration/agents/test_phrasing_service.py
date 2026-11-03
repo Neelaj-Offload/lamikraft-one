@@ -4,6 +4,7 @@ Message Batches path returns results keyed by custom id with failed items on tem
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -38,7 +39,7 @@ class Scripted:
         if self.error is not None:
             raise self.error
         return ModelResponse(provider="anthropic", model="claude-haiku-5-5", stop_reason="end_turn",
-                             content=(TextBlock('{"text": "%s"}' % self.text),))
+                             content=(TextBlock(json.dumps({"text": self.text})),))
 
 
 def _count(uow: UnitOfWork, model: Any) -> int:

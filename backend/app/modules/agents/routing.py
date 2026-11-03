@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.core.config import get_settings
 from app.core.money import DecimalStr
-from app.modules.agents.policies import AI_ROUTING_MANAGE, AI_USAGE_READ
+from app.modules.agents.policies import AI_ROUTING_MANAGE
 from app.platform.org.settings import SettingDef
 
 if TYPE_CHECKING:
@@ -101,7 +101,9 @@ AI_ROUTING_SETTING = SettingDef(
     key=AI_ROUTING_KEY,
     model=AiRoutingSetting,
     description="AI routing: models per task class, effort, daily quotas, the price table for usage estimates and the DPDP approval.",
-    read_permission=AI_USAGE_READ,
+    # the generic settings endpoints read with org.settings.read; agents.ai_usage.read holders see the effective
+    # table through GET /admin/ai/status
+    read_permission="org.settings.read",
     manage_permission=AI_ROUTING_MANAGE,
     owner_module="agents",
 )

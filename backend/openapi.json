@@ -17713,7 +17713,7 @@
   "paths": {
     "/api/v1/admin/ai/status": {
       "get": {
-        "operationId": "agents_ai_status",
+        "operationId": "admin_get_ai_status",
         "responses": {
           "200": {
             "content": {
@@ -17728,7 +17728,7 @@
         },
         "summary": "Ai Status",
         "tags": [
-          "agents"
+          "admin"
         ],
         "x-authz": {
           "kind": "permission",
@@ -17740,7 +17740,7 @@
     },
     "/api/v1/admin/ai/usage": {
       "get": {
-        "operationId": "agents_ai_usage",
+        "operationId": "admin_get_ai_usage",
         "parameters": [
           {
             "in": "query",
@@ -17779,7 +17779,7 @@
         },
         "summary": "Ai Usage",
         "tags": [
-          "agents"
+          "admin"
         ],
         "x-authz": {
           "kind": "permission",
@@ -17791,7 +17791,7 @@
     },
     "/api/v1/admin/ai/verify": {
       "post": {
-        "operationId": "agents_ai_verify",
+        "operationId": "admin_verify_ai",
         "responses": {
           "200": {
             "content": {
@@ -17806,7 +17806,7 @@
         },
         "summary": "Ai Verify",
         "tags": [
-          "agents"
+          "admin"
         ],
         "x-authz": {
           "kind": "permission",
@@ -20760,7 +20760,6 @@
         "x-authz": {
           "kind": "permission",
           "permissions": [
-            "agents.ai_usage.read",
             "org.settings.read"
           ]
         }
@@ -20827,7 +20826,6 @@
         "x-authz": {
           "kind": "permission",
           "permissions": [
-            "agents.ai_usage.read",
             "org.settings.read"
           ]
         }
@@ -20988,7 +20986,6 @@
         "x-authz": {
           "kind": "permission",
           "permissions": [
-            "agents.ai_usage.read",
             "org.settings.read"
           ]
         }

@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /** Ai Status */
-        get: operations["agents_ai_status"];
+        get: operations["admin_get_ai_status"];
         put?: never;
         post?: never;
         delete?: never;
@@ -29,7 +29,7 @@ export interface paths {
             cookie?: never;
         };
         /** Ai Usage */
-        get: operations["agents_ai_usage"];
+        get: operations["admin_get_ai_usage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -48,7 +48,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ai Verify */
-        post: operations["agents_ai_verify"];
+        post: operations["admin_verify_ai"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7266,7 +7266,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    agents_ai_status: {
+    admin_get_ai_status: {
         parameters: {
             query?: never;
             header?: never;
@@ -7286,7 +7286,7 @@ export interface operations {
             };
         };
     };
-    agents_ai_usage: {
+    admin_get_ai_usage: {
         parameters: {
             query?: {
                 days?: number;
@@ -7317,7 +7317,7 @@ export interface operations {
             };
         };
     };
-    agents_ai_verify: {
+    admin_verify_ai: {
         parameters: {
             query?: never;
             header?: never;

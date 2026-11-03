@@ -7,7 +7,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.modules.agents.orchestrator import STRICT_EFFECTS
-from app.modules.agents.providers.anthropic import STRICT_TOOL_BUDGET, is_strict_compatible, render_tools, strict_schema
+from app.modules.agents.providers.anthropic import (
+    STRICT_TOOL_BUDGET,
+    is_strict_compatible,
+    render_tools,
+    strict_schema,
+)
 from app.modules.agents.providers.base import ToolSpec
 from app.platform.tools import FORBIDDEN_INPUT_FIELDS
 from app.registry import get_registry

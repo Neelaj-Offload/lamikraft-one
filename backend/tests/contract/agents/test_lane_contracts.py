@@ -34,6 +34,7 @@ EXPECTED_OPERATIONS = {
     ("post", "/agents/conversations/{conversation_id}/turns"): "agents_create_turn",
     ("get", "/agents/runs/{run_id}"): "agents_get_run",
     ("post", "/agents/runs/{run_id}/cancel"): "agents_cancel_run",
+    ("get", "/agents/runs/{run_id}/events"): "agents_stream_run_events",
 }
 ENUM_COLUMNS: dict[tuple[str, str], type[StrEnum]] = {
     ("agents_conversation", "channel"): schemas.ConversationChannel,

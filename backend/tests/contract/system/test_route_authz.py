@@ -23,7 +23,9 @@ API = "/api/v1"
 VERBS = {"list", "get", "create", "update", "delete", "archive", "transition", "export", "run", "issue", "post",
          "decide", "resolve", "upload", "download", "poll"}
 #: api-conventions §1 documented path exceptions (owner module differs from the first path segment)
-PATH_EXCEPTIONS = {"health": "system", "session": "ui", "webhooks": "channels", "_test": "test"}
+PATH_EXCEPTIONS = {"health": "system", "session": "ui", "webhooks": "channels", "_test": "test",
+                   # Slice 3 agents runtime: draft receipts (Undo) and the trace view live at the top level
+                   "receipts": "agents", "traces": "agents"}
 
 #: the platform lane's routes: (method, path) -> (kind, permission keys)
 PLATFORM_MATRIX: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
@@ -31,7 +33,8 @@ PLATFORM_MATRIX: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     ("GET", f"{API}/org/settings/{{key}}"): ("permission", ("org.settings.read",)),
     ("PUT", f"{API}/org/settings/{{key}}"): (
         "permission",
-        ("org.bank_account.update", "org.company.update", "org.settings.manage", "sales.quote_settings.manage"),
+        ("agents.ai_routing.manage", "org.bank_account.update", "org.company.update", "org.settings.manage",
+         "sales.quote_settings.manage"),
     ),
     ("GET", f"{API}/org/settings/{{key}}/revisions"): ("permission", ("org.settings.read",)),
     ("GET", f"{API}/org/currencies"): ("authenticated", ()),
