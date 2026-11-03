@@ -92,6 +92,7 @@ export const salesMessages = {
     any: "Any",
     clearFilters: "Clear filters",
     results: "Matching products",
+    pages: "Result pages",
     loading: "matching products",
     empty: "No product matches these filters.",
     error: "The products could not be loaded.",

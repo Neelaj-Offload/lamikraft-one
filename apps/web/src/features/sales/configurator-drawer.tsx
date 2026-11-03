@@ -85,9 +85,11 @@ export function ConfiguratorPanel({
     setFilters((current) => ({ ...current, ...change }));
     setOffset(0);
   };
-  const exact = data?.exact_match
-    ? (data.items.find((row) => row.product.id === data.exact_match) ?? null)
-    : null;
+  // Enter takes the exact match only when the shown page answers the current search (not a kept previous page)
+  const exact =
+    data?.exact_match && !result.isPlaceholderData
+      ? (data.items.find((row) => row.product.id === data.exact_match) ?? null)
+      : null;
   const range = data ? pageLabel(data) : null;
 
   return picked ? (
@@ -170,7 +172,7 @@ export function ConfiguratorPanel({
         )}
         {range ? (
           <nav
-            aria-label={m.results}
+            aria-label={m.pages}
             className="flex flex-wrap items-center justify-between gap-2"
           >
             <p className="text-sm text-ink-muted tabular" aria-live="polite">
