@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { InfoIcon } from "@/components/ui/icons";
-import { LinkButton } from "@/components/ui/link";
+import { Link, LinkButton } from "@/components/ui/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { StateView } from "@/components/ui/states";
 import { sectionLabelClasses } from "@/components/ui/styles";
@@ -30,7 +30,7 @@ export function AreaOverview({ area }: { area: PlannedArea }) {
         }
       >
         <p>{copy.stateBody}</p>
-        <p className="mt-1">{areaMessages.nothingOn}</p>
+        <p className="mt-1">{copy.liveNote ?? areaMessages.nothingOn}</p>
       </StateView>
       <section aria-labelledby={`${area}-parts`} className="flex flex-col gap-2">
         <h2 id={`${area}-parts`} className={sectionLabelClasses}>
@@ -39,8 +39,17 @@ export function AreaOverview({ area }: { area: PlannedArea }) {
         <ul className="flex flex-col divide-y rounded-lg border bg-surface px-4">
           {copy.parts.map((part) => (
             <li key={part.label} className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
-              <span className="text-ink">{part.label}</span>
-              <Badge>{areaMessages.planned(part.slice)}</Badge>
+              {part.href ? (
+                <>
+                  <Link href={part.href}>{part.label}</Link>
+                  <Badge tone="forest">{areaMessages.available}</Badge>
+                </>
+              ) : (
+                <>
+                  <span className="text-ink">{part.label}</span>
+                  <Badge>{areaMessages.planned(part.slice)}</Badge>
+                </>
+              )}
             </li>
           ))}
         </ul>

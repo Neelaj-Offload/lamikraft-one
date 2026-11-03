@@ -28,6 +28,8 @@ function paramCandidates(world: World): Record<string, () => string | null> {
     productId: () => ref(world, "OAK_TRAY"),
     partyId: () => ref(world, "MAISON") ?? ref(world, "NORDHAUS"),
     priceListId: () => ref(world, "PL_EXP_EUR"),
+    // Slice-2 challans (seed/world/challans.py; published by business key and fixture key when seeded with --slice 2).
+    challanId: () => ref(world, "DC-2026-0001") ?? ref(world, "DC_JOB_WORK"),
   };
 }
 
