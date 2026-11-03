@@ -42,10 +42,12 @@ def handle_agent_run(ctx: Any, payload: dict[str, Any]) -> dict[str, Any]:
         return {"run_id": str(run_id), "status": "missing"}
     if run.status != "queued":
         return {"run_id": str(run_id), "status": run.status, "skipped": True}
-    user_id, channel = run.user_id, run.channel
+    user_id, channel, correlation_id = run.user_id, run.channel, run.correlation_id
     ctx.uow.session.expunge(run)
     try:
         actor = actor_for_member(company_id, user_id, channel=channel)  # type: ignore[arg-type]
+        # the trace id (design section 13): events and audit rows written by the run's steps carry it
+        actor = actor.with_(correlation_id=correlation_id) if correlation_id else actor
     except (NotFound, RuntimeError) as exc:
         log.warning("agents.actor_unavailable", run_id=str(run_id), error=str(exc)[:200])
         _fail(company_id, run_id, "actor_unavailable", "The member's context could not be built; the run was not started.")

@@ -16,6 +16,24 @@ def _router() -> Any:
     return router
 
 
+def _receipts_router() -> Any:
+    from app.modules.agents.router import receipts_router
+
+    return receipts_router
+
+
+def _traces_router() -> Any:
+    from app.modules.agents.router import traces_router
+
+    return traces_router
+
+
+def _admin_router() -> Any:
+    from app.modules.agents.router import admin_router
+
+    return admin_router
+
+
 def _run_job(ctx: Any, payload: dict[str, Any]) -> dict[str, Any] | None:
     from app.modules.agents.run_job import handle_agent_run
 
@@ -41,7 +59,7 @@ MANIFEST = ModuleManifest(
     policies=list(POLICIES),
     #: one attempt: a run is a business outcome recorded on ``agents_run``; the handler never raises
     jobs=[JobDef(JOB_KIND, _run_job, queue=JOB_QUEUE, max_attempts=1, lease_seconds=120)],
-    routers=[_router],
+    routers=[_router, _receipts_router, _traces_router, _admin_router],
     settings=_settings(),
     on_load=_on_load,
 )

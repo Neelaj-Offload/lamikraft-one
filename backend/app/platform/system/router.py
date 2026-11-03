@@ -44,4 +44,20 @@ def ready() -> JSONResponse:
     except Exception as exc:  # report, never raise from a probe
         checks["database"] = f"unavailable: {type(exc).__name__}"
         healthy = False
+    checks["ai"] = _ai_check()
     return JSONResponse({"status": "ok" if healthy else "degraded", "checks": checks}, status_code=200 if healthy else 503)
+
+
+def _ai_check() -> str:
+    """``demo``, ``ok`` or ``misconfigured`` (live without a key). Informational: live AI without a key fails
+    visibly in the assistant and on the integration status, never as a readiness failure (ai-routing.md section 1)."""
+    from app.core.config import get_settings
+    from app.platform.system.integrations import integration_def
+
+    definition = integration_def("ai.anthropic")
+    if definition is None:
+        return "not_registered"
+    settings = get_settings()
+    if definition.configured_mode(settings).value != "live":
+        return "demo"
+    return "misconfigured" if definition.missing_secrets(settings) else "ok"
