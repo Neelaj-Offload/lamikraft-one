@@ -18,12 +18,13 @@ test.beforeAll(() => {
   onlyOnProjects("desktop", "phone");
 });
 
-async function pickOption(page: Page, label: RegExp, text: string) {
+async function pickOption(page: Page, label: RegExp, text: string, option: RegExp) {
   const box = page.getByRole("combobox", { name: label });
-  await box.fill(text);
-  const option = page.getByRole("option").first();
-  await expect(option).toBeVisible({ timeout: 10_000 });
-  await option.click();
+  await box.click();
+  await box.pressSequentially(text, { delay: 50 });
+  const match = page.getByRole("listbox").getByRole("option", { name: option }).first();
+  await expect(match).toBeVisible({ timeout: 10_000 });
+  await match.click();
 }
 
 test("challan_create_duplicate_print_csv: Ravi drafts, edits, issues, prints and exports a challan", async ({ page }) => {
@@ -34,7 +35,8 @@ test("challan_create_duplicate_print_csv: Ravi drafts, edits, issues, prints and
 
   await page.getByRole("link", { name: "New challan" }).click();
   await expect(page).toHaveURL(/\/operations\/challans\/new$/);
-  await pickOption(page, /^Party/, "Nord");
+  await pickOption(page, /^Party/, "Nord", /Nordhaus/);
+  await expect(page.getByRole("textbox", { name: "Destination name" })).toHaveValue(/Nordhaus/);
   await page.getByRole("textbox", { name: "Reference number" }).fill("E2E-PO-1");
   await page.getByRole("button", { name: "Create draft" }).click();
   await expect(page).toHaveURL(/\/operations\/challans\/[0-9a-f-]{36}$/);
@@ -44,7 +46,7 @@ test("challan_create_duplicate_print_csv: Ravi drafts, edits, issues, prints and
   await expect(page.getByText("Add at least one line before issuing.")).toBeVisible();
 
   // a catalogue line: code, name, HSN/SAC and unit come from the product
-  await pickOption(page, /^Product/, "oak");
+  await pickOption(page, /^Product/, "oak", /oak/i);
   await page.getByRole("textbox", { name: "Quantity", exact: true }).fill("40");
   await page.getByRole("button", { name: "Add line" }).click();
   const quantity = page.getByRole("textbox", { name: /^Quantity \(/ }).first();
@@ -87,7 +89,7 @@ test("challan_print_preview: the print view shows the document without the shell
   const id = challanPath.split("/").at(-1)!;
   await page.goto(`/print/challans/${id}`);
   await expect(page.getByRole("heading", { level: 1, name: "Delivery challan" })).toBeVisible();
-  await expect(page.getByText(challanNumber)).toBeVisible();
+  await expect(page.getByText(challanNumber, { exact: true })).toBeVisible();
   for (const label of ["Delivered by", "Received by", "Authorised signatory"]) await expect(page.getByText(label)).toBeVisible();
   await expect(page.getByRole("button", { name: "Print" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: /primary/i })).toHaveCount(0);
@@ -99,7 +101,8 @@ test("challan_failed_save_shows_inline_retry: a failed quantity save stays on sc
   await page.getByRole("textbox", { name: "Destination name" }).fill("E2E walk-in customer");
   await page.getByRole("button", { name: "Create draft" }).click();
   await expect(page).toHaveURL(/\/operations\/challans\/[0-9a-f-]{36}$/);
-  await page.getByRole("radio", { name: "Manual item" }).check();
+  await page.getByRole("radiogroup", { name: "Add a line" }).getByText("Manual item", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: "Manual item" })).toBeChecked();
   await page.getByRole("textbox", { name: "Item", exact: true }).fill("Pallet wrap");
   await page.getByRole("textbox", { name: "Quantity", exact: true }).fill("2");
   await page.getByRole("button", { name: "Add line" }).click();
