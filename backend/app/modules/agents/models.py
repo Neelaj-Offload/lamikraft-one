@@ -18,6 +18,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db.base import Base, IdMixin, TenantEntity, TenantMixin, VersionMixin
 
 CONVERSATION_CHANNELS = ("web", "voice", "whatsapp")
+#: how a user turn arrived (design agent_voice_whatsapp.md: agents_turn.input_mode); assistant turns are "text"
+TURN_INPUT_MODES = ("text", "voice", "wa_text", "wa_voice", "card_action")
 CONVERSATION_STATUSES = ("active", "archived")
 TURN_ROLES = ("user", "assistant")
 RUN_STATUSES = ("queued", "running", "succeeded", "failed", "budget_exceeded", "cancelled")
@@ -71,9 +73,12 @@ class Turn(TenantEntity, Base):
     client_utterance_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     #: UUIDv7 created at ingress (Slice 3 trace); the run, steps, call-log rows and receipts carry the same value
     correlation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: one of TURN_INPUT_MODES; WhatsApp turns carry wa_text / wa_voice / card_action (Slice-3 stage-1 merge, 0018)
+    input_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="text", server_default="text")
 
     __table_args__ = (
         CheckConstraint("role IN ('user','assistant')", name="role_values"),
+        CheckConstraint("input_mode IN ('text','voice','wa_text','wa_voice','card_action')", name="input_mode_values"),
         Index("uq_agents_turn_seq", "conversation_id", "seq", unique=True),
         Index("ix_agents_turn_run", "run_id"),
     )

@@ -39,6 +39,16 @@ class TurnRole(StrEnum):
     ASSISTANT = "assistant"
 
 
+class TurnInputMode(StrEnum):
+    """How a user turn arrived. ``wa_*`` modes belong to WhatsApp conversations only."""
+
+    TEXT = "text"
+    VOICE = "voice"
+    WA_TEXT = "wa_text"
+    WA_VOICE = "wa_voice"
+    CARD_ACTION = "card_action"
+
+
 class RunStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
@@ -194,6 +204,7 @@ class TurnCreate(BaseModel):
     context: ScreenContext | None = None
     selected_option: SelectedOption | None = None
     client_utterance_id: uuid.UUID | None = None
+    input_mode: TurnInputMode = TurnInputMode.TEXT
 
     @field_validator("text")
     @classmethod
@@ -216,6 +227,7 @@ class TurnOut(BaseModel):
     cards: list[Card]
     run_id: uuid.UUID | None
     selected_option: dict[str, Any] | None
+    input_mode: TurnInputMode = TurnInputMode.TEXT
     created_at: datetime
 
 

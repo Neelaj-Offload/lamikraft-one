@@ -2,8 +2,8 @@
 
 - ``notice``: a short system reply (generic "not linked", link outcomes, consent confirmations, unsupported types).
   Notices carry no business data and are allowed to any identity status (the sender just wrote to us).
-- ``submit_turn``: an employee's text (or voice transcript, or a chosen clarification option) becomes an agents turn,
-  created **as the linked user** (``channel=whatsapp``, ``auth_strength=channel_linked``) in the user's own unit of
+- ``submit_turn``: an employee's text (or voice transcript, or a chosen clarification option) becomes an agents turn
+  with the message's ``input_mode`` (``wa_text`` / ``wa_voice`` / ``card_action``), created **as the linked user** (``channel=whatsapp``, ``auth_strength=channel_linked``) in the user's own unit of
   work, idempotent on the wamid (``client_utterance_id = uuid5(wamid)``). Permissions are exactly the web's.
 - ``reply_for_run``: when the run finishes (``agents.run.completed`` / ``.failed``), the server-built cards are
   rendered (figures from cards, never model prose) with up to three reply buttons, each an armed action ref.
@@ -79,7 +79,7 @@ def submit_turn(
     """Create the turn as the linked user (own unit of work) and link the message; returns the run id.
     Failures produce an honest reply instead of silence."""
     from app.modules.agents import service as agents
-    from app.modules.agents.schemas import ConversationChannel, ConversationCreate, SelectedOption, TurnCreate
+    from app.modules.agents.schemas import ConversationChannel, ConversationCreate, SelectedOption, TurnCreate, TurnInputMode
 
     with UnitOfWork(ActorContext.system(company_id, reason="channels.turn.lookup")) as uow:
         message = uow.session.get(ChannelMessage, message_id)
@@ -87,6 +87,8 @@ def submit_turn(
         if message is None or identity is None or identity.user_id is None:
             return None
         user_id, conversation_id, correlation_id = identity.user_id, identity.conversation_id, message.correlation_id
+        # recorded by inbound processing (wa_text / wa_voice / card_action); a chosen option is a card action
+        input_mode = TurnInputMode(message.input_mode or ("card_action" if selected_option else "wa_text"))
         identity_id = identity.id
     try:
         actor = member_actor(company_id, user_id, correlation_id)
@@ -101,6 +103,7 @@ def submit_turn(
             body = TurnCreate(
                 text=text, client_utterance_id=utterance_id(wamid),
                 selected_option=SelectedOption(**selected_option) if selected_option else None,
+                input_mode=input_mode,
             )
             accepted = agents.create_turn(uow, conversation_id, body)
             row = uow.session.get(ChannelMessage, message_id)

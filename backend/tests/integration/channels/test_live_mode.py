@@ -107,6 +107,9 @@ def test_connected_only_after_graph_handshake_and_signed_event(wa: WhatsApp, liv
 
 
 def test_verify_needs_a_recent_sign_in_and_the_admin_key(wa: WhatsApp, live: FakeGraph, client: TestClient) -> None:
+    # channels.account.manage is MFA + RA (permissions.md): platform-2's step-up asks for the authenticator first
+    no_mfa = client.post(f"{API}/channels/whatsapp/account/verify", headers={"x-test-persona": "PRIYA", "x-test-mfa": "0"})
+    assert no_mfa.status_code == 401 and no_mfa.json()["code"] == "mfa_required"
     stale = client.post(f"{API}/channels/whatsapp/account/verify", headers={"x-test-persona": "PRIYA", "x-test-recent-auth": "0"})
     assert stale.status_code == 401 and stale.json()["code"] == "reauth_required"
     sales = client.post(f"{API}/channels/whatsapp/account/verify", headers={"x-test-persona": "MEERA"})

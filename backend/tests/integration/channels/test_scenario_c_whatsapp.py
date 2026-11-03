@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from app.modules.agents.models import Run
+from app.modules.agents.models import Run, Turn
 from app.platform.uow import UnitOfWork
 from app.seed.world import keys
 from tests.integration.catalogue.world import World
@@ -35,6 +35,9 @@ def test_c_whatsapp_text_drafts_the_quote_and_review_link_redirects(
     with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
         run = uow.session.get(Run, inbound["run_id"])
         assert run is not None and run.status == "succeeded" and run.channel == "whatsapp" and run.user_id == world.user_id(keys.USERS.MEERA)
+        # the message's input mode reaches the agents turn (Slice-3 stage-1 merge, migration 0018)
+        turn = uow.session.get(Turn, run.turn_id)
+        assert turn is not None and turn.input_mode == "wa_text"
     reply = next(m for m in wa.messages(identity.id, "outbound") if m["run_id"] == inbound["run_id"])
     _assert_draft_reply(reply["body"])
     assert reply["simulated"] and reply["status"] == "read"
@@ -71,6 +74,11 @@ def test_c_whatsapp_voice_note_echoes_the_transcript_and_drafts(wa: WhatsApp, wo
     _assert_draft_reply(replies[-1])
     voice = next(m for m in wa.messages(identity.id, "inbound") if m["type"] == "audio")
     assert voice["input_mode"] == "wa_voice" and voice["body"] == SCENARIO_C_TEXT
+    with UnitOfWork(world.actor(keys.USERS.MEERA)) as uow:
+        run = uow.session.get(Run, voice["run_id"])
+        assert run is not None
+        turn = uow.session.get(Turn, run.turn_id)
+        assert turn is not None and turn.input_mode == "wa_voice"
 
 
 def test_c_simulator_thread_shows_the_conversation_with_the_demo_label(wa: WhatsApp, world: World, sales_tools: object, client: TestClient) -> None:

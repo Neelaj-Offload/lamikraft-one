@@ -41,9 +41,11 @@ class WhatsApp:
         self._seq = 0
 
     # ---- actors and account --------------------------------------------------------------------------------------
-    def actor(self, persona: str, *, recent_auth: bool = True) -> ActorContext:
+    def actor(self, persona: str, *, recent_auth: bool = True, mfa: bool = False) -> ActorContext:
         base = self.world.actor(persona)
-        return base.with_(recent_auth_at=self.now() if recent_auth else None, channel="web")
+        actor = base.with_(recent_auth_at=self.now() if recent_auth else None, channel="web")
+        # platform-2 step-up (ADR-052): MFA-flagged keys such as channels.account.manage need an MFA session
+        return actor.with_(auth_strength="mfa") if mfa else actor
 
     def system(self) -> ActorContext:
         return ActorContext.system(self.company_id, reason="test")
@@ -152,7 +154,8 @@ def app() -> FastAPI:
 def client(app: FastAPI, wa: WhatsApp) -> Iterator[TestClient]:
     def resolve(request: Request) -> ActorContext:
         persona = request.headers.get("x-test-persona", keys.USERS.MEERA)
-        return wa.actor(persona, recent_auth=request.headers.get("x-test-recent-auth", "1") == "1").with_(
+        return wa.actor(persona, recent_auth=request.headers.get("x-test-recent-auth", "1") == "1",
+                        mfa=request.headers.get("x-test-mfa", "1") == "1").with_(
             idempotency_key=request.headers.get("idempotency-key"))
 
     app.dependency_overrides[get_actor] = resolve

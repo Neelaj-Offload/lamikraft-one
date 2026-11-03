@@ -37,6 +37,7 @@ from app.modules.agents.schemas import (
     StepOut,
     TurnAccepted,
     TurnCreate,
+    TurnInputMode,
     TurnOut,
 )
 from app.platform.jobs import runtime as jobs_runtime
@@ -162,6 +163,8 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
             run = uow.session.get(Run, existing.run_id)
             assert run is not None
             return TurnAccepted(run_id=run.id, turn_id=existing.id, conversation_id=conversation.id, status=run.status, replayed=True)  # type: ignore[arg-type]
+    if data.input_mode in (TurnInputMode.WA_TEXT, TurnInputMode.WA_VOICE) and conversation.channel != "whatsapp":
+        raise ValidationFailed("WhatsApp input modes belong to WhatsApp conversations", code="input_mode_channel")
     selected = _offered_option(uow, conversation.id, data.selected_option) if data.selected_option else None
     now = uow.now()
     conversation.turn_count += 1
@@ -184,6 +187,7 @@ def create_turn(uow: UnitOfWork, conversation_id: uuid.UUID, data: TurnCreate) -
         cards=[],
         client_utterance_id=data.client_utterance_id,
         correlation_id=correlation_id,
+        input_mode=data.input_mode.value,
     )
     run = Run(
         id=uuid.uuid7(),
@@ -399,7 +403,7 @@ def run_summary(run: Run) -> RunSummary:
 def _turn_out(turn: Turn) -> TurnOut:
     return TurnOut(
         id=turn.id, seq=turn.seq, role=turn.role, text=turn.text, cards=turn.cards, run_id=turn.run_id,  # type: ignore[arg-type]
-        selected_option=turn.selected_option, created_at=turn.created_at,
+        selected_option=turn.selected_option, input_mode=turn.input_mode, created_at=turn.created_at,  # type: ignore[arg-type]
     )
 
 

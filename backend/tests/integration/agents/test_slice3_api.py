@@ -188,3 +188,17 @@ def test_sse_streams_progress_while_the_worker_runs(meera: Assistant, world: Wor
     names = [name for name, _ in events]
     assert names[0] == "run" and names[-1] == "done" and ticks, names
     assert events[0][1]["run"]["status"] == "queued" and events[-1][1]["run"]["status"] == "succeeded"
+
+
+# ---- input mode (Slice-3 stage-1 merge, migration 0018) ---------------------------------------------------------
+def test_turn_input_mode_defaults_to_text_and_whatsapp_modes_need_a_whatsapp_conversation(meera: Assistant) -> None:
+    meera.start()
+    refused = meera.post_turn(SCENARIO_C_TEXT, input_mode="wa_text")
+    assert refused.status_code == 422 and refused.json()["code"] == "input_mode_channel", refused.text
+    detail = meera.say(SCENARIO_C_TEXT)
+    assert detail["run"]["status"] == "succeeded"
+    voice = meera.post_turn("What is due today?", input_mode="voice")
+    assert voice.status_code == 202, voice.text
+    drain()
+    modes = [turn["input_mode"] for turn in meera.conversation()["turns"] if turn["role"] == "user"]
+    assert modes == ["text", "voice"]

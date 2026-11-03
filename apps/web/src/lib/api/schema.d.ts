@@ -1249,6 +1249,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/channels/whatsapp/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account */
+        get: operations["channels_get_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/account/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Account Verify */
+        post: operations["channels_run_account_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Consent */
+        put: operations["channels_update_consent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/demo/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Demo Inbound
+         * @description Simulate a message from the signed-in user's demo number: signed and delivered through the real webhook
+         *     ingest (signature check, inbox, worker) exactly like a Meta delivery.
+         */
+        post: operations["channels_create_demo_inbound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/demo/thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Demo Thread */
+        get: operations["channels_get_demo_thread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Enrolment */
+        post: operations["channels_create_enrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Identities */
+        get: operations["channels_list_identities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/identities/{identity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Identity */
+        delete: operations["channels_delete_identity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Messages */
+        get: operations["channels_list_messages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/outbox/{outbox_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Outbox */
+        post: operations["channels_resolve_outbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["channels_list_templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/whatsapp/templates/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Templates Sync */
+        post: operations["channels_run_templates_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/collab/activity": {
         parameters: {
             query?: never;
@@ -3613,6 +3821,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/review-links/{token}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Review Link */
+        post: operations["channels_resolve_review_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/custom-products": {
         parameters: {
             query?: never;
@@ -4790,6 +5015,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Subscription
+         * @description Meta's subscription handshake: echoes the challenge when the verify token matches.
+         */
+        get: operations["channels_verify_subscription"];
+        put?: never;
+        /**
+         * Receive Delivery
+         * @description A signed delivery from Meta (or the Demo provider): stored and queued; 200 within the time budget.
+         */
+        post: operations["channels_receive_delivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4995,6 +5244,67 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** AccountChecks */
+        AccountChecks: {
+            /** Graph Ok At */
+            graph_ok_at?: string | null;
+            /** Handshake Ok At */
+            handshake_ok_at?: string | null;
+            /** Signed Event Ok At */
+            signed_event_ok_at?: string | null;
+        };
+        /**
+         * AccountMode
+         * @enum {string}
+         */
+        AccountMode: "demo" | "live";
+        /**
+         * AccountProvider
+         * @enum {string}
+         */
+        AccountProvider: "whatsapp_cloud" | "demo";
+        /**
+         * AccountPurpose
+         * @enum {string}
+         */
+        AccountPurpose: "employee_assistant" | "customer_service";
+        /** AccountRead */
+        AccountRead: {
+            /** Api Version */
+            api_version: string;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            checks: components["schemas"]["AccountChecks"];
+            /** Display Phone */
+            display_phone: string | null;
+            /** Id */
+            id: string | null;
+            /** Label Text */
+            label_text: string;
+            /** Last Error */
+            last_error: string | null;
+            /** Live Outbound */
+            live_outbound: boolean;
+            /** Missing Settings */
+            missing_settings: string[];
+            mode: components["schemas"]["AccountMode"];
+            /** Phone Number Id */
+            phone_number_id: string | null;
+            provider: components["schemas"]["AccountProvider"];
+            purpose: components["schemas"]["AccountPurpose"];
+            status: components["schemas"]["AccountStatus"];
+            /** Verified At */
+            verified_at: string | null;
+            /** Waba Id */
+            waba_id: string | null;
+        };
+        /**
+         * AccountStatus
+         * @enum {string}
+         */
+        AccountStatus: "not_configured" | "configured_unverified" | "verified" | "error" | "disabled";
         /** AckView */
         AckView: {
             /**
@@ -6744,6 +7054,20 @@ export interface components {
          * @enum {string}
          */
         Channel: "email" | "phone" | "whatsapp" | "web" | "other";
+        /** CheckResult */
+        CheckResult: {
+            /** At */
+            at: string | null;
+            /** Detail */
+            detail: string | null;
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "graph_api" | "handshake" | "signed_event";
+            /** Ok */
+            ok: boolean;
+        };
         /** ClarificationCard */
         ClarificationCard: {
             /**
@@ -6970,6 +7294,43 @@ export interface components {
             price: components["schemas"]["ConfiguratorPrice"] | null;
             product: components["schemas"]["ProductSummary"];
             recommendation: components["schemas"]["OrderValueRecommendationRead"] | null;
+        };
+        /**
+         * ConsentPurpose
+         * @enum {string}
+         */
+        ConsentPurpose: "assistant_replies" | "daily_briefing" | "transactional" | "marketing";
+        /** ConsentRead */
+        ConsentRead: {
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            purpose: components["schemas"]["ConsentPurpose"];
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Source */
+            source: string;
+            status: components["schemas"]["ConsentStatus"];
+        };
+        /**
+         * ConsentStatus
+         * @enum {string}
+         */
+        ConsentStatus: "opted_in" | "opted_out";
+        /** ConsentUpdate */
+        ConsentUpdate: {
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            purpose: components["schemas"]["ConsentPurpose"];
+            status: components["schemas"]["ConsentStatus"];
         };
         /** ContactIn */
         ContactIn: {
@@ -7681,7 +8042,7 @@ export interface components {
             reply_ref_id: string | null;
             /** Reply Ref Type */
             reply_ref_type: string | null;
-            status: components["schemas"]["MessageStatus"];
+            status: components["schemas"]["app__modules__sales__schemas__MessageStatus"];
             /** Subject */
             subject: string | null;
             /**
@@ -8041,6 +8402,27 @@ export interface components {
              */
             until_instant: string;
         };
+        /** DemoInbound */
+        DemoInbound: {
+            /** Audio Fixture */
+            audio_fixture?: string | null;
+            /** Button Id */
+            button_id?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /** DemoInboundResult */
+        DemoInboundResult: {
+            /** Identity Id */
+            identity_id: string | null;
+            /**
+             * Inbox Id
+             * Format: uuid
+             */
+            inbox_id: string;
+            /** Processed */
+            processed: boolean;
+        };
         /** DemoResetPreview */
         DemoResetPreview: {
             /** Allowed */
@@ -8085,6 +8467,17 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** DemoThread */
+        DemoThread: {
+            identity: components["schemas"]["IdentityRead"] | null;
+            /** Label Text */
+            label_text: string;
+            /** Messages */
+            messages: components["schemas"]["MessageRead"][];
+            mode: components["schemas"]["AccountMode"];
+            /** Wa Id Masked */
+            wa_id_masked: string | null;
+        };
         /**
          * DestinationType
          * @enum {string}
@@ -8118,6 +8511,11 @@ export interface components {
             /** Width Mm */
             width_mm: string | null;
         };
+        /**
+         * Direction
+         * @enum {string}
+         */
+        Direction: "inbound" | "outbound";
         /**
          * DispatchChannel
          * @enum {string}
@@ -8297,6 +8695,34 @@ export interface components {
             /** Subject */
             subject?: string | null;
         };
+        /** EnrolmentCreate */
+        EnrolmentCreate: Record<string, never>;
+        /** EnrolmentRead */
+        EnrolmentRead: {
+            /** Code */
+            code: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message Text */
+            message_text: string;
+            mode: components["schemas"]["AccountMode"];
+            status: components["schemas"]["EnrolmentStatus"];
+            /** Wa Me Link */
+            wa_me_link: string | null;
+        };
+        /**
+         * EnrolmentStatus
+         * @enum {string}
+         */
+        EnrolmentStatus: "pending" | "used" | "expired" | "cancelled";
         /** ErrorCard */
         ErrorCard: {
             /** Code */
@@ -8763,6 +9189,55 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * IdentityKind
+         * @enum {string}
+         */
+        IdentityKind: "employee" | "customer" | "vendor" | "unknown";
+        /** IdentityRead */
+        IdentityRead: {
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Consents */
+            consents: {
+                [key: string]: components["schemas"]["ConsentStatus"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["IdentityKind"];
+            /** Last Inbound At */
+            last_inbound_at: string | null;
+            /** Party Id */
+            party_id: string | null;
+            /** Phone Masked */
+            phone_masked: string | null;
+            /** Session Expires At */
+            session_expires_at: string | null;
+            status: components["schemas"]["IdentityStatus"];
+            /** User Id */
+            user_id: string | null;
+            /** User Name */
+            user_name: string | null;
+            /** Username */
+            username: string | null;
+            /** Wa Id Masked */
+            wa_id_masked: string | null;
+        };
+        /**
+         * IdentityStatus
+         * @enum {string}
+         */
+        IdentityStatus: "pending" | "active" | "suspended" | "revoked";
         /** ImportOptions */
         ImportOptions: {
             /**
@@ -9791,11 +10266,53 @@ export interface components {
             /** Teams */
             teams: components["schemas"]["TeamRef"][];
         };
-        /**
-         * MessageStatus
-         * @enum {string}
-         */
-        MessageStatus: "received" | "replied";
+        /** MessageRead */
+        MessageRead: {
+            /** Blocked Reason */
+            blocked_reason: string | null;
+            /** Body */
+            body: string | null;
+            /** Buttons */
+            buttons?: {
+                [key: string]: string;
+            }[];
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Correlation Id */
+            correlation_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            direction: components["schemas"]["Direction"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            /** Last Error */
+            last_error: string | null;
+            /** Outbox Id */
+            outbox_id: string | null;
+            outbox_state: components["schemas"]["OutboxState"] | null;
+            /** Provider Message Id */
+            provider_message_id: string | null;
+            /** Simulated */
+            simulated: boolean;
+            status: components["schemas"]["app__modules__channels__schemas__MessageStatus"];
+            /** Status Provider Ts */
+            status_provider_ts: string | null;
+            /** Type */
+            type: string;
+        };
         /** MfaCodeRequest */
         MfaCodeRequest: {
             /** Code */
@@ -10049,6 +10566,66 @@ export interface components {
              */
             status: "AVAILABLE" | "UNAVAILABLE" | "NOT_EVALUATED" | "NOT_APPLICABLE";
         };
+        /**
+         * OutboxKind
+         * @enum {string}
+         */
+        OutboxKind: "session" | "interactive" | "template" | "media";
+        /** OutboxRead */
+        OutboxRead: {
+            /** Attempts */
+            attempts: number;
+            /** Blocked Reason */
+            blocked_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Escalated At */
+            escalated_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            kind: components["schemas"]["OutboxKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Message Id */
+            message_id: string | null;
+            /** Provider Message Id */
+            provider_message_id: string | null;
+            purpose: components["schemas"]["ConsentPurpose"];
+            /** Resend Of Id */
+            resend_of_id: string | null;
+            /** Sent At */
+            sent_at: string | null;
+            state: components["schemas"]["OutboxState"];
+        };
+        /** OutboxResolve */
+        OutboxResolve: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "resend" | "cancel";
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
+        };
+        /**
+         * OutboxState
+         * @enum {string}
+         */
+        OutboxState: "pending" | "sending" | "accepted" | "unknown" | "failed" | "blocked" | "cancelled" | "escalated";
         /** OverviewView */
         OverviewView: {
             /** Facts */
@@ -13780,6 +14357,28 @@ export interface components {
          * @enum {string}
          */
         ReturnType: "returnable" | "non_returnable";
+        /** ReviewLinkResolve */
+        ReviewLinkResolve: Record<string, never>;
+        /** ReviewLinkResolved */
+        ReviewLinkResolved: {
+            /** Proposal Id */
+            proposal_id: string | null;
+            purpose: components["schemas"]["ReviewPurpose"];
+            /** Redirect Path */
+            redirect_path: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /** Target Type */
+            target_type: string;
+        };
+        /**
+         * ReviewPurpose
+         * @enum {string}
+         */
+        ReviewPurpose: "view" | "decide";
         /** ReviewRead */
         ReviewRead: {
             /** Approval Current */
@@ -15389,6 +15988,28 @@ export interface components {
             /** Team Role */
             team_role: string;
         };
+        /** TemplateRead */
+        TemplateRead: {
+            /** Category */
+            category: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            /** Name */
+            name: string;
+            status: components["schemas"]["TemplateStatus"];
+            /** Synced At */
+            synced_at: string | null;
+        };
+        /**
+         * TemplateStatus
+         * @enum {string}
+         */
+        TemplateStatus: "approved" | "pending" | "rejected" | "paused" | "disabled" | "unknown";
         /** ThresholdParams */
         ThresholdParams: {
             /**
@@ -15505,6 +16126,8 @@ export interface components {
             /** Client Utterance Id */
             client_utterance_id?: string | null;
             context?: components["schemas"]["ScreenContext"] | null;
+            /** @default text */
+            input_mode: components["schemas"]["TurnInputMode"];
             selected_option?: components["schemas"]["SelectedOption"] | null;
             /**
              * Text
@@ -15512,6 +16135,12 @@ export interface components {
              */
             text: string;
         };
+        /**
+         * TurnInputMode
+         * @description How a user turn arrived. ``wa_*`` modes belong to WhatsApp conversations only.
+         * @enum {string}
+         */
+        TurnInputMode: "text" | "voice" | "wa_text" | "wa_voice" | "card_action";
         /** TurnOut */
         TurnOut: {
             /** Cards */
@@ -15526,6 +16155,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** @default text */
+            input_mode: components["schemas"]["TurnInputMode"];
             role: components["schemas"]["TurnRole"];
             /** Run Id */
             run_id: string | null;
@@ -15851,6 +16482,12 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** VerifyResult */
+        VerifyResult: {
+            account: components["schemas"]["AccountRead"];
+            /** Checks */
+            checks: components["schemas"]["CheckResult"][];
+        };
         /** VersionBody */
         VersionBody: {
             /** Expected Version */
@@ -15925,6 +16562,11 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /**
+         * MessageStatus
+         * @enum {string}
+         */
+        app__modules__channels__schemas__MessageStatus: "queued" | "accepted" | "sent" | "delivered" | "read" | "played" | "failed" | "unknown" | "blocked";
         /** TransitionRead */
         app__modules__cutting__schemas__TransitionRead: {
             /** Action */
@@ -15962,6 +16604,11 @@ export interface components {
              */
             id: string;
         };
+        /**
+         * MessageStatus
+         * @enum {string}
+         */
+        app__modules__sales__schemas__MessageStatus: "received" | "replied";
         /** TransitionRead */
         app__modules__sales__schemas__TransitionRead: {
             /** Action */
@@ -18525,6 +19172,331 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_get_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountRead"];
+                };
+            };
+        };
+    };
+    channels_run_account_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyResult"];
+                };
+            };
+        };
+    };
+    channels_update_consent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_create_demo_inbound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoInbound"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoInboundResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_get_demo_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoThread"];
+                };
+            };
+        };
+    };
+    channels_create_enrolment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentCreate"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_list_identities: {
+        parameters: {
+            query?: {
+                scope?: "mine" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_delete_identity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_list_messages: {
+        parameters: {
+            query?: {
+                state?: ("unknown" | "failed" | "blocked" | "escalated") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_resolve_outbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outbox_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutboxResolve"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_list_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateRead"][];
+                };
+            };
+        };
+    };
+    channels_run_templates_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateRead"][];
                 };
             };
         };
@@ -23665,6 +24637,41 @@ export interface operations {
             };
         };
     };
+    channels_resolve_review_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReviewLinkResolve"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewLinkResolved"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_list_custom_products: {
         parameters: {
             query?: {
@@ -24263,7 +25270,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                status?: components["schemas"]["MessageStatus"][] | null;
+                status?: components["schemas"]["app__modules__sales__schemas__MessageStatus"][] | null;
                 assignee_user_id?: string | null;
                 party_id?: string | null;
                 quote_id?: string | null;
@@ -26416,6 +27423,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_verify_subscription: {
+        parameters: {
+            query?: {
+                "hub.mode"?: string | null;
+                "hub.verify_token"?: string | null;
+                "hub.challenge"?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_receive_delivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

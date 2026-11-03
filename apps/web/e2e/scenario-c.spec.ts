@@ -33,11 +33,28 @@ test("Meera drafts the quote through the assistant and requests review", async (
   await page.goto("/today");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
+  // Run progress arrives over Server-Sent Events (ADR-059), not polling: record the run requests the page makes.
+  const streams: { url: string; status: number; type: string }[] = [];
+  const polls: string[] = [];
+  page.on("response", (response) => {
+    const url = response.url();
+    if (/\/api\/v1\/agents\/runs\/[0-9a-f-]{36}\/events/.test(url)) {
+      streams.push({ url, status: response.status(), type: response.headers()["content-type"] ?? "" });
+    }
+  });
+  page.on("request", (request) => {
+    if (request.method() === "GET" && /\/api\/v1\/agents\/runs\/[0-9a-f-]{36}(\?|$)/.test(request.url())) polls.push(request.url());
+  });
+
   await (await composer(page)).fill(UTTERANCE);
   await page.getByRole("button", { name: "Send" }).click();
 
   const card = page.locator('[data-card="quote_draft"]');
   await expect(card).toBeVisible({ timeout: 20_000 });
+  expect(streams.length, "the run was streamed over SSE").toBeGreaterThan(0);
+  expect(streams[0].status).toBe(200);
+  expect(streams[0].type).toContain("text/event-stream");
+  expect(polls, "no polling fallback was needed").toEqual([]);
   // On a fresh world the draft gets a number at or after SCENARIO_C_NEW: Slice-2 specs that run earlier
   // (commercial, sales) create drafts of their own, so the exact number is no longer fixed (Slice-2 merge).
   const heading = (await card.getByRole("heading").first().textContent()) ?? "";
