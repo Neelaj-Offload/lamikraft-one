@@ -18,10 +18,11 @@ from sqlalchemy import ColumnElement, Select, and_, func, or_, select
 
 from app.core.clock import local_date
 from app.core.db.base import new_id
-from app.core.errors import Forbidden, NotFound, ValidationFailed
+from app.core.errors import Conflict, Forbidden, NotFound, ValidationFailed
 from app.core.http.pagination import MAX_LIMIT, Page
 from app.core.text import LIKE_ESCAPE, contains_pattern, normalize_search_text, tokens
 from app.modules.parties import events as ev
+from app.modules.parties.customer_types import ensure_customer_type
 from app.modules.parties.models import Party, PartyAddress, PartyContact, PartyTaxIdentifier
 from app.modules.parties.schemas import (
     AddressIn,
@@ -256,6 +257,7 @@ def create_party(uow: UnitOfWork, data: PartyCreate, *, origin: str | None = Non
     _check_children(data.contacts, data.addresses, data.roles, data.customer_type, errors)
     _check_tax_unique(uow, data.tax_identifiers, None, errors)
     errors.raise_if_any()
+    ctype = ensure_customer_type(uow, data.customer_type.value if data.customer_type else None)
     party = Party(
         id=new_id(),
         company_id=actor.company_id,
@@ -264,7 +266,7 @@ def create_party(uow: UnitOfWork, data: PartyCreate, *, origin: str | None = Non
         name_key=name_key(data.display_name or data.legal_name),
         country_code=data.country_code,
         default_currency=data.default_currency,
-        customer_type=data.customer_type.value if data.customer_type else None,
+        customer_type=ctype,
         status=data.status.value,
         roles=sorted({r.value for r in data.roles}),
         owner_user_id=owner_id,
@@ -311,6 +313,8 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
     if fields.get("branch_id") is not None:
         _check_branch(uow, fields["branch_id"], errors)
     _check_tax_unique(uow, data.tax_identifiers, party.id, errors)
+    if "customer_type" in fields and fields["customer_type"] is not None:
+        ensure_customer_type(uow, str(fields["customer_type"]), current=party.customer_type)
     for required in ("legal_name", "display_name", "country_code", "default_currency", "roles", "status"):
         if required in fields and fields[required] is None:
             errors.add([required], "required", f"{required} cannot be cleared")
@@ -480,8 +484,54 @@ def _detail(uow: UnitOfWork, party: Party) -> PartyDetail:
         archived_at=party.archived_at,
         capabilities={
             "update": Capability(allowed=can_update, reason_code=None if can_update else "permission_denied"),
+            "archive": _archive_capability(uow, party, archived=False),
+            "restore": _archive_capability(uow, party, archived=True),
         },
     )
+
+
+def _archive_capability(uow: UnitOfWork, party: Party, *, archived: bool) -> Capability:
+    """``archive`` applies to a live party, ``restore`` to an archived one; both need ``parties.party.archive``."""
+    if (party.archived_at is not None) != archived:
+        return Capability(allowed=False, reason_code="archived" if not archived else "not_archived")
+    if not uow.repo(Party).can(party, "archive"):
+        return Capability(allowed=False, reason_code="permission_denied")
+    return Capability(allowed=True)
+
+
+def set_party_archived(uow: UnitOfWork, party_id: uuid.UUID, *, archived: bool, expected_version: int) -> PartyDetail:
+    """Archive (or restore) a party; quotes keep their party snapshot. 409 when already in that state."""
+    party = uow.repo(Party).get(party_id, "archive", for_update=True)
+    uow.expect_version(party, expected_version)
+    if (party.archived_at is not None) == archived:
+        raise Conflict("The party is already " + ("archived" if archived else "active"), code="invalid_state")
+    party.archived_at = uow.now() if archived else None
+    party.archived_by = uow.actor.user_id if archived else None
+    party.updated_at = uow.now()
+    uow.flush()
+    if archived:
+        uow.emit(
+            ev.PARTY_ARCHIVED,
+            aggregate_id=party.id,
+            aggregate_version=party.version,
+            payload=ev.payload(ev.PartyArchivedPayload(party_id=party.id)),
+        )
+    else:
+        uow.emit(
+            ev.PARTY_UPDATED,
+            aggregate_id=party.id,
+            aggregate_version=party.version,
+            payload=ev.payload(
+                ev.PartyUpdatedPayload(party_id=party.id, party_number=party.party_number, changed_fields=["archived_at"])
+            ),
+        )
+    uow.audit(
+        "parties.party.archived" if archived else "parties.party.restored",
+        resource_type="parties.party",
+        resource_id=party.id,
+        resource_label=f"{party.party_number} · {party.display_name}",
+    )
+    return _detail(uow, party)
 
 
 @query(READ)

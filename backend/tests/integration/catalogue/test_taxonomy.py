@@ -10,13 +10,14 @@ from sqlalchemy.exc import DBAPIError
 
 from app.core.errors import Conflict, Forbidden, ValidationFailed
 from app.modules.catalogue import service as catalogue
-from app.modules.catalogue.models import Category, Product
-from app.modules.catalogue.schemas import CategoryCreate, ProductCreate
+from app.modules.catalogue.models import Category, Product, Subcategory
+from app.modules.catalogue.schemas import CategoryCreate, ProductCreate, ProductFilters
 from app.platform.uow import UnitOfWork
 from app.seed.world import keys
 from tests.integration.catalogue.world import World, category_name, subcategory_name
 
 pytestmark = pytest.mark.db
+PRIYA = keys.USERS.PRIYA
 
 
 def _category(world: World, name: str, **kw: object) -> tuple[str, str]:
@@ -90,3 +91,142 @@ def test_tree_follows_display_order(world: World) -> None:
     names = [c.name for c in catalogue.list_categories(world.actor(keys.USERS.MEERA))]
     assert names[0] == "Zebra range" and names[-1] == "Aardvark range"
     assert names.index(category_name(keys.CATEGORIES.SERVEWARE)) < names.index(category_name(keys.CATEGORIES.DECORATIVE_BOARDS))
+
+
+# ---- Slice 2: taxonomy management (LM-40..42, FG-TAX-04..06, BUG-16, API-21/22/29, SCN-G3) -------------------------
+def _tax_cat(world: World, key: str):  # type: ignore[no-untyped-def]
+    return next(c for c in catalogue.list_categories(world.actor(PRIYA), include_inactive=True) if c.id == world.ref(key))
+
+
+def test_crud_reorder_and_activation(world: World) -> None:
+    from app.modules.catalogue import taxonomy
+
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        created = taxonomy.create_category(
+            uow, CategoryCreate(name="Kitchen", description="Kitchen boards", source_catalog_page_start="12",
+                                source_catalog_page_end="18")
+        )
+    assert created.is_active and created.description == "Kitchen boards"
+    assert (created.source_catalog_page_start, created.source_catalog_page_end) == ("12", "18")
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.create_subcategory(uow, created.id, CategoryCreate(name="Chopping"))
+    ids = [c.id for c in catalogue.list_categories(world.actor(PRIYA), include_inactive=True)]
+    new_order = [created.id, *[i for i in ids if i != created.id]]
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        tree = taxonomy.reorder(uow, taxonomy.ReorderRequest(ordered_ids=new_order))
+    assert [c.id for c in tree] == new_order and tree[0].display_order == 10
+    with pytest.raises(ValidationFailed), UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.reorder(uow, taxonomy.ReorderRequest(ordered_ids=new_order[:1]))
+    row = next(c for c in catalogue.list_categories(world.actor(PRIYA), include_inactive=True) if c.id == created.id)
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        version = uow.session.get(Category, created.id).version  # type: ignore[union-attr]
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        cat = taxonomy.update_category(uow, created.id, taxonomy.TaxonomyUpdate(expected_version=version, is_active=False))
+    assert cat.is_active is False and row.is_active is True
+    assert created.id not in {c.id for c in catalogue.list_categories(world.actor(PRIYA))}
+    with pytest.raises(Forbidden), UnitOfWork(world.actor(keys.USERS.SAHIL)) as uow:
+        taxonomy.update_category(uow, created.id, taxonomy.TaxonomyUpdate(expected_version=version + 1, is_active=True))
+
+
+def test_hierarchy_respects_inactive_parent(world: World) -> None:
+    from app.modules.catalogue import taxonomy
+
+    cat_id = world.ref(keys.CATEGORIES.SERVEWARE)
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        version = uow.session.get(Category, cat_id).version  # type: ignore[union-attr]
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.update_category(uow, cat_id, taxonomy.TaxonomyUpdate(expected_version=version, is_active=False))
+    tree = catalogue.list_categories(world.actor(PRIYA), include_inactive=True)
+    serveware = next(c for c in tree if c.id == cat_id)
+    assert serveware.subcategories and all(not s.effective_active for s in serveware.subcategories)
+    assert all(s.is_active for s in serveware.subcategories)  # own flags unchanged
+    assert cat_id not in {c.id for c in catalogue.list_categories(world.actor(PRIYA))}
+
+
+def test_live_counts_computed(world: World) -> None:
+    serveware = _tax_cat(world, keys.CATEGORIES.SERVEWARE)
+    live = catalogue.list_products(
+        world.actor(PRIYA), ProductFilters(
+            category_id=serveware.id
+        )
+    ).total
+    assert serveware.product_count == live
+    assert sum(s.product_count for s in serveware.subcategories) == live
+
+
+def test_rename_alias_and_delete_or_reassign(world: World) -> None:
+    from app.modules.catalogue import taxonomy
+
+    trays = world.ref(keys.SUBCATEGORIES.TRAYS)
+    serveware = world.ref(keys.CATEGORIES.SERVEWARE)
+    oak = world.ref("OAK_TRAY")
+    # rename: the old name becomes an alias and product search follows the new name
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        sub_version = uow.session.get(Subcategory, trays).version  # type: ignore[union-attr]
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.update_subcategory(uow, trays, taxonomy.TaxonomyUpdate(expected_version=sub_version, name="Serving trays"))
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        resolved, via_alias = taxonomy.resolve_subcategory(uow, serveware, subcategory_name(keys.SUBCATEGORIES.TRAYS))
+    assert resolved is not None and resolved.id == trays and via_alias
+    found = catalogue.list_products(
+        world.actor(PRIYA), ProductFilters(
+            q="serving trays"
+        )
+    )
+    assert oak in {p.id for p in found.items}
+    with pytest.raises(Conflict), UnitOfWork(world.actor(PRIYA)) as uow:  # a former name is reserved in the scope
+        taxonomy.create_subcategory(uow, serveware, CategoryCreate(name=subcategory_name(keys.SUBCATEGORIES.TRAYS)))
+    # delete: blocked while referenced, with per-table counts
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        refs = taxonomy.subcategory_references(uow, trays)
+    counts = {r.table: r.count for r in refs.references}
+    assert counts.get("catalogue_product", 0) >= 1 and refs.aliases == [subcategory_name(keys.SUBCATEGORIES.TRAYS)]
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        version = uow.session.get(Subcategory, trays).version  # type: ignore[union-attr]
+    with pytest.raises(Conflict) as blocked, UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.delete_subcategory(uow, trays, taxonomy.TaxonomyDelete(expected_version=version))
+    assert blocked.value.code == "taxonomy_referenced"
+    target = taxonomy.ReassignTarget(category_id=serveware, subcategory_id=world.ref(keys.SUBCATEGORIES.BOARDS))
+    with pytest.raises(Conflict) as stale, UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.delete_subcategory(
+            uow, trays, taxonomy.TaxonomyDelete(expected_version=version, reassign_to=target,
+                                                expected_reference_counts={"catalogue_product": 999})
+        )
+    assert stale.value.code == "references_changed"
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        result = taxonomy.delete_subcategory(
+            uow, trays, taxonomy.TaxonomyDelete(expected_version=version, reassign_to=target,
+                                                expected_reference_counts=counts)
+        )
+    assert result.reassigned == counts
+    moved = catalogue.get_product(world.actor(PRIYA), oak)
+    assert moved.subcategory is not None and moved.subcategory.id == world.ref(keys.SUBCATEGORIES.BOARDS)
+    # a category with subcategories cannot be deleted by reassigning products only (no handler for subcategories)
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        cat_version = uow.session.get(Category, serveware).version  # type: ignore[union-attr]
+        cat_refs = {r.table: r.count for r in taxonomy.category_references(uow, serveware).references}
+    with pytest.raises(Conflict) as unsupported, UnitOfWork(world.actor(PRIYA)) as uow:
+        taxonomy.delete_category(
+            uow, serveware, taxonomy.TaxonomyDelete(
+                expected_version=cat_version,
+                reassign_to=taxonomy.ReassignTarget(category_id=world.ref(keys.CATEGORIES.DECORATIVE_BOARDS)),
+                expected_reference_counts=cat_refs,
+            )
+        )
+    assert unsupported.value.code == "reassign_unsupported"
+
+
+def test_validation_report(world: World) -> None:
+    from app.modules.catalogue import taxonomy
+
+    with UnitOfWork(world.actor(PRIYA)) as uow:
+        catalogue.create_product(
+            uow,
+            ProductCreate(product_key="TST-UNRESOLVED", product_name="x", category_id=world.ref(keys.CATEGORIES.SERVEWARE),
+                          subcategory_source="Platters"),
+        )
+        taxonomy.create_category(uow, CategoryCreate(name="Empty shelf"))
+    report = taxonomy.validation_report(world.actor(PRIYA))
+    assert report.counts["SUBCATEGORY_UNRESOLVED"] == 1
+    assert next(i for i in report.items if i.code == "SUBCATEGORY_UNRESOLVED").value == "Platters"
+    assert "Empty shelf" in {i.value for i in report.items if i.code == "CATEGORY_EMPTY"}

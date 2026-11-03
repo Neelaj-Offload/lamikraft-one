@@ -23,6 +23,9 @@ export const settingsMessages = {
     accessRequestsHint: "Ask for a permission you need for a while.",
     usersHint: "Invite people, change roles, deactivate and reactivate.",
     rolesHint: "System roles and custom roles with inheritance and deny.",
+    importsHint: "Bring in products, prices, packaging and media from spreadsheets, with review before commit.",
+    lookupsHint: "Legacy lookup reference data, browsable and exportable.",
+    customerTypesHint: "The customer types parties and price lists use.",
   },
   profile: {
     title: "Profile",

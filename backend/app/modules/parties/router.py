@@ -6,13 +6,17 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor, IdempotencyKeyHeader
 from app.core.http.pagination import MAX_LIMIT, Page
-from app.modules.parties import service
+from app.modules.parties import customer_types, service
 from app.modules.parties.schemas import (
     CustomerType,
+    CustomerTypeCreate,
+    CustomerTypeRead,
+    CustomerTypeUpdate,
     PartyCreate,
     PartyDetail,
     PartyFilters,
@@ -96,3 +100,41 @@ def update_party(
     if replayed:
         response.headers[REPLAYED] = "true"
     return detail
+
+
+class ArchiveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+
+
+@router.post("/parties/{party_id}/archive", openapi_extra=requires("parties.party.archive"))
+def archive_party(actor: Actor, party_id: uuid.UUID, body: ArchiveRequest) -> PartyDetail:
+    """Archive a party (hidden from pickers and lists by default; quotes keep their snapshot)."""
+    with UnitOfWork(actor) as uow:
+        return service.set_party_archived(uow, party_id, archived=True, expected_version=body.expected_version)
+
+
+@router.post("/parties/{party_id}/restore", openapi_extra=requires("parties.party.archive"))
+def restore_party(actor: Actor, party_id: uuid.UUID, body: ArchiveRequest) -> PartyDetail:
+    with UnitOfWork(actor) as uow:
+        return service.set_party_archived(uow, party_id, archived=False, expected_version=body.expected_version)
+
+
+@router.get("/customer-types", openapi_extra=requires("parties.party.read"))
+def list_customer_types(actor: Actor, include_inactive: bool = True) -> list[CustomerTypeRead]:
+    """The company's customer types (built-in standard, dealer, distributor plus any added)."""
+    return customer_types.list_customer_types(actor, include_inactive=include_inactive)
+
+
+@router.post("/customer-types", status_code=201, openapi_extra=requires("parties.customer_type.manage"))
+def create_customer_type(actor: Actor, body: CustomerTypeCreate) -> CustomerTypeRead:
+    with UnitOfWork(actor) as uow:
+        return customer_types.create_customer_type(uow, body)
+
+
+@router.patch("/customer-types/{customer_type_id}", openapi_extra=requires("parties.customer_type.manage"))
+def update_customer_type(actor: Actor, customer_type_id: uuid.UUID, body: CustomerTypeUpdate) -> CustomerTypeRead:
+    """Relabel, reorder or (de)activate; codes are immutable and built-in types are never removed."""
+    with UnitOfWork(actor) as uow:
+        return customer_types.update_customer_type(uow, customer_type_id, body)

@@ -10,6 +10,7 @@ from app.platform.numbering.defs import SequenceDef
 
 PARTY_CREATED = "parties.party.created"
 PARTY_UPDATED = "parties.party.updated"
+PARTY_ARCHIVED = "parties.party.archived"
 
 #: P-NNNNN, never reset (fixtures.md §6)
 PARTY_SEQUENCE = SequenceDef(
@@ -33,6 +34,11 @@ class PartyUpdatedPayload(BaseModel):
     party_number: str
     #: field names; child lists report ``contacts``, ``tax_identifiers`` and ``addresses.<kind>``
     changed_fields: list[str]
+    origin: str | None = None
+
+
+class PartyArchivedPayload(BaseModel):
+    party_id: uuid.UUID
     origin: str | None = None
 
 

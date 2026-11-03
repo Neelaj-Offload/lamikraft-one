@@ -13,10 +13,12 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -25,6 +27,27 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db.base import ArchivableMixin, Base, BranchMixin, TenantEntity, VersionMixin
 
 ROLE_VALUES = ("customer", "vendor", "fabricator", "job_worker")
+#: built-in customer types every company has (provisioned on first use; never deleted, only deactivated)
+SYSTEM_CUSTOMER_TYPES = (("standard", "Standard", 10), ("dealer", "Dealer", 20), ("distributor", "Distributor", 30))
+
+
+class CustomerTypeRecord(TenantEntity, VersionMixin, Base):
+    """The customer-type reference table (SC-13): parties reference it by (company, code)."""
+
+    __tablename__ = "parties_customer_type"
+
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    label: Mapped[str] = mapped_column(String(80), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "code", name="uq_parties_customer_type_code"),
+        CheckConstraint("code ~ '^[a-z][a-z0-9_]{1,19}$'", name="code_format"),
+        CheckConstraint("btrim(label) <> ''", name="label_not_blank"),
+    )
 
 
 class Party(TenantEntity, VersionMixin, ArchivableMixin, BranchMixin, Base):
@@ -64,6 +87,12 @@ class Party(TenantEntity, VersionMixin, ArchivableMixin, BranchMixin, Base):
             name="roles_values",
         ),
         CheckConstraint("btrim(legal_name) <> '' AND btrim(display_name) <> ''", name="names_not_blank"),
+        ForeignKeyConstraint(
+            ["company_id", "customer_type"],
+            ["parties_customer_type.company_id", "parties_customer_type.code"],
+            name="fk_parties_party_customer_type",
+            ondelete="RESTRICT",
+        ),
     )
 
 

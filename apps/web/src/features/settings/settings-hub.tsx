@@ -24,6 +24,9 @@ const HINTS: Record<string, string> = {
   "settings-access-requests": m.hub.accessRequestsHint,
   "settings-users": m.hub.usersHint,
   "settings-roles": m.hub.rolesHint,
+  "settings-imports": m.hub.importsHint,
+  "settings-lookups": m.hub.lookupsHint,
+  "settings-customer-types": m.hub.customerTypesHint,
 };
 
 export const SETTINGS_NAV_LEADING = [{ id: "settings", label: "Overview", href: "/settings" }] as const;

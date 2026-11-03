@@ -611,6 +611,14 @@ export const routes = [
     requiredPermission: "collab.",
     access: "session",
   },
+  // catalogue lane (Slice 2 wave 1): new product, section deep links, imports, lookups, customer types
+  { id: "products-new", path: "/products/new", label: "New product", area: "products", navGroup: null, mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "product-section", path: "/products/[productId]/[section]", label: "Product", area: "products", navGroup: null, mobileTab: "work", requiredPermission: "catalogue.", access: "session" },
+  { id: "settings-imports", path: "/settings/imports", label: "Imports", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-import-new", path: "/settings/imports/new", label: "New import", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-import", path: "/settings/imports/[jobId]", label: "Import", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "imports.", access: "session" },
+  { id: "settings-lookups", path: "/settings/lookups", label: "Lookup reference", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "catalogue.", access: "session" },
+  { id: "settings-customer-types", path: "/settings/customer-types", label: "Customer types", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "parties.", access: "session" },
 ] as const satisfies readonly RouteDefinition[];
 
 export type ManifestRoute = (typeof routes)[number];

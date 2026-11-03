@@ -10,6 +10,8 @@ export const productsMessages = {
   list: {
     title: "Products",
     intro: "Every product in the catalogue with its specification, packaging and prices.",
+    exportCsv: "Export CSV",
+    addProduct: "Add product",
     loading: "products",
     what: "the products",
     caption: "Products",
@@ -63,7 +65,10 @@ export const productsMessages = {
   detail: {
     loading: "the product",
     back: "All products",
-    tabs: { overview: "Overview", specification: "Specification", packaging: "Packaging", prices: "Prices", material: "Material" },
+    tabs: { overview: "Overview", specification: "Specification", packaging: "Packaging", prices: "Prices", material: "Material", media: "Media", history: "History" },
+    archived: "Archived",
+    archive: "Archive",
+    restore: "Restore",
     tabsLabel: "Product sections",
     masterFacts: "Master data",
     fields: {

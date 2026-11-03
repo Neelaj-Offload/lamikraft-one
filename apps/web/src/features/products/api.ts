@@ -6,7 +6,7 @@
  * - GET /api/v1/catalogue/products/completeness CompletenessSummary
  * - GET /api/v1/catalogue/products/{id}         ProductDetail
  * - GET /api/v1/catalogue/categories            CategoryRead[] (?include_inactive=)
- * There are no product write endpoints in this slice.
+ * Writes (create, edit, archive, media, taxonomy) live in `features/catalogue/api.ts` (Slice 2).
  */
 
 import { api, requestUntyped, type ApiClient } from "@/lib/api/client";
@@ -53,4 +53,12 @@ export async function fetchCategories(includeInactive: boolean, signal?: AbortSi
   return parseCategories(
     await requestUntyped<unknown>(client, "get", CATEGORIES_PATH, { params: { query: { include_inactive: includeInactive ? true : undefined } }, signal }),
   );
+}
+
+/** The import-compatible CSV of the current filters (a same-origin download; the server writes it with csv_safe). */
+export function productExportHref(state: ProductListState): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(productFilterParams(state))) if (value !== undefined && value !== false) query.set(key, String(value));
+  const search = query.toString();
+  return `${PRODUCTS_PATH}/export.csv${search ? `?${search}` : ""}`;
 }

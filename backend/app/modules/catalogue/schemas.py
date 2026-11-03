@@ -96,6 +96,10 @@ class CompletenessRule(StrEnum):
     CATEGORY_INACTIVE = "category_inactive"
     NO_HSN_SAC = "no_hsn_sac"
     SHARED_DISPLAY_SKU = "shared_display_sku"
+    NO_IMAGE = "no_image"
+    NO_PRIMARY_IMAGE = "no_primary_image"
+    MEDIA_INGEST_FAILED = "media_ingest_failed"
+    NO_ACTIVE_PRICE = "no_active_price"
 
 
 #: spec field (legacy name) -> dimension kind; the text is parsed into canonical millimetres
@@ -294,6 +298,16 @@ class ProductPriceColumn(BaseModel):
     recommendation: OrderValueRecommendationRead | None = None
 
 
+class MediaThumb(BaseModel):
+    """The primary image of a product (served by ``GET /api/v1/files/{file_id}/content``; originals only until the
+    platform's image variants exist)."""
+
+    media_id: uuid.UUID
+    file_id: uuid.UUID
+    url: str
+    alt_text: str | None
+
+
 class ProductSummary(BaseModel):
     id: uuid.UUID
     product_key: str
@@ -313,6 +327,7 @@ class ProductSummary(BaseModel):
     thickness_mm: Measure | None
     size: ProductSize
     carton_qty: int | None
+    primary_image: MediaThumb | None = None
     archived: bool
     updated_at: datetime
     path: str
@@ -464,6 +479,8 @@ class ProductDetail(BaseModel):
     packaging: PackagingRead | None
     dimensions: list[DimensionRead]
     completeness: CompletenessRead
+    primary_image: MediaThumb | None = None
+    media_count: int = 0
     sections: list[SectionRead]
     version: int
     created_at: datetime
@@ -524,6 +541,8 @@ class ProductStats(BaseModel):
     by_status: dict[str, int]
     archived: int
     updated_last_7_days: int
+    #: live products without a current active price (any list); null without ``pricing.price.read``
+    without_active_price: int | None = None
     by_category: list[CategoryCount]
     recently_changed: list[RecentProduct]
     as_of: datetime
@@ -552,6 +571,7 @@ class SubcategoryRead(BaseModel):
     effective_active: bool
     description: str | None
     product_count: int
+    version: int = 1
 
 
 class CategoryRead(BaseModel):
@@ -564,6 +584,7 @@ class CategoryRead(BaseModel):
     source_catalog_page_end: str | None
     product_count: int
     subcategories: list[SubcategoryRead]
+    version: int = 1
 
 
 class ProductFilters(BaseModel):
@@ -582,6 +603,8 @@ class ProductFilters(BaseModel):
     status: list[ProductStatus] | None = None
     brand: Text | None = None
     issue: CompletenessRule | None = None
+    has_image: bool | None = None
+    has_price: bool | None = None
     include_archived: bool = False
 
 

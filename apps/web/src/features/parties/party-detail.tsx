@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Form, Link as RacLink } from "react-aria-components";
 import { RailContent } from "@/components/shell/context-rail";
@@ -32,6 +32,7 @@ import { useRecentRecord } from "@/lib/recent/recent-records";
 import { useNow, useSession, useZone } from "@/lib/session/context";
 import { briefingMessages } from "@/messages/briefing";
 import { partiesMessages as m } from "@/messages/parties";
+import { setPartyArchived } from "./customer-types-api";
 import { fetchParty, fetchPartyQuotes, PARTY_QUOTES_SHOWN, partyQuotesParams, updateParty } from "./api";
 import {
   addressLines,
@@ -80,6 +81,18 @@ function Record({ party }: { party: Party }) {
   const [editing, setEditing] = useState(false);
   const [addingContact, setAddingContact] = useState(false);
   const canUpdate = party.capabilities.update?.allowed === true;
+  const canArchive = party.capabilities.archive?.allowed === true;
+  const canRestore = party.capabilities.restore?.allowed === true;
+  const queryClient = useQueryClient();
+  // catalogue lane (Slice 2): archive and restore, offered only when the server allows them
+  const archive = useMutation({
+    mutationFn: (archived: boolean) => setPartyArchived(party.id, archived, party.version),
+    onSuccess: (_result, archived) => {
+      for (const key of invalidationMap["parties.party_changed"]) void queryClient.invalidateQueries({ queryKey: key });
+      toast.success(archived ? m.detail.archivedToast : m.detail.restoredToast);
+    },
+    onError: (error) => toast.error(conflictFromError(error) ? m.detail.archiveConflict : m.detail.archiveFailed),
+  });
   const canReadQuotes = permissionKeys.has("sales.quote.read");
 
   useScreenContribution({ focus: { type: "parties.party", id: party.id, version: party.version } });
@@ -112,10 +125,24 @@ function Record({ party }: { party: Party }) {
           </span>
         ))}
         actions={
-          canUpdate ? (
-            <Button variant="secondary" onPress={() => setEditing(true)}>
-              {m.detail.edit}
-            </Button>
+          canUpdate || canArchive || canRestore ? (
+            <>
+              {canUpdate ? (
+                <Button variant="secondary" onPress={() => setEditing(true)}>
+                  {m.detail.edit}
+                </Button>
+              ) : null}
+              {canArchive ? (
+                <Button variant="danger" onPress={() => archive.mutate(true)} isPending={archive.isPending}>
+                  {m.detail.archive}
+                </Button>
+              ) : null}
+              {canRestore ? (
+                <Button onPress={() => archive.mutate(false)} isPending={archive.isPending}>
+                  {m.detail.restore}
+                </Button>
+              ) : null}
+            </>
           ) : null
         }
       />

@@ -139,3 +139,38 @@ def personas(db: None, member_actors: None) -> World:
 @pytest.fixture
 def world(personas: World) -> World:
     return seed_world(personas)
+
+
+def upload_file(actor: ActorContext, data: bytes, name: str, purpose: str = "image") -> uuid.UUID:
+    """Store bytes the way ``POST /api/v1/files`` does (sniffed, deduplicated) and return the file id."""
+    import hashlib
+    import tempfile
+    from pathlib import Path
+
+    from app.platform.files import service as files
+    from app.platform.files.upload import ReceivedUpload
+
+    fd, tmp = tempfile.mkstemp(suffix=".part")
+    with open(fd, "wb") as fh:
+        fh.write(data)
+    received = ReceivedUpload(
+        path=Path(tmp), size=len(data), sha256=hashlib.sha256(data).hexdigest(), filename=name,
+        declared_content_type=None, head=data[:4096],
+    )
+    try:
+        return files.create_from_upload(actor, received, purpose=purpose).id
+    finally:
+        received.discard()
+
+
+@pytest.fixture
+def media_storage(tmp_path: object) -> Iterator[object]:
+    """A throw-away local storage root (LK_STORAGE_DIR is never touched)."""
+    from pathlib import Path
+
+    from app.platform.files.storage import LocalFsStorage, set_storage
+
+    backend = LocalFsStorage(Path(str(tmp_path)) / "storage")
+    set_storage(backend)
+    yield backend
+    set_storage(None)

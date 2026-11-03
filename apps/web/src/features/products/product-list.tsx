@@ -20,7 +20,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { CURRENCIES, formatCount } from "@/lib/format/money";
 import { useSession } from "@/lib/session/context";
 import { productsMessages as m } from "@/messages/products";
-import { fetchProducts, fetchProductStats } from "./api";
+import { fetchProducts, fetchProductStats, productExportHref } from "./api";
 import {
   activeFilterCount,
   clearedFiltersHref,
@@ -135,6 +135,8 @@ export function ProductList({ state }: { state: ProductListState }) {
   const router = useRouter();
   const { permissionKeys } = useSession();
   const allowed = permissionKeys.has(PRODUCTS_READ);
+  const canCreate = permissionKeys.has("catalogue.product.create");
+  const canExport = permissionKeys.has("catalogue.product.export");
   const query = useQuery({
     queryKey: queryKeys.catalogue.products(productListParams(state)),
     queryFn: ({ signal }) => fetchProducts(state, signal),
@@ -180,7 +182,27 @@ export function ProductList({ state }: { state: ProductListState }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.list.title} intro={m.list.intro} nav={productsAreaNav()} />
+      <PageHeader
+        title={m.list.title}
+        intro={m.list.intro}
+        nav={productsAreaNav()}
+        actions={
+          canCreate || canExport ? (
+            <>
+              {canExport ? (
+                <LinkButton href={productExportHref(state)} download>
+                  {m.list.exportCsv}
+                </LinkButton>
+              ) : null}
+              {canCreate ? (
+                <LinkButton href="/products/new" variant="primary">
+                  {m.list.addProduct}
+                </LinkButton>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
       <StatsStrip />
       <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
         <aside aria-label={m.list.filters} className="hidden lg:block">

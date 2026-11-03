@@ -62,8 +62,10 @@ export const queryKeys = {
   parties: {
     all: () => ["parties"] as const,
     search: (q: string) => ["parties", "search", compact({ q: q.trim() })] as const,
+    // catalogue lane (Slice 2): party list/detail and customer types
     list: (params: Record<string, string | number | boolean | null | undefined>) => ["parties", "list", compact(params)] as const,
     party: (partyId: string) => ["parties", "party", { party_id: partyId }] as const,
+    customerTypes: () => ["parties", "customer-types"] as const,
   },
   catalogue: {
     all: () => ["catalogue"] as const,
@@ -74,6 +76,12 @@ export const queryKeys = {
     completeness: () => ["catalogue", "completeness"] as const,
     product: (productId: string) => ["catalogue", "product", { product_id: productId }] as const,
     categories: (includeInactive = false) => ["catalogue", "categories", compact({ include_inactive: includeInactive })] as const,
+    // catalogue lane (Slice 2): media, history, lookups
+    media: (productId: string, includeDeleted: boolean) => ["catalogue", "media", { product_id: productId, include_deleted: includeDeleted }] as const,
+    history: (productId: string) => ["catalogue", "history", { product_id: productId }] as const,
+    lookups: (params: Record<string, string | number | boolean | null | undefined>) => ["catalogue", "lookups", compact(params)] as const,
+    lookupTypes: () => ["catalogue", "lookup-types"] as const,
+    references: (kind: string, id: string) => ["catalogue", "references", { kind, id }] as const,
   },
   pricing: {
     all: () => ["pricing"] as const,
@@ -100,6 +108,17 @@ export const queryKeys = {
   audit: {
     all: () => ["audit"] as const,
     entries: (params: Record<string, string | number | boolean | null | undefined>) => ["audit", "entries", compact(params)] as const,
+  },
+  // catalogue lane (Slice 2): import workbench
+  imports: {
+    all: () => ["imports"] as const,
+    types: () => ["imports", "types"] as const,
+    jobs: (params: Record<string, string | number | boolean | null | undefined>) => ["imports", "jobs", compact(params)] as const,
+    job: (jobId: string) => ["imports", "job", { job_id: jobId }] as const,
+    preview: (jobId: string) => ["imports", "preview", { job_id: jobId }] as const,
+    rows: (jobId: string, params: Record<string, string | number | boolean | null | undefined>) => ["imports", "rows", { job_id: jobId, ...compact(params) }] as const,
+    issues: (jobId: string, params: Record<string, string | number | boolean | null | undefined>) => ["imports", "issues", { job_id: jobId, ...compact(params) }] as const,
+    demoReset: () => ["imports", "demo-reset"] as const,
   },
   search: {
     all: () => ["search"] as const,
@@ -158,6 +177,10 @@ export const invalidationMap = {
   // platform-2: access changes alter navigation and capabilities, so the bootstrap is re-read too
   "identity.access_changed": [queryKeys.identity.all(), queryKeys.session.bootstrap()],
   "collab.changed": [queryKeys.collab.all()],
+  // catalogue lane (Slice 2)
+  "catalogue.changed": [queryKeys.catalogue.all()],
+  "imports.changed": [queryKeys.imports.all(), queryKeys.catalogue.all()],
+  "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;
