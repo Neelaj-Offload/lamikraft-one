@@ -44,6 +44,10 @@ def demo_phone_number_id(company_id: uuid.UUID) -> str:
     return f"demo-{company_id.hex[:12]}"
 
 
+def demo_waba_id(company_id: uuid.UUID) -> str:
+    return f"demo-waba-{company_id.hex[:12]}"
+
+
 def configured_phone_number_id(company_id: uuid.UUID, settings: Settings | None = None) -> str:
     settings = settings or get_settings()
     if settings.whatsapp_mode == "live" and settings.whatsapp_phone_number_id:
@@ -79,7 +83,7 @@ def ensure_account(uow: UnitOfWork, purpose: str = "employee_assistant") -> Chan
             provider="whatsapp_cloud" if mode == "live" else "demo",
             mode=mode,
             phone_number_id=pnid,
-            waba_id=settings.whatsapp_waba_id or None,
+            waba_id=(settings.whatsapp_waba_id or None) if mode == "live" else demo_waba_id(uow.actor.company_id),
             display_phone=DEMO_DISPLAY_PHONE if mode == "demo" else None,
             api_version=settings.whatsapp_api_version,
             status="configured_unverified" if mode == "demo" or not missing_settings(settings) else "not_configured",
@@ -109,6 +113,9 @@ def ensure_account(uow: UnitOfWork, purpose: str = "employee_assistant") -> Chan
         changed = True
     if mode == "demo" and account.display_phone is None:
         account.display_phone = DEMO_DISPLAY_PHONE
+        changed = True
+    if mode == "demo" and account.waba_id != demo_waba_id(uow.actor.company_id):
+        account.waba_id = demo_waba_id(uow.actor.company_id)
         changed = True
     if changed:
         uow.flush()
