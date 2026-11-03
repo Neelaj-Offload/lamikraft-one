@@ -22,7 +22,6 @@ from sqlalchemy import (
     LargeBinary,
     String,
     Uuid,
-    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -110,8 +109,8 @@ class ChannelIdentity(TenantEntity, VersionMixin, Base):
             "(kind IN ('customer','vendor') AND user_id IS NULL) OR kind = 'unknown'",
             name="kind_owner_consistency",
         ),
-        Index("uq_channels_identity_bsuid", "account_id", "bsuid", unique=True, postgresql_where=text("bsuid IS NOT NULL")),
-        Index("uq_channels_identity_wa_id", "account_id", "wa_id", unique=True, postgresql_where=text("wa_id IS NOT NULL")),
+        Index("uq_channels_identity_bsuid", "account_id", "bsuid", unique=True, postgresql_where="bsuid IS NOT NULL"),
+        Index("uq_channels_identity_wa_id", "account_id", "wa_id", unique=True, postgresql_where="wa_id IS NOT NULL"),
         Index("ix_channels_identity_user", "company_id", "user_id"),
     )
 
@@ -249,7 +248,7 @@ class ChannelMessage(TenantEntity, Base):
         CheckConstraint(_in("direction", DIRECTIONS), name="direction_values"),
         CheckConstraint(_in("provenance", PROVENANCES), name="provenance_values"),
         CheckConstraint(_in("status", MESSAGE_STATUSES), name="status_values"),
-        Index("uq_channels_message_provider_id", "account_id", "provider_message_id", unique=True, postgresql_where=text("provider_message_id IS NOT NULL")),
+        Index("uq_channels_message_provider_id", "account_id", "provider_message_id", unique=True, postgresql_where="provider_message_id IS NOT NULL"),
         Index("ix_channels_message_identity", "identity_id", "created_at"),
         Index("ix_channels_message_run", "run_id"),
         Index("ix_channels_message_status", "company_id", "status", "created_at"),
