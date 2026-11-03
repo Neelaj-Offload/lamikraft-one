@@ -57,8 +57,10 @@ class Challan(TenantEntity, VersionMixin, BranchMixin, Base):
     source_branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("branch.id", ondelete="RESTRICT"), nullable=True
     )
-    #: Slice 4: FK to ``inventory_warehouse`` once the inventory module exists
-    source_warehouse_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: Slice 4: the company warehouse the goods leave from (outward) or arrive at (inward); NULL: the default warehouse
+    source_warehouse_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("inventory_warehouse.id", ondelete="RESTRICT"), nullable=True
+    )
     # ---- TO ----
     destination_type: Mapped[str] = mapped_column(String(20), nullable=False)
     destination_party: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -68,7 +70,13 @@ class Challan(TenantEntity, VersionMixin, BranchMixin, Base):
     consignee_party_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("parties_party.id", ondelete="RESTRICT"), nullable=True
     )
-    destination_warehouse_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    destination_warehouse_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("inventory_warehouse.id", ondelete="RESTRICT"), nullable=True
+    )
+    #: Slice 4: the sales order this challan delivers (lines then link to its order lines)
+    sales_order_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("orders_sales_order.id", ondelete="RESTRICT"), nullable=True
+    )
     office_branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("branch.id", ondelete="RESTRICT"), nullable=True
     )
@@ -205,6 +213,14 @@ class ChallanLine(TenantEntity, Base):
     returned_qty: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False, default=Decimal(0))
     #: Slice 4: explicit non-stock lines once challans post movements
     is_non_stock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    #: Slice 4: the sales order line this line delivers (its reservation is consumed by the issue posting)
+    sales_order_line_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("orders_sales_order_line.id", ondelete="RESTRICT"), nullable=True
+    )
+    #: Slice 4: the lot shipped (required at issue for lot-tracked products when the challan posts)
+    lot_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("inventory_lot.id", ondelete="RESTRICT"), nullable=True
+    )
 
     __table_args__ = (
         UniqueConstraint(

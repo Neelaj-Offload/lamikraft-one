@@ -3,8 +3,9 @@
 Each transition locks the challan, checks the actor's scope for the required ``challans.challan.<verb>``, checks the
 optimistic version, evaluates the guard, appends a status-history row, emits the catalogued event and audits.
 ``issue`` freezes the document into an immutable revision (its PDF hash is recorded) and, for a Return challan,
-records the document links against the original lines (``challans.return.received``). Nothing posts stock in
-Slice 2: ``inventory_effect`` stays ``none`` and the posting ids stay null.
+records the document links against the original lines (``challans.return.received``). Slice 4: ``movement.on_issue``
+posts the stock movement of the policy matrix exactly once and ``movement.on_cancel_issued`` posts its reversal
+(``inventory_effect`` stays ``none`` before inventory go-live).
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.core.errors import Conflict, InvalidTransition, ValidationFailed
-from app.modules.challans import documents, service
+from app.modules.challans import documents, movement, service
 from app.modules.challans import events as ev
 from app.modules.challans.common import idempotent
 from app.modules.challans.models import (
@@ -134,6 +135,8 @@ def _issue(
     original_line_ids: list[uuid.UUID] = []
     if challan.challan_type == ChallanType.RETURN.value:
         original_line_ids = _record_returns(uow, challan, lines)
+    # Slice 4: exactly one stock posting per issue (documents only before inventory go-live)
+    movement.on_issue(uow, challan, lines)
     challan.status = ChallanStatus.ISSUED.value
     challan.issued_at = now
     challan.issued_by = uow.actor.user_id
@@ -170,6 +173,9 @@ def _cancel(
     uow: UnitOfWork, challan: Challan, lines: list[ChallanLine], data: ChallanTransition
 ) -> dict[str, object]:
     was_issued = challan.status == ChallanStatus.ISSUED.value
+    if was_issued:
+        # Slice 4: the auditable correction is a reversal posting (and the SO figures restored)
+        movement.on_cancel_issued(uow, challan, lines, reason_code=data.reason_code or "other", reason=data.reason)
     if was_issued and challan.challan_type == ChallanType.RETURN.value:
         # a cancelled Return gives the original lines their outstanding quantity back (document figures only)
         links = list(
