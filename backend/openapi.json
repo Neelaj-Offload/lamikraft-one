@@ -14039,6 +14039,21 @@
             ],
             "title": "Decor No"
           },
+          "diameter_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diameter Mm"
+          },
           "display_sku": {
             "title": "Display Sku",
             "type": "string"
@@ -14053,6 +14068,36 @@
               }
             ],
             "title": "Finish"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Mm"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Mm"
           },
           "product_id": {
             "format": "uuid",
@@ -14140,6 +14185,21 @@
               }
             ],
             "title": "Unit Of Sale"
+          },
+          "width_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Mm"
           }
         },
         "required": [

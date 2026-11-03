@@ -6499,10 +6499,16 @@ export interface components {
             decor_name: string | null;
             /** Decor No */
             decor_no: string | null;
+            /** Diameter Mm */
+            diameter_mm?: string | null;
             /** Display Sku */
             display_sku: string;
             /** Finish */
             finish: string | null;
+            /** Height Mm */
+            height_mm?: string | null;
+            /** Length Mm */
+            length_mm?: string | null;
             /**
              * Product Id
              * Format: uuid
@@ -6526,6 +6532,8 @@ export interface components {
             thickness_mm: string | null;
             /** Unit Of Sale */
             unit_of_sale: string | null;
+            /** Width Mm */
+            width_mm?: string | null;
         };
         /** ProductStats */
         ProductStats: {
