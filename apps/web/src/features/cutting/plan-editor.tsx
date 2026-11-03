@@ -311,9 +311,10 @@ function Editor({ plan }: { plan: PlanDetail | null }) {
             {m.editor.rowErrors}
           </p>
         ) : null}
-        {/* contain:inline-size keeps the 860 px table's min-content out of the page width: without it the phone
-            layout viewport widened to the table and the page rendered zoomed out (Slice-2 merge e2e) */}
-        <div className="overflow-x-auto rounded-md border [contain:inline-size]">
+        {/* relative: the visually hidden (absolutely positioned) labels and inputs in the 860 px table must be clipped
+            by this scroller; otherwise they widened the phone layout viewport to ~880 px and the page rendered
+            zoomed out with Create plan unreachable (Slice-2 merge e2e). contain keeps the min-content local too. */}
+        <div className="relative overflow-x-auto rounded-md border [contain:inline-size]">
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <caption className="sr-only">{m.editor.pieces}</caption>
             <thead className="bg-surface-sunken text-start text-xs font-semibold text-ink-muted">

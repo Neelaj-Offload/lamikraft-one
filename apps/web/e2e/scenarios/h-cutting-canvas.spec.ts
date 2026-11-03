@@ -65,9 +65,13 @@ test("svg_no_overlap_inside_boundary_counts_match", async ({ page }) => {
       expect(x! + w! <= x2! || x2! + w2! <= x! || y! + h! <= y2! || y2! + h2! <= y!).toBe(true);
     }
   }
+  // the disclosure names the count; on the desktop the table rows match it too (the phone shows cards)
+  await expect(page.getByText(`Placement table (${boxes.length})`).first()).toBeVisible();
   await page.getByText(/Placement table/).first().click();
-  const rows = page.getByRole("table", { name: /Pieces on board 1/ }).locator("tbody tr");
-  expect(await rows.count()).toBe(boxes.length);
+  if (test.info().project.name === "desktop") {
+    const rows = page.getByRole("table", { name: /Pieces on board 1/ }).locator("tbody tr");
+    expect(await rows.count()).toBe(boxes.length);
+  }
 });
 
 test("oversize_and_overproduction_have_effects", async ({ page }) => {

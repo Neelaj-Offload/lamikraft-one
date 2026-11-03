@@ -30,7 +30,8 @@ async function importFile(page: Page, typeLabel: string, name: string, csv: stri
 
 async function commit(page: Page) {
   const ack = page.getByRole("checkbox", { name: /will not be imported/ });
-  if (await ack.count()) await ack.check();
+  // the checkbox input is visually hidden under its box; press the label text like a person would
+  if (await ack.count()) await page.getByText(/will not be imported/).first().click();
   await page.getByRole("button", { name: "Commit in batches of 500" }).click();
   await expect(page.getByText("Committed", { exact: true })).toBeVisible({ timeout: 30_000 });
 }
@@ -43,6 +44,7 @@ test("dependency_status_shown", async ({ page }) => {
 });
 
 test("taxonomy_products_packaging_conflict_commit_reimport_rollback", async ({ page }) => {
+  test.setTimeout(150_000); // four imports, each validated and committed by the job worker
   await signInAs(page, PRIYA);
   await importFile(page, "Category taxonomy", "taxonomy.csv", "category,subcategory\nE2E Kitchen,Chopping\n");
   await commit(page);
