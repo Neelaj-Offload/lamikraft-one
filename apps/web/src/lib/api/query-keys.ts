@@ -70,6 +70,8 @@ export const queryKeys = {
     samples: (params: { q?: string | null; status?: string | null; offset?: number | null }) =>
       ["sales", "samples", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, offset: params.offset ?? null })] as const,
     sample: (sampleId: string) => ["sales", "sample", { sample_id: sampleId }] as const,
+    // configurator follow-up (Slice 2): one page of the quote configurator, keyed by its whole request body
+    configurator: (body: object) => ["sales", "configurator", body] as const,
   },
   // commercial-2 lane (Slice 2): price lists, item history, FX rates and policy
   pricing: {
