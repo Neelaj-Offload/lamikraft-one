@@ -7,11 +7,13 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app.core.errors import Forbidden
 from app.modules.sales import service as sales
 from app.modules.sales.configurator import ConfiguratorRequest
 from app.seed.world import keys
+from tests.integration.sales.http import API, as_, problem
 from tests.integration.sales.world import SalesWorld
 
 pytestmark = pytest.mark.db
@@ -41,3 +43,31 @@ def test_filters_narrow_options_page_and_exact_match(world: SalesWorld) -> None:
     assert usd.items[0].price is not None and usd.items[0].price.unit_price is None and usd.items[0].price.reason_code
     with pytest.raises(Forbidden), world.uow(KABIR) as uow:  # no sales.quote.read
         sales.configurator_resolve(uow, ConfiguratorRequest(currency="EUR"))
+
+
+def test_packaging_summary_from_canonical_fields(world: SalesWorld) -> None:
+    """FG-QLN-12 / FG-PKG-11: the configurator row's packaging summary reads only the canonical columns
+    (``unit_weight_g`` / ``carton_qty`` / ``packing_type``), batched for the page."""
+    with world.uow(MEERA) as uow:
+        exact = sales.configurator_resolve(uow, ConfiguratorRequest(currency="EUR", q="LK-OT-0450"))
+        page = sales.configurator_resolve(uow, ConfiguratorRequest(currency="EUR", limit=50))
+    assert exact.items[0].packaging_summary == "450g · 24/ctn · Poly bag"
+    assert exact.items[0].product.carton_qty == 24
+    summaries = {row.product.id: row.packaging_summary for row in page.items}
+    assert summaries[world.ref("OAK_TRAY")] == "450g · 24/ctn · Poly bag"
+
+
+def test_configurator_over_http(sales_client: TestClient, sales_world: SalesWorld) -> None:
+    """API-34: the route is a POST with a JSON body (no Idempotency-Key: it changes nothing), DecimalStr money,
+    422 on unknown fields, 403 without ``sales.quote.read``."""
+    body = {"party_id": str(sales_world.ref("NORDHAUS")), "currency": "EUR", "q": "LK-OT-0450"}
+    res = sales_client.post(f"{API}/sales/quotes/configurator/resolve", json=body)
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["exact_match"] == str(sales_world.ref("OAK_TRAY")) and data["currency"] == "EUR"
+    row = data["items"][0]
+    assert row["price"]["unit_price"] == {"amount": "24.0000", "currency": "EUR"}
+    assert row["packaging_summary"] == "450g · 24/ctn · Poly bag"
+    assert set(data["facets"]) >= {"categories", "families", "sizes", "thicknesses", "decors", "finishes"}
+    problem(sales_client.post(f"{API}/sales/quotes/configurator/resolve", json={**body, "page": 0}), 422, "validation_failed")
+    problem(sales_client.post(f"{API}/sales/quotes/configurator/resolve", json=body, headers=as_(KABIR)), 403, "permission_denied")

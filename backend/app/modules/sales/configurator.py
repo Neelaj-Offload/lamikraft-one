@@ -4,7 +4,8 @@ Catalogue filters (text incl. numeric thickness, category, subcategory, family, 
 in SQL before paging; facets are narrowed over the whole filtered set; ``exact_match`` names the product when exactly
 one matches. Each row of the page carries the price the quote would get (customer agreement -> customer type ->
 standard, then currency/unit/date, with an approved FX conversion when no list exists in the currency) and the
-engine's order-value recommendation for that price (never labelled MOQ; the product MOQ is separate).
+engine's order-value recommendation for that price (never labelled MOQ; the product MOQ is separate), plus the
+packaging summary read from the canonical packaging columns in one query for the page.
 """
 
 from __future__ import annotations
@@ -67,6 +68,9 @@ class ConfiguratorPrice(BaseModel):
 
 class ConfiguratorRow(BaseModel):
     product: ProductSummary
+    #: "450g · 24/ctn · Poly bag" from the canonical packaging columns (FG-PKG-11, FG-QLN-12); null without packaging
+    packaging_summary: str | None
+    #: null without ``pricing.price.read`` (the row is still listed; ``redacted_fields`` names it)
     price: ConfiguratorPrice | None
     recommendation: OrderValueRecommendationRead | None
 
@@ -118,6 +122,7 @@ def configurator_resolve(uow: UnitOfWork, data: ConfiguratorRequest) -> Configur
     except NotConfigured:
         rules = None
     day = business_date(uow)
+    packaging = catalogue.packaging_summaries(uow, [p.id for p in page.items])
     rows: list[ConfiguratorRow] = []
     for product in page.items:
         uom = product.unit_of_sale or "pcs"
@@ -139,7 +144,9 @@ def configurator_resolve(uow: UnitOfWork, data: ConfiguratorRequest) -> Configur
                     converted_with_fx=resolution.fx is not None,
                 )
                 recommendation = _recommendation(rules, data.currency, resolution.unit_price, product.carton_qty, uom)
-        rows.append(ConfiguratorRow(product=product, price=price, recommendation=recommendation))
+        rows.append(ConfiguratorRow(
+            product=product, packaging_summary=packaging.get(product.id), price=price, recommendation=recommendation
+        ))
     return ConfiguratorResult(
         items=rows, total=page.total, limit=page.limit, offset=page.offset, facets=facets,
         exact_match=page.items[0].id if page.total == 1 and page.items else None, currency=data.currency,

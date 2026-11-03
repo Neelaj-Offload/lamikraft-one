@@ -66,6 +66,7 @@ EXPECTED_OPERATIONS = {
     ("get", f"{Q}/{{quote_id}}/revisions/{{revision_no}}/document.pdf"): ("sales_download_quote_revision_pdf", ["sales.quote.export"]),
     ("get", f"{Q}/{{quote_id}}/history"): ("sales_list_quote_history", ["sales.quote.read"]),
     ("post", f"{Q}/calculate"): ("sales_calculate_quote_preview", ["pricing.price.read"]),
+    ("post", f"{Q}/configurator/resolve"): ("sales_resolve_quote_configurator", ["sales.quote.read"]),
     ("get", "/sales/enquiries"): ("sales_list_enquiries", ["sales.enquiry.read"]),
     ("post", "/sales/enquiries"): ("sales_create_enquiry", ["sales.enquiry.create"]),
     ("get", "/sales/enquiries/{enquiry_id}"): ("sales_get_enquiry", ["sales.enquiry.read"]),
