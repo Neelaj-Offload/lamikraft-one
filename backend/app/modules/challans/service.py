@@ -738,7 +738,7 @@ def _rows(
                 status=ChallanStatus(c.status),
                 line_count=c.line_count,
                 quantity_by_unit=quantity_by_unit(lines),
-                outstanding_quantity=plain(sum(outstanding.values(), Decimal(0))),
+                outstanding_by_unit=outstanding,
                 expected_return_date=c.expected_return_date,
                 owner=users.get(c.owner_user_id) or UserRef(id=c.owner_user_id, display_name=None),
                 created_by=users.get(c.created_by) if c.created_by else None,

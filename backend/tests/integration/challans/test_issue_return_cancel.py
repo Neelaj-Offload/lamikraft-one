@@ -70,7 +70,7 @@ def test_partial_return_linked_to_original_line(challan_world: ChallanWorld) -> 
     assert (link.original_challan.id, link.original_line_id, link.quantity, link.kind) == (original.id, out_line.id, Decimal("5"), "returned")
     after = w.challan(RAVI, keys.CHALLAN_REFS.JOB_WORK)
     assert after.status == "issued" and after.lines[0].returned_quantity == Decimal("5") and after.lines[0].outstanding_quantity == Decimal("7")
-    assert after.outstanding_quantity == Decimal("7") and after.return_links[0].return_challan.id == ret.id
+    assert after.outstanding_by_unit == {"sheets": Decimal("7")} and after.return_links[0].return_challan.id == ret.id
     # events: issued (with the catalogued payload) and return.received naming the original lines
     issued_events = [e for e in _events(w, "challans.challan.issued") if str(e.payload["challan_id"]) == str(ret.id)]
     assert len(issued_events) == 1
@@ -87,7 +87,7 @@ def test_partial_return_linked_to_original_line(challan_world: ChallanWorld) -> 
         ))
     w.transition(RAVI, rest.id, "issue")
     closed = w.challan(RAVI, keys.CHALLAN_REFS.JOB_WORK)
-    assert closed.status == "closed" and closed.lines[0].outstanding_quantity == Decimal("0") and closed.outstanding_quantity == Decimal("0")
+    assert closed.status == "closed" and closed.lines[0].outstanding_quantity == Decimal("0") and closed.outstanding_by_unit == {}
     assert closed.history[-1].reason_code == "all_returned"
     assert any(str(e.payload["challan_id"]) == str(original.id) for e in _events(w, "challans.challan.closed"))
     # the original can no longer be cancelled (returns reference it); the return challan can, which gives the outstanding back

@@ -2472,11 +2472,10 @@ export interface components {
             office_branch: components["schemas"]["BranchLink"] | null;
             origin: components["schemas"]["ChallanOrigin"];
             original_challan: components["schemas"]["ChallanLink"] | null;
-            /**
-             * Outstanding Quantity
-             * @example 5760.00
-             */
-            outstanding_quantity: string;
+            /** Outstanding By Unit */
+            outstanding_by_unit: {
+                [key: string]: string;
+            };
             owner: components["schemas"]["ChallanUserRef"];
             party: components["schemas"]["PartyLink"] | null;
             /** Path */
@@ -2890,11 +2889,10 @@ export interface components {
             id: string;
             /** Line Count */
             line_count: number;
-            /**
-             * Outstanding Quantity
-             * @example 5760.00
-             */
-            outstanding_quantity: string;
+            /** Outstanding By Unit */
+            outstanding_by_unit: {
+                [key: string]: string;
+            };
             owner: components["schemas"]["ChallanUserRef"];
             party: components["schemas"]["PartyLink"] | null;
             /** Path */

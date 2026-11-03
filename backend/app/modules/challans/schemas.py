@@ -293,8 +293,8 @@ class ChallanSummaryRow(BaseModel):
     line_count: int
     #: sum of line quantities per unit (``{"pcs": "12"}``); mixed units are never added together
     quantity_by_unit: dict[str, DecimalStr]
-    #: returnable quantity still out (issued returnable challans only)
-    outstanding_quantity: DecimalStr
+    #: returnable quantity still out per unit (issued returnable challans only; never added across units)
+    outstanding_by_unit: dict[str, DecimalStr]
     expected_return_date: date | None
     owner: ChallanUserRef
     created_by: ChallanUserRef | None

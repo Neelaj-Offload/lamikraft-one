@@ -1996,13 +1996,16 @@
               }
             ]
           },
-          "outstanding_quantity": {
-            "examples": [
-              "5760.00"
-            ],
-            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
-            "title": "Outstanding Quantity",
-            "type": "string"
+          "outstanding_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Outstanding By Unit",
+            "type": "object"
           },
           "owner": {
             "$ref": "#/components/schemas/ChallanUserRef"
@@ -2153,7 +2156,7 @@
           "status",
           "line_count",
           "quantity_by_unit",
-          "outstanding_quantity",
+          "outstanding_by_unit",
           "expected_return_date",
           "owner",
           "created_by",
@@ -3362,13 +3365,16 @@
             "title": "Line Count",
             "type": "integer"
           },
-          "outstanding_quantity": {
-            "examples": [
-              "5760.00"
-            ],
-            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
-            "title": "Outstanding Quantity",
-            "type": "string"
+          "outstanding_by_unit": {
+            "additionalProperties": {
+              "examples": [
+                "5760.00"
+              ],
+              "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+              "type": "string"
+            },
+            "title": "Outstanding By Unit",
+            "type": "object"
           },
           "owner": {
             "$ref": "#/components/schemas/ChallanUserRef"
@@ -3443,7 +3449,7 @@
           "status",
           "line_count",
           "quantity_by_unit",
-          "outstanding_quantity",
+          "outstanding_by_unit",
           "expected_return_date",
           "owner",
           "created_by",
