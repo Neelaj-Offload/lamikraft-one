@@ -2624,8 +2624,13 @@
       "BriefingView": {
         "properties": {
           "ai_status": {
-            "const": "not_used",
             "default": "not_used",
+            "enum": [
+              "not_used",
+              "demo",
+              "ok",
+              "unavailable"
+            ],
             "title": "Ai Status",
             "type": "string"
           },
@@ -2806,6 +2811,16 @@
               }
             ],
             "title": "Version"
+          },
+          "whatsapp_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummaryStateView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "work_date": {
             "format": "date",
@@ -14433,6 +14448,40 @@
         "title": "ItemActionResult",
         "type": "object"
       },
+      "ItemDetailView": {
+        "description": "One item of the member's current briefing as a page: the row, its explanation and its evidence.",
+        "properties": {
+          "briefing_id": {
+            "format": "uuid",
+            "title": "Briefing Id",
+            "type": "string"
+          },
+          "explanation": {
+            "$ref": "#/components/schemas/ExplainView"
+          },
+          "item": {
+            "$ref": "#/components/schemas/ItemView"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "work_date": {
+            "format": "date",
+            "title": "Work Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "briefing_id",
+          "version",
+          "work_date",
+          "item",
+          "explanation"
+        ],
+        "title": "ItemDetailView",
+        "type": "object"
+      },
       "ItemResultRead": {
         "properties": {
           "extra": {
@@ -17127,6 +17176,144 @@
         "title": "MyCalendar",
         "type": "object"
       },
+      "NarrationSegment": {
+        "description": "One spoken part of \"Listen to my day\". ``lead`` is deterministic (\"Second. Decision.\"); ``text`` is the\nphrased body (or its template); ``readback`` lists the consequential values a voice confirmation repeats.",
+        "properties": {
+          "issue_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
+          },
+          "kind": {
+            "enum": [
+              "intro",
+              "item",
+              "outro"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "ordinal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordinal"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "readback": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Readback",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "text_source": {
+            "enum": [
+              "template",
+              "llm"
+            ],
+            "title": "Text Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "lead",
+          "text",
+          "text_source"
+        ],
+        "title": "NarrationSegment",
+        "type": "object"
+      },
+      "NarrationView": {
+        "properties": {
+          "ai_status": {
+            "enum": [
+              "not_used",
+              "demo",
+              "ok",
+              "unavailable"
+            ],
+            "title": "Ai Status",
+            "type": "string"
+          },
+          "briefing_id": {
+            "format": "uuid",
+            "title": "Briefing Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "pin_id": {
+            "format": "uuid",
+            "title": "Pin Id",
+            "type": "string"
+          },
+          "pinned_version": {
+            "title": "Pinned Version",
+            "type": "integer"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/NarrationSegment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pin_id",
+          "briefing_id",
+          "pinned_version",
+          "language",
+          "ai_status",
+          "state",
+          "position",
+          "segments"
+        ],
+        "title": "NarrationView",
+        "type": "object"
+      },
       "NavItem": {
         "properties": {
           "key": {
@@ -17635,13 +17822,21 @@
             "title": "Sentence",
             "type": "string"
           },
+          "standard_sentence": {
+            "default": "",
+            "title": "Standard Sentence",
+            "type": "string"
+          },
           "template_code": {
             "title": "Template Code",
             "type": "string"
           },
           "text_source": {
-            "const": "template",
             "default": "template",
+            "enum": [
+              "template",
+              "llm"
+            ],
             "title": "Text Source",
             "type": "string"
           }
@@ -30138,6 +30333,32 @@
           "reason_code": {
             "title": "Reason Code",
             "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "text_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "template",
+                  "llm"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Source"
           }
         },
         "required": [
@@ -35142,6 +35363,91 @@
         "title": "SubcategoryRead",
         "type": "object"
       },
+      "SummaryStateView": {
+        "description": "Today's WhatsApp summary for the member: queued (through the outbox) or skipped with the reason.",
+        "properties": {
+          "ack_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ack Channel"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "outcome": {
+            "enum": [
+              "queued",
+              "skipped"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "simulated": {
+            "default": false,
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "outcome",
+          "at"
+        ],
+        "title": "SummaryStateView",
+        "type": "object"
+      },
       "SupersedeItemCommand": {
         "additionalProperties": false,
         "properties": {
@@ -38897,6 +39203,56 @@
         }
       }
     },
+    "/api/v1/briefings/items/{issue_id}": {
+      "get": {
+        "description": "One item of today's briefing with its explanation and evidence (the Explain dialog as a page).",
+        "operationId": "briefings_get_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemDetailView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Item",
+        "tags": [
+          "briefings"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "briefings.briefing.read"
+          ]
+        }
+      }
+    },
     "/api/v1/briefings/items/{issue_id}/actions": {
       "post": {
         "operationId": "briefings_run_item_action",
@@ -39063,6 +39419,84 @@
           }
         },
         "summary": "Resolve Pin Reference",
+        "tags": [
+          "briefings"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "briefings.briefing.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/briefings/pins/{pin_id}/script": {
+      "get": {
+        "description": "\"Listen to my day\": the narration of a live voice pin in its stable order (lead + phrased body per item,\nread-back values for voice confirmations). 410 ``pin_ended`` once the pin stopped, completed or idled out.",
+        "operationId": "briefings_get_pin_script",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pin_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pin Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pin Script",
+        "tags": [
+          "briefings"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "briefings.briefing.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/briefings/summary": {
+      "post": {
+        "description": "Send today's WhatsApp summary now (once per work date; the same gates as the scheduled push: opt-in, an\nactive link, the service window or an approved utility template). A skip is recorded with its reason.",
+        "operationId": "briefings_create_summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryStateView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Create Summary",
         "tags": [
           "briefings"
         ],
