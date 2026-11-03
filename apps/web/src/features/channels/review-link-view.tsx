@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { InfoIcon } from "@/components/ui/icons";
 import { LinkButton } from "@/components/ui/link";
 import { Loading, StateView } from "@/components/ui/states";
-import { isProblemError } from "@/lib/api/client";
+import { isProblemError, seedCsrfToken } from "@/lib/api/client";
 import { safeAppPath } from "@/lib/safe-path";
+import { useSession } from "@/lib/session/context";
 import { channelsMessages } from "@/messages/channels";
 import { resolveReviewLink } from "./api";
 
@@ -28,11 +29,15 @@ export function reviewLinkProblem(error: unknown): string {
  */
 export function ReviewLinkView({ token }: { token: string }) {
   const router = useRouter();
+  const { bootstrap } = useSession();
   const [problem, setProblem] = useState<string | null>(null);
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return; // a single-use link must be resolved once, even under Strict Mode
     started.current = true;
+    // this effect runs before the SessionProvider's (child effects first): seed the rotated CSRF token now, or the
+    // single-use POST would be refused on a fresh page load
+    seedCsrfToken(bootstrap.csrf_token);
     resolveReviewLink(token)
       .then((resolved) => {
         const target = safeAppPath(resolved.redirect_path);
@@ -40,7 +45,7 @@ export function ReviewLinkView({ token }: { token: string }) {
         else setProblem(m.invalid);
       })
       .catch((error: unknown) => setProblem(reviewLinkProblem(error)));
-  }, [router, token]);
+  }, [bootstrap.csrf_token, router, token]);
   if (problem) {
     return (
       <StateView icon={<InfoIcon />} title={m.title} headingLevel={1}>

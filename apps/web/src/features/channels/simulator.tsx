@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { DemoBadge } from "@/components/ui/badge";
 import { Button, unavailableWhen } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -59,6 +59,11 @@ export function Simulator() {
   const [text, setText] = useState("");
   const [voice, setVoice] = useState<DemoVoiceNote | null>(null);
   const thread = useQuery({ queryKey: queryKeys.channels.demoThread(), queryFn: ({ signal }) => fetchDemoThread(signal), refetchInterval: POLL_MS });
+  // the worker links the number after the LINK message: refresh "Linked numbers" when the thread's identity changes
+  const linkedStatus = thread.data?.identity?.status ?? null;
+  useEffect(() => {
+    void client.invalidateQueries({ queryKey: queryKeys.channels.identities("mine") });
+  }, [client, linkedStatus]);
   const send = useMutation({
     mutationFn: (input: DemoInput) => sendDemoInbound(input),
     onSuccess: () => Promise.all(invalidationMap["channels.changed"].map((queryKey) => client.invalidateQueries({ queryKey }))),
