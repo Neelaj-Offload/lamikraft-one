@@ -33,7 +33,7 @@ test("a run to trace", async ({ page }) => {
   let runId = "";
   page.on("request", (request) => {
     const match = /\/api\/v1\/agents\/runs\/([0-9a-f-]{36})\/events/.exec(request.url());
-    if (match) runId = match[1];
+    if (match?.[1]) runId = match[1];
   });
   await page.goto("/today");
   await page.getByRole("textbox", { name: /Ask about your day/ }).fill("Prepare Nordhaus's usual oak tray quote");

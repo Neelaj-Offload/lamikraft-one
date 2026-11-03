@@ -51,9 +51,10 @@ test("Meera drafts the quote through the assistant and requests review", async (
 
   const card = page.locator('[data-card="quote_draft"]');
   await expect(card).toBeVisible({ timeout: 20_000 });
-  expect(streams.length, "the run was streamed over SSE").toBeGreaterThan(0);
-  expect(streams[0].status).toBe(200);
-  expect(streams[0].type).toContain("text/event-stream");
+  const stream = streams[0];
+  expect(stream, "the run was streamed over SSE").toBeDefined();
+  expect(stream?.status).toBe(200);
+  expect(stream?.type).toContain("text/event-stream");
   expect(polls, "no polling fallback was needed").toEqual([]);
   // On a fresh world the draft gets a number at or after SCENARIO_C_NEW: Slice-2 specs that run earlier
   // (commercial, sales) create drafts of their own, so the exact number is no longer fixed (Slice-2 merge).

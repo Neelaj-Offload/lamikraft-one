@@ -79,7 +79,13 @@ def submit_turn(
     """Create the turn as the linked user (own unit of work) and link the message; returns the run id.
     Failures produce an honest reply instead of silence."""
     from app.modules.agents import service as agents
-    from app.modules.agents.schemas import ConversationChannel, ConversationCreate, SelectedOption, TurnCreate, TurnInputMode
+    from app.modules.agents.schemas import (
+        ConversationChannel,
+        ConversationCreate,
+        SelectedOption,
+        TurnCreate,
+        TurnInputMode,
+    )
 
     with UnitOfWork(ActorContext.system(company_id, reason="channels.turn.lookup")) as uow:
         message = uow.session.get(ChannelMessage, message_id)
