@@ -1,19 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
-import { loadWorld, signInAs, type PersonKey } from "../support/world";
+import { loadWorld, onlyOnProjects, signInAs } from "../support/world";
 
 /**
  * Scenario G import workbench (UI-24/86/89, SCN-G1/G2): taxonomy -> products -> packaging with an alias conflict;
  * preview, mapping, validation, issue report, commit, re-import all unchanged, rollback plan. Written by the catalogue
- * lane (Slice 2); run by the integrator. Signs in as Priya (`PersonKey` needs "PRIYA").
+ * lane (Slice 2); run by the integrator. Signs in as Priya. It commits shared rows, so desktop only.
  */
 
-const PRIYA = "PRIYA" as PersonKey;
+const PRIYA = "PRIYA" as const;
 
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async ({ request }) => {
   await loadWorld(request);
 });
+
+test.beforeEach(() => onlyOnProjects("desktop"));
 
 async function importFile(page: Page, typeLabel: RegExp, name: string, csv: string) {
   await page.goto("/settings/imports/new");
