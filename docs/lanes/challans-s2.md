@@ -110,8 +110,7 @@ enum CHECKs, deferrable line-number unique. **The integrator renumbers it onto t
 7. `ui/recent-records` does not accept `challans.challan`; the workspace therefore does not record recent records.
 8. `tests/integration/agents/test_runtime_guards.py::test_tool_input_extra_fields_and_unknown_tools_are_errors`
    used `draft_challan` as its example of an uninstalled tool; it now uses `propose_stock_movement` (Slice 4).
-9. Worktree hygiene: `D:\lk-wt\work
-ode_modules` predated the CP2 lockfile (no `@fontsource-variable/fraunces`);
+9. Worktree hygiene: `D:/lk-wt/work/node_modules` predated the CP2 lockfile (no `@fontsource-variable/fraunces`);
    `npm install` from the unchanged lockfile fixed the build. Other old worktrees may need the same.
 
 ## Gates (2026-11-03, worktree `D:\lk-wt\work`, slot 4)
