@@ -1,5 +1,5 @@
-"""Challans module manifest: models, policies, the ``DC`` sequence, the ``challan_defaults`` setting, the API, the
-``draft_challan`` tool, the returnables sweep job and schedule, the source reader and the fixture seed.
+"""Challans module manifest: models, policies, the ``DC`` sequence, the ``challan_defaults`` setting, the API, global
+search, the ``draft_challan`` tool, the returnables sweep job and schedule, the source reader and the fixture seed.
 
 Permissions and events come from the frozen catalogues (registered centrally by the ``authz``/``events``
 manifests); this module only names them.
@@ -12,6 +12,7 @@ from typing import Any
 from app.modules.challans.events import CHALLAN_DEFAULTS, CHALLAN_SEQUENCE
 from app.modules.challans.jobs import JOBS, SCHEDULES
 from app.modules.challans.policies import POLICIES
+from app.modules.challans.search import CHALLAN_SEARCH
 from app.modules.challans.tools import TOOLS
 from app.platform.manifest import ModuleManifest
 from app.seed.context import SeedContext, SeedDef
@@ -45,6 +46,7 @@ MANIFEST = ModuleManifest(
     settings=[CHALLAN_DEFAULTS],
     routers=[_router],
     tools=list(TOOLS),
+    search_providers=[CHALLAN_SEARCH],
     jobs=list(JOBS),
     schedules=list(SCHEDULES),
     # after the sales history (50) and before the D-1 party change (55): DC-2026-0001 issued D-7, 0002 D-3
