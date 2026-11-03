@@ -232,8 +232,7 @@ def demo_inbound(uow: UnitOfWork, data: DemoInbound) -> tuple[DemoInboundResult,
         media_id, mime, sha = demo_provider.register_fixture_audio(data.audio_fixture)  # type: ignore[arg-type]
         message = {"id": wamid, "type": "audio", "audio": {"id": media_id, "mime_type": mime, "sha256": sha, "voice": True}}
     payload = demo_provider.inbound_payload(accounts.account_config(account), wa_id=wa_id, bsuid=None, message=message,
-                                            name=uow.actor.display_name or "Demo user")
-    payload["entry"][0]["changes"][0]["value"]["messages"][0]["timestamp"] = str(int(uow.now().timestamp()))
+                                            ts=int(uow.now().timestamp()), name=uow.actor.display_name or "Demo user")
     body, signature = demo_provider.signed_webhook_body(payload)
     identity = identities.find_identity(uow, account, bsuid=None, wa_id=wa_id)
     return DemoInboundResult(inbox_id=uuid.uuid7(), identity_id=identity.id if identity else None, processed=False), body, signature

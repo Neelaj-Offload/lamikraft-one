@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -114,12 +113,15 @@ def status_payload(account: AccountConfig, wamid: str, recipient: str, statuses:
     }
 
 
-def inbound_payload(account: AccountConfig, *, wa_id: str, bsuid: str | None, message: dict[str, Any], name: str = "Demo user") -> dict[str, Any]:
-    """A Cloud-API-shaped inbound ``messages`` change from ``wa_id`` (used by the simulator endpoint)."""
+def inbound_payload(
+    account: AccountConfig, *, wa_id: str, bsuid: str | None, message: dict[str, Any], ts: int, name: str = "Demo user",
+) -> dict[str, Any]:
+    """A Cloud-API-shaped inbound ``messages`` change from ``wa_id`` at unix time ``ts`` (business clock; used by
+    the simulator endpoint and tests)."""
     contact: dict[str, Any] = {"profile": {"name": name}, "wa_id": wa_id}
     if bsuid:
         contact["user_id"] = bsuid
-    message = {"from": wa_id, "timestamp": str(int(time.time())), **message}
+    message = {"from": wa_id, "timestamp": str(ts), **message}
     if bsuid:
         message["from_user_id"] = bsuid
     return {
