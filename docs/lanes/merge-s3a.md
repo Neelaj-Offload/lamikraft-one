@@ -17,7 +17,7 @@ This is stage 1 of the two-stage Slice-3 integration (completion program, "CP3 r
 | 6 | Full `test:api` on ca7cb96 | — | **1479 passed**, 7 skipped, 0 failed (38 min 45 s) |
 | 7 | e2e run 1, axe sweep `/r/[token]`, ADR-060 | `28d84f3` | 199 passed / 1 failed (my spec's locator); fixes below |
 | 8 | Demo voice-note defect + spec fixes | `8228d17` | targeted e2e 10/10; channels suite 100 passed |
-| 9 | Final e2e, evidence, check, docs | docs commit | see "Gates" |
+| 9 | Final e2e, evidence, check, docs | `b0d458b` | see "Gates" |
 
 ## Migration chain
 
