@@ -61,3 +61,12 @@ the platform merge), challans (`work`/4, brief now recorded as `s2-challans.md`)
 (`identity`/1). Queued until a lane frees memory: Slice-3 WhatsApp (`catalogue`/3) and the commercial configurator
 follow-up (`sales`/6, brief `s2-commercial-configurator.md`). Challans and the configurator merge into
 `lane/s2-merge` after the four wave-2a lanes; CP3 is that branch on `main`.
+
+## CP3 reached 2026-11-04; Slice 3 sequencing adjusted
+
+`main` fast-forwarded to `lane/s2-merge` 10c8514 (Checkpoint 3, BUILD_STATE §11; test:api 1313, check 7/7, e2e
+193/0). Agent runtime (`lane/s3-agents` e0f6065) and WhatsApp (`lane/s3-whatsapp` 9e78698) finished with reports.
+Because the 3b lanes consume their interfaces (phrasing, `input_mode`, `register_transcriber`), the Slice-3
+integration runs in two stages: stage 1 merges agents + WhatsApp onto CP3 as `lane/s3-merge` (`integ`/8) while
+`lane/s3-voice-vision` builds from CP3 (`work`/4); `lane/s3-briefings` then branches from the stage-1 tip
+(`sales`/6); stage 2 merges voice-vision and briefings and produces CP4.
