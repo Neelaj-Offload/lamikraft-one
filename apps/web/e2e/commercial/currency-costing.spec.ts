@@ -17,16 +17,19 @@ test("currency_dialog_reprice_or_convert_only", async ({ page, request }) => {
   // At D0 the Nordhaus draft is in internal review (fixtures.md); the currency changes only on the working copy,
   // so withdraw the review first (adapted by the Slice-2 integrator).
   const withdraw = page.getByRole("button", { name: "Withdraw review request" });
+  const change = page.getByRole("button", { name: "Change currency" });
+  await expect(withdraw.or(change).first()).toBeVisible();
   if (await withdraw.isVisible()) {
     await withdraw.click();
-    const confirm = page.getByRole("dialog").getByRole("button", { name: "Withdraw review request" });
-    if (await confirm.isVisible().catch(() => false)) {
-      const note = page.getByRole("dialog").getByRole("textbox");
+    const confirmDialog = page.getByRole("dialog");
+    const asked = await confirmDialog.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false);
+    if (asked) {
+      const note = confirmDialog.getByRole("textbox");
       if (await note.count()) await note.first().fill("Currency check in the e2e suite");
-      await confirm.click();
+      await confirmDialog.getByRole("button", { name: "Withdraw review request" }).click();
     }
   }
-  await page.getByRole("button", { name: "Change currency" }).click();
+  await change.click();
   const dialog = page.getByRole("dialog", { name: "Change the quote currency" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(/Price list|Approved FX rate|No price/).first()).toBeVisible();

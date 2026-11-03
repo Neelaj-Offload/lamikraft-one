@@ -21,6 +21,8 @@ async function fillRow(page: Page, row: number, values: Record<string, string>) 
   for (const [label, value] of Object.entries(values)) {
     await page.getByRole("textbox", { name: `${label}, Row ${row}` }).fill(value);
   }
+  // close the catalogue suggestions the SKU field opens (on the phone they cover the actions below)
+  await page.keyboard.press("Escape");
 }
 
 test("plan_calculate_save_reopen_svg", async ({ page }) => {
@@ -73,7 +75,9 @@ test("oversize_and_overproduction_have_effects", async ({ page }) => {
   await page.goto("/operations/cutting/new");
   await page.getByRole("textbox", { name: "Plan name" }).fill("Oversize check");
   await fillRow(page, 1, { "SKU or part": "WIDE", Decor: "0457", "Thickness (mm)": "18", "Length (mm)": "2435", "Width (mm)": "1215", Qty: "1" });
-  await page.getByRole("switch", { name: /oversize per side/ }).click();
+  // the switch input is visually hidden under its track; press the label like a person would
+  await page.getByText("Boards are 10 mm oversize per side").click();
+  await expect(page.getByRole("switch", { name: /oversize per side/ })).toBeChecked();
   await page.getByRole("button", { name: "Create plan" }).click();
   await page.getByRole("button", { name: "Calculate layout" }).click();
   await expect(page.getByRole("heading", { name: "Verify the boards" })).toBeVisible();

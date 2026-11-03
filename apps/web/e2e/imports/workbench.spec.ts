@@ -20,7 +20,7 @@ test.beforeEach(() => onlyOnProjects("desktop"));
 async function importFile(page: Page, typeLabel: string, name: string, csv: string) {
   await page.goto("/settings/imports/new");
   // the radio names are "<n>. <type> <hint>", and a hint may name another type ("needs Category taxonomy")
-  await page.getByRole("radio", { name: new RegExp(`^\d+\. ${typeLabel}`) }).check();
+  await page.getByRole("radio", { name: new RegExp(`^\\d+\\. ${typeLabel}`) }).check();
   await page.getByLabel("CSV or XLSX file").setInputFiles({ name, mimeType: "text/plain", buffer: Buffer.from(csv) });
   await page.getByRole("button", { name: "Upload and preview" }).click();
   await expect(page).toHaveURL(/\/settings\/imports\/[0-9a-f-]{36}$/);
@@ -32,7 +32,7 @@ async function commit(page: Page) {
   const ack = page.getByRole("checkbox", { name: /will not be imported/ });
   if (await ack.count()) await ack.check();
   await page.getByRole("button", { name: "Commit in batches of 500" }).click();
-  await expect(page.getByText("Committed")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Committed", { exact: true })).toBeVisible({ timeout: 30_000 });
 }
 
 test("dependency_status_shown", async ({ page }) => {
@@ -50,7 +50,7 @@ test("taxonomy_products_packaging_conflict_commit_reimport_rollback", async ({ p
   await importFile(page, "Products master", "products.csv", products);
   await commit(page);
   await importFile(page, "Packaging", "packaging.csv", "product_key,carton_qty,master_carton_qty\nE2E-IMP-1,24,12\nE2E-IMP-2,24,24\n");
-  await expect(page.getByText("ALIAS_CONFLICT")).toBeVisible();
+  await expect(page.getByText("ALIAS_CONFLICT").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Download full report" })).toBeVisible();
   await commit(page);
   // re-import: every row unchanged
