@@ -149,7 +149,7 @@ def require_presented_readback(uow: UnitOfWork, subject_type: str, subject_id: u
         select(VoiceReadback).where(
             VoiceReadback.company_id == uow.actor.company_id, VoiceReadback.user_id == uow.actor.user_id,
             VoiceReadback.subject_type == subject_type, VoiceReadback.subject_id == subject_id,
-        ).order_by(VoiceReadback.presented_at.desc()).limit(1).with_for_update()
+        ).order_by(VoiceReadback.presented_at.desc(), VoiceReadback.id.desc()).limit(1).with_for_update()
     ).first()
     now = uow.now()
     if row is None or row.consumed_at is not None:
