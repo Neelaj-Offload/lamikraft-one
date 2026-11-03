@@ -94,3 +94,36 @@ def render(rule: Rule, facts: dict[str, Any], allowed: set[str]) -> dict[str, An
         "effect": _fmt(EFFECT_TEXT.get(rule.effect_code, ""), facts),
         "alternatives": [a for a in rule.alternatives if a in allowed],
     }
+
+
+#: what each recommendation slot is (for the phrasing service: names may be shown, other values by label)
+_SLOT_KINDS = {"contact": "name", "party": "name", "member": "name", "quotes": "text", "quote": "text"}
+
+
+def sentence_template(action_code: str, reason_code: str, facts: dict[str, Any]) -> tuple[str, tuple[tuple[str, str, str], ...]]:
+    """The recommendation as one or two sentences with ``{{a1}}`` placeholders, and its slots (key, text, kind).
+
+    Substituting the slots gives ``"{label}. {reason}"`` exactly as ``render`` words them (Slice 3 phrasing)."""
+    safe = {
+        "contact": facts.get("contact_name") or facts.get("party_name") or "the customer",
+        "party": facts.get("party_name") or "the customer",
+        "quotes": ", ".join(facts.get("quote_numbers") or []) or "the quote",
+        "quote": facts.get("quote_number") or "The quote",
+        "member": facts.get("new_member") or "the new team member",
+    }
+    slots: list[tuple[str, str, str]] = []
+
+    def fill(template: str) -> str:
+        out = template
+        for name, value in safe.items():
+            token = "{" + name + "}"
+            while token in out:
+                key = f"a{len(slots) + 1}"
+                slots.append((key, str(value), _SLOT_KINDS[name]))
+                out = out.replace(token, "{{" + key + "}}", 1)
+        return out
+
+    label = fill(ACTION_TEXT.get(action_code, action_code))
+    reason = fill(REASON_TEXT.get(reason_code, ""))
+    text = f"{label}. {reason}".strip() if reason else f"{label}."
+    return text, tuple(slots)

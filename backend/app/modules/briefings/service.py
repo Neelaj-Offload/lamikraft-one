@@ -21,6 +21,7 @@ from sqlalchemy import select
 
 from app.core.errors import AppError, Forbidden, NotFound, ValidationFailed
 from app.core.money import Money
+from app.modules.briefings import phrasing as wording
 from app.modules.briefings.engine import PRIORITY_RULE_VERSION
 from app.modules.briefings.engine import overview as overview_engine
 from app.modules.briefings.engine.collect import Collected, Collector
@@ -44,7 +45,9 @@ from app.modules.briefings.models import (
     PinState,
     Recommendation,
     RecommendationStatus,
+    SummaryPush,
     VersionCause,
+    VersionText,
 )
 from app.modules.briefings.schemas import (
     AckView,
@@ -57,9 +60,12 @@ from app.modules.briefings.schemas import (
     FallbackView,
     ItemActionRequest,
     ItemActionResult,
+    ItemDetailView,
     ItemStateView,
     ItemView,
     LastSuccessfulView,
+    NarrationSegment,
+    NarrationView,
     OverviewView,
     PersonRef,
     PinCreate,
@@ -69,6 +75,7 @@ from app.modules.briefings.schemas import (
     RecommendationView,
     SectionView,
     SourceRefView,
+    SummaryStateView,
 )
 from app.modules.tasks import responsibility
 from app.modules.tasks import service as tasks
@@ -85,6 +92,10 @@ CHANGE_WINDOW = timedelta(days=7)
 PIN_IDLE = timedelta(minutes=30)
 SNOOZABLE_SECTIONS = frozenset({"needs_you_now", "plan_for_today", "coming_next"})
 LOCK_NAMESPACE = "briefings.generate"
+#: a version whose phrasing fell back to the template because the provider was down is phrased again on a later
+#: open, at most this often
+REPHRASE_AFTER = timedelta(minutes=5)
+PHRASE_JOB = "briefings.phrase_version"
 
 
 # ---- calendar context -------------------------------------------------------------------------------
@@ -333,6 +344,7 @@ def write_version(
     uow.flush()
     if cause == VersionCause.PERMISSION_CHANGE.value:
         _end_live_pins(uow, briefing)  # a pinned list was read under the old permissions
+    enqueue_phrasing(uow, briefing, version)
     if number == 1:
         uow.emit(
             "briefings.briefing.generated", aggregate_id=briefing.id, aggregate_version=number,
@@ -345,6 +357,29 @@ def write_version(
             payload={"briefing_id": str(briefing.id), "version": number, "cause": cause},
         )
     return version
+
+
+def enqueue_phrasing(uow: UnitOfWork, briefing: Briefing, version: BriefingVersion, *, retry: str | None = None) -> None:
+    """Phrase the version in the background (design §6 step 15): the response always carries the deterministic
+    text first. A version precomputed before the shift is phrased through the provider's batch path."""
+    batch = briefing.trigger == BriefingTrigger.PRECOMPUTE.value and version.version == 1 and retry is None
+    uow.enqueue(
+        PHRASE_JOB,
+        {"user_id": str(briefing.user_id), "briefing_id": str(briefing.id), "version": version.version,
+         "mode": "batch" if batch else "now"},
+        dedupe_key=f"brf-phrase:{version.id}" + (f":{retry}" if retry else ""),
+        resource_type="briefings.briefing", resource_id=briefing.id,
+    )
+
+
+def _maybe_rephrase(uow: UnitOfWork, briefing: Briefing, version: BriefingVersion, text: VersionText | None) -> None:
+    """After an outage the template stands in; a later open (at most every five minutes) tries the model again."""
+    if text is None or not wording.outage_only(text):
+        return
+    now = uow.now()
+    if now - text.updated_at < REPHRASE_AFTER:
+        return
+    enqueue_phrasing(uow, briefing, version, retry=now.strftime("%Y%m%d%H%M"))
 
 
 def _stored_facts(facts: dict[str, Any], money: tuple[dict[str, str], ...]) -> dict[str, Any]:
@@ -502,7 +537,21 @@ def _person(user_id: uuid.UUID | None, names: dict[uuid.UUID, str]) -> PersonRef
     return PersonRef(user_id=user_id, name=names.get(user_id, ""))
 
 
-def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, work_date: date, ctx: Context | None) -> ItemView:
+def _rec_text(row: BriefingItem, texts: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    """(sentence, source) for the item's recommendation: validated phrasing, else the template sentence."""
+    entry = (texts or {}).get(str(row.issue_id))
+    if entry and entry.get("source") == "model" and entry.get("text"):
+        return str(entry["text"]), "llm"
+    request = wording.recommendation_request(row)
+    if request is None:
+        return None, None
+    from app.modules.agents.phrasing import render_template
+
+    return overview_engine.sentence_case(render_template(request)), "template"
+
+
+def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, work_date: date, ctx: Context | None,
+               texts: dict[str, Any] | None = None) -> ItemView:
     state = ov.states.get(row.issue_id)
     task_states = {t: ov.tasks[uuid.UUID(t)].state for t in (row.task_ids or []) if uuid.UUID(t) in ov.tasks}
     snooze = ov.snoozes.get(row.issue_id)
@@ -519,6 +568,7 @@ def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, w
     if rec is not None:  # permitted alternatives only: filtered by what this member may do now
         names = {a.action for a in actions}
         rec["alternatives"] = [a for a in rec.get("alternatives", []) if a in names]
+        rec["text"], rec["text_source"] = _rec_text(row, texts)
     return ItemView(
         issue_id=row.issue_id, ordinal=row.display_ordinal, section=row.section, band=row.band, score=row.score,
         reason_codes=list(row.reason_codes), reasons=[REASON_TEXT.get(r, r) for r in row.reason_codes], kind=row.kind,
@@ -545,12 +595,18 @@ def _item_view(uow: UnitOfWork, row: BriefingItem, ov: _Overlay, *, zone: str, w
     )
 
 
-def _overview_view(uow: UnitOfWork, version: BriefingVersion, zone: str, user_id: uuid.UUID) -> OverviewView:
+def _overview_view(uow: UnitOfWork, version: BriefingVersion, zone: str, user_id: uuid.UUID,
+                   text: VersionText | None = None) -> OverviewView:
     name = responsibility.display_names(uow, [user_id]).get(user_id, "")
     data = version.overview or {}
+    standard = data.get("sentence", "")
+    phrased = (text.overview or {}) if text is not None else {}
+    model = phrased.get("source") == "model" and bool(phrased.get("text"))
     return OverviewView(
         greeting=overview_engine.greeting(uow.now(), zone, responsibility.first_name(name)),
-        sentence=data.get("sentence", ""),
+        sentence=str(phrased["text"]) if model else standard,
+        text_source="llm" if model else "template",
+        standard_sentence=standard,
         template_code=data.get("template_code", ""),
         facts={k: v if isinstance(v, bool) else int(v) for k, v in (data.get("facts") or {}).items()},
     )
@@ -627,6 +683,8 @@ def render_version(
     rows, trusted = _visible_rows(uow, briefing, version, _items(uow, version.id))
     ov = _overlay(uow, user_id, rows)
     ctx = build_context(cal, briefing.work_date)
+    text = wording.version_text(uow, version.id)
+    texts = (text.item_texts or {}) if text is not None else {}
     visible: list[ItemView] = []
     snoozed: list[ItemView] = []
     for row in rows:
@@ -634,7 +692,7 @@ def render_version(
         if (row.section == "changes_since_last_visit" and state is not None and state.acked_fingerprint == row.issue_fingerprint
                 and row.kind == "change"):
             continue  # acknowledged and unchanged: never re-alerted
-        view = _item_view(uow, row, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=ctx)
+        view = _item_view(uow, row, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=ctx, texts=texts)
         if not trusted:
             view = _redact(view)
         if row.issue_id in ov.snoozes and pin is None:
@@ -651,14 +709,30 @@ def render_version(
     shown = version.version
     return BriefingView(
         briefing_id=briefing.id, work_date=briefing.work_date, day_type=briefing.day_type, time_zone=briefing.time_zone,
-        status="ready", fallback=False, version=shown, latest_version=latest, generated_at=version.generated_at,
+        status="ready", fallback=False,
+        ai_status=text.ai_status if text is not None and trusted else "not_used",  # type: ignore[arg-type]
+        version=shown, latest_version=latest, generated_at=version.generated_at,
         data_as_of=version.data_as_of, trigger=briefing.trigger, first_opened_at=briefing.first_opened_at,
-        overview=_overview_view(uow, version, briefing.time_zone, user_id) if trusted else None, sections=sections, items=visible,
+        overview=_overview_view(uow, version, briefing.time_zone, user_id, text) if trusted else None, sections=sections,
+        items=visible,
         initial_view=[v.issue_id for v in visible[:INITIAL_ITEM_CAP]], snoozed=snoozed,
         updates_available=max(0, latest - shown),
         up_to_date=ack is not None and ack.briefing_id == briefing.id and ack.version >= latest,
         last_ack=ack, pin=_pin_view(pin, latest) if pin is not None else None,
+        whatsapp_summary=summary_state(uow, user_id, briefing.work_date),
     )
+
+
+def summary_state(uow: UnitOfWork, user_id: uuid.UUID, work_date: date) -> SummaryStateView | None:
+    row = uow.session.scalars(
+        select(SummaryPush).where(SummaryPush.company_id == uow.actor.company_id, SummaryPush.user_id == user_id,
+                                  SummaryPush.work_date == work_date)
+    ).first()
+    if row is None:
+        return None
+    return SummaryStateView(outcome=row.outcome, reason=row.reason, kind=row.kind, version=row.version,  # type: ignore[arg-type]
+                            simulated=row.simulated, at=row.created_at, acknowledged_at=row.acknowledged_at,
+                            ack_channel=row.ack_channel)
 
 
 def _fallback_view(uow: UnitOfWork, briefing: Briefing | None, user_id: uuid.UUID, cal: CalendarView, work_date: date,
@@ -727,7 +801,23 @@ def get_today(uow: UnitOfWork, *, version: int | None = None) -> BriefingView:
         pin = None
     uow.flush()
     assert shown is not None
+    if shown.version == briefing.current_version:
+        _maybe_rephrase(uow, briefing, shown, wording.version_text(uow, shown.id))
     return render_version(uow, briefing, shown, cal, pin=pin)
+
+
+def today_view_for(uow: UnitOfWork, *, trigger: str) -> BriefingView:
+    """The member's latest briefing for another channel (the WhatsApp summary): generated if needed, but not an
+    open on the web (``first_opened_at`` and the served version are left alone)."""
+    user_id = _user(uow)
+    cal = responsibility.user_calendar(uow, user_id)
+    work_date = cal.work_date(uow.now())
+    briefing, error = ensure_briefing(uow, user_id, work_date, cal, trigger=trigger)
+    if error is not None or briefing.current_version == 0:
+        return _fallback_view(uow, briefing, user_id, cal, work_date, error or "engine_error")
+    latest = _latest_version(uow, briefing)
+    assert latest is not None
+    return render_version(uow, briefing, latest, cal)
 
 
 def precompute_for(uow: UnitOfWork, user_id: uuid.UUID, cal: CalendarView, work_date: date) -> bool:
@@ -819,6 +909,9 @@ def acknowledge(uow: UnitOfWork, briefing_id: uuid.UUID, *, version: int, method
     uow.flush()
     uow.emit("briefings.briefing.acknowledged", aggregate_id=briefing.id, aggregate_version=version,
              payload={"briefing_id": str(briefing.id), "version": version, "method": method, "channel": channel})
+    from app.modules.briefings import summary
+
+    summary.mark_acknowledged(uow, user_id, briefing.id, version, channel=channel)  # any channel: the summary is read
     return AckView(briefing_id=briefing.id, version=version, method=method, channel=channel, acknowledged_at=now)
 
 
@@ -1133,6 +1226,83 @@ def resolve_pin(uow: UnitOfWork, pin_id: uuid.UUID, ordinal: int) -> PinResoluti
     return PinResolution(ordinal=ordinal, issue_id=issue_id, resolved_since=resolved, item=item)
 
 
+# ---- Listen to my day (narration over a voice pin) --------------------------------------------------------------------
+def pin_script(uow: UnitOfWork, pin_id: uuid.UUID) -> NarrationView:
+    """The narration of a live pin, in the pin's stable order (design §13).
+
+    Each item is a deterministic lead ("Second. Decision.") plus its body: the validated phrasing stored for the
+    version when there is one, else the template body built from the same visible facts. Rows the member can no
+    longer see are skipped without renumbering the rest (ordinals stay the pin's). Nothing here re-sorts."""
+    from app.modules.agents.phrasing import render_template
+
+    pin = _own_pin(uow, pin_id)
+    briefing = uow.session.get(Briefing, pin.briefing_id)
+    assert briefing is not None
+    version = _version(uow, briefing.id, pin.pinned_version)
+    assert version is not None
+    rows, trusted = _visible_rows(uow, briefing, version, _items(uow, version.id))
+    by_issue = {r.issue_id: r for r in rows}
+    text = wording.version_text(uow, version.id)
+    narration = (text.narration or {}) if text is not None else {}
+    segments: list[NarrationSegment] = []
+    overview = _overview_view(uow, version, briefing.time_zone, briefing.user_id, text) if trusted else None
+    segments.append(NarrationSegment(
+        kind="intro", lead=overview.greeting if overview else "Here is your briefing.",
+        text=overview.sentence if overview else "", text_source=overview.text_source if overview else "template",
+    ))
+    spoken = 0
+    for entry in pin.ordinal_map:
+        row = by_issue.get(uuid.UUID(str(entry["issue_id"])))
+        if row is None:
+            continue  # no longer visible to the member: never spoken
+        stored = narration.get(str(row.issue_id))
+        if stored and stored.get("source") == "model" and stored.get("text"):
+            body, source = str(stored["text"]), "llm"
+        else:
+            body = overview_engine.sentence_case(
+                render_template(wording.narration_request(row, zone=briefing.time_zone, work_date=briefing.work_date)))
+            source = "template"
+        ordinal = int(entry["ordinal"])
+        refs = row.source_refs or []
+        segments.append(NarrationSegment(
+            kind="item", ordinal=ordinal, issue_id=row.issue_id,
+            lead=f"{wording.ordinal_word(ordinal)}. {wording.family_label(row)}.", text=body, text_source=source,  # type: ignore[arg-type]
+            readback=wording.readback_values(row), path=refs[0].get("path") if refs else None,
+        ))
+        spoken += 1
+    more = len(rows) - spoken
+    outro = "That is everything for now." if more <= 0 else (
+        f"That is the top of your day. {overview_engine.number_word(more).capitalize()} more "
+        f"{'item is' if more == 1 else 'items are'} in the full list on Today."
+    )
+    segments.append(NarrationSegment(kind="outro", lead="", text=outro, text_source="template"))
+    uow.flush()
+    return NarrationView(
+        pin_id=pin.id, briefing_id=briefing.id, pinned_version=pin.pinned_version, language=wording.LANGUAGE,
+        ai_status=text.ai_status if text is not None and trusted else "not_used",  # type: ignore[arg-type]
+        state=pin.state, position=pin.position, segments=segments,
+    )
+
+
+# ---- one item as a page ---------------------------------------------------------------------------------------------
+def get_item(uow: UnitOfWork, issue_id: uuid.UUID) -> ItemDetailView:
+    """An item of the member's current briefing with its explanation and evidence (deep-linkable); 404 when the
+    issue is not in today's briefing or no longer visible."""
+    user_id = _user(uow)
+    briefing, row = _current_item(uow, user_id, issue_id)
+    version = uow.session.get(BriefingVersion, row.version_id)
+    assert version is not None
+    cal = responsibility.user_calendar(uow, user_id)
+    ov = _overlay(uow, user_id, [row])
+    text = wording.version_text(uow, version.id)
+    view = _item_view(uow, row, ov, zone=briefing.time_zone, work_date=briefing.work_date, ctx=build_context(cal, briefing.work_date),
+                      texts=(text.item_texts or {}) if text is not None else {})
+    if not version_trusted(uow, briefing, version):
+        view = _redact(view)
+    return ItemDetailView(briefing_id=briefing.id, version=version.version, work_date=briefing.work_date, item=view,
+                          explanation=_explain(uow, briefing, row))
+
+
 # ---- UI section ------------------------------------------------------------------------------------------------
 def briefing_section(uow: UnitOfWork) -> dict[str, Any]:
     """The bootstrap/poll section: current version and the "N updates" signal (never generates)."""
@@ -1206,3 +1376,14 @@ def users_with_current_briefing(uow: UnitOfWork, user_ids: set[uuid.UUID]) -> se
         )
     )
     return set(rows)
+
+
+def send_summary_now(uow: UnitOfWork) -> SummaryStateView:
+    """The member's WhatsApp summary for today, sent on request (idempotent per work date)."""
+    from app.modules.briefings import summary
+
+    user_id = _user(uow)
+    row = summary.send_summary(uow, user_id)
+    state = summary_state(uow, user_id, row.work_date)
+    assert state is not None
+    return state

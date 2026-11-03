@@ -1,5 +1,6 @@
-"""Briefings module manifest: models, refresh/access subscriptions, refresh and precompute jobs, the
-Today router, the ``briefing`` UI section and the fixture seed (order 80)."""
+"""Briefings module manifest: models, refresh/access subscriptions, refresh, precompute, phrasing and WhatsApp
+summary jobs, the Today router, the ``briefing`` UI section, the summary's "Got it" button handler and the
+fixture seed (order 80)."""
 
 from __future__ import annotations
 
@@ -26,6 +27,12 @@ def _on_load() -> None:
     from app.platform.bootstrap import UiSection, register_ui_section
 
     register_ui_section(UiSection(key="briefing", build=_briefing_section, in_poll=True))
+    try:  # "Got it" on the WhatsApp summary acknowledges the briefing (channels owns the button dispatch)
+        from app.modules.briefings.summary import ACK_BUTTON_KIND, handle_ack_button
+        from app.modules.channels.whatsapp.replies import register_button_handler
+    except ImportError:  # pragma: no cover - the channels module is not installed
+        return
+    register_button_handler(ACK_BUTTON_KIND, handle_ack_button)
 
 
 def _seeds() -> list[Any]:

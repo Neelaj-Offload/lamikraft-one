@@ -1,5 +1,6 @@
-"""Briefings API: Today (generated on first open), acknowledgements, item actions, the delta view and
-voice/chat pins. Every resource is the caller's own; other users' ids return 404."""
+"""Briefings API: Today (generated on first open), acknowledgements, item actions, the delta view,
+voice/chat pins with the "Listen to my day" narration, one item as a page, and the WhatsApp summary. Every
+resource is the caller's own; other users' ids return 404."""
 
 from __future__ import annotations
 
@@ -20,11 +21,14 @@ from app.modules.briefings.schemas import (
     DeltaView,
     ItemActionRequest,
     ItemActionResult,
+    ItemDetailView,
+    NarrationView,
     PinCreate,
     PinResolution,
     PinResolveRequest,
     PinUpdate,
     PinView,
+    SummaryStateView,
 )
 from app.modules.tasks.txn import retry_transient
 from app.platform.authz.context import ActorContext
@@ -107,3 +111,25 @@ def update_pin(actor: Actor, pin_id: uuid.UUID, body: PinUpdate) -> PinView:
 def resolve_pin_reference(actor: Actor, pin_id: uuid.UUID, body: PinResolveRequest) -> PinResolution:
     with UnitOfWork(actor) as uow:
         return service.resolve_pin(uow, pin_id, body.ordinal)
+
+
+@router.get("/pins/{pin_id}/script", openapi_extra=READ)
+def get_pin_script(actor: Actor, pin_id: uuid.UUID) -> NarrationView:
+    """"Listen to my day": the narration of a live voice pin in its stable order (lead + phrased body per item,
+    read-back values for voice confirmations). 410 ``pin_ended`` once the pin stopped, completed or idled out."""
+    with UnitOfWork(actor) as uow:
+        return service.pin_script(uow, pin_id)
+
+
+@router.get("/items/{issue_id}", openapi_extra=READ)
+def get_item(actor: Actor, issue_id: uuid.UUID) -> ItemDetailView:
+    """One item of today's briefing with its explanation and evidence (the Explain dialog as a page)."""
+    with UnitOfWork(actor) as uow:
+        return service.get_item(uow, issue_id)
+
+
+@router.post("/summary", openapi_extra=READ)
+def create_summary(actor: Actor, response: Response) -> SummaryStateView:
+    """Send today's WhatsApp summary now (once per work date; the same gates as the scheduled push: opt-in, an
+    active link, the service window or an approved utility template). A skip is recorded with its reason."""
+    return _command(actor, response, "briefings.summary", {}, service.send_summary_now)  # type: ignore[return-value]
