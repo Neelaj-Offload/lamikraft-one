@@ -20,7 +20,7 @@ export interface World {
 }
 
 /** Fixture person keys (`keys.PEOPLE`), not names. */
-export type PersonKey = "MEERA" | "SAHIL" | "NEHA" | "RAVI" | "KABIR" | "ARJUN";
+export type PersonKey = "MEERA" | "SAHIL" | "NEHA" | "RAVI" | "KABIR" | "ARJUN" | "PRIYA";
 
 export async function loadWorld(request: APIRequestContext): Promise<World> {
   const response = await request.get("/api/v1/_test/fixtures");
