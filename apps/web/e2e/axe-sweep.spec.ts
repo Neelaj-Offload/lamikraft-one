@@ -32,6 +32,8 @@ function paramCandidates(world: World): Record<string, () => string | null> {
     challanId: () => ref(world, "DC-2026-0001") ?? ref(world, "DC_JOB_WORK"),
     // Slice-2 merge: the seeded walnut cut plan (keys.CUT_PLAN_REFS.WALNUT; e2e seeds at --slice 2)
     planId: () => ref(world, "CUT_PLAN_WALNUT"),
+    // Slice-3 stage-1 merge: a review link resolves once and redirects, so the sweep checks the invalid-link state
+    token: () => "not-a-valid-token",
   };
 }
 

@@ -542,3 +542,17 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
 - **Consequences**: one more long-lived request per active run (bounded at 120 s); the worker remains the only writer.
   Tests: `test_sse_stream_of_a_finished_run`, `test_sse_streams_progress_while_the_worker_runs`,
   `run-stream.test.ts`. **Accepted** (lane number ADR-052, renumbered 059 at the Slice-3 stage-1 merge).
+
+## ADR-060 Slice-3 stage-1 merge: turn input mode, step-up on channel admin keys
+- **Context**: the WhatsApp lane recorded `input_mode` (`wa_text` / `wa_voice` / `card_action`) on `channels_message`
+  because Slice-1 turns had no such field, and asked for it to reach the agents turn once both lanes were on one chain.
+  The design (`agent_voice_whatsapp.md`, `agents_turn` columns) names `input_mode` on the turn. Separately, the
+  WhatsApp lane was built before platform-2's step-up, which now enforces the MFA flag of `channels.account.manage`
+  (`permissions.md`: C, MFA RA S).
+- **Decision**: `agents_turn.input_mode` (`text` | `voice` | `wa_text` | `wa_voice` | `card_action`, default `text`)
+  lands in the integrator migration `0018_slice3_cross_lane_links`; `TurnCreate` / `TurnOut` carry it; `wa_*` modes are
+  refused (422 `input_mode_channel`) outside a WhatsApp conversation; `channels.whatsapp.replies.submit_turn` passes the
+  message's mode. The voice lane sets `voice`. Channel admin actions (account verify, template sync) need an MFA
+  session as the catalogue says; the channels test client presents one by default (`x-test-mfa`).
+- **Consequences**: the web Settings › WhatsApp admin cards need the step-up dialog for admins without a fresh MFA
+  session (open item, like the FX policy screen at Checkpoint 3). **Accepted.**
