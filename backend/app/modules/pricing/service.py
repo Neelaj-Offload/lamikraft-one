@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable, Sequence
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import ColumnElement, and_, func, or_, select
@@ -35,13 +36,18 @@ from app.modules.pricing.schemas import (
     PriceCandidate,
     PricedItem,
     PriceHistoryKind,
+    PriceHistoryRead,
     PriceItemStatus,
+    PriceListCommand,
     PriceListCreate,
     PriceListDetail,
+    PriceListDuplicate,
     PriceListItemCreate,
     PriceListItemRead,
+    PriceListItemUpdate,
     PriceListStatus,
     PriceListSummary,
+    PriceListUpdate,
     PriceResolution,
     PriceScope,
     PriceType,
@@ -49,10 +55,15 @@ from app.modules.pricing.schemas import (
     ProductCostRead,
     ProductPriceRead,
     ProductPrices,
+    RetireItem,
+    StandardPriceImport,
+    StandardPriceImportResult,
     SupersedeItem,
+    SupersedeItemCommand,
     Tier,
     TierCheck,
     TransitionRead,
+    standard_list_code,
 )
 from app.platform.service import query
 from app.platform.uow import UnitOfWork
@@ -214,6 +225,13 @@ def add_item(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListItemCreat
     price_list = _locked_list(uow, price_list_id)
     if price_list.status != PriceListStatus.DRAFT.value:
         raise Conflict("Items of an active price list change only by superseding them", code="price_list_not_draft")
+    return _insert_item(uow, price_list, data)
+
+
+def _insert_item(
+    uow: UnitOfWork, price_list: PriceList, data: PriceListItemCreate, *, import_job_id: uuid.UUID | None = None
+) -> PriceListItem:
+    """Validate and insert one item (the caller holds the list lock and has checked the list status)."""
     product = catalogue.get_product_ref(uow, product_id=data.product_id)
     valid_from = data.valid_from or price_list.valid_from
     valid_to = data.valid_to
@@ -255,6 +273,7 @@ def add_item(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListItemCreat
         source_ref=data.source_ref,
         source_sheet=data.source_sheet,
         source_row=data.source_row,
+        import_job_id=import_job_id,
     )
     uow.add(item)
     uow.flush()
@@ -360,7 +379,26 @@ def supersede_item(uow: UnitOfWork, item_id: uuid.UUID, data: SupersedeItem) -> 
     item = uow.repo(PriceListItem).get(item_id)
     pl = _locked_list(uow, item.price_list_id)
     item = uow.lock(PriceListItem, [item.id])[0]
+    if isinstance(data, SupersedeItemCommand):
+        uow.expect_version(item, data.expected_version)
+    new_item = _supersede(uow, item, pl, unit_price=data.unit_price, valid_from=data.valid_from, reason=data.reason)
+    return _item_read(new_item, pl)
+
+
+def _supersede(
+    uow: UnitOfWork,
+    item: PriceListItem,
+    pl: PriceList,
+    *,
+    unit_price: Any,
+    valid_from: date,
+    reason: str | None,
+    provenance: dict[str, Any] | None = None,
+) -> PriceListItem:
+    """The supersede itself (caller holds the list and item locks). ``provenance`` overrides the new item's source
+    and descriptive columns at insert time (an active list's item is immutable after insert)."""
     problems: list[tuple[Sequence[str], str, str]] = []
+    data = SupersedeItem(unit_price=unit_price, valid_from=valid_from, reason=reason)
     if pl.status != PriceListStatus.ACTIVE.value:
         raise Conflict(
             f"The price list is {pl.status}; only prices of an active list are superseded "
@@ -407,6 +445,8 @@ def supersede_item(uow: UnitOfWork, item_id: uuid.UUID, data: SupersedeItem) -> 
         source_kind="manual",
         source_ref=f"supersedes:{item.id}",
     )
+    for name, value in (provenance or {}).items():
+        setattr(new_item, name, value)
     uow.add(new_item)
     uow.flush()
     item.superseded_by_item_id = new_item.id
@@ -430,7 +470,7 @@ def supersede_item(uow: UnitOfWork, item_id: uuid.UUID, data: SupersedeItem) -> 
         resource_label=f"{pl.code} · {item.product_key}",
         reason=data.reason,
     )
-    return _item_read(new_item, pl)
+    return new_item
 
 
 def record_product_cost(
@@ -632,18 +672,23 @@ def _list_capabilities(uow: UnitOfWork, pl: PriceList) -> tuple[dict[str, Capabi
     """Mirrors the guards of ``add_item``, ``supersede_item`` and ``activate_price_list``."""
     if not uow.actor.can(MANAGE):
         denied = Capability(allowed=False, reason_code="permission_denied")
-        return {"add_item": denied, "supersede_item": denied}, []
+        return {k: denied for k in ("update", "add_item", "edit_item", "supersede_item", "retire_item", "duplicate")}, []
     is_draft = pl.status == PriceListStatus.DRAFT.value
     is_active = pl.status == PriceListStatus.ACTIVE.value
+    retired = pl.status == PriceListStatus.RETIRED.value
     capabilities = {
+        "update": Capability(allowed=not retired, reason_code="price_list_retired" if retired else None),
         "add_item": Capability(allowed=is_draft, reason_code=None if is_draft else "price_list_not_draft"),
+        "edit_item": Capability(allowed=is_draft, reason_code=None if is_draft else "price_list_not_draft"),
         "supersede_item": Capability(allowed=is_active, reason_code=None if is_active else "price_list_not_active"),
+        "retire_item": Capability(allowed=not retired, reason_code="price_list_retired" if retired else None),
+        "duplicate": Capability(allowed=True),
     }
-    transitions = (
-        [TransitionRead(action="activate", to_status=PriceListStatus.ACTIVE.value, requires_reason=False)]
-        if is_draft
-        else []
-    )
+    transitions: list[TransitionRead] = []
+    if is_draft:
+        transitions.append(TransitionRead(action="activate", to_status=PriceListStatus.ACTIVE.value, requires_reason=False))
+    if not retired:
+        transitions.append(TransitionRead(action="retire", to_status=PriceListStatus.RETIRED.value, requires_reason=True))
     return capabilities, transitions
 
 
@@ -872,9 +917,68 @@ def resolve_price(
     party_id: uuid.UUID | None = None,
     on_date: date | None = None,
     price_type: PriceType | None = None,
+    allow_fx: bool = False,
+) -> PriceResolution:
+    """Direct resolution (Pass A); with ``allow_fx`` a not-found price falls back to Pass B: the same resolution in
+    the FX policy's source currency, converted at an approved, dated rate (``fx`` provenance), never relabelled."""
+    direct = _resolve_direct(
+        uow, currency=currency, uom=uom, product_id=product_id, product_key=product_key, party_id=party_id,
+        on_date=on_date, price_type=price_type,
+    )
+    if not allow_fx or direct.status != "not_found":
+        return direct
+    from app.modules.pricing.fx import convert_amount, fx_policy
+
+    policy = fx_policy(uow)
+    source_currency = policy.conversion_source_currency
+    if not policy.conversion_enabled or source_currency == direct.requested_currency:
+        return direct
+    source = _resolve_direct(
+        uow, currency=source_currency, uom=uom, product_id=direct.product_id, party_id=party_id, on_date=direct.on_date,
+        price_type=price_type,
+    )
+    if source.status != "found" or source.unit_price is None:
+        return direct
+    converted = convert_amount(uow, source.unit_price.amount, source_currency, direct.requested_currency, direct.on_date)
+    if converted is None:
+        return direct.model_copy(update={
+            "reason_code": "FX_UNAVAILABLE",
+            "explanation": (
+                f"No {direct.requested_currency} price list prices {direct.product_key}; it is priced in {source_currency} "
+                f"({source.price_list_code}) but there is no approved {source_currency}->{direct.requested_currency} rate "
+                f"within the policy's {policy.max_rate_age_days}-day age limit, so no converted price is shown."
+            ),
+            "hints": [*direct.hints, f"propose and approve a {source_currency}->{direct.requested_currency} rate"],
+        })
+    amount, fx = converted
+    return source.model_copy(update={
+        "unit_price": Money(amount=quantize_unit_price(amount), currency=direct.requested_currency),  # type: ignore[arg-type]
+        "currency": direct.requested_currency,
+        "requested_currency": direct.requested_currency,
+        "source_unit_price": source.unit_price,
+        "fx": fx,
+        "explanation": (
+            f"{direct.requested_currency} {format(quantize_unit_price(amount), 'f')} per {source.unit_code}: "
+            f"{source_currency} {format(source.unit_price.amount, 'f')} from {source.price_list_code} converted at the approved "
+            f"rate {format(Decimal(fx.rate).normalize(), 'f')} dated {fx.rate_date.isoformat()} ({fx.source_reference})"
+        ),
+    })
+
+
+def _resolve_direct(
+    uow: UnitOfWork,
+    *,
+    currency: str,
+    uom: str,
+    product_id: uuid.UUID | None = None,
+    product_key: str | None = None,
+    party_id: uuid.UUID | None = None,
+    on_date: date | None = None,
+    price_type: PriceType | None = None,
 ) -> PriceResolution:
     if (product_id is None) == (product_key is None):
         raise _errors((["product_id"], "one_of", "Give exactly one of product_id or product_key"))
+    price_type = PriceType(price_type) if price_type is not None else None
     product = catalogue.get_product_ref(uow, product_id=product_id, product_key=product_key)
     party = parties.get_party_ref(uow, party_id) if party_id is not None else None
     day = on_date or business_date(uow)
@@ -1081,3 +1185,358 @@ def display_prices(
                 )
         out[product_id] = per_currency
     return out
+
+
+# =====================================================================================================
+# Slice 2: price-list maintenance (edit, retire, duplicate), draft item edits, item retirement, history
+# =====================================================================================================
+def _list_for_command(uow: UnitOfWork, price_list_id: uuid.UUID, expected_version: int | None) -> PriceList:
+    uow.actor.require(MANAGE)
+    pl = _locked_list(uow, price_list_id)
+    uow.expect_version(pl, expected_version)
+    return pl
+
+
+def update_price_list(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListUpdate) -> PriceList:
+    """Edit a list. Draft: every field. Active: name, notes and a shorter ``valid_to`` only. Retired: nothing."""
+    pl = _list_for_command(uow, price_list_id, data.expected_version)
+    if pl.status == PriceListStatus.RETIRED.value:
+        raise Conflict("A retired price list is history and cannot change", code="price_list_retired")
+    sent = data.model_fields_set - {"expected_version"}
+    draft_only = {"valid_from", "priority", "price_basis", "default_unit_code"}
+    problems: list[tuple[Sequence[str], str, str]] = []
+    if pl.status == PriceListStatus.ACTIVE.value:
+        for name in sorted(sent & draft_only):
+            problems.append(([name], "price_list_active", f"{name} of an active list cannot change; duplicate the list instead"))
+        if "valid_to" in sent:
+            if data.valid_to is None or (pl.valid_to is not None and data.valid_to > pl.valid_to):
+                problems.append((["valid_to"], "valid_to_only_shortened", "An active list's validity can only be shortened"))
+    valid_from = data.valid_from if "valid_from" in sent and data.valid_from is not None else pl.valid_from
+    valid_to = data.valid_to if "valid_to" in sent else pl.valid_to
+    if valid_to is not None and valid_to < valid_from:
+        problems.append((["valid_to"], "validity_order", "valid_to is before valid_from"))
+    if "name" in sent and data.name is None:
+        problems.append((["name"], "required", "A price list needs a name"))
+    if problems:
+        raise _errors(*problems)
+    changed: list[str] = []
+    for name in sorted(sent):
+        value = getattr(data, name)
+        if name == "valid_from" and value is None:
+            continue
+        if getattr(pl, name) != value:
+            setattr(pl, name, value)
+            changed.append(name)
+    if changed:
+        pl.updated_at = uow.now()
+        uow.flush()
+        uow.audit("pricing.price_list.updated", resource_type="pricing.price_list", resource_id=pl.id,
+                  resource_label=pl.code, details={"changed_fields": changed})
+    return pl
+
+
+def activate_price_list_command(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListCommand) -> PriceList:
+    _list_for_command(uow, price_list_id, data.expected_version)
+    return activate_price_list(uow, price_list_id)
+
+
+def retire_price_list(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListCommand, *, origin: str | None = None) -> PriceList:
+    """Retire a draft or active list: it stops resolving immediately; its items and history stay as records."""
+    pl = _list_for_command(uow, price_list_id, data.expected_version)
+    if pl.status == PriceListStatus.RETIRED.value:
+        raise Conflict("The price list is already retired", code="price_list_retired")
+    if not data.reason:
+        raise _errors((["reason"], "reason_required", "Retiring a price list needs a reason"))
+    was_active = pl.status == PriceListStatus.ACTIVE.value
+    pl.status = PriceListStatus.RETIRED.value
+    pl.retired_at = uow.now()
+    pl.retired_by = uow.actor.user_id
+    pl.retire_reason = data.reason
+    pl.updated_at = uow.now()
+    uow.flush()
+    if was_active:
+        items = uow.session.scalars(
+            select(I).where(I.price_list_id == pl.id, I.status == PriceItemStatus.ACTIVE.value, I.superseded_by_item_id.is_(None))
+            .order_by(I.product_key, I.id)
+        )
+        for item in items:
+            _history(uow, item, PriceHistoryKind.LIST_RETIRED, _snapshot(item), None, data.reason)
+    uow.emit(
+        ev.PRICE_LIST_RETIRED,
+        aggregate_id=pl.id,
+        aggregate_version=pl.version,
+        payload=ev.payload(ev.PriceListRetiredPayload(price_list_id=pl.id, code=pl.code, reason_code="retired", origin=origin)),
+    )
+    uow.audit("pricing.price_list.retired", resource_type="pricing.price_list", resource_id=pl.id, resource_label=pl.code,
+              reason=data.reason)
+    return pl
+
+
+def duplicate_price_list(uow: UnitOfWork, price_list_id: uuid.UUID, data: PriceListDuplicate) -> PriceList:
+    """A new draft list with the source's scope, type and currency and a copy of its current prices."""
+    uow.actor.require(MANAGE)
+    source = _visible_list(uow, price_list_id)
+    copy = create_price_list(
+        uow,
+        PriceListCreate(
+            code=data.code, name=data.name, price_type=PriceType(source.price_type), scope_kind=PriceScope(source.scope_kind),
+            party_id=source.party_id, customer_type=source.customer_type, currency=source.currency,  # type: ignore[arg-type]
+            default_unit_code=source.default_unit_code, price_basis=source.price_basis, valid_from=data.valid_from,  # type: ignore[arg-type]
+            valid_to=data.valid_to, priority=source.priority, notes=source.notes, source_ref=f"duplicate:{source.code}",
+        ),
+    )
+    current = uow.session.scalars(
+        select(I).where(I.price_list_id == source.id, I.status == PriceItemStatus.ACTIVE.value, I.superseded_by_item_id.is_(None))
+        .order_by(I.product_key, I.unit_code, I.id)
+    ).all()
+    for item in current:
+        _insert_item(
+            uow,
+            copy,
+            PriceListItemCreate(
+                product_id=item.product_id, unit_code=item.unit_code, unit_price=item.unit_price,  # type: ignore[arg-type]
+                final_price=item.final_price, base_price=item.base_price, base_price_label=item.base_price_label,
+                addon_price=item.addon_price, addon_price_label=item.addon_price_label, price_basis=item.price_basis,
+                yield_qty_per_board=item.yield_qty_per_board, thickness_mm=item.thickness_mm, moq=item.moq,
+                moq_unit_code=item.moq_unit_code, notes=item.notes, valid_from=data.valid_from, valid_to=data.valid_to,
+                source_ref=f"copied:{item.id}",
+            ),
+        )
+    return copy
+
+
+def _item_for_command(uow: UnitOfWork, item_id: uuid.UUID, expected_version: int | None) -> tuple[PriceListItem, PriceList]:
+    uow.actor.require(MANAGE)
+    item = uow.repo(PriceListItem).get(item_id)
+    pl = _locked_list(uow, item.price_list_id)
+    item = uow.lock(PriceListItem, [item.id])[0]
+    uow.expect_version(item, expected_version)
+    return item, pl
+
+
+def update_item(uow: UnitOfWork, item_id: uuid.UUID, data: PriceListItemUpdate) -> PriceListItemRead:
+    """Edit an item of a draft list (an active list's prices change only by an effective-dated supersede)."""
+    item, pl = _item_for_command(uow, item_id, data.expected_version)
+    if pl.status != PriceListStatus.DRAFT.value:
+        raise Conflict("Prices of an active price list change only by superseding them", code="price_list_not_draft")
+    sent = data.model_fields_set - {"expected_version"}
+    valid_from = data.valid_from if "valid_from" in sent and data.valid_from is not None else item.valid_from
+    valid_to = data.valid_to if "valid_to" in sent else item.valid_to
+    problems: list[tuple[Sequence[str], str, str]] = []
+    if valid_to is not None and valid_to < valid_from:
+        problems.append((["valid_to"], "validity_order", "valid_to is before valid_from"))
+    if "unit_price" in sent and data.unit_price is None:
+        problems.append((["unit_price"], "required", "An item needs a unit price"))
+    if problems:
+        raise _errors(*problems)
+    if ("valid_from" in sent or "valid_to" in sent) and _overlapping_items(
+        uow, pl.id, item.product_id, item.unit_code, valid_from, valid_to, exclude_id=item.id
+    ):
+        raise Conflict("The product already has an active price for this unit and period", code="price_item_overlap")
+    before = _snapshot(item)
+    changed: list[str] = []
+    prices = {"unit_price", "base_price", "addon_price"}
+    for name in sorted(sent):
+        value = getattr(data, name)
+        if name == "valid_from" and value is None:
+            continue
+        if name in prices and value is not None:
+            value = quantize_unit_price(value)
+        if getattr(item, name) != value:
+            setattr(item, name, value)
+            changed.append(name)
+    if "unit_price" in changed and item.final_price is not None:
+        item.final_price = item.unit_price
+    if "moq" in changed and item.moq is not None and item.moq_unit_code is None:
+        item.moq_unit_code = item.unit_code
+    if changed:
+        item.updated_at = uow.now()
+        uow.flush()
+        _history(uow, item, PriceHistoryKind.EDITED_DRAFT, before, _snapshot(item))
+    return _item_read(item, pl)
+
+
+def retire_item(uow: UnitOfWork, item_id: uuid.UUID, data: RetireItem, *, origin: str | None = None) -> PriceListItemRead:
+    """Retire the current price of a product: it no longer resolves from ``retire_from`` (default today)."""
+    item, pl = _item_for_command(uow, item_id, data.expected_version)
+    if pl.status == PriceListStatus.RETIRED.value:
+        raise Conflict("A retired price list is history and cannot change", code="price_list_retired")
+    if item.status != PriceItemStatus.ACTIVE.value or item.superseded_by_item_id is not None:
+        raise Conflict("Only the current active price can be retired", code="price_item_not_current")
+    day = data.retire_from or business_date(uow)
+    before = _snapshot(item)
+    if day > item.valid_from:
+        end = day - timedelta(days=1)
+        if item.valid_to is None or end < item.valid_to:
+            item.valid_to = end
+    item.status = PriceItemStatus.RETIRED.value
+    item.updated_at = uow.now()
+    uow.flush()
+    _history(uow, item, PriceHistoryKind.RETIRED, before, _snapshot(item), data.reason)
+    uow.emit(
+        ev.ITEM_RETIRED,
+        aggregate_id=item.id,
+        aggregate_version=item.version,
+        payload=ev.payload(ev.ItemRetiredPayload(item_id=item.id, price_list_id=pl.id, product_id=item.product_id, origin=origin)),
+    )
+    uow.audit("pricing.price_list_item.retired", resource_type="pricing.price_list_item", resource_id=item.id,
+              resource_label=f"{pl.code} · {item.product_key}", reason=data.reason)
+    return _item_read(item, pl)
+
+
+@query(READ)
+def item_history(uow: UnitOfWork, item_id: uuid.UUID) -> list[PriceHistoryRead]:
+    """Append-only price history of the product in this list (every supersede, edit and retirement), oldest first."""
+    from app.platform.identity.models import AppUser
+
+    item = uow.repo(PriceListItem).get(item_id)
+    pl = _visible_list(uow, item.price_list_id)
+    chain = select(I.id).where(I.price_list_id == pl.id, I.product_id == item.product_id, I.unit_code == item.unit_code)
+    rows = list(
+        uow.session.scalars(
+            select(PriceListItemHistory)
+            .where(PriceListItemHistory.item_id.in_(chain))
+            .order_by(PriceListItemHistory.occurred_at, PriceListItemHistory.id)
+        )
+    )
+    actor_ids = {r.actor_user_id for r in rows if r.actor_user_id}
+    names: dict[Any, Any] = {}
+    if actor_ids:
+        names = dict(uow.session.execute(select(AppUser.id, AppUser.display_name).where(AppUser.id.in_(actor_ids))).all())
+    return [
+        PriceHistoryRead(
+            id=r.id, item_id=r.item_id, price_list_id=r.price_list_id, change_kind=PriceHistoryKind(r.change_kind),
+            before=r.before, after=r.after, reason=r.reason, occurred_at=r.occurred_at,
+            actor_name=names.get(r.actor_user_id) if r.actor_user_id else None,
+        )
+        for r in rows
+    ]
+
+
+@query(READ)
+def get_item(uow: UnitOfWork, item_id: uuid.UUID) -> PriceListItemRead:
+    item = uow.repo(PriceListItem).get(item_id)
+    return _item_read(item, _visible_list(uow, item.price_list_id))
+
+
+# =====================================================================================================
+# the pricing import contract (called by the import workbench; one row per call, inside its batch transaction)
+# =====================================================================================================
+def import_standard_price(uow: UnitOfWork, data: StandardPriceImport, *, origin: str | None = "import") -> StandardPriceImportResult:
+    """Write one imported standard price into ``STD-{TYPE}-{CUR}`` (created as a draft list when missing).
+
+    - draft list: add the item, or edit the current item of the product/unit (``updated_draft``);
+    - active list: a new product is added from ``valid_from``; a different price supersedes the current one from
+      ``valid_from`` (which must be later than the current price's start); the same price is ``unchanged``;
+    - retired list: 409 ``price_list_retired`` (the import row is reported, nothing is written).
+
+    Re-running the same row is idempotent (``unchanged``). Requires ``pricing.price_list.manage``.
+    """
+    uow.actor.require(MANAGE)
+    code = standard_list_code(data.price_type, data.currency)
+    found = find_price_list(uow, code)
+    if found is None:
+        found = create_price_list(
+            uow,
+            PriceListCreate(
+                code=code, name=f"Standard {data.price_type.value} prices ({data.currency})", price_type=data.price_type,
+                scope_kind=PriceScope.STANDARD, currency=data.currency, default_unit_code=data.unit_code,
+                valid_from=data.valid_from, source_kind="import", source_ref=data.source_ref,  # type: ignore[arg-type]
+            ),
+            origin=origin,
+        )
+    pl = _locked_list(uow, found.id)
+    if pl.status == PriceListStatus.RETIRED.value:
+        raise Conflict(f"{code} is retired; activate a new standard list before importing", code="price_list_retired")
+    product = catalogue.get_product_ref(uow, product_id=data.product_id)
+    current = uow.session.scalars(
+        select(I).where(I.price_list_id == pl.id, I.product_id == product.id, I.unit_code == data.unit_code,
+                        I.status == PriceItemStatus.ACTIVE.value, I.superseded_by_item_id.is_(None))
+        .order_by(I.valid_from.desc(), I.id).with_for_update()
+    ).first()
+    price = quantize_unit_price(data.unit_price)
+    provenance = {
+        "source_kind": "import", "source_ref": data.source_ref, "source_sheet": data.source_sheet,
+        "source_row": data.source_row, "import_job_id": data.import_job_id,
+    }
+    common: dict[str, Any] = {"price_list_id": pl.id, "price_list_code": pl.code, "price_list_status": pl.status}
+    if current is None:
+        item = _insert_item(
+            uow, pl,
+            PriceListItemCreate(
+                product_id=product.id, unit_code=data.unit_code, unit_price=price, base_price=data.base_price,  # type: ignore[arg-type]
+                base_price_label=data.base_price_label, addon_price=data.addon_price, addon_price_label=data.addon_price_label,
+                price_basis=data.price_basis, yield_qty_per_board=data.yield_qty_per_board, thickness_mm=data.thickness_mm,
+                moq=data.moq, moq_unit_code=data.moq_unit_code, notes=data.notes,
+                valid_from=max(data.valid_from, pl.valid_from), source_kind="import",  # type: ignore[arg-type]
+                source_ref=data.source_ref, source_sheet=data.source_sheet, source_row=data.source_row,
+            ),
+            import_job_id=data.import_job_id,
+        )
+        return StandardPriceImportResult(outcome="created", item_id=item.id, **common)
+    if current.unit_price == price and (data.moq is None or current.moq == data.moq):
+        return StandardPriceImportResult(outcome="unchanged", item_id=current.id, **common)
+    if pl.status == PriceListStatus.DRAFT.value:
+        changes: dict[str, Any] = {"unit_price": price}
+        if data.moq is not None:
+            changes["moq"] = data.moq
+        update_item(uow, current.id, PriceListItemUpdate(expected_version=current.version, **changes))
+        return StandardPriceImportResult(outcome="updated_draft", item_id=current.id, **common)
+    if data.valid_from <= current.valid_from:
+        raise Conflict(
+            f"{code} already prices {product.product_key} from {current.valid_from.isoformat()}; an imported change must "
+            "start later (valid_from) because active prices change only by an effective-dated supersede",
+            code="price_import_backdated",
+        )
+    new_item = _supersede(uow, current, pl, unit_price=price, valid_from=data.valid_from, reason="import", provenance=provenance)
+    return StandardPriceImportResult(outcome="superseded", item_id=new_item.id, superseded_item_id=current.id, **common)
+
+
+from app.modules.pricing.fx import (  # noqa: E402  (fx builds on the helpers above)
+    convert_amount,
+    decide_fx_rate,
+    find_approved_rate,
+    fx_policy,
+    get_fx_policy,
+    get_fx_rate,
+    list_fx_rates,
+    propose_fx_rate,
+    update_fx_policy,
+    withdraw_fx_rate,
+)
+
+__all__ = [
+    "activate_price_list",
+    "activate_price_list_command",
+    "add_item",
+    "convert_amount",
+    "create_price_list",
+    "decide_fx_rate",
+    "display_prices",
+    "duplicate_price_list",
+    "find_approved_rate",
+    "find_price_list",
+    "fx_policy",
+    "get_fx_policy",
+    "get_fx_rate",
+    "get_item",
+    "get_price_list",
+    "import_standard_price",
+    "item_history",
+    "list_fx_rates",
+    "list_price_list_items",
+    "list_price_lists",
+    "list_product_costs",
+    "priced_items",
+    "product_prices",
+    "propose_fx_rate",
+    "record_product_cost",
+    "resolve_price",
+    "retire_item",
+    "retire_price_list",
+    "supersede_item",
+    "update_fx_policy",
+    "update_item",
+    "update_price_list",
+    "withdraw_fx_rate",
+]

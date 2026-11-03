@@ -24,9 +24,12 @@ def _seed(ctx: SeedContext) -> None:
 
 def _on_load() -> None:
     from app.core.logging import register_restricted_log_fields
+    from app.modules.approvals.service import register_handler
+    from app.modules.pricing.fx import FX_RATE_HANDLER
     from app.modules.pricing.schemas import COST_FIELD_NAMES
 
     register_restricted_log_fields(COST_FIELD_NAMES)
+    register_handler(FX_RATE_HANDLER)
 
 
 MANIFEST = ModuleManifest(

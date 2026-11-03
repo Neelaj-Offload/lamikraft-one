@@ -26,6 +26,8 @@ export const settingsMessages = {
     importsHint: "Bring in products, prices, packaging and media from spreadsheets, with review before commit.",
     lookupsHint: "Legacy lookup reference data, browsable and exportable.",
     customerTypesHint: "The customer types parties and price lists use.",
+    quotesHint: "Quote defaults: validity, numbering of revisions and the owner of duplicates.",
+    fxRatesHint: "Dated exchange rates with second-person approval, and the conversion policy.",
   },
   profile: {
     title: "Profile",

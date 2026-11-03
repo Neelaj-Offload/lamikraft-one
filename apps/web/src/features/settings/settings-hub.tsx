@@ -27,6 +27,8 @@ const HINTS: Record<string, string> = {
   "settings-imports": m.hub.importsHint,
   "settings-lookups": m.hub.lookupsHint,
   "settings-customer-types": m.hub.customerTypesHint,
+  "settings-quotes": m.hub.quotesHint,
+  "settings-fx-rates": m.hub.fxRatesHint,
 };
 
 export const SETTINGS_NAV_LEADING = [{ id: "settings", label: "Overview", href: "/settings" }] as const;

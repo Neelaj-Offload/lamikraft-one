@@ -266,6 +266,7 @@ export const productsMessages = {
   },
   priceLists: {
     title: "Price lists",
+    newList: "New price list",
     intro: "Standard, customer-type and customer price lists with their validity.",
     loading: "price lists",
     what: "the price lists",

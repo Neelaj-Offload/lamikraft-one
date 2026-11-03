@@ -26,6 +26,8 @@ const AREAS = [
   { href: "/sales/enquiries", title: m.hub.enquiries, hint: m.hub.enquiriesHint, permission: "sales.enquiry.read" },
   { href: "/sales/customer-messages", title: m.hub.messages, hint: m.hub.messagesHint, permission: "sales.customer_message.read" },
   { href: "/sales/parties", title: m.hub.customers, hint: m.hub.customersHint, permission: "parties.party.read" },
+  { href: "/sales/custom-products", title: m.hub.customProducts, hint: m.hub.customProductsHint, permission: "sales.custom_product.read" },
+  { href: "/sales/samples", title: m.hub.samples, hint: m.hub.samplesHint, permission: "sales.sample.read" },
 ] as const;
 
 /** The statuses the strip shows, in flow order, when the server reports them. */

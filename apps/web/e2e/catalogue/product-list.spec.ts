@@ -1,17 +1,20 @@
 import { expect, test } from "@playwright/test";
-import { loadWorld, signInAs, type PersonKey } from "../support/world";
+import { loadWorld, onlyOnProjects, signInAs } from "../support/world";
 
 /**
  * Catalogue list, detail, form, taxonomy, media and lookups (UI-14/15/20/32/34/43, FG-LKP-03). Written by the catalogue
- * lane (Slice 2); run by the integrator (`npm run test:e2e`). Admin flows sign in as Priya (keys.USERS.PRIYA):
- * `PersonKey` in support/world.ts needs "PRIYA" added (requested in docs/lanes/catalogue-s2.md).
+ * lane (Slice 2); adapted by the Slice-2 integrator to the merged screens (main's catalogue list and product record
+ * with ?tab= tabs, the lane's editors and actions). Admin flows sign in as Priya. The flows write shared rows
+ * (E2E-FORM-01, a category), so they run on the desktop project only.
  */
 
-const PRIYA = "PRIYA" as PersonKey;
+const PRIYA = "PRIYA" as const;
 
 test.beforeAll(async ({ request }) => {
   await loadWorld(request);
 });
+
+test.beforeEach(() => onlyOnProjects("desktop"));
 
 test("filters_paging_and_deep_links_survive_reload", async ({ page }) => {
   await signInAs(page, "SAHIL");
@@ -22,17 +25,21 @@ test("filters_paging_and_deep_links_survive_reload", async ({ page }) => {
   await expect(page).toHaveURL(/thickness=12/);
   await expect(page.getByRole("link", { name: "LK-OT-0450" })).toBeVisible();
   await page.getByRole("link", { name: "LK-OT-0450" }).click();
-  await page.getByRole("link", { name: "Specifications" }).click();
-  await expect(page).toHaveURL(/\/specifications$/);
+  await page.getByRole("tab", { name: "Specification" }).click();
+  await expect(page).toHaveURL(/\?tab=specification$/);
   await page.reload();
-  await expect(page.getByRole("link", { name: "Specifications" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("tab", { name: "Specification" })).toHaveAttribute("aria-selected", "true");
+  // the server's section paths open the same tab
+  const recordUrl = new URL(page.url());
+  await page.goto(`${recordUrl.pathname}/specifications`);
+  await expect(page).toHaveURL(/\?tab=specification$/);
 });
 
-test("category_chips_filter", async ({ page }) => {
+test("category_facet_filter", async ({ page }) => {
   await signInAs(page, "SAHIL");
   await page.goto("/products");
-  await page.getByRole("navigation", { name: "Categories" }).getByRole("link").first().click();
-  await expect(page).toHaveURL(/category=/);
+  await page.getByRole("complementary", { name: "Filters" }).getByRole("link").first().click();
+  await expect(page).toHaveURL(/\?.+=/);
 });
 
 test("create_button_requires_capability", async ({ page }) => {
@@ -76,7 +83,7 @@ test("history_tab_shows_versions", async ({ page }) => {
   await signInAs(page, PRIYA);
   await page.goto("/products?q=E2E-FORM-01");
   await page.getByRole("link", { name: "E2E-FORM-01" }).click();
-  await page.getByRole("link", { name: "History" }).click();
+  await page.getByRole("tab", { name: "History" }).click();
   await expect(page.getByText(/product restored/i)).toBeVisible();
 });
 
@@ -100,7 +107,7 @@ test("upload_preview_download_delete_restore", async ({ page }) => {
   await signInAs(page, PRIYA);
   await page.goto("/products?q=LK-OT-0450");
   await page.getByRole("link", { name: "LK-OT-0450" }).click();
-  await page.getByRole("link", { name: /Media/ }).click();
+  await page.getByRole("tab", { name: /Media/ }).click();
   await page.getByLabel("Files").setInputFiles({
     name: "front.png",
     mimeType: "image/png",

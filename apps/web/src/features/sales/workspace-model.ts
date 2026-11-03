@@ -30,7 +30,12 @@ export interface CommandButton {
 }
 
 const FORWARD = new Set(["submit_review", "mark_sent", "mark_won"]);
-const DESTRUCTIVE = new Set(["cancel", "mark_lost", "delete"]);
+const DESTRUCTIVE = new Set(["cancel", "mark_lost", "delete", "discard_revision"]);
+
+/** Draft (never issued) and revised (a working copy of a sent quote) are the editable statuses. */
+export function isEditable(quote: Pick<QuoteDetail, "status" | "capabilities">): boolean {
+  return (quote.status === "draft" || quote.status === "revised") && quote.capabilities.update?.allowed === true;
+}
 
 function humanise(action: string): string {
   const text = action.replace(/_/g, " ");

@@ -17,7 +17,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.core.http.capabilities import Capability, TransitionRead
-from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
+from app.core.money import CurrencyCode, DecimalStr, Money, Quantity, RatioStr
 from app.modules.catalogue.schemas import Measure, UomCode
 from app.platform.authz.redaction import Restricted
 
@@ -316,6 +316,10 @@ class PriceResolution(BaseModel):
     candidates: list[PriceCandidate] = Field(default_factory=list)
     checks: list[TierCheck] = Field(default_factory=list)
     hints: list[str] = Field(default_factory=list)
+    #: Pass B (FX): the list price that was converted and the approved rate used (``unit_price`` is the converted
+    #: figure in ``requested_currency``); absent for a direct list price
+    source_unit_price: Money | None = None
+    fx: FxConversion | None = None
     redacted_fields: list[str] = Field(default_factory=list)
 
 
@@ -386,3 +390,237 @@ class DisplayPrice(BaseModel):
     item_id: uuid.UUID | None = None
     product_moq: Quantity | None = None
     candidate_count: int = 0
+
+
+# =====================================================================================================
+# Slice 2: price-list maintenance, history, FX snapshots and the pricing import contract
+# =====================================================================================================
+Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+Notes = Annotated[str, StringConstraints(max_length=4000)]
+
+
+class PriceListUpdate(BaseModel):
+    """Dirty fields plus ``expected_version``. A draft list accepts every field; an active list only its name and
+    notes and a shorter ``valid_to`` (prices of an active list change only by superseding them)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)] | None = None
+    notes: Notes | None = None
+    valid_from: date | None = None
+    valid_to: date | None = None
+    priority: int | None = Field(default=None, ge=0, le=1000)
+    price_basis: Label | None = None
+    default_unit_code: UomCode | None = None
+
+
+class PriceListCommand(BaseModel):
+    """``activate`` / ``retire`` with the version the user saw (``retire`` needs a reason)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int
+    reason: Reason | None = None
+
+
+class PriceListDuplicate(BaseModel):
+    """Copy the current prices of a list into a new draft list (e.g. next year's list), to edit before activation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True, pattern=r"^[A-Z0-9][A-Z0-9_-]{1,39}$")]
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    valid_from: date
+    valid_to: date | None = None
+
+
+class PriceListItemUpdate(BaseModel):
+    """Edit an item of a **draft** list (dirty fields plus ``expected_version``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int
+    unit_price: DecimalStr | None = Field(default=None, ge=0)
+    base_price: DecimalStr | None = Field(default=None, ge=0)
+    base_price_label: Label | None = None
+    addon_price: DecimalStr | None = Field(default=None, ge=0)
+    addon_price_label: Label | None = None
+    price_basis: Label | None = None
+    moq: DecimalStr | None = Field(default=None, gt=0)
+    moq_unit_code: UomCode | None = None
+    notes: Notes | None = None
+    valid_from: date | None = None
+    valid_to: date | None = None
+
+
+class SupersedeItemCommand(SupersedeItem):
+    expected_version: int | None = None
+
+
+class RetireItem(BaseModel):
+    """Retire a price: it stops resolving from ``retire_from`` (default today) onward; history keeps it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int | None = None
+    retire_from: date | None = None
+    reason: Reason
+
+
+class PriceHistoryRead(BaseModel):
+    id: uuid.UUID
+    item_id: uuid.UUID
+    price_list_id: uuid.UUID
+    change_kind: PriceHistoryKind
+    before: dict[str, Any] | None
+    after: dict[str, Any] | None
+    reason: str | None
+    occurred_at: datetime
+    actor_name: str | None
+
+
+# ---- FX -------------------------------------------------------------------------------------------
+class FxSourceKind(StrEnum):
+    MANUAL = "manual"
+    BANK = "bank"
+    ECB_REFERENCE = "ecb_reference"
+    SEED = "seed"
+    OTHER = "other"
+
+
+class FxRateStatus(StrEnum):
+    PROPOSED = "proposed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+
+
+FX_APPROVAL_KIND = "pricing.fx_rate.approve"
+
+
+class FxRateCreate(BaseModel):
+    """Propose a dated, sourced rate: 1 ``base_currency`` = ``rate`` ``quote_currency``. A second person approves it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_currency: CurrencyCode
+    quote_currency: CurrencyCode
+    rate: RatioStr
+    rate_date: date
+    source_kind: FxSourceKind = FxSourceKind.MANUAL
+    source_reference: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    notes: Notes | None = None
+
+
+class FxDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Literal["approve", "reject"]
+    reason: Reason | None = None
+
+
+class FxRateRead(BaseModel):
+    id: uuid.UUID
+    base_currency: str
+    quote_currency: str
+    rate: str
+    rate_date: date
+    source_kind: FxSourceKind
+    source_reference: str
+    status: FxRateStatus
+    proposal_id: uuid.UUID | None
+    proposed_by_name: str | None
+    proposed_at: datetime
+    decided_by_name: str | None
+    decided_at: datetime | None
+    decision_reason: str | None
+    notes: str | None
+    is_demo: bool
+    version: int
+    capabilities: dict[str, Capability] = Field(default_factory=dict)
+
+
+class FxPolicy(BaseModel):
+    """Company FX policy (``pricing_fx_policy``): conversion on/off, the source currency and the maximum rate age."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    conversion_enabled: bool = True
+    #: the list currency converted from when no list exists in the requested currency (Pass B of resolution)
+    conversion_source_currency: CurrencyCode = "EUR"
+    max_rate_age_days: int = Field(default=7, ge=0, le=90)
+
+
+class FxPolicyRead(FxPolicy):
+    model_config = ConfigDict(extra="ignore")
+
+    version: int
+    capabilities: dict[str, Capability] = Field(default_factory=dict)
+
+
+class FxPolicyUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=0)
+    conversion_enabled: bool | None = None
+    conversion_source_currency: CurrencyCode | None = None
+    max_rate_age_days: int | None = Field(default=None, ge=0, le=90)
+
+
+class FxConversion(BaseModel):
+    """An approved rate applied to an amount (provenance for converted quote lines)."""
+
+    fx_rate_id: uuid.UUID
+    base_currency: str
+    quote_currency: str
+    rate: RatioStr
+    rate_date: date
+    source_reference: str
+
+
+# ---- the pricing import contract (called by the catalogue lane's import workbench) ------------------
+class StandardPriceImport(BaseModel):
+    """One imported standard price (legacy ``pricing_master`` row): it lands in the standard list
+    ``STD-{TYPE}-{CUR}`` (created as a draft when missing). On a draft list the item is added or edited; on an
+    active list a different price is an effective-dated supersede from ``valid_from``; the same price is a no-op."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    product_id: uuid.UUID
+    price_type: PriceType
+    currency: CurrencyCode
+    unit_code: UomCode
+    unit_price: DecimalStr = Field(ge=0)
+    valid_from: date
+    moq: DecimalStr | None = Field(default=None, gt=0)
+    moq_unit_code: UomCode | None = None
+    base_price: DecimalStr | None = Field(default=None, ge=0)
+    base_price_label: Label | None = None
+    addon_price: DecimalStr | None = Field(default=None, ge=0)
+    addon_price_label: Label | None = None
+    price_basis: Label | None = None
+    yield_qty_per_board: DecimalStr | None = Field(default=None, gt=0)
+    thickness_mm: DecimalStr | None = Field(default=None, gt=0)
+    notes: Notes | None = None
+    source_ref: Annotated[str, StringConstraints(max_length=200)] | None = None
+    source_sheet: Annotated[str, StringConstraints(max_length=200)] | None = None
+    source_row: Annotated[str, StringConstraints(max_length=40)] | None = None
+    import_job_id: uuid.UUID | None = None
+
+
+class StandardPriceImportResult(BaseModel):
+    outcome: Literal["created", "updated_draft", "superseded", "unchanged"]
+    price_list_id: uuid.UUID
+    price_list_code: str
+    price_list_status: PriceListStatus
+    item_id: uuid.UUID
+    superseded_item_id: uuid.UUID | None = None
+
+
+def standard_list_code(price_type: PriceType | str, currency: str) -> str:
+    """``STD-{TYPE}-{CUR}``: the one standard list an import writes for a price type and currency."""
+    return f"STD-{PriceType(price_type).value.upper()}-{currency.upper()}"
+
+
+PriceResolution.model_rebuild()

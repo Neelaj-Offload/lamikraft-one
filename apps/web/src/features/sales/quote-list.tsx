@@ -16,7 +16,7 @@ import { useScreenContribution } from "@/features/assistant/screen-context-store
 import { queryKeys } from "@/lib/api/query-keys";
 import { useSession } from "@/lib/session/context";
 import { salesMessages as m } from "@/messages/sales";
-import { fetchQuotes, QUOTES_PAGE_SIZE, type QuoteListParams } from "./api";
+import { fetchQuotes, QUOTES_PAGE_SIZE, quotesExportHref, type QuoteListParams } from "./api";
 import { quoteListHref, type QuoteListState } from "./list-state";
 import { QUOTE_STATUSES, type QuoteStatus, type QuoteSummary } from "./types";
 
@@ -91,11 +91,18 @@ export function QuoteList({ state }: { state: QuoteListState }) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-[28px] font-bold tracking-tight md:text-3xl">{m.list.title}</h1>
-        {canCreate ? (
-          <LinkButton href="/sales/quotes/new" variant="primary">
-            {m.hub.newQuote}
-          </LinkButton>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          {permissionKeys.has("sales.quote.export") ? (
+            <a href={quotesExportHref(quoteListParams(state))} className={linkClasses} download>
+              {m.list.exportCsv}
+            </a>
+          ) : null}
+          {canCreate ? (
+            <LinkButton href="/sales/quotes/new" variant="primary">
+              {m.hub.newQuote}
+            </LinkButton>
+          ) : null}
+        </div>
       </header>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] md:items-end">
         <SearchField

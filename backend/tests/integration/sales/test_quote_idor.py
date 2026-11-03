@@ -11,11 +11,15 @@ import pytest
 from app.core.errors import Forbidden, NotFound
 from app.modules.sales import service as sales
 from app.modules.sales.schemas import (
+    ChangeOwner,
+    CurrencyChange,
+    DuplicateQuote,
     QuoteFilters,
     QuoteLineCreate,
     QuoteLineUpdate,
     QuoteTransition,
     QuoteUpdate,
+    RestoreRevision,
 )
 from app.seed.world import keys
 from tests.integration.sales.world import SalesWorld
@@ -43,6 +47,15 @@ def test_quote_idor_matrix(sales_world: SalesWorld) -> None:
         lambda uow: sales.transition_quote(uow, theirs, QuoteTransition(action="mark_won", expected_version=1)),
         lambda uow: sales.transition_quote(uow, draft_theirs, QuoteTransition(action="cancel", expected_version=1, reason="x")),
         lambda uow: sales.delete_quote(uow, draft_theirs, expected_version=1),
+        # Slice 2 children and commands: every path is authorised through the quote
+        lambda uow: sales.transition_quote(uow, theirs, QuoteTransition(action="revise", expected_version=1)),
+        lambda uow: sales.duplicate_quote(uow, theirs, DuplicateQuote()),
+        lambda uow: sales.compare_revisions(uow, theirs, 1),
+        lambda uow: sales.restore_revision(uow, theirs, 1, RestoreRevision(expected_version=1)),
+        lambda uow: sales.preview_currency_change(uow, theirs, "GBP"),
+        lambda uow: sales.change_currency(uow, draft_theirs, CurrencyChange(to_currency="EUR", expected_version=1)),
+        lambda uow: sales.change_owner(uow, theirs, ChangeOwner(owner_user_id=w.user_id(MEERA), expected_version=1)),
+        lambda uow: sales.export_quote_lines_csv(uow, theirs),
     ]
     for probe in probes:  # invisible -> 404, never 403 (no existence leak)
         with pytest.raises(NotFound):

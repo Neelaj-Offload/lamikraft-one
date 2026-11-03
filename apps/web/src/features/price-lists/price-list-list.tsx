@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Link as RacLink } from "react-aria-components";
 import { AreaNav } from "@/components/shell/area-nav";
+import { Button } from "@/components/ui/button";
 import { DataTable, OffsetPagination, type DataTableColumn } from "@/components/ui/data-table";
 import { LocalDate } from "@/components/ui/format";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { EmptyState, ErrorState, Loading, PermissionDenied } from "@/components/ui/states";
 import { linkClasses } from "@/components/ui/styles";
 import { useScreenContribution } from "@/features/assistant/screen-context-store";
+import { CreateListDialog } from "@/features/pricing/price-lists";
 import { queryKeys } from "@/lib/api/query-keys";
 import { CURRENCIES, formatCount } from "@/lib/format/money";
 import { useSession } from "@/lib/session/context";
@@ -63,6 +66,8 @@ export function PriceListList({ state }: { state: PriceListListState }) {
   const router = useRouter();
   const { permissionKeys } = useSession();
   const allowed = permissionKeys.has(PRICES_READ);
+  const canManage = permissionKeys.has("pricing.price_list.manage");
+  const [creating, setCreating] = useState(false);
   const query = useQuery({
     queryKey: queryKeys.pricing.priceLists(priceListListParams(state)),
     queryFn: ({ signal }) => fetchPriceLists(state, signal),
@@ -86,7 +91,19 @@ export function PriceListList({ state }: { state: PriceListListState }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t.title} intro={t.intro} nav={priceListsAreaNav()} />
+      <PageHeader
+        title={t.title}
+        intro={t.intro}
+        nav={priceListsAreaNav()}
+        actions={
+          canManage ? (
+            <Button variant="primary" onPress={() => setCreating(true)}>
+              {t.newList}
+            </Button>
+          ) : undefined
+        }
+      />
+      {canManage ? <CreateListDialog isOpen={creating} onOpenChange={setCreating} /> : null}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))] lg:items-end">
         <SearchField label={t.search} placeholder={t.searchPlaceholder} defaultValue={state.q} onSubmit={(q) => go({ q })} onClear={() => go({ q: "" })} />
         <Select

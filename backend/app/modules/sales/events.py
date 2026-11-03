@@ -172,3 +172,188 @@ def payload(model: BaseModel) -> dict[str, object]:
     if data.get("origin") is None:
         data.pop("origin", None)
     return data
+
+
+# =====================================================================================================
+# Slice 2: quote lifecycle, custom products, samples
+# =====================================================================================================
+QUOTE_REVISED = "sales.quote.revised"
+QUOTE_VALIDITY_EXTENDED = "sales.quote.validity_extended"
+QUOTE_ARCHIVED = "sales.quote.archived"
+QUOTE_UNARCHIVED = "sales.quote.unarchived"
+QUOTE_STATUS_CORRECTED = "sales.quote.status_corrected"
+QUOTE_OWNER_CHANGED = "sales.quote.owner_changed"
+QUOTE_DUPLICATED = "sales.quote.duplicated"
+QUOTE_RESTORED = "sales.quote.restored"
+QUOTE_CURRENCY_CHANGED = "sales.quote.currency_changed"
+CUSTOM_CREATED = "sales.custom_product.created"
+CUSTOM_UPDATED = "sales.custom_product.updated"
+CUSTOM_STATUS_CHANGED = "sales.custom_product.status_changed"
+CUSTOM_SPEC_RECORDED = "sales.custom_product.spec_revision_recorded"
+CUSTOM_PROMOTION_REQUESTED = "sales.custom_product.promotion_requested"
+CUSTOM_PROMOTED = "sales.custom_product.promoted"
+CUSTOM_PROMOTION_REJECTED = "sales.custom_product.promotion_rejected"
+CUSTOM_DUPLICATED = "sales.custom_product.duplicated"
+CUSTOM_ARCHIVED = "sales.custom_product.archived"
+SAMPLE_CREATED = "sales.sample.created"
+SAMPLE_DISPATCHED = "sales.sample.dispatched"
+SAMPLE_DELIVERED = "sales.sample.delivered"
+SAMPLE_FEEDBACK_RECORDED = "sales.sample.feedback_recorded"
+SAMPLE_CLOSED = "sales.sample.closed"
+
+EMITTED_EVENTS = (
+    *EMITTED_EVENTS,
+    QUOTE_REVISED, QUOTE_VALIDITY_EXTENDED, QUOTE_ARCHIVED, QUOTE_UNARCHIVED, QUOTE_STATUS_CORRECTED, QUOTE_OWNER_CHANGED,
+    QUOTE_DUPLICATED, QUOTE_RESTORED, QUOTE_CURRENCY_CHANGED,
+    CUSTOM_CREATED, CUSTOM_UPDATED, CUSTOM_STATUS_CHANGED, CUSTOM_SPEC_RECORDED, CUSTOM_PROMOTION_REQUESTED,
+    CUSTOM_PROMOTED, CUSTOM_PROMOTION_REJECTED, CUSTOM_DUPLICATED, CUSTOM_ARCHIVED,
+    SAMPLE_CREATED, SAMPLE_DISPATCHED, SAMPLE_DELIVERED, SAMPLE_FEEDBACK_RECORDED, SAMPLE_CLOSED,
+)
+
+#: ``CP-NNNN``, never reset (legacy ``CP-{count+1:04}`` fixed: atomic allocator, BR-09 / BUG-13)
+CUSTOM_PRODUCT_SEQUENCE = SequenceDef(
+    key="sales.custom_product",
+    name="Custom product code",
+    format_template="CP-{seq:04}",
+    reset_policy="never",
+    resource_type="sales.custom_product",
+)
+#: ``SMP-YYYY-NNNN``, reset yearly (document date = business date in the company zone)
+SAMPLE_SEQUENCE = SequenceDef(
+    key="sales.sample",
+    name="Sample number",
+    format_template="SMP-{yyyy}-{seq:04}",
+    reset_policy="yearly",
+    resource_type="sales.sample",
+)
+
+
+class QuoteRevisedPayload(BaseModel):
+    quote_id: uuid.UUID
+    revision_no: int
+    origin: str | None = None
+
+
+class QuoteValidityExtendedPayload(BaseModel):
+    quote_id: uuid.UUID
+    revision_id: uuid.UUID
+    valid_until: date
+    origin: str | None = None
+
+
+class QuoteArchivedPayload(BaseModel):
+    quote_id: uuid.UUID
+    archived_from_status: str
+    origin: str | None = None
+
+
+class QuoteStatusCorrectedPayload(BaseModel):
+    quote_id: uuid.UUID
+    from_status: str
+    to_status: str
+    reason_code: str
+    origin: str | None = None
+
+
+class QuoteOwnerChangedPayload(BaseModel):
+    quote_id: uuid.UUID
+    from_user_id: uuid.UUID
+    to_user_id: uuid.UUID
+    origin: str | None = None
+
+
+class QuoteDuplicatedPayload(BaseModel):
+    quote_id: uuid.UUID
+    source_quote_id: uuid.UUID
+    origin: str | None = None
+
+
+class QuoteRestoredPayload(BaseModel):
+    quote_id: uuid.UUID
+    from_revision_no: int
+    origin: str | None = None
+
+
+class QuoteCurrencyChangedPayload(BaseModel):
+    quote_id: uuid.UUID
+    from_currency: str
+    to_currency: str
+    origin: str | None = None
+
+
+class CustomCreatedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    custom_code: str
+    owner_user_id: uuid.UUID
+    origin: str | None = None
+
+
+class CustomUpdatedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    changed_fields: list[str]
+    origin: str | None = None
+
+
+class CustomStatusChangedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    from_status: str
+    to_status: str
+    origin: str | None = None
+
+
+class CustomSpecRecordedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    spec_revision_id: uuid.UUID
+    origin: str | None = None
+
+
+class CustomPromotionRequestedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    promotion_id: uuid.UUID
+    proposal_id: uuid.UUID
+    origin: str | None = None
+
+
+class CustomPromotedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    product_id: uuid.UUID
+    origin: str | None = None
+
+
+class CustomPromotionRejectedPayload(BaseModel):
+    custom_product_id: uuid.UUID
+    promotion_id: uuid.UUID
+    origin: str | None = None
+
+
+class CustomLineagePayload(BaseModel):
+    """``duplicated`` (source set) and ``archived`` (source null) share the catalogued field set."""
+
+    custom_product_id: uuid.UUID
+    source_custom_product_id: uuid.UUID | None
+    origin: str | None = None
+
+
+class SampleCreatedPayload(BaseModel):
+    sample_id: uuid.UUID
+    sample_number: str
+    party_id: uuid.UUID
+    owner_user_id: uuid.UUID
+    origin: str | None = None
+
+
+class SampleDispatchedPayload(BaseModel):
+    sample_id: uuid.UUID
+    challan_id: uuid.UUID | None
+    origin: str | None = None
+
+
+class SampleDeliveredPayload(BaseModel):
+    sample_id: uuid.UUID
+    evidence_kind: str
+    origin: str | None = None
+
+
+class SamplePayload(BaseModel):
+    sample_id: uuid.UUID
+    origin: str | None = None
