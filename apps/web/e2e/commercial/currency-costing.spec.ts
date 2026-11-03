@@ -1,35 +1,19 @@
 import { expect, test } from "@playwright/test";
-import { fact, loadWorld, onlyOnProjects, ref, signInAs } from "../support/world";
+import { addCatalogLine, newDraftQuote } from "../support/quotes";
+import { onlyOnProjects, signInAs } from "../support/world";
 
 /**
  * Scenario E (UI-67, UI-70): the currency dialog reprices from a list or converts at an approved rate, never
  * relabels; a sales user never sees costing. Run by the integrator.
  */
 
-test("currency_dialog_reprice_or_convert_only", async ({ page, request }) => {
+test("currency_dialog_reprice_or_convert_only", async ({ page }) => {
   onlyOnProjects("desktop");
-  const world = await loadWorld(request);
-  const number = fact(world, "quotes", "NORDHAUS_DRAFT");
-  test.skip(!number, "the fixture world does not publish the Nordhaus draft");
-  const id = ref(world, number!);
+  // a fresh draft with one catalog line: the seeded Nordhaus draft is in review (not editable) at D0
   await signInAs(page, "MEERA");
-  await page.goto(`/sales/quotes/${id}`);
-  // At D0 the Nordhaus draft is in internal review (fixtures.md); the currency changes only on the working copy,
-  // so withdraw the review first (adapted by the Slice-2 integrator).
-  const withdraw = page.getByRole("button", { name: "Withdraw review request" });
-  const change = page.getByRole("button", { name: "Change currency" });
-  await expect(withdraw.or(change).first()).toBeVisible();
-  if (await withdraw.isVisible()) {
-    await withdraw.click();
-    const confirmDialog = page.getByRole("dialog");
-    const asked = await confirmDialog.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false);
-    if (asked) {
-      const note = confirmDialog.getByRole("textbox");
-      if (await note.count()) await note.first().fill("Currency check in the e2e suite");
-      await confirmDialog.getByRole("button", { name: "Withdraw review request" }).click();
-    }
-  }
-  await change.click();
+  await newDraftQuote(page, "Nordhaus");
+  await addCatalogLine(page, "LK-OT-0450", /oak serving tray/i, "240");
+  await page.getByRole("button", { name: "Change currency" }).click();
   const dialog = page.getByRole("dialog", { name: "Change the quote currency" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(/Price list|Approved FX rate|No price/).first()).toBeVisible();

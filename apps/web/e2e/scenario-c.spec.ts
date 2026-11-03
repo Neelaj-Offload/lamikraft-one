@@ -38,11 +38,11 @@ test("Meera drafts the quote through the assistant and requests review", async (
 
   const card = page.locator('[data-card="quote_draft"]');
   await expect(card).toBeVisible({ timeout: 20_000 });
-  // The first run on a fresh world allocates SCENARIO_C_NEW; a second project on the same
-  // database gets the next number, so only the desktop run asserts the exact number.
+  // On a fresh world the draft gets a number at or after SCENARIO_C_NEW: Slice-2 specs that run earlier
+  // (commercial, sales) create drafts of their own, so the exact number is no longer fixed (Slice-2 merge).
   const heading = (await card.getByRole("heading").first().textContent()) ?? "";
   const number = /[A-Z]{2,4}-QT-\d{4}-\d{4}/.exec(heading)?.[0] ?? "";
-  if (test.info().project.name === "desktop") expect(number).toBe(expected(world, "SCENARIO_C_NEW"));
+  expect(number >= expected(world, "SCENARIO_C_NEW"), `${number} follows the seeded quotes`).toBe(true);
   quoteNumber = number;
   await expect(card).toContainText(moneyText(total, "EUR"));
   await expect(card).toContainText(`${quantity} pcs`);

@@ -217,3 +217,18 @@ def test_custom_line_from_custom_product(world: SalesWorld) -> None:
             expected_version=thornbury.version, line_type="custom", custom_product_id=custom_id, quantity=Decimal("10"),
             unit_price=Decimal("28")))
     assert (manual_priced.currency, manual_priced.unit_price, manual_priced.default_unit_price) == ("GBP", Decimal("28.0000"), Decimal("28.0000"))
+
+
+def test_dimensions_text_and_canonical_numbers(world: SalesWorld) -> None:
+    """FG-QLN-05: a catalog line keeps the legacy free-text size next to the canonical millimetres it came from."""
+    draft = world.new_draft(keys.USERS.MEERA, "NORDHAUS", ("OAK_TRAY", keys.EXPECTED.SCENARIO_C_QTY))
+    snap = draft.lines[0].product_snapshot
+    assert snap is not None
+    with world.uow(keys.USERS.MEERA) as uow:
+        size = catalogue.get_product(uow, world.ref("OAK_TRAY")).size
+    assert (snap.length_mm, snap.width_mm, snap.height_mm, snap.diameter_mm) == (
+        size.length_mm, size.width_mm, size.height_mm, size.diameter_mm
+    )
+    assert snap.length_mm is not None and snap.width_mm is not None and snap.size_text is not None
+    assert snap.size_text.startswith(f"{snap.length_mm} × {snap.width_mm}") and snap.size_text.endswith(" mm")
+    assert snap.thickness_mm is not None

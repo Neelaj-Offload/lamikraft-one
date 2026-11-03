@@ -17,6 +17,7 @@ import { useSession } from "@/lib/session/context";
 import { fetchCustomProducts } from "@/features/custom-products/api";
 import { salesMessages as m } from "@/messages/sales";
 import { addQuoteLine, previewQuote, removeQuoteLine, updateQuoteLine } from "./api";
+import { ConfiguratorDrawer } from "./configurator-drawer";
 import { useProductSearch, type ProductOption } from "./pickers";
 import { MANUAL_PRESETS, type ManualPreset, type QuoteDetail, type QuoteLine, type QuotePreview } from "./types";
 import type { useQuoteCommand } from "./use-quote-command";
@@ -277,6 +278,7 @@ function AddProductLine({ quote, commands }: { quote: QuoteDetail; commands: Com
   const [product, setProduct] = useState<ProductOption | null>(null);
   const [quantity, setQuantity] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const products = useProductSearch(text);
   const options = [...(product ? [product] : []), ...(products.data ?? []).filter((candidate) => candidate.id !== product?.id)];
   const quantityOk = quantity !== null && isDecimalStr(quantity) && compareDecimalStr(quantity, "0") > 0;
@@ -301,9 +303,15 @@ function AddProductLine({ quote, commands }: { quote: QuoteDetail; commands: Com
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-3 rounded-lg border p-4">
-      <h3 id={titleId} className="font-[650] text-ink">
-        {m.workspace.addProduct}
-      </h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={titleId} className="font-[650] text-ink">
+          {m.workspace.addProduct}
+        </h3>
+        <Button variant="secondary" onPress={() => setBrowsing(true)}>
+          {m.workspace.browseCatalogue}
+        </Button>
+      </div>
+      <ConfiguratorDrawer quote={quote} commands={commands} isOpen={browsing} onOpenChange={setBrowsing} />
       <Form onSubmit={submit} className="flex flex-col gap-3" validationBehavior="aria">
         <ComboBox
           label={m.workspace.productSearch}

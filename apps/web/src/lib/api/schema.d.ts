@@ -3948,6 +3948,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/quotes/configurator/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Quote Configurator
+         * @description Search-first product finder for a quote: filters before paging, narrowed facets, ``exact_match``, and each row
+         *     priced for the customer (agreement -> type -> standard, approved FX when needed) with its recommendation.
+         */
+        post: operations["sales_resolve_quote_configurator"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quotes/export.csv": {
         parameters: {
             query?: never;
@@ -6579,6 +6600,88 @@ export interface components {
             rules: components["schemas"]["CompletenessRuleCount"][];
             /** Total Products */
             total_products: number;
+        };
+        /** ConfiguratorPrice */
+        ConfiguratorPrice: {
+            /** Converted With Fx */
+            converted_with_fx: boolean;
+            /** Explanation */
+            explanation: string;
+            /** Price List Code */
+            price_list_code: string | null;
+            product_moq: components["schemas"]["Quantity"] | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** Status */
+            status: string;
+            /** Tier */
+            tier: string | null;
+            /** Unit Code */
+            unit_code: string | null;
+            unit_price: components["schemas"]["Money"] | null;
+        };
+        /** ConfiguratorRequest */
+        ConfiguratorRequest: {
+            /** Category Id */
+            category_id?: string | null;
+            /**
+             * Currency
+             * @default EUR
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Decor */
+            decor?: string | null;
+            /** Family */
+            family?: string | null;
+            /** Finish */
+            finish?: string | null;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /** Party Id */
+            party_id?: string | null;
+            /** @default export */
+            price_type: components["schemas"]["PriceType"];
+            /** Q */
+            q?: string | null;
+            /** Size */
+            size?: string | null;
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+            /** Thickness */
+            thickness?: string | null;
+        };
+        /** ConfiguratorResult */
+        ConfiguratorResult: {
+            /** Currency */
+            currency: string;
+            /** Exact Match */
+            exact_match: string | null;
+            facets: components["schemas"]["ProductFacets"];
+            /** Items */
+            items: components["schemas"]["ConfiguratorRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ConfiguratorRow */
+        ConfiguratorRow: {
+            /** Packaging Summary */
+            packaging_summary: string | null;
+            price: components["schemas"]["ConfiguratorPrice"] | null;
+            product: components["schemas"]["ProductSummary"];
+            recommendation: components["schemas"]["OrderValueRecommendationRead"] | null;
         };
         /** ContactIn */
         ContactIn: {
@@ -11842,10 +11945,16 @@ export interface components {
             decor_name: string | null;
             /** Decor No */
             decor_no: string | null;
+            /** Diameter Mm */
+            diameter_mm?: string | null;
             /** Display Sku */
             display_sku: string;
             /** Finish */
             finish: string | null;
+            /** Height Mm */
+            height_mm?: string | null;
+            /** Length Mm */
+            length_mm?: string | null;
             /**
              * Product Id
              * Format: uuid
@@ -11869,6 +11978,8 @@ export interface components {
             thickness_mm: string | null;
             /** Unit Of Sale */
             unit_of_sale: string | null;
+            /** Width Mm */
+            width_mm?: string | null;
         };
         /** ProductStats */
         ProductStats: {
@@ -24025,6 +24136,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuotePreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_resolve_quote_configurator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfiguratorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfiguratorResult"];
                 };
             };
             /** @description Validation Error */

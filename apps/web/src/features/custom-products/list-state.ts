@@ -1,4 +1,7 @@
-/** URL state for this screen: a plain module (no "use client"), so its server page can parse search params. */
+/**
+ * URL state of the list (server-safe: the page component parses `searchParams` with it, so it must not live in a
+ * "use client" module).
+ */
 
 import { CUSTOM_PAGE_SIZE, CUSTOM_STATUSES, type CustomStatus } from "./api";
 

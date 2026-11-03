@@ -1324,6 +1324,14 @@ def _packaging_summary(pack: ProductPackaging) -> str | None:
     return " · ".join(parts) or None  # FG-PKG-11: "450g · 24/ctn · Poly bag"
 
 
+def packaging_summaries(uow: UnitOfWork, product_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str | None]:
+    """The packaging summary of each product in one query (FG-QLN-12, DEBT-02); products without packaging are absent."""
+    if not product_ids:
+        return {}
+    packs = uow.session.scalars(select(K).where(K.product_id.in_(list(product_ids)))).all()
+    return {pack.product_id: _packaging_summary(pack) for pack in packs}
+
+
 def _sections(uow: UnitOfWork, product: Product) -> list[SectionRead]:
     base = product_path(product.id)
     sections = [

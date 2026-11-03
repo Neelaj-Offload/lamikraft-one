@@ -5965,6 +5965,341 @@
         "title": "CompletenessSummary",
         "type": "object"
       },
+      "ConfiguratorPrice": {
+        "properties": {
+          "converted_with_fx": {
+            "title": "Converted With Fx",
+            "type": "boolean"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "price_list_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price List Code"
+          },
+          "product_moq": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "unit_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Code"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "unit_price",
+          "unit_code",
+          "price_list_code",
+          "tier",
+          "reason_code",
+          "explanation",
+          "product_moq",
+          "converted_with_fx"
+        ],
+        "title": "ConfiguratorPrice",
+        "type": "object"
+      },
+      "ConfiguratorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "currency": {
+            "default": "EUR",
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "decor": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decor"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "finish": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "price_type": {
+            "$ref": "#/components/schemas/PriceType",
+            "default": "export"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "subcategory_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory Id"
+          },
+          "thickness": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thickness"
+          }
+        },
+        "title": "ConfiguratorRequest",
+        "type": "object"
+      },
+      "ConfiguratorResult": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "exact_match": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Match"
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ProductFacets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConfiguratorRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "facets",
+          "exact_match",
+          "currency"
+        ],
+        "title": "ConfiguratorResult",
+        "type": "object"
+      },
+      "ConfiguratorRow": {
+        "properties": {
+          "packaging_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packaging Summary"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfiguratorPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductSummary"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderValueRecommendationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "product",
+          "packaging_summary",
+          "price",
+          "recommendation"
+        ],
+        "title": "ConfiguratorRow",
+        "type": "object"
+      },
       "ContactIn": {
         "additionalProperties": false,
         "properties": {
@@ -23443,6 +23778,21 @@
             ],
             "title": "Decor No"
           },
+          "diameter_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diameter Mm"
+          },
           "display_sku": {
             "title": "Display Sku",
             "type": "string"
@@ -23457,6 +23807,36 @@
               }
             ],
             "title": "Finish"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Mm"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Mm"
           },
           "product_id": {
             "format": "uuid",
@@ -23544,6 +23924,21 @@
               }
             ],
             "title": "Unit Of Sale"
+          },
+          "width_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Mm"
           }
         },
         "required": [
@@ -52431,6 +52826,54 @@
           "kind": "permission",
           "permissions": [
             "pricing.price.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/configurator/resolve": {
+      "post": {
+        "description": "Search-first product finder for a quote: filters before paging, narrowed facets, ``exact_match``, and each row\npriced for the customer (agreement -> type -> standard, approved FX when needed) with its recommendation.",
+        "operationId": "sales_resolve_quote_configurator",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfiguratorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguratorResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Quote Configurator",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
           ]
         }
       }

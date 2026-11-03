@@ -7,6 +7,7 @@ persisted totals, reads), ``transitions`` (the state machine), ``approvals`` (th
 
 from __future__ import annotations
 
+from app.modules.sales.configurator import configurator_resolve
 from app.modules.sales.currency import change_currency, change_currency_command, preview_currency_change
 from app.modules.sales.custom_products import (
     archive_custom_product,
@@ -121,6 +122,7 @@ __all__ = [
     "change_owner",
     "change_owner_command",
     "compare_revisions",
+    "configurator_resolve",
     "create_custom_product",
     "create_custom_product_command",
     "create_sample",
