@@ -140,6 +140,33 @@ mirror enums, forced RLS, exempt tables, append-only triggers, no wall clock, en
 - Vendor identities: the `vendor` kind exists, but inbound matching only links party contacts as `customer` (no vendor party type yet).
 - No e2e spec for `whatsapp-k` (the e2e runs belong to the integrator; `/r/[token]` is skipped by the axe sweep for lack of a fixture token).
 
-## 6. Gate output
+## 6. Gate output (2026-11-04, slot 3)
 
-See §6 at the end of the lane (filled after the final runs).
+`npm run check -- --keep-going` on the final tree — **7/7 PASS**:
+
+```
+backend: ruff check              PASS
+backend: pytest unit + contract  PASS   529 passed
+alembic heads == 1               PASS
+api:check                        PASS   backend/openapi.json matches the app
+web: lint                        PASS
+web: typecheck                   PASS
+web: vitest                      PASS   40 files, 501 tests
+```
+
+`npm run test:api` (full backend suite, LK_ENV=test) at commit 7012e4d + the partial-index fix: **1,158 passed, 0
+failed** (36 min). After it, only channels code changed (the enrolment security fix and the live-mode-only step-up);
+the whole channels suite was rerun on the final tree: **99 passed** (`tests/integration/channels`,
+`tests/contract/channels`, `tests/unit/channels`), and unit + contract are in the check above.
+
+`npm run api:generate` — committed (`backend/openapi.json`, `apps/web/src/lib/api/schema.d.ts`).
+
+Browser check (dev servers on 127.0.0.1:3030 / 8030 with the worker, `lk seed demo --anchor-date 2026-10-12`,
+`lk demo sign-in-link MEERA`): Settings › WhatsApp shows "WhatsApp: Demo — not connected"; Create link code →
+`LINK <code>` sent from the simulator → linked through the signed webhook, inbox and worker ("Demo: Linked to
+Lamikraft One as Meera Iyer…"); "Prepare Nordhaus's usual oak tray quote" → "Demo: Draft ready (LK-QT-2026-0009).
+240 pcs Oak serving tray 450 at EUR 24.00 each. Total EUR 5,760.00. Status: draft, not sent." with Review quote /
+Open workspace; Review quote → a `/r/<token>` link that redirected to the LK-QT-2026-0009 workspace. Two defects
+found and fixed (commit after f0fce81): the review-link POST ran before the SessionProvider seeded the rotated CSRF
+token (403 → "not valid"), and "Linked numbers" did not refresh after the simulator linked. Phone width (375 px): no
+horizontal overflow. All servers started for this were stopped.
