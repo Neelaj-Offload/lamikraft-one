@@ -73,6 +73,9 @@ export const queryKeys = {
     samples: (params: { q?: string | null; status?: string | null; offset?: number | null }) =>
       ["sales", "samples", compact({ q: params.q?.trim() ?? null, status: params.status ?? null, offset: params.offset ?? null })] as const,
     sample: (sampleId: string) => ["sales", "sample", { sample_id: sampleId }] as const,
+    // sample lineage (Slice 5): the lineage view and the challans that could carry a sample
+    sampleLineage: (sampleId: string) => ["sales", "sample-lineage", { sample_id: sampleId }] as const,
+    sampleChallans: (partyId: string) => ["sales", "sample-challans", { party_id: partyId }] as const,
     // configurator follow-up (Slice 2): one page of the quote configurator, keyed by its whole request body
     configurator: (body: object) => ["sales", "configurator", body] as const,
   },
@@ -203,6 +206,8 @@ export const queryKeys = {
     plan: (planId: string) => ["cutting", "plan", { plan_id: planId }] as const,
     grainLocks: () => ["cutting", "grain-locks"] as const,
     products: (q: string) => ["cutting", "products", compact({ q: q.trim() })] as const,
+    // offcut reuse (Slice 5): lots the plan could cut from
+    offcutCandidates: (planId: string) => ["cutting", "offcut-candidates", { plan_id: planId }] as const,
   },
   // orders and inventory (Slice 4)
   orders: {
@@ -237,6 +242,8 @@ export const queryKeys = {
     capacity: (params: Record<string, string | number | boolean | null | undefined>) => ["production", "capacity", compact(params)] as const,
     costRollups: (productId: string) => ["production", "cost-rollups", { product_id: productId }] as const,
     feasibility: (lineId: string, needBy: string | null) => ["production", "feasibility", compact({ line_id: lineId, need_by: needBy })] as const,
+    // what-if (Slice 5): one simulation, keyed by its whole request body (read-only, so caching per scenario is safe)
+    simulation: (body: object) => ["production", "simulation", body] as const,
   },
   // procurement, quality and logistics (Slice 4)
   procurement: {
