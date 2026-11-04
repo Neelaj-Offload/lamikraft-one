@@ -269,3 +269,21 @@ def active_warehouses(uow: UnitOfWork) -> list[Warehouse]:
             .order_by(Warehouse.code)
         )
     )
+
+
+def wip_location(uow: UnitOfWork, warehouse_id: uuid.UUID) -> Location:
+    """The work-in-progress location of a warehouse (``WIP``, stock-bearing, not available), created on first use.
+
+    Production issues material internal -> WIP and consumes it WIP -> production (operations.md §6)."""
+    found = uow.session.scalars(
+        select(Location).where(
+            Location.company_id == uow.actor.company_id,
+            Location.warehouse_id == warehouse_id,
+            Location.location_type == LocationType.WIP.value,
+        ).order_by(Location.code)
+    ).first()
+    if found is not None:
+        return found
+    _insert_location(uow, code="WIP", name="Work in progress", location_type=LocationType.WIP.value,
+                     warehouse_id=warehouse_id)
+    return wip_location(uow, warehouse_id)

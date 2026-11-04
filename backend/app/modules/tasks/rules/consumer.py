@@ -206,6 +206,12 @@ SLICE4_TRIGGERS: dict[str, tuple[str, str]] = {
     "inventory.pick_list.released": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
     "inventory.pick_list.picked": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
     "inventory.projection.mismatch_detected": ("app.modules.inventory.rules.on_mismatch", "admin.stock_integrity"),
+    # production lane: ops.production_dependencies (blocked work orders grouped by their shortage, capacity overloads,
+    # incomplete cost rollups)
+    **{f"production.work_order.{verb}": ("app.modules.production.rules.on_work_order", "ops.production_dependencies")
+       for verb in ("released", "blocked", "unblocked", "completed", "closed", "cancelled")},
+    "production.capacity.overloaded": ("app.modules.production.rules.on_overload", "ops.production_dependencies"),
+    "production.cost_rollup.computed": ("app.modules.production.rules.on_rollup", "ops.production_dependencies"),
 }
 
 TRIGGERS: dict[str, Trigger] = {
@@ -242,7 +248,8 @@ EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
 
 #: event aggregate type -> issue-member ref type compared for staleness
 _STALENESS_REF = {QUOTE: QUOTE, MESSAGE: MESSAGE, PROPOSAL: PROPOSAL, "sales.enquiry": "sales.enquiry", "parties.party": "parties.party",
-                  "inventory.shortage": "inventory.shortage", "inventory.pick_list": "inventory.pick_list"}
+                  "inventory.shortage": "inventory.shortage", "inventory.pick_list": "inventory.pick_list",
+                  "production.work_order": "production.work_order"}
 
 
 def is_stale(uow: UnitOfWork, event: DomainEvent) -> bool:
