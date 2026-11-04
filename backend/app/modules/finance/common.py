@@ -52,6 +52,14 @@ def today(uow: UnitOfWork) -> date:
     return local_date(uow.now(), zone(uow))
 
 
+def branch_for(uow: UnitOfWork, *candidates: uuid.UUID | None) -> uuid.UUID | None:
+    """The first known branch (order, challan), else the actor's first branch (sorted, stable)."""
+    for b in candidates:
+        if b is not None:
+            return b
+    return sorted(uow.actor.branch_ids)[0] if uow.actor.branch_ids else None
+
+
 def money(amount: Decimal | None, currency: str) -> Money | None:
     return None if amount is None else Money(amount=Decimal(amount), currency=currency)  # type: ignore[arg-type]
 

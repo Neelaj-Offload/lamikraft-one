@@ -50,9 +50,8 @@ def _seed(ctx: SeedContext) -> None:
 
 
 def _on_load() -> None:
-    from app.modules.finance.rules import register_checks
-
     from app.modules.finance.readers import READERS
+    from app.modules.finance.rules import register_checks
     from app.platform.sources import register_reader
 
     for source_type, reader in READERS.items():

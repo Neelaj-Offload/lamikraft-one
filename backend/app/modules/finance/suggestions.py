@@ -47,7 +47,7 @@ def on_challan_issued(uow: UnitOfWork, event: Any) -> None:
         pg_insert(InvoiceSuggestion)
         .values(id=row_id, company_id=uow.actor.company_id, challan_id=ch.id, challan_number=ch.challan_number,
                 sales_order_id=ch.sales_order_id, party_id=ch.party_id, party_name=ch.destination_party,
-                status=SuggestionStatus.OPEN.value, branch_id=ch.branch_id if hasattr(ch, "branch_id") else None,
+                status=SuggestionStatus.OPEN.value, branch_id=ch.source_branch_id,
                 source_event_id=event.id, version=1, created_at=now, updated_at=now)
         .on_conflict_do_nothing(constraint="uq_finance_invoice_suggestion_challan")
         .returning(InvoiceSuggestion.id)

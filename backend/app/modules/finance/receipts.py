@@ -75,7 +75,7 @@ def record_receipt(uow: UnitOfWork, data: ReceiptCreate, *, origin: str = "user"
         party_name=party.display_name, amount=quantize_money(Decimal(data.amount), data.currency),
         currency=data.currency, received_on=data.received_on, method=data.method.value, reference=data.reference,
         bank_account_label=data.bank_account_label, status=ReceiptStatus.RECORDED.value,
-        owner_user_id=uow.actor.user_id, branch_id=uow.actor.branch_ids[0] if uow.actor.branch_ids else None,
+        owner_user_id=uow.actor.user_id, branch_id=c.branch_for(uow),
         notes=data.notes, origin=origin, origin_ref=origin_ref,
     )
     r.receipt_number = uow.allocate_number("finance.receipt", document_date=data.received_on, resource_type="finance.receipt", resource_id=r.id)

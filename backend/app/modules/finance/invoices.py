@@ -143,7 +143,8 @@ def _apply_tax(inv: Invoice, lines: list[InvoiceLine], profile: TaxProfile | Non
     )
 
 
-def _new(uow: UnitOfWork, doc_type: DocType, *, party_id: uuid.UUID, party_name: str, currency: str, **fields: Any) -> Invoice:
+def _new(uow: UnitOfWork, doc_type: DocType, *, party_id: uuid.UUID, party_name: str, currency: str,
+         branch_id: uuid.UUID | None = None, **fields: Any) -> Invoice:
     if uow.actor.user_id is None:
         raise Forbidden("A finance document needs a user as its creator", code="permission_denied")
     inv = Invoice(
@@ -156,7 +157,7 @@ def _new(uow: UnitOfWork, doc_type: DocType, *, party_id: uuid.UUID, party_name:
         party_name=party_name,
         currency=currency,
         owner_user_id=uow.actor.user_id,
-        branch_id=uow.actor.branch_ids[0] if uow.actor.branch_ids else None,
+        branch_id=branch_id or c.branch_for(uow),
         billing_snapshot=gate.billing_snapshot(uow, party_id),
         **fields,
     )
@@ -319,6 +320,7 @@ def create_invoice(uow: UnitOfWork, data: InvoiceCreate) -> Invoice:
     policy = _policy(uow)
     inv = _new(
         uow, DocType.INVOICE, party_id=party_id, party_name=party_name, currency=currency,
+        branch_id=(order.branch_id if order is not None else None) or (challan.source_branch_id if challan is not None else None),
         sales_order_id=order.id if order is not None else data.sales_order_id,
         payment_due_days=data.payment_due_days if data.payment_due_days is not None else policy.default_payment_due_days,
         customer_reference=data.customer_reference or (order.customer_reference if order is not None else None),
@@ -400,6 +402,7 @@ def create_credit_note(uow: UnitOfWork, data: CreditNoteCreate) -> Invoice:
         raise ValidationFailed("Credit more than is still creditable is not possible", code="validation_failed", errors=errors)
     cn = _new(
         uow, DocType.CREDIT_NOTE, party_id=original.party_id, party_name=original.party_name, currency=original.currency,
+        branch_id=original.branch_id,
         sales_order_id=original.sales_order_id, original_invoice_id=original.id, payment_due_days=None,
         reason_code=data.reason_code, notes=data.notes, customer_reference=original.customer_reference,
     )
