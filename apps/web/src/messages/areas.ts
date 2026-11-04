@@ -33,7 +33,7 @@ export const areaMessages = {
     stateTitle: "Cutting, challans, inventory, purchasing, quality and dispatch are here; the rest of Operations arrives in Slice 4",
     stateBody:
       "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, reservations with pick lists, purchasing from requisition to vendor bill, QC inspections and dispatch with packing lists and cutoffs are available now; once inventory is live an issued challan moves stock exactly once. Production follows in Slice 4.",
-    liveNote: "Cutting, challans, inventory, reservations, purchasing, quality and dispatch are available now; the other parts below are not switched on yet.",
+    liveNote: "Cutting, challans, inventory and reservations are available now, and so are purchasing, quality and dispatch; the other parts below are not switched on yet.",
     partsHeading: "What this area will hold",
     parts: [
       { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },

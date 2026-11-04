@@ -167,7 +167,7 @@ describe("purchasing", () => {
   it("an out-of-scope purchase order is the same as a missing one", () => {
     const html = renderWithQueries(
       <PurchaseOrderScreen poId={ID} />,
-      (c) => seedQueryError(c, queryKeys.procurement.order(ID), new ProblemError({ type: "about:blank", title: "Not found", status: 404 })),
+      (c) => seedQueryError(c, queryKeys.procurement.order(ID), new ProblemError({ title: "Not found", status: 404, code: "not_found" })),
       buyer(),
     );
     expect(textOf(html)).not.toContain("PO-2026-0007");

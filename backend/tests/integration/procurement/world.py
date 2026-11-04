@@ -16,7 +16,7 @@ from sqlalchemy import select
 
 from app.modules.logistics import packing_lists, shipments
 from app.modules.logistics.schemas import PackingListCreate, ShipmentCreate, ShipmentTransition
-from app.modules.procurement import matching, purchase_orders, receiving, requisitions
+from app.modules.procurement import matching, purchase_orders, receiving
 from app.modules.procurement.models import PurchaseOrder, PurchaseOrderLine
 from app.modules.procurement.schemas import (
     BillCreate,

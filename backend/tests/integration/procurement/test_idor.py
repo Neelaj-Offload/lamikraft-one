@@ -11,7 +11,6 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterator
 from datetime import date
-from decimal import Decimal
 from types import MappingProxyType
 from typing import Any
 
@@ -158,7 +157,6 @@ def test_purchase_order_documents_of_another_branch_are_not_found(client: TestCl
     po_fac, grn_fac = w.ref("PO_FAC"), w.ref("GRN_FAC")
     line_id = str(w.po_lines(po_fac)[0].id)
     ho_po = w.ref("PO_KAVERI")
-    ho_line = str(w.po_lines(ho_po)[0].id)
     for path, method, body in (
         (f"purchase-orders/{po_fac}", "GET", None),
         (f"purchase-orders/{po_fac}", "PATCH", {"expected_version": 1, "notes": "x"}),

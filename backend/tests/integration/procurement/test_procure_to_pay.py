@@ -16,7 +16,12 @@ from sqlalchemy import func, select
 from app.core.errors import Conflict, Forbidden
 from app.modules.inventory.models import StockBalance, StockPosting
 from app.modules.procurement import matching, purchase_orders, requisitions
-from app.modules.procurement.schemas import ConvertToPo, RequisitionCreate, RequisitionDecision, RequisitionLineIn
+from app.modules.procurement.schemas import (
+    ConvertToPo,
+    RequisitionCreate,
+    RequisitionDecision,
+    RequisitionLineIn,
+)
 from app.platform.events.models import DomainEvent
 from app.seed.context import D0
 from tests.integration.inventory.world import assert_ledger_consistent
