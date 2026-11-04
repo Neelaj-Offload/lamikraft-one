@@ -104,6 +104,19 @@ def fail(actor: ActorContext, run_id: uuid.UUID, kind: str, code: str, detail: s
         )
 
 
+def complete(uow: UnitOfWork, run: MigrationRun) -> None:
+    run.status = RunStatus.COMPLETED.value
+    run.finished_at = uow.now()
+    uow.emit("migration.run.completed", aggregate_id=run.id, payload={
+        "run_id": str(run.id), "kind": run.kind, "source_digest": run.source_digest,
+        "quarantined": run.quarantined_count, "errors": run.error_count,
+    })
+    uow.audit("migration.run.completed", resource_type="migration.run", resource_id=run.id,
+              resource_label=run.source_label, details={"kind": run.kind, "issues": run.issue_count,
+                                                        "quarantined": run.quarantined_count,
+                                                        "errors": run.error_count})
+
+
 def _issue_rows(uow: UnitOfWork, run_id: uuid.UUID, findings: list[Finding]) -> list[dict[str, Any]]:
     now = uow.now()
     return [
@@ -279,8 +292,8 @@ def build_report(an: Analysis, id_maps: dict[str, Any]) -> dict[str, Any]:
     links = {
         "products->taxonomy": {
             "linked": int(an.counts["products_master"].get("accepted", 0))
-            - _count(an, "products_master", "TAXONOMY_UNKNOWN"),
-            "unknown": _count(an, "products_master", "TAXONOMY_UNKNOWN"),
+            - _count(an, "products_master", "CATEGORY_NOT_FOUND"),
+            "unknown": _count(an, "products_master", "CATEGORY_NOT_FOUND"),
         },
         "pricing->products": link("pricing", "ORPHAN_PRODUCT"),
         "packaging->products": link("packaging", "ORPHAN_PRODUCT"),
@@ -380,31 +393,13 @@ def run_dry_run(
             counts = {e: {k: int(v) for k, v in c.items()} for e, c in an.counts.items()}
             quarantined = sum(1 for f in an.findings if f.severity == QUARANTINE)
             errors = sum(1 for f in an.findings if f.severity == "error")
-            run.status = RunStatus.COMPLETED.value
-            run.finished_at = uow.now()
             run.counts = counts
             run.report = report
             run.issue_count = len(rows)
             run.quarantined_count = quarantined
             run.error_count = errors
-            uow.emit(
-                "migration.run.completed",
-                aggregate_id=run.id,
-                payload={
-                    "run_id": str(run.id),
-                    "kind": kind,
-                    "source_digest": source.digest,
-                    "quarantined": quarantined,
-                    "errors": errors,
-                },
-            )
-            uow.audit(
-                "migration.run.completed",
-                resource_type="migration.run",
-                resource_id=run.id,
-                resource_label=source.label,
-                details={"kind": kind, "issues": len(rows), "quarantined": quarantined, "errors": errors},
-            )
+            if kind == RunKind.DRY_RUN.value:  # an apply completes after its writes (app.modules.migration.apply)
+                complete(uow, run)
             result = RunResult(
                 run.id,
                 run.status,
@@ -421,4 +416,4 @@ def run_dry_run(
         raise
 
 
-__all__ = ["DRY_RUN", "RunResult", "build_report", "fail", "run_dry_run"]
+__all__ = ["DRY_RUN", "RunResult", "build_report", "complete", "fail", "run_dry_run"]

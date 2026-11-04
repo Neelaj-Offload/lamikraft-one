@@ -10,7 +10,8 @@ quarantined unless a default is confirmed). On top of the row rules the dry run 
 - product keys that differ only by case or spacing -> quarantined (``KEY_CASE_COLLISION``);
 - display SKUs are not identities: shared ones are preserved and reported (``DISPLAY_SKU_SHARED``, info);
 - rows for a product that is neither in the export nor in the catalogue -> ``ORPHAN_PRODUCT`` (quarantine);
-- products whose category is neither in the taxonomy export nor in the catalogue -> ``TAXONOMY_UNKNOWN`` (warning);
+- products whose category is neither in the taxonomy export nor in the catalogue (or a former name) ->
+  ``CATEGORY_NOT_FOUND`` (quarantine, as the products import does);
 - media: a location inside the export is hashed (sha256, size); a missing file is ``MEDIA_INACCESSIBLE``, a remote
   link that was not fetched ``MEDIA_NOT_FETCHED`` (both warnings: the row can still become reference media), a path
   leaving the export ``MEDIA_PATH_OUTSIDE_EXPORT`` (quarantine).
@@ -100,9 +101,11 @@ def _existing_product_keys(an: Analysis) -> set[str]:
 
 
 def _existing_categories(an: Analysis) -> set[str]:
-    from app.modules.catalogue.models import Category
+    from app.modules.catalogue.models import Category, TaxonomyAlias
 
-    return set(an.uow.session.scalars(select(Category.name_key)))
+    names = set(an.uow.session.scalars(select(Category.name_key)))
+    return names | set(an.uow.session.scalars(select(TaxonomyAlias.alias_key).where(
+        TaxonomyAlias.subcategory_id.is_(None))))
 
 
 def analyse_entity(
@@ -182,16 +185,15 @@ def _known_products(an: Analysis) -> set[str]:
 
 def _orphan_check(an: Analysis, row: SourceRow, p: Prepared) -> list[Issue]:
     key = p.values.get("product_key")
-    if key and key not in _known_products(an):
-        return [
-            Issue(
-                "ORPHAN_PRODUCT",
-                QUARANTINE,
-                f"product {key} is neither in the export nor in the catalogue",
-                "product_key",
-                key,
-            )
-        ]
+    if not key:
+        return []
+    if key not in _known_products(an):
+        return [Issue("ORPHAN_PRODUCT", QUARANTINE, f"product {key} is neither in the export nor in the catalogue",
+                      "product_key", key)]
+    in_db = an.cache.setdefault("db_products", _existing_product_keys(an))
+    if key not in an.accepted["products_master"] and key not in in_db:
+        return [Issue("PRODUCT_NOT_MIGRATED", QUARANTINE, f"product {key} is quarantined or rejected in this export; "
+                      "its rows wait for it", "product_key", key)]
     return []
 
 
@@ -200,16 +202,16 @@ def _taxonomy_check(an: Analysis, row: SourceRow, p: Prepared) -> list[Issue]:
 
     known = an.cache.get("known_categories")
     if known is None:
-        known = {k.split("|", 1)[0] for k in an.seen["category_taxonomy"]} | _existing_categories(an)
+        known = {k.split("|", 1)[0] for k in an.accepted["category_taxonomy"]} | _existing_categories(an)
         an.cache["known_categories"] = known
     category = p.values.get("category")
     if category and name_key(category) not in known:
         return [
             Issue(
-                "TAXONOMY_UNKNOWN",
-                WARNING,
+                "CATEGORY_NOT_FOUND",
+                QUARANTINE,
                 f"category '{category}' is not in the taxonomy export or the "
-                "catalogue (it would be created by the products import)",
+                "catalogue; the products import would refuse the row",
                 "category",
                 category,
             )

@@ -52,10 +52,11 @@ def stage_batch(actor: ActorContext, an: Analysis, run_id: uuid.UUID) -> uuid.UU
         return None
     with UnitOfWork(actor) as uow:
         uow.actor.require(APPLY, Scope.COMPANY)
-        ids = dict(uow.session.execute(select(Product.product_key, Product.id)))
+        ids = {k: i for k, i in uow.session.execute(select(Product.product_key, Product.id))}
         accepted = {acc.row.row_number for acc in an.accepted["opening_balances"].values()}
         quarantined_codes = {f.row_number: f.code for f in an.findings
-                             if f.entity == "opening_balances" and f.severity in ("quarantine", "error")}
+                             if f.entity == "opening_balances" and f.severity == "quarantine"}
+        rejected = {f.row_number for f in an.findings if f.entity == "opening_balances" and f.severity == "error"}
         batch = uow.add(OpeningBatch(run_id=run_id, status=OpeningStatus.STAGED.value, source_digest=an.source.digest))
         uow.flush()
         totals: dict[str, Decimal] = defaultdict(Decimal)
@@ -65,7 +66,7 @@ def stage_batch(actor: ActorContext, an: Analysis, run_id: uuid.UUID) -> uuid.UU
             pk = text(row.values, "product_key")
             loc = text(row.values, "location_code", "location", "warehouse")
             uom = (text(row.values, "uom", "uom_code", "unit") or "").upper()
-            if qty is None or not pk or not loc or not uom:
+            if row.row_number in rejected or qty is None or not pk or not loc or not uom:
                 continue  # rejected rows stay in the quarantine report only
             ok = row.row_number in accepted
             uow.add(OpeningLine(

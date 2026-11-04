@@ -23,7 +23,7 @@ pytestmark = pytest.mark.db
 
 EXPECTED = {  # entity: (rows, accepted, quarantined, rejected, exact repeats)
     "category_taxonomy": (5, 4, 0, 0, 1),
-    "products_master": (10, 5, 4, 1, 0),
+    "products_master": (10, 4, 5, 1, 0),
     "pricing": (8, 3, 5, 0, 0),
     "packaging": (4, 2, 2, 0, 0),
     "specifications": (3, 2, 1, 0, 0),
@@ -106,7 +106,7 @@ def test_every_deliberate_conflict_is_quarantined_with_its_original_values(world
         ("pricing", "ORPHAN_PRODUCT", "quarantine"),
         ("products_master", "DUPLICATE_IDENTITY", "quarantine"),
         ("products_master", "KEY_CASE_COLLISION", "quarantine"),
-        ("products_master", "TAXONOMY_UNKNOWN", "warning"),
+        ("products_master", "CATEGORY_NOT_FOUND", "quarantine"),
         ("products_master", "DISPLAY_SKU_SHARED", "info"),
         ("products_master", "DECOR_FLOAT_ARTEFACT_NORMALISED", "warning"),
         ("media", "MEDIA_INACCESSIBLE", "warning"),
