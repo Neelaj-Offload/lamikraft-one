@@ -24,10 +24,12 @@ from app.modules.cutting.schemas import (
     MachineProfileCreate,
     MachineProfileRead,
     MachineProfileUpdate,
+    OffcutCandidates,
     PlanCommand,
     PlanCreate,
     PlanDetail,
     PlanFilters,
+    PlanOffcutsUpdate,
     PlanStatus,
     PlanSummary,
     PlanTransition,
@@ -217,6 +219,27 @@ def transition_cut_plan(
 ) -> PlanDetail:
     with UnitOfWork(actor) as uow:
         out, replayed = service.transition_plan_command(uow, plan_id, body)
+    _replayed(response, replayed)
+    return out
+
+
+@router.get("/plans/{plan_id}/offcut-candidates", openapi_extra=requires("cutting.plan.read", "inventory.stock.read"))
+def list_cut_plan_offcut_candidates(actor: Actor, plan_id: uuid.UUID) -> OffcutCandidates:
+    """Measured offcut lots on hand (visible warehouses) the plan could cut from, with whether a group matches and
+    which other plans chose them. Without ``inventory.stock.read`` the list is empty (``stock_visible: false``)."""
+    with UnitOfWork(actor) as uow:
+        return service.offcut_candidates(uow, plan_id)
+
+
+@router.put("/plans/{plan_id}/offcuts", openapi_extra=requires("cutting.plan.update", "inventory.stock.read"))
+def replace_cut_plan_offcuts(
+    actor: Actor, plan_id: uuid.UUID, body: PlanOffcutsUpdate, response: Response,
+    idempotency_key: IdempotencyKeyHeader = None,
+) -> PlanDetail:
+    """Replace the offcut lots the plan may cut from (filled in this order before standard sheets); every lot must
+    be on hand with a measured size (422 ``offcut_not_available``). A changed selection marks a calculated plan stale."""
+    with UnitOfWork(actor) as uow:
+        out, replayed = service.replace_offcuts_command(uow, plan_id, body)
     _replayed(response, replayed)
     return out
 

@@ -4,6 +4,10 @@ A plan can back a work order's board operation once it has a current calculation
 when the calculation assumed the oversize board, a physical verification (business decision #12). Releasing it for
 a work order freezes it (``released`` is not editable) and emits ``cutting.plan.released`` with the work order id.
 Release is idempotent: a plan already released for the same work order is returned unchanged.
+
+Offcut reuse (Slice 5): ``boards`` counts every board of the current calculation, ``offcut_boards`` those cut from
+offcut lots (``cutting.offcuts.planned_offcuts`` names the lots); production issues those lots to the work order when
+the plan is released for it, so only the standard sheets are reserved.
 """
 
 from __future__ import annotations
@@ -15,7 +19,7 @@ from sqlalchemy import func, select
 
 from app.core.errors import Conflict
 from app.modules.cutting import events as ev
-from app.modules.cutting.models import CalcGroup, CalcOffcut, Plan
+from app.modules.cutting.models import CalcBoard, CalcGroup, CalcOffcut, Plan
 from app.platform.uow import UnitOfWork
 
 PLAN_RELEASED = "cutting.plan.released"
@@ -26,15 +30,27 @@ class Readiness:
     ready: bool
     reason_code: str | None
     boards: int | None
+    #: of ``boards``, those cut from offcut lots
+    offcut_boards: int = 0
 
 
 def readiness(uow: UnitOfWork, plan: Plan) -> Readiness:
     boards = None
+    offcut_boards = 0
     if plan.latest_calculation_id is not None:
         boards = int(uow.session.scalar(
             select(func.coalesce(func.sum(CalcGroup.boards), 0)).where(
                 CalcGroup.calculation_id == plan.latest_calculation_id)
         ) or 0)
+        offcut_boards = int(uow.session.scalar(
+            select(func.count(CalcBoard.id)).where(
+                CalcBoard.calculation_id == plan.latest_calculation_id, CalcBoard.source == "offcut")
+        ) or 0)
+    state = _state(plan, boards)
+    return Readiness(state.ready, state.reason_code, boards, offcut_boards)
+
+
+def _state(plan: Plan, boards: int | None) -> Readiness:
     if plan.archived_at is not None or plan.status == "archived":
         return Readiness(False, "plan_archived", boards)
     if plan.latest_calculation_id is None:

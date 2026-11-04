@@ -219,6 +219,39 @@ class PlanItem(TenantEntity, Base):
     )
 
 
+class PlanOffcut(TenantEntity, Base):
+    """A measured offcut lot the plan may cut from (Slice 5 offcut reuse; an input like the items).
+
+    The lot's measured size is pinned at selection (grain along ``length_mm``: a lot measured with its grain across the
+    width is stored turned), so a recalculation uses the size the planner saw. Whether the lot is still on hand is
+    checked again when the plan is released for a work order."""
+
+    __tablename__ = "cutting_plan_offcut"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("cutting_plan.id", ondelete="CASCADE"), nullable=False
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    lot_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("inventory_lot.id", ondelete="RESTRICT"), nullable=False
+    )
+    lot_code: Mapped[str] = mapped_column(String(60), nullable=False)
+    product_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    decor_key: Mapped[str] = mapped_column(String(40), nullable=False, default="")
+    thickness_key: Mapped[str] = mapped_column(String(20), nullable=False)
+    length_mm: Mapped[Decimal] = _mm()
+    width_mm: Mapped[Decimal] = _mm()
+    #: the lot's recorded grain axis (``length`` | ``width`` | ``none``; null when not recorded)
+    grain_axis: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("length_mm > 0 AND width_mm > 0 AND seq > 0", name="positive"),
+        CheckConstraint("grain_axis IS NULL OR grain_axis IN ('length', 'width', 'none')", name="grain_axis_values"),
+        Index("uq_cutting_plan_offcut_lot", "plan_id", "lot_id", unique=True),
+        Index("uq_cutting_plan_offcut_seq", "plan_id", "seq", unique=True),
+    )
+
+
 class Calculation(TenantEntity, Base):
     """One immutable calculation of a plan (append-only)."""
 
@@ -304,7 +337,10 @@ class CalcBoard(_ResultRow, Base):
 
     board_no: Mapped[int] = mapped_column(Integer, nullable=False)
     source: Mapped[str] = mapped_column(String(20), nullable=False, default="standard")
-    lot_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: the offcut lot cut from (``source = 'offcut'``)
+    lot_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("inventory_lot.id", ondelete="RESTRICT"), nullable=True
+    )
     raw_length_mm: Mapped[Decimal] = _mm()
     raw_width_mm: Mapped[Decimal] = _mm()
     margin_mm: Mapped[Decimal] = _mm()
@@ -315,6 +351,7 @@ class CalcBoard(_ResultRow, Base):
 
     __table_args__ = (
         CheckConstraint(_in("source", BOARD_SOURCES), name="source_values"),
+        CheckConstraint("(source = 'offcut') = (lot_id IS NOT NULL) OR source = 'board_lot'", name="offcut_has_lot"),
         Index("uq_cutting_calc_board_no", "calculation_id", "group_no", "board_no", unique=True),
     )
 
