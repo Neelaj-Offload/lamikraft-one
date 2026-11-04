@@ -164,6 +164,11 @@ def transition_sample(uow: UnitOfWork, sample_id: uuid.UUID, data: SampleTransit
     if data.action == "cancel" and not data.reason:
         errors.add(["reason"], "reason_required", "Cancelling a sample needs a reason")
     errors.raise_if_any()
+    if data.action == "dispatch" and data.challan_id is not None:
+        from app.modules.sales.sample_lineage import checked_challan
+
+        uow.actor.require("challans.challan.read")
+        checked_challan(uow, sample, data.challan_id)  # visible, same customer, outbound, not cancelled
     now = uow.now()
     event: tuple[str, Any] | None = None
     if data.action == "dispatch":
@@ -200,13 +205,14 @@ def transition_sample(uow: UnitOfWork, sample_id: uuid.UUID, data: SampleTransit
     return sample
 
 
-def dispatch_by_challan(uow: UnitOfWork, sample_id: uuid.UUID, challan_id: uuid.UUID) -> bool:
-    """``sales.sample_dispatch``: a challan carrying the sample was issued (idempotent; only from ``requested``)."""
+def dispatch_by_challan(uow: UnitOfWork, sample_id: uuid.UUID, challan_id: uuid.UUID, *, at: Any = None) -> bool:
+    """``sales.sample_dispatch``: a challan carrying the sample was issued (idempotent; only from ``requested``).
+    ``at`` is the dispatch time (the challan's issue time when an issued challan is linked later; now otherwise)."""
     sample = uow.session.scalars(select(Sample).where(Sample.id == sample_id, Sample.company_id == uow.actor.company_id).with_for_update()).first()
     if sample is None or sample.status != SS.REQUESTED.value:
         return False
     sample.status = SS.DISPATCHED.value
-    sample.dispatched_at = uow.now()
+    sample.dispatched_at = at or uow.now()
     sample.challan_id = challan_id
     sample.updated_at = uow.now()
     uow.flush()
@@ -235,6 +241,17 @@ def _conditions(f: SampleFilters) -> list[ColumnElement[bool]]:
     return conds
 
 
+def _link_capability(uow: UnitOfWork, sample: Sample, update: dict[str, Any]) -> dict[str, Any]:
+    """Linking a delivery challan: ``update`` on the sample, still requested, and challan read access."""
+    if not update.get("allowed"):
+        return {"allowed": False, "reason_code": update.get("reason_code") or "permission_denied"}
+    if sample.status != SS.REQUESTED.value:
+        return {"allowed": False, "reason_code": "sample_not_requested"}
+    if not uow.actor.can("challans.challan.read"):
+        return {"allowed": False, "reason_code": "permission_denied"}
+    return {"allowed": True, "reason_code": None}
+
+
 def _reads(uow: UnitOfWork, rows: Sequence[Sample]) -> list[SampleRead]:
     if not rows:
         return []
@@ -252,6 +269,7 @@ def _reads(uow: UnitOfWork, rows: Sequence[Sample]) -> list[SampleRead]:
     out = []
     for r in rows:
         caps = uow.repo(Sample).capabilities(r, ["update", "transition"])
+        caps["link_challan"] = _link_capability(uow, r, caps["update"])
         out.append(SampleRead(
             id=r.id, sample_number=r.sample_number, party=refs[r.party_id], owner=users.get(r.owner_user_id) or user_ref(uow, r.owner_user_id),  # type: ignore[arg-type]
             quote_id=r.quote_id, quote_number=visible_quotes.get(r.quote_id) if r.quote_id else None,

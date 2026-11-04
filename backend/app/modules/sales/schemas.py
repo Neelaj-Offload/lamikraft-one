@@ -1370,5 +1370,60 @@ class SampleFilters(BaseModel):
     custom_product_id: uuid.UUID | None = None
 
 
+class SampleChallanLink(BaseModel):
+    """Link (or, with ``challan_id: null``, unlink) the delivery challan that will carry a requested sample. Issuing
+    that challan dispatches the sample (``sales.sample_dispatch``); linking an already issued challan dispatches it now."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int
+    challan_id: uuid.UUID | None
+
+
+LineageKind = Literal["custom_product", "spec_revision", "quote", "challan", "product", "sample"]
+
+
+class LineageNode(BaseModel):
+    """One record a sample is linked to. ``not_visible``: the link exists but the record is outside the actor's scope
+    (its identity is not shown)."""
+
+    kind: LineageKind
+    state: Literal["linked", "not_visible"]
+    id: uuid.UUID | None = None
+    label: str | None = None
+    title: str | None = None
+    status: str | None = None
+    path: str | None = None
+    facts: dict[str, str] = Field(default_factory=dict)
+
+
+class LineageEvent(BaseModel):
+    at: datetime | None
+    on: date
+    kind: Literal["custom_product_created", "spec_revision_recorded", "quote_issued", "sample_requested",
+                  "challan_issued", "sample_dispatched", "sample_delivered", "feedback_recorded", "sample_closed",
+                  "product_promoted"]
+    label: str
+    ref_kind: LineageKind | None = None
+
+
+class SampleLineage(BaseModel):
+    """Where a sample comes from and where it went: custom product (and spec revision), quote, delivery challan, the
+    catalogue product (direct or promoted), other samples of the same custom product, and a dated timeline."""
+
+    sample_id: uuid.UUID
+    sample_number: str
+    status: SampleStatus
+    custom_product: LineageNode | None
+    spec_revision: LineageNode | None
+    quote: LineageNode | None
+    challan: LineageNode | None
+    product: LineageNode | None
+    related_samples: list[LineageNode]
+    timeline: list[LineageEvent]
+    #: links the sample does not have yet (``custom_product``, ``quote``, ``challan``)
+    missing: list[Literal["custom_product", "quote", "challan"]]
+
+
 QuoteLineRead.model_rebuild()
 QuoteDetail.model_rebuild()

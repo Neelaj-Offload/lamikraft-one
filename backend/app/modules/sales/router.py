@@ -63,8 +63,10 @@ from app.modules.sales.schemas import (
     RefreshSnapshots,
     RestoreRevision,
     RevisionCompare,
+    SampleChallanLink,
     SampleCreate,
     SampleFilters,
+    SampleLineage,
     SampleRead,
     SampleStatus,
     SampleTransition,
@@ -678,6 +680,27 @@ def get_sample(actor: Actor, sample_id: uuid.UUID) -> SampleRead:
 def update_sample(actor: Actor, sample_id: uuid.UUID, body: SampleUpdate) -> SampleRead:
     with UnitOfWork(actor) as uow:
         return service.sample_read(uow, service.update_sample(uow, sample_id, body))
+
+
+@router.get("/samples/{sample_id}/lineage", openapi_extra=requires("sales.sample.read"))
+def get_sample_lineage(actor: Actor, sample_id: uuid.UUID) -> SampleLineage:
+    """The custom product and spec revision, quote, delivery challan, catalogue product and sibling samples of a sample,
+    each through its own read scope (a link outside the actor's scope is ``not_visible``), with a dated timeline."""
+    with UnitOfWork(actor) as uow:
+        return service.sample_lineage(uow, sample_id)
+
+
+@router.post("/samples/{sample_id}/challan", openapi_extra=requires("sales.sample.update", "challans.challan.read"))
+def link_sample_challan(
+    actor: Actor, sample_id: uuid.UUID, body: SampleChallanLink, response: Response, idempotency_key: IdempotencyKeyHeader = None
+) -> SampleRead:
+    """Link (or unlink with ``challan_id: null``) the delivery challan that will carry a requested sample: issuing that
+    challan dispatches the sample; an already issued challan dispatches it now. The challan must be visible, for the
+    sample's customer, outbound and not cancelled."""
+    with UnitOfWork(actor) as uow:
+        detail, replayed = service.sample_link_challan_command(uow, sample_id, body)
+    _replayed(response, replayed)
+    return detail
 
 
 @router.post("/samples/{sample_id}/transitions", openapi_extra=requires("sales.sample.transition"))
