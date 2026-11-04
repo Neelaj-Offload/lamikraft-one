@@ -40,6 +40,9 @@ def _on_load() -> None:
 
     for source_type, reader in READERS.items():
         register_reader(source_type, reader)
+    from app.modules.inventory.rules import register_checks
+
+    register_checks()
 
 
 MANIFEST = ModuleManifest(

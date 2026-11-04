@@ -83,4 +83,31 @@ def read_pick_list_facts(uow: UnitOfWork, pick_list_id: uuid.UUID) -> SourceFact
     )
 
 
-READERS = {"inventory.shortage": read_shortage_facts, "inventory.pick_list": read_pick_list_facts}
+def read_warehouse_facts(uow: UnitOfWork, warehouse_id: uuid.UUID) -> SourceFacts | None:
+    from app.modules.inventory.models import Warehouse
+
+    wh = uow.session.scalars(
+        select(Warehouse).where(Warehouse.company_id == uow.actor.company_id, Warehouse.id == warehouse_id)
+    ).first()
+    if wh is None or not can_on_warehouse(uow, wh.id, READ):
+        return None
+    return SourceFacts(
+        source_type="inventory.warehouse",
+        source_id=wh.id,
+        version=wh.version,
+        label=f"{wh.code} · {wh.name}",
+        status="active" if wh.is_active else "inactive",
+        owner_user_id=None,
+        branch_id=wh.branch_id,
+        required_permission=READ,
+        canonical_path=f"/operations/inventory?warehouse={wh.id}",
+        updated_at=wh.updated_at,
+        facts={"code": wh.code, "name": wh.name},
+    )
+
+
+READERS = {
+    "inventory.shortage": read_shortage_facts,
+    "inventory.pick_list": read_pick_list_facts,
+    "inventory.warehouse": read_warehouse_facts,
+}

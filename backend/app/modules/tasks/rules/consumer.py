@@ -186,7 +186,30 @@ PROPOSAL_EVENTS = (
     "approvals.proposal.execution_failed",
 )
 
+def _module_trigger(path: str) -> Trigger:
+    """A rule family that lives in its owning module (Slice 4: ``app.modules.inventory.rules``), imported lazily."""
+
+    def run(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
+        import importlib
+
+        module, _, name = path.rpartition(".")
+        yield from getattr(importlib.import_module(module), name)(uow, event, cache)
+
+    return run
+
+
+#: Slice-4 families (events.md §4): ops.shortages (root-cause grouping by caused_by), ops.picking, admin.stock_integrity
+SLICE4_TRIGGERS: dict[str, tuple[str, str]] = {
+    "inventory.shortage.detected": ("app.modules.inventory.rules.on_shortage", "ops.shortages"),
+    "inventory.shortage.changed": ("app.modules.inventory.rules.on_shortage", "ops.shortages"),
+    "inventory.shortage.resolved": ("app.modules.inventory.rules.on_shortage", "ops.shortages"),
+    "inventory.pick_list.released": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
+    "inventory.pick_list.picked": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
+    "inventory.projection.mismatch_detected": ("app.modules.inventory.rules.on_mismatch", "admin.stock_integrity"),
+}
+
 TRIGGERS: dict[str, Trigger] = {
+    **{name: _module_trigger(path) for name, (path, _family) in SLICE4_TRIGGERS.items()},
     **{name: _on_quote for name in QUOTE_EVENTS},
     **{name: _on_proposal for name in PROPOSAL_EVENTS},
     "sales.customer_message.received": _on_message,
@@ -214,10 +237,12 @@ EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
     "parties.party.updated": ("sales.customer_changes",),
     "identity.membership.activated": ("common.onboarding",),
     "identity.membership.deactivated": ("common.offboarding",),
+    **{name: (family,) for name, (_path, family) in SLICE4_TRIGGERS.items()},
 }
 
 #: event aggregate type -> issue-member ref type compared for staleness
-_STALENESS_REF = {QUOTE: QUOTE, MESSAGE: MESSAGE, PROPOSAL: PROPOSAL, "sales.enquiry": "sales.enquiry", "parties.party": "parties.party"}
+_STALENESS_REF = {QUOTE: QUOTE, MESSAGE: MESSAGE, PROPOSAL: PROPOSAL, "sales.enquiry": "sales.enquiry", "parties.party": "parties.party",
+                  "inventory.shortage": "inventory.shortage", "inventory.pick_list": "inventory.pick_list"}
 
 
 def is_stale(uow: UnitOfWork, event: DomainEvent) -> bool:
