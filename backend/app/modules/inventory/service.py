@@ -16,6 +16,9 @@ Extension points (register in a manifest ``on_load``)
 Production (Slice-4 production lane)
 - ``wip_location(uow, warehouse_id)``: the warehouse's WIP location (issue internal -> WIP, consume WIP -> production).
 - ``record_measured_lot(uow, ...)``: a new lot with measured dimensions (offcuts, board lots), ``inventory.lot.measured``.
+Offcut reuse (Slice-5 capabilities lane)
+- ``offcut_lots(uow, lot_ids=, product_ids=, warehouse_id=)``: measured offcut lots on hand in visible warehouses
+  (offcut lots never count as available, so the optimiser reads them explicitly).
 """
 
 from __future__ import annotations
@@ -38,6 +41,7 @@ from app.modules.inventory.locations import (
     wip_location,
 )
 from app.modules.inventory.models import StockMovement, StockPosting, Warehouse
+from app.modules.inventory.offcuts import OffcutLot, offcut_lots
 from app.modules.inventory.posting import (
     NegativeStockError,
     PostingConflict,
@@ -73,6 +77,7 @@ from app.platform.uow import UnitOfWork
 __all__ = [
     "Demand",
     "NegativeStockError",
+    "OffcutLot",
     "PostingConflict",
     "PostingLine",
     "PostingReceipt",
@@ -89,6 +94,7 @@ __all__ = [
     "holding_location",
     "movements_by_source_line",
     "movements_of",
+    "offcut_lots",
     "office_location",
     "policy",
     "post_movement",
