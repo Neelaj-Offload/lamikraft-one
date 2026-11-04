@@ -489,7 +489,7 @@ def analyse_quotes(an: Analysis, known_products: set[str]) -> None:
     discrepancies: list[dict[str, Any]] = []
     # source totals over every parseable quote (accepted or not), for the reconciliation report
     for row in quotes:
-        cur = (text(row.values, "currency") or "(blank)").upper()
+        cur = (text(row.values, "currency") or "").upper() or "(blank)"
         total = money(row.values, "total_amount", [])
         totals[cur]["source_quotes"] += 1
         if total is not None:

@@ -45,7 +45,7 @@ function BackupFactsCard({ backup }: { backup: Backup }) {
           { term: f.dumpSha, description: <span title={backup.dump_sha256 ?? undefined}>{shortSha(backup.dump_sha256)}</span>, mono: true },
           {
             term: f.storage,
-            description: `${formatCount(backup.storage_files ?? 0, locale)} files, ${bytesText(backup.storage_bytes, locale)}`,
+            description: `${formatCount(backup.storage_files ?? 0, locale)} ${backup.storage_files === 1 ? "file" : "files"}, ${bytesText(backup.storage_bytes, locale)}`,
             numeric: true,
           },
           {

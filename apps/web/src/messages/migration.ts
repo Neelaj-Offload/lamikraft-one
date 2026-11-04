@@ -7,7 +7,8 @@ export const migrationMessages = {
   intro:
     "Dry runs read an authorised export of the legacy system and write nothing but this report. Runs start from the server command line (lk migration dry-run); the apply needs a fresh, rehearsed backup.",
   what: "the migration runs",
-  cli: "Start a dry run on the server: lk migration dry-run --source <export folder>",
+  cli: "Start a dry run on the server:",
+  cliCommand: "lk migration dry-run --source <export folder>",
   stepUp: {
     title: "Confirm it is you",
     body: "Migration reports hold company data. Confirm with your authenticator to see them.",
@@ -104,8 +105,8 @@ export const migrationMessages = {
       empty: "No issues match these filters",
       csv: "Download issues (CSV)",
       filters: { severity: "Severity", entity: "Collection", code: "Code", any: "Any", apply: "Apply", clear: "Clear" },
-      columns: { reference: "Row reference", severity: "Severity", code: "Code", message: "What was found", values: "Original values" },
-      showValues: "Show values",
+      columns: { reference: "Row reference", severity: "Severity", code: "Code", message: "What was found" },
+      showValues: "Original values",
       row: (file: string | null, row: number | null) => [file, row !== null ? `row ${row}` : null].filter(Boolean).join(" · "),
       pages: "Issue pages",
     },

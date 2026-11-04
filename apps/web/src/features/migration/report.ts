@@ -84,9 +84,22 @@ export interface RunReport {
   openingLines: number | null;
 }
 
+/** The legacy collections in migration order (the report is a JSON object, whose key order is not kept). */
+export const ENTITY_ORDER = [
+  "category_taxonomy", "products_master", "pricing", "packaging", "specifications", "media", "lookup_reference", "users",
+  "quote_settings", "custom_products", "quotes", "quote_lines", "quote_revisions", "grain_locked_decors",
+  "delivery_challans", "delivery_challan_lines", "opening_balances",
+];
+
+function byOrder(a: string, b: string): number {
+  const ia = ENTITY_ORDER.indexOf(a);
+  const ib = ENTITY_ORDER.indexOf(b);
+  return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
+}
+
 export function readReport(raw: unknown): RunReport {
   const r = obj(raw);
-  const entities = Object.entries(obj(r.entities)).map(([entity, value]) => {
+  const entities = Object.entries(obj(r.entities)).sort(([a], [b]) => byOrder(a, b)).map(([entity, value]) => {
     const v = obj(value);
     return {
       entity,
@@ -128,10 +141,12 @@ export function readReport(raw: unknown): RunReport {
     return { link, linked: opt("linked"), orphans: opt("orphans") ?? opt("unknown"), unresolved: opt("unresolved") };
   });
   const source = obj(r.source);
-  const files = (Array.isArray(source.files) ? source.files : []).map((value) => {
-    const v = obj(value);
-    return { file: str(v.file) ?? "", entity: str(v.entity) ?? "", format: str(v.format) ?? "", rows: num(v.rows), sha256: str(v.sha256) ?? "" };
-  });
+  const files = (Array.isArray(source.files) ? source.files : [])
+    .map((value) => {
+      const v = obj(value);
+      return { file: str(v.file) ?? "", entity: str(v.entity) ?? "", format: str(v.format) ?? "", rows: num(v.rows), sha256: str(v.sha256) ?? "" };
+    })
+    .sort((a, b) => byOrder(a.entity, b.entity));
   const manifest = obj(source.export_manifest);
   const media = r.media ? obj(r.media) : null;
   const challans = r.challans ? obj(r.challans) : null;

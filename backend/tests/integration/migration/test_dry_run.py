@@ -190,7 +190,7 @@ def test_party_candidates_are_suggested_never_merged(world: World, export_dir: P
 
 
 def test_unreadable_exports_stop_before_analysis_and_are_recorded(world: World, export_dir: Path) -> None:
-    (export_dir / "products.json").write_text("[]", encoding="utf-8")  # a second file for products_master
+    (export_dir / "products_master.json").write_text("[]", encoding="utf-8")  # a second file for products_master
     with pytest.raises(SourceError) as caught:
         run_dry_run(operator(world), export_dir)
     assert caught.value.code == "duplicate_source_file"

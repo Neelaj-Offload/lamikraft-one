@@ -28,6 +28,7 @@ import {
   type CandidateDecision,
   type CandidateStatus,
   type OpeningBatch,
+  type Page,
   type RunSummary,
 } from "./api";
 import { CANDIDATE_TONE, QueryProblem, RunStatusPill } from "./shared";
@@ -80,16 +81,19 @@ function LatestRun({ run }: { run: RunSummary }) {
   );
 }
 
-function RunHistory({ offset }: { offset: number }) {
+function RunHistory({ page, offset }: { page: Page<RunSummary>; offset: number }) {
   const { locale } = useZone();
-  const query = useQuery({ queryKey: queryKeys.migration.runs(offset), queryFn: ({ signal }) => fetchRuns(offset, signal) });
-  if (query.isPending) return <Loading label={m.what} />;
-  if (query.isError) return <QueryProblem error={query.error} what={m.what} retry={() => fetchRuns(offset).then(() => query.refetch())} />;
-  const page = query.data;
   return (
     <div className="flex flex-col gap-6">
       {page.items[0] && offset === 0 ? <LatestRun run={page.items[0]} /> : null}
-      <SectionCard title={m.runs.title} description={m.cli}>
+      <SectionCard
+        title={m.runs.title}
+        description={
+          <>
+            {m.cli} <code className="font-mono text-xs text-ink">{m.cliCommand}</code>
+          </>
+        }
+      >
         <DataTable
           caption={m.runs.caption}
           hideCaption
@@ -179,6 +183,7 @@ function candidateColumns(locale: string, canDecide: boolean): DataTableColumn<C
     {
       id: "suggestion",
       header: c.suggestion,
+      mobile: "meta",
       cell: (row) =>
         row.linked_party ?? row.suggested_party ? (
           <span className="flex flex-col gap-0.5">
@@ -199,7 +204,7 @@ function candidateColumns(locale: string, canDecide: boolean): DataTableColumn<C
       mobile: "status",
       cell: (row) => <StatusPill tone={CANDIDATE_TONE[row.status] ?? "neutral"}>{m.candidates.statuses[row.status] ?? row.status}</StatusPill>,
     },
-    { id: "decide", header: c.decide, cell: (row) => <CandidateActions candidate={row} canDecide={canDecide} /> },
+    { id: "decide", header: c.decide, mobile: "meta", cell: (row) => <CandidateActions candidate={row} canDecide={canDecide} /> },
   ];
 }
 
@@ -304,16 +309,29 @@ function OpeningBatches() {
   );
 }
 
-/** Settings › Migration: run history and the latest run, candidate customer links, opening-balance batches. */
+/**
+ * Settings › Migration: run history and the latest run, candidate customer links, opening-balance batches. The run
+ * list is read first: when it asks for the authenticator (MFA-flagged reads), one confirmation unlocks the page.
+ */
 export function MigrationPage({ offset }: { offset: number }) {
   const { permissionKeys } = useSession();
-  if (!permissionKeys.has(RUN_READ)) return <PermissionDenied area={m.area} />;
+  const allowed = permissionKeys.has(RUN_READ);
+  const runs = useQuery({ queryKey: queryKeys.migration.runs(offset), queryFn: ({ signal }) => fetchRuns(offset, signal), enabled: allowed });
+  if (!allowed) return <PermissionDenied area={m.area} />;
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title={m.title} intro={m.intro} eyebrow={settingsMessages.hub.title} nav={<SettingsAreaNav currentId="settings-migration" />} />
-      <RunHistory offset={offset} />
-      <Candidates />
-      <OpeningBatches />
+      {runs.isPending ? (
+        <Loading label={m.what} />
+      ) : runs.isError ? (
+        <QueryProblem error={runs.error} what={m.what} retry={() => fetchRuns(offset).then(() => runs.refetch())} />
+      ) : (
+        <>
+          <RunHistory page={runs.data} offset={offset} />
+          <Candidates />
+          <OpeningBatches />
+        </>
+      )}
     </div>
   );
 }

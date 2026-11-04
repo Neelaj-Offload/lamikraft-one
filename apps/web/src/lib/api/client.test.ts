@@ -218,6 +218,14 @@ describe("401 handling", () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
+  it("does not leave the page when an MFA-flagged read or command asks for the authenticator", async () => {
+    const { call, onUnauthorized } = setup(() =>
+      problem(401, { title: "Confirm with your authenticator to continue", status: 401, code: "mfa_required" }),
+    );
+    await call("get", "/api/v1/migration/runs");
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
   it("ignores other statuses", async () => {
     const { call, onUnauthorized } = setup(() => problem(403, { title: "No", status: 403, code: "permission_denied" }));
     await call("get", "/api/v1/x");

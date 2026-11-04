@@ -71,6 +71,7 @@ describe("migration helpers", () => {
     const report = readReport(REPORT);
     expect(report.reconciled).toBe(true);
     expect(report.entities.map((e) => e.entity)).toEqual(["packaging", "quotes"]);
+    expect(readReport({ entities: { quotes: {}, users: {}, pricing: {} } }).entities.map((e) => e.entity)).toEqual(["pricing", "users", "quotes"]);
     expect(report.totals[0]).toMatchObject({ currency: "EUR", acceptedTotal: "4250.00", recomputedTotal: "3850.00", difference: "400.00" });
     expect(report.links.find((l) => l.link === "quote_lines->products")?.unresolved).toBe(1);
     expect(report.challans).toEqual({ documents: 2, stockMovements: 0 });
@@ -122,10 +123,10 @@ describe("Settings › Migration", () => {
   it("asks for an authenticator confirmation instead of failing on mfa_required", () => {
     const html = renderWithQueries(<MigrationPage offset={0} />, (client) => {
       seedQueryError(client, queryKeys.migration.runs(0), new ProblemError({ title: "x", status: 401, code: "mfa_required" }));
-      client.setQueryData(queryKeys.migration.candidates({ status: "proposed", offset: 0 }), page([]));
-      client.setQueryData(queryKeys.migration.opening(), page([]));
     }, admin);
-    expect(textOf(html)).toContain("Confirm and show");
+    const text = textOf(html);
+    expect(text.match(/Confirm and show/g)).toHaveLength(1);
+    expect(text).not.toContain("Candidate customer links");
   });
 
   it("is refused without migration.run.read", () => {

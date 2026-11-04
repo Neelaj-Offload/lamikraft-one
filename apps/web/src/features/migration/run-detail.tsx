@@ -110,6 +110,7 @@ function issueColumns(): DataTableColumn<Issue>[] {
       id: "reference",
       header: c.reference,
       isRowHeader: true,
+      className: "min-w-44",
       mobile: "title",
       cell: (row) => (
         <span className="flex flex-col gap-0.5">
@@ -126,32 +127,27 @@ function issueColumns(): DataTableColumn<Issue>[] {
     {
       id: "message",
       header: c.message,
+      mobile: "meta",
+      className: "min-w-72",
       cell: (row) => (
-        <span className="flex flex-col gap-0.5">
+        <span className="flex flex-col gap-1">
           <span>{row.message}</span>
           {row.raw_value ? <span className="font-mono text-xs text-ink-muted [overflow-wrap:anywhere]">{row.raw_value}</span> : null}
+          {row.raw ? (
+            <details>
+              <summary className="cursor-pointer text-sm text-forest">{r.issues.showValues}</summary>
+              <dl className="mt-2 flex flex-col gap-1 text-xs">
+                {Object.entries(row.raw).map(([key, value]) => (
+                  <div key={key} className="flex flex-wrap gap-x-2">
+                    <dt className="font-mono text-ink-muted">{key}</dt>
+                    <dd className="min-w-0 font-mono [overflow-wrap:anywhere]">{typeof value === "string" ? value : JSON.stringify(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+          ) : null}
         </span>
       ),
-    },
-    {
-      id: "values",
-      header: c.values,
-      cell: (row) =>
-        row.raw ? (
-          <details>
-            <summary className="cursor-pointer text-sm text-forest">{r.issues.showValues}</summary>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              {Object.entries(row.raw).map(([key, value]) => (
-                <div key={key} className="contents">
-                  <dt className="font-mono text-ink-muted">{key}</dt>
-                  <dd className="font-mono [overflow-wrap:anywhere]">{typeof value === "string" ? value : JSON.stringify(value)}</dd>
-                </div>
-              ))}
-            </dl>
-          </details>
-        ) : (
-          <span className="text-ink-muted">—</span>
-        ),
     },
   ];
 }
@@ -349,7 +345,7 @@ export function RunDetailView({ runId, filters }: { runId: string | null; filter
             { term: m.runs.columns.by, description: run.started_by_name || "—" },
             { term: r.digest, description: <span title={run.source_digest}>{shortSha(run.source_digest)}</span>, mono: true },
             { term: r.authorisedBy, description: report.authorised ? report.manifest.authorisedBy ?? "—" : r.notAuthorised },
-            { term: r.exportedAt, description: report.manifest.exportedAt ?? "—" },
+            { term: r.exportedAt, description: report.manifest.exportedAt ? <LocalDateTime value={report.manifest.exportedAt} /> : "—" },
             { term: m.facts.reconciled, description: report.reconciled ? m.yes : m.no },
             ...(run.backup_id ? [{ term: r.backup, description: run.backup_id, mono: true }] : []),
           ]}

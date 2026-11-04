@@ -412,7 +412,8 @@ def _verify_storage(folder: Path, manifest: dict[str, Any]) -> tuple[bool, str]:
                     return False, f"unsafe path in the archive: {name}"
             zf.extractall(scratch)
         bad = [e["path"] for e in storage["entries"] if _sha256_file(scratch / e["path"]) != e["sha256"]]
-        return not bad, f"{len(storage['entries'])} files verified" + (f"; {len(bad)} differ" if bad else "")
+        count = len(storage["entries"])
+        return not bad, f"{count} file{'' if count == 1 else 's'} verified" + (f"; {len(bad)} differ" if bad else "")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
