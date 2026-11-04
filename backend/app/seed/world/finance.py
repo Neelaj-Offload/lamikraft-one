@@ -1,7 +1,7 @@
 """Fixture finance (docs/architecture/fixtures.md §8, Slice 5), created through the finance services:
 
-- receipt ``RCPT-2026-27-0001``: Maison Atelier SARL, EUR 2,400.0000 by bank transfer, received D-2, recorded by Ananya
-  (D-2 11:00) and left unallocated (no invoice can be issued under the Demo defaults, BUILD_STATE §5 #4 and #9);
+- receipt ``RCPT-2026-27-0001``: Maison Atelier SARL, EUR 2,400.0000 by bank transfer, received D-4, recorded by Ananya
+  (D-4 11:00) and left unallocated (no invoice can be issued under the Demo defaults, BUILD_STATE §5 #4 and #9);
 - the accounting integration stays "Not connected (demo)" and no tax profile is seeded (rates are never invented);
 - invoice suggestions for any issued Outward challan to a customer the earlier seeds produced (none in the base
   world; the consumer creates them as challans are issued).
@@ -44,14 +44,14 @@ def seed_finance(ctx: SeedContext) -> None:
         if existing is not None:
             ctx.refs[RECEIPT_MAISON] = existing.id
             return
-    ctx.at(at_ist(-2, 11, 0))
+    ctx.at(at_ist(-4, 11, 0))
     with _uow(ctx, keys.USERS.ANANYA) as uow:
         r = receipts.record_receipt(
             uow,
             ReceiptCreate(
                 party_id=ctx.ref("MAISON"), amount=Decimal("2400.0000"), currency="EUR",
-                received_on=at_ist(-2, 11, 0).date(), method=ReceiptMethod.BANK_TRANSFER,
-                reference="SEPA 2026-10-10 MAISON", bank_account_label="EUR account",
+                received_on=at_ist(-4, 11, 0).date(), method=ReceiptMethod.BANK_TRANSFER,
+                reference="SEPA 2026-10-08 MAISON", bank_account_label="EUR account",
             ),
             origin="seed",
             origin_ref=RECEIPT_REF,

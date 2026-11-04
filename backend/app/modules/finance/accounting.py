@@ -118,7 +118,7 @@ def run_export(uow: UnitOfWork, data: ExportRequest) -> AccountingExport:
         uow.flush()
         uow.emit(ev.EXPORT_FAILED, aggregate_id=x.id, payload={"export_id": str(x.id), "adapter": x.adapter, "error_code": x.error_code})
         return x
-    numbers = dict(uow.session.execute(select(Party.id, Party.party_number).where(Party.id.in_({i.party_id for i in ready}))).tuples().all())
+    numbers = dict(uow.session.execute(select(Party.id, Party.party_number).where(Party.id.in_({i.party_id for i in ready}))).all())
     docs = [
         JournalDocument(
             invoice_id=str(i.id), doc_type=i.doc_type, document_number=i.document_number or "", document_date=i.document_date,  # type: ignore[arg-type]

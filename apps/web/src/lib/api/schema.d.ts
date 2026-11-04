@@ -1951,6 +1951,598 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/accounting/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Accounting Exports */
+        get: operations["finance_list_accounting_exports"];
+        put?: never;
+        /**
+         * Run Accounting Export
+         * @description Export issued documents not yet exported through the ``csv`` adapter (journal file) or the ``demo`` adapter
+         *     (labelled simulated acknowledgement; nothing is posted anywhere). A missing account code blocks documents.
+         */
+        post: operations["finance_run_accounting_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounting/exports/{export_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Accounting Export */
+        get: operations["finance_get_accounting_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounting/exports/{export_id}/journal.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Accounting Journal
+         * @description The journal exactly as exported (formula-inert); its SHA-256 is on the export.
+         */
+        get: operations["finance_download_accounting_journal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounting/exports/{export_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile Accounting Export
+         * @description Compare the export with the accounting side's references and totals and list every mismatch (Demo exports
+         *     reconcile against their simulated acknowledgement when no lines are given).
+         */
+        post: operations["finance_reconcile_accounting_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounting/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Accounting Status
+         * @description Integration ``accounting`` (Demo / not connected until a live adapter exists), the account mapping, the last
+         *     export and how many issued documents wait to be exported.
+         */
+        get: operations["finance_get_accounting_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/ageing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Receivables Ageing
+         * @description Per (party, currency) outstanding in buckets current / 1–30 / 31–60 / 61–90 / over 90 days past due, as of a
+         *     company-local date (default today); invoices without a due date are flagged.
+         */
+        get: operations["finance_get_receivables_ageing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/allocations/{allocation_id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reverse Allocation
+         * @description Reverse an allocation once (a new row with the negated amount; the original is kept).
+         */
+        post: operations["finance_reverse_allocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Credit Notes */
+        get: operations["finance_list_credit_notes"];
+        put?: never;
+        /**
+         * Create Credit Note
+         * @description A draft credit note against an issued invoice's lines (never more than is still creditable); on issue it
+         *     settles the original invoice first.
+         */
+        post: operations["finance_create_credit_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Credit Notes Csv */
+        get: operations["finance_export_credit_notes_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes/{credit_note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Credit Note */
+        get: operations["finance_get_credit_note"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Credit Note */
+        patch: operations["finance_update_credit_note"];
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes/{credit_note_id}/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocate Credit Note
+         * @description Settle another issued invoice of the same party and currency from an issued credit note's remaining amount.
+         */
+        post: operations["finance_allocate_credit_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes/{credit_note_id}/document.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Credit Note Pdf */
+        get: operations["finance_download_credit_note_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/credit-notes/{credit_note_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transition Credit Note */
+        post: operations["finance_transition_credit_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finance Exceptions
+         * @description Blocked issues, overdue invoices, unallocated receipts, failed exports, reconciliation mismatches and margin
+         *     exceptions (margin figures only for ``pricing.cost.read``).
+         */
+        get: operations["finance_get_finance_exceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoice-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Invoice Suggestions
+         * @description One suggestion per issued Outward challan to a customer; draft from it (``POST /invoices`` with
+         *     ``suggestion_id``) or dismiss it with a reason.
+         */
+        get: operations["finance_list_invoice_suggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoice-suggestions/{suggestion_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Invoice Suggestion */
+        post: operations["finance_dismiss_invoice_suggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Invoices
+         * @description Invoices within the actor's read scope; ``open_only`` / ``overdue_only`` narrow to issued invoices with an
+         *     outstanding amount. Drafts carry ``label`` "Draft — not valid for trade".
+         */
+        get: operations["finance_list_invoices"];
+        put?: never;
+        /**
+         * Create Invoice
+         * @description A draft from an issued Outward challan (``challan_id`` / ``suggestion_id``: its not-yet-invoiced quantities at the
+         *     order's prices), from an order's delivered-but-not-invoiced quantities (``sales_order_id``), or manual lines.
+         *     Totals are server-computed; no number is consumed until issue.
+         */
+        post: operations["finance_create_invoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoices/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Invoices Csv
+         * @description The filtered invoice list as spreadsheet-inert CSV (UTF-8 with BOM); drafts carry their label.
+         */
+        get: operations["finance_export_invoices_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Invoice
+         * @description Detail with lines, totals, the live issue gate (blockers with fix paths), allocations, related documents,
+         *     history, ``capabilities`` and ``allowed_transitions``.
+         */
+        get: operations["finance_get_invoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Invoice
+         * @description Edit a draft (lines, tax profile, payment days, reference, notes); totals are recomputed.
+         */
+        patch: operations["finance_update_invoice"];
+        trace?: never;
+    };
+    "/api/v1/finance/invoices/{invoice_id}/document.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Invoice Pdf
+         * @description The invoice PDF: company identity, bank details and terms from the settings (labelled placeholders when not
+         *     configured); a draft is watermarked and labelled "Draft — not valid for trade".
+         */
+        get: operations["finance_download_invoice_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/invoices/{invoice_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition Invoice
+         * @description ``submit``, ``approve`` (never by the creator), ``reject`` (reason), ``issue`` (recent sign-in; the issue gate
+         *     runs again in the transaction and the number is assigned only here), ``cancel`` (reason; not once issued).
+         */
+        post: operations["finance_transition_invoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/quotes/{quote_id}/margin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Quote Margin
+         * @description A visible quote's margin from the costs of record; revenue, cost and margin are null (``redacted_fields``)
+         *     without ``pricing.cost.read``. Never exposed to a model.
+         */
+        get: operations["finance_get_quote_margin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Receipts */
+        get: operations["finance_list_receipts"];
+        put?: never;
+        /**
+         * Record Receipt
+         * @description Record money received (``RCPT-{fy}-NNNN``); allocate it to the party's open invoices afterwards.
+         */
+        post: operations["finance_record_receipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts/{receipt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Receipt
+         * @description Detail with allocations, the party's open invoices in the same currency and ``capabilities``.
+         */
+        get: operations["finance_get_receipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts/{receipt_id}/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocate Receipt
+         * @description Allocate (part of) a receipt to an issued invoice of the same party and currency. Over-allocation of either side
+         *     is refused (409 ``over_allocation`` with what is still available).
+         */
+        post: operations["finance_allocate_receipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts/{receipt_id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reverse Receipt
+         * @description Void a receipt (recent sign-in, reason): it is kept as reversed and its allocations are reversed with it.
+         */
+        post: operations["finance_reverse_receipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finance Summary
+         * @description Server-computed hub figures per currency (receivable, overdue, unallocated; never summed across currencies),
+         *     counts that need attention, the accounting and e-invoice integration state and the actor's list capabilities.
+         */
+        get: operations["finance_get_finance_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/tax-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tax Profiles
+         * @description Business-entered tax scenarios (rate + source reference); usable for issue only once verified by a second
+         *     person. No rate is ever invented by the system.
+         */
+        get: operations["finance_list_tax_profiles"];
+        put?: never;
+        /** Create Tax Profile */
+        post: operations["finance_create_tax_profile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/tax-profiles/{profile_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Tax Profile
+         * @description A second person confirms the rate and its source (MFA; never the author).
+         */
+        post: operations["finance_verify_tax_profile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -6268,6 +6860,43 @@ export interface components {
          * @enum {string}
          */
         AccountStatus: "not_configured" | "configured_unverified" | "verified" | "error" | "disabled";
+        /**
+         * AccountingAdapterKind
+         * @enum {string}
+         */
+        AccountingAdapterKind: "csv" | "demo";
+        /** AccountingStatus */
+        AccountingStatus: {
+            /** Adapters */
+            adapters: string[];
+            /** Integration Key */
+            integration_key: string;
+            /** Label */
+            label: string;
+            last_export: components["schemas"]["ExportRead"] | null;
+            /** Mapping Complete */
+            mapping_complete: boolean;
+            /** Missing Mapping */
+            missing_mapping: string[];
+            /** Mode */
+            mode: string;
+            /** Pending Documents */
+            pending_documents: number;
+            /** State */
+            state: string;
+        };
+        /** AckLine */
+        AckLine: {
+            /** Document Number */
+            document_number: string;
+            /** External Ref */
+            external_ref: string;
+            /**
+             * Total
+             * @example 5760.00
+             */
+            total: string;
+        };
         /** AckView */
         AckView: {
             /**
@@ -6477,6 +7106,46 @@ export interface components {
          * @enum {string}
          */
         AdjustmentReason: "damage" | "loss" | "found" | "correction" | "scrap" | "other";
+        /** AgeingBuckets */
+        AgeingBuckets: {
+            current: components["schemas"]["Money"];
+            days_1_30: components["schemas"]["Money"];
+            days_31_60: components["schemas"]["Money"];
+            days_61_90: components["schemas"]["Money"];
+            days_over_90: components["schemas"]["Money"];
+            total: components["schemas"]["Money"];
+        };
+        /** AgeingReport */
+        AgeingReport: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** No Due Date Invoices */
+            no_due_date_invoices: components["schemas"]["OpenInvoiceRef"][];
+            /** Rows */
+            rows: components["schemas"]["AgeingRow"][];
+            /** Time Zone */
+            time_zone: string;
+            /** Totals */
+            totals: components["schemas"]["AgeingBuckets"][];
+        };
+        /** AgeingRow */
+        AgeingRow: {
+            buckets: components["schemas"]["AgeingBuckets"];
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Invoice Count */
+            invoice_count: number;
+            /** No Due Date Count */
+            no_due_date_count: number;
+            party: components["schemas"]["FinancePartyRef"];
+            unallocated_receipts: components["schemas"]["Money"];
+        };
         /** AiFailure */
         AiFailure: {
             /**
@@ -6639,6 +7308,65 @@ export interface components {
             runs: number;
             /** Workflow */
             workflow: string;
+        };
+        /** AllocationCreate */
+        AllocationCreate: {
+            /**
+             * Amount
+             * @example 5760.00
+             */
+            amount: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+        };
+        /** AllocationRead */
+        AllocationRead: {
+            actor: components["schemas"]["FinanceUserRef"] | null;
+            /**
+             * Allocated On
+             * Format: date
+             */
+            allocated_on: string;
+            amount: components["schemas"]["Money"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Credit Note Id */
+            credit_note_id: string | null;
+            /** Credit Note Number */
+            credit_note_number: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Invoice Number */
+            invoice_number: string | null;
+            /** Receipt Id */
+            receipt_id: string | null;
+            /** Receipt Number */
+            receipt_number: string | null;
+            /** Reversed */
+            reversed: boolean;
+            /** Reverses Allocation Id */
+            reverses_allocation_id: string | null;
+            /** Source Type */
+            source_type: string;
+        };
+        /** AllocationReverse */
+        AllocationReverse: {
+            /** Reason Code */
+            reason_code: string;
         };
         /** AllowedTransition */
         AllowedTransition: {
@@ -8738,6 +9466,46 @@ export interface components {
          * @enum {string}
          */
         CountStatus: "draft" | "frozen" | "submitted" | "posted" | "cancelled";
+        /** CreditAllocationCreate */
+        CreditAllocationCreate: {
+            /**
+             * Amount
+             * @example 5760.00
+             */
+            amount: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+        };
+        /** CreditNoteCreate */
+        CreditNoteCreate: {
+            /** Lines */
+            lines: components["schemas"]["CreditNoteLineIn"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Original Invoice Id
+             * Format: uuid
+             */
+            original_invoice_id: string;
+            /** Reason Code */
+            reason_code: string;
+        };
+        /** CreditNoteLineIn */
+        CreditNoteLineIn: {
+            /**
+             * Invoice Line Id
+             * Format: uuid
+             */
+            invoice_line_id: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+        };
         /** CurrencyChange */
         CurrencyChange: {
             /** Expected Version */
@@ -8765,6 +9533,17 @@ export interface components {
             quote_id: string;
             /** To Currency */
             to_currency: string;
+        };
+        /** CurrencyFigure */
+        CurrencyFigure: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            overdue: components["schemas"]["Money"];
+            receivable: components["schemas"]["Money"];
+            unallocated: components["schemas"]["Money"];
         };
         /** CurrencyLinePreview */
         CurrencyLinePreview: {
@@ -9837,6 +10616,11 @@ export interface components {
             unit: string;
         };
         /**
+         * DocType
+         * @enum {string}
+         */
+        DocType: "invoice" | "credit_note";
+        /**
          * DocumentRead
          * @description An adjustment, opening batch or transfer: header, lines, decision trail and what the caller may do.
          */
@@ -10142,6 +10926,13 @@ export interface components {
              */
             tainted: boolean;
         };
+        /** ExceptionsRead */
+        ExceptionsRead: {
+            /** Items */
+            items: components["schemas"]["FinanceException"][];
+            /** Margin */
+            margin: components["schemas"]["MarginExceptionRead"][];
+        };
         /** ExplainView */
         ExplainView: {
             /** Band */
@@ -10165,6 +10956,74 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** ExportBlocked */
+        ExportBlocked: {
+            /** Document Number */
+            document_number: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Reason */
+            reason: string;
+        };
+        /** ExportRead */
+        ExportRead: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Acknowledgement Ref */
+            acknowledgement_ref: string | null;
+            actor: components["schemas"]["FinanceUserRef"] | null;
+            adapter: components["schemas"]["AccountingAdapterKind"];
+            /** Blocked */
+            blocked?: components["schemas"]["ExportBlocked"][];
+            /** Blocked Count */
+            blocked_count: number;
+            /** Content Sha256 */
+            content_sha256: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Document Count */
+            document_count: number;
+            /** Error Code */
+            error_code: string | null;
+            /** Export Number */
+            export_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["SyncItemRead"][];
+            /** Period From */
+            period_from: string | null;
+            /** Period To */
+            period_to: string | null;
+            /** Reconciled At */
+            reconciled_at: string | null;
+            reconciliation_status: components["schemas"]["ReconciliationStatus"];
+            /** Simulated */
+            simulated: boolean;
+            status: components["schemas"]["ExportStatus"];
+        };
+        /** ExportRequest */
+        ExportRequest: {
+            adapter: components["schemas"]["AccountingAdapterKind"];
+            /** Period From */
+            period_from?: string | null;
+            /** Period To */
+            period_to?: string | null;
+        };
+        /**
+         * ExportStatus
+         * @enum {string}
+         */
+        ExportStatus: "completed" | "failed";
         /** FacetValue */
         FacetValue: {
             /** Count */
@@ -10243,6 +11102,97 @@ export interface components {
             sha256: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /** FinanceDocRef */
+        FinanceDocRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Number */
+            number: string;
+            /** Path */
+            path: string;
+        };
+        /** FinanceException */
+        FinanceException: {
+            /** Codes */
+            codes: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "issue_blocked" | "overdue" | "unallocated_receipt" | "sync_mismatch" | "sync_failed" | "margin";
+            /** Party Name */
+            party_name: string | null;
+            ref: components["schemas"]["FinanceDocRef"];
+            /** Since */
+            since: string | null;
+        };
+        /** FinancePartyRef */
+        FinancePartyRef: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Party Number */
+            party_number: string | null;
+        };
+        /** FinanceSummary */
+        FinanceSummary: {
+            /** Accounting Mode */
+            accounting_mode: string;
+            /** Accounting State */
+            accounting_state: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** By Currency */
+            by_currency: components["schemas"]["CurrencyFigure"][];
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Drafts */
+            drafts: number;
+            /** E Invoice State */
+            e_invoice_state: string;
+            /** Issue Blocked */
+            issue_blocked: number;
+            /** Issued Open */
+            issued_open: number;
+            /** Margin Exceptions */
+            margin_exceptions: number;
+            /** Open Suggestions */
+            open_suggestions: number;
+            /** Overdue */
+            overdue: number;
+            /** Pending Approval */
+            pending_approval: number;
+            /** Sync Attention */
+            sync_attention: number;
+            /** Tax Profiles Verified */
+            tax_profiles_verified: number;
+            /** Unallocated Receipts */
+            unallocated_receipts: number;
+        };
+        /** FinanceUserRef */
+        FinanceUserRef: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /**
          * FulfilmentMode
@@ -10419,6 +11369,17 @@ export interface components {
          * @enum {string}
          */
         FxSourceKind: "manual" | "bank" | "ecb_reference" | "seed" | "other";
+        /** GateBlocker */
+        GateBlocker: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail?: {
+                [key: string]: string;
+            };
+            /** Fix Path */
+            fix_path?: string | null;
+        };
         /** GrainLockIn */
         GrainLockIn: {
             /** Decor */
@@ -10969,6 +11930,305 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /**
+         * InvoiceCreate
+         * @description A manual draft (lines entered), or a draft from an issued delivery challan / an order's delivered quantity.
+         */
+        InvoiceCreate: {
+            /** Challan Id */
+            challan_id?: string | null;
+            /** Currency */
+            currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+            /** Customer Reference */
+            customer_reference?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["InvoiceLineIn"][];
+            /** Notes */
+            notes?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+            /** Payment Due Days */
+            payment_due_days?: number | null;
+            /** Sales Order Id */
+            sales_order_id?: string | null;
+            /** Suggestion Id */
+            suggestion_id?: string | null;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
+        };
+        /** InvoiceDetail */
+        InvoiceDetail: {
+            allocated: components["schemas"]["Money"];
+            /** Allocations */
+            allocations: components["schemas"]["AllocationRead"][];
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["app__core__http__capabilities__TransitionRead"][];
+            /** Approved At */
+            approved_at: string | null;
+            approved_by: components["schemas"]["FinanceUserRef"] | null;
+            /** Approved Version */
+            approved_version: number | null;
+            /** Billing */
+            billing: {
+                [key: string]: unknown;
+            };
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            credited: components["schemas"]["Money"];
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Customer Reference */
+            customer_reference: string | null;
+            doc_type: components["schemas"]["DocType"];
+            /** Document Date */
+            document_date: string | null;
+            /** Document Number */
+            document_number: string | null;
+            /** Draft Ref */
+            draft_ref: string;
+            /** Due Date */
+            due_date: string | null;
+            gate: components["schemas"]["IssueGate"];
+            /** History */
+            history: components["schemas"]["InvoiceHistoryRead"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Overdue */
+            is_overdue: boolean;
+            /** Issued At */
+            issued_at: string | null;
+            issued_by: components["schemas"]["FinanceUserRef"] | null;
+            /** Label */
+            label: string | null;
+            /** Last Blockers */
+            last_blockers: string[];
+            /** Lines */
+            lines: components["schemas"]["InvoiceLineRead"][];
+            /** Notes */
+            notes: string | null;
+            /** Original Invoice Id */
+            original_invoice_id: string | null;
+            outstanding: components["schemas"]["Money"] | null;
+            owner: components["schemas"]["FinanceUserRef"] | null;
+            party: components["schemas"]["FinancePartyRef"];
+            /** Payment Due Days */
+            payment_due_days: number | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** Related */
+            related: components["schemas"]["FinanceDocRef"][];
+            /** Sales Order Id */
+            sales_order_id: string | null;
+            status: components["schemas"]["InvoiceStatus"];
+            subtotal: components["schemas"]["Money"];
+            tax: components["schemas"]["Money"] | null;
+            tax_profile: components["schemas"]["TaxProfileRead"] | null;
+            tax_status: components["schemas"]["TaxStatus"];
+            total: components["schemas"]["Money"];
+            /** Version */
+            version: number;
+        };
+        /** InvoiceHistoryRead */
+        InvoiceHistoryRead: {
+            /** Action */
+            action: string;
+            actor: components["schemas"]["FinanceUserRef"] | null;
+            /** Blocker Codes */
+            blocker_codes: string[];
+            /** From Status */
+            from_status: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** To Status */
+            to_status: string;
+        };
+        /** InvoiceLineIn */
+        InvoiceLineIn: {
+            /** Description */
+            description: string;
+            /** Hsn Sac */
+            hsn_sac?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** So Line Id */
+            so_line_id?: string | null;
+            /**
+             * Unit Price
+             * @example 5760.00
+             */
+            unit_price: string;
+            /** Uom Code */
+            uom_code: string;
+        };
+        /** InvoiceLineRead */
+        InvoiceLineRead: {
+            amount: components["schemas"]["Money"];
+            /** Challan Id */
+            challan_id: string | null;
+            /** Challan Line Id */
+            challan_line_id: string | null;
+            /** Creditable Quantity */
+            creditable_quantity?: string | null;
+            /** Credited Line Id */
+            credited_line_id: string | null;
+            /** Description */
+            description: string;
+            /** Hsn Sac */
+            hsn_sac: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Code */
+            item_code: string | null;
+            /** Line No */
+            line_no: number;
+            /** Product Id */
+            product_id: string | null;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** So Line Id */
+            so_line_id: string | null;
+            tax_amount: components["schemas"]["Money"] | null;
+            /** Tax Rate Percent */
+            tax_rate_percent: string | null;
+            unit_price: components["schemas"]["Money"];
+            /** Uom Code */
+            uom_code: string;
+        };
+        /**
+         * InvoiceStatus
+         * @enum {string}
+         */
+        InvoiceStatus: "draft" | "pending_approval" | "approved" | "issued" | "cancelled";
+        /** InvoiceSummary */
+        InvoiceSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            doc_type: components["schemas"]["DocType"];
+            /** Document Date */
+            document_date: string | null;
+            /** Document Number */
+            document_number: string | null;
+            /** Draft Ref */
+            draft_ref: string;
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Overdue */
+            is_overdue: boolean;
+            /** Label */
+            label: string | null;
+            /** Original Invoice Id */
+            original_invoice_id: string | null;
+            outstanding: components["schemas"]["Money"] | null;
+            owner: components["schemas"]["FinanceUserRef"] | null;
+            party: components["schemas"]["FinancePartyRef"];
+            /** Sales Order Id */
+            sales_order_id: string | null;
+            status: components["schemas"]["InvoiceStatus"];
+            tax_status: components["schemas"]["TaxStatus"];
+            total: components["schemas"]["Money"];
+        };
+        /** InvoiceTransition */
+        InvoiceTransition: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "submit" | "approve" | "reject" | "issue" | "cancel";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+        };
+        /**
+         * InvoiceTransitionResult
+         * @description The answer to a transition. ``issue`` that the gate refuses is recorded (history, ``finance.invoice.issue_blocked``)
+         *     and answered with ``issued: false`` and the blockers; nothing else changes.
+         */
+        InvoiceTransitionResult: {
+            /** Blockers */
+            blockers?: components["schemas"]["GateBlocker"][];
+            detail: components["schemas"]["InvoiceDetail"];
+            /** Issued */
+            issued?: boolean | null;
+        };
+        /** InvoiceUpdate */
+        InvoiceUpdate: {
+            /**
+             * Clear Tax Profile
+             * @default false
+             */
+            clear_tax_profile: boolean;
+            /** Customer Reference */
+            customer_reference?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Lines */
+            lines?: components["schemas"]["InvoiceLineIn"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Due Days */
+            payment_due_days?: number | null;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
+        };
+        /**
+         * IssueGate
+         * @description The issue gate, evaluated now (``finance.issuance_gate.check``).
+         */
+        IssueGate: {
+            /** Blockers */
+            blockers: components["schemas"]["GateBlocker"][];
+            /** Can Issue */
+            can_issue: boolean;
+            /** Label */
+            label: string | null;
         };
         /** IssueRead */
         IssueRead: {
@@ -11652,6 +12912,71 @@ export interface components {
             };
             options?: components["schemas"]["ImportOptions"] | null;
         };
+        /** MarginExceptionRead */
+        MarginExceptionRead: {
+            cost?: components["schemas"]["Money"] | null;
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lines Without Cost */
+            lines_without_cost: number;
+            /** Margin Percent */
+            margin_percent?: string | null;
+            owner: components["schemas"]["FinanceUserRef"] | null;
+            /** Party Name */
+            party_name: string;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            revenue?: components["schemas"]["Money"] | null;
+            /** Revision No */
+            revision_no: number;
+            status: components["schemas"]["MarginExceptionStatus"];
+            /**
+             * Threshold Percent
+             * @example 5760.00
+             */
+            threshold_percent: string;
+        };
+        /**
+         * MarginExceptionStatus
+         * @enum {string}
+         */
+        MarginExceptionStatus: "open" | "cleared";
+        /** MarginLine */
+        MarginLine: {
+            cost?: components["schemas"]["Money"] | null;
+            /**
+             * Cost Status
+             * @enum {string}
+             */
+            cost_status: "ok" | "missing" | "unit_mismatch" | "currency_mismatch" | "no_product";
+            /** Description */
+            description: string;
+            /** Line No */
+            line_no: number;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            revenue?: components["schemas"]["Money"] | null;
+            /** Uom Code */
+            uom_code: string;
+        };
         /** MarkReplied */
         MarkReplied: {
             /** Expected Version */
@@ -12191,6 +13516,19 @@ export interface components {
              * @example 5760.00
              */
             y_mm: string;
+        };
+        /** OpenInvoiceRef */
+        OpenInvoiceRef: {
+            /** Document Number */
+            document_number: string;
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            outstanding: components["schemas"]["Money"];
         };
         /** OpeningBatchCreate */
         OpeningBatchCreate: {
@@ -12745,6 +14083,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[ExportRead] */
+        Page_ExportRead_: {
+            /** Items */
+            items: components["schemas"]["ExportRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[FxRateRead] */
         Page_FxRateRead_: {
             /** Items */
@@ -12760,6 +14109,17 @@ export interface components {
         Page_HistoryEntry_: {
             /** Items */
             items: components["schemas"]["HistoryEntry"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[InvoiceSummary] */
+        Page_InvoiceSummary_: {
+            /** Items */
+            items: components["schemas"]["InvoiceSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -12870,6 +14230,17 @@ export interface components {
         Page_QuoteSummary_: {
             /** Items */
             items: components["schemas"]["QuoteSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[ReceiptSummary] */
+        Page_ReceiptSummary_: {
+            /** Items */
+            items: components["schemas"]["ReceiptSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -15708,6 +17079,41 @@ export interface components {
             unit_price?: string | null;
         };
         /**
+         * QuoteMargin
+         * @description Margin of a quote from the costs of record (restricted: redacted without ``pricing.cost.read``).
+         */
+        QuoteMargin: {
+            /** Below Threshold */
+            below_threshold?: boolean | null;
+            cost?: components["schemas"]["Money"] | null;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** Lines */
+            lines: components["schemas"]["MarginLine"][];
+            /** Lines Without Cost */
+            lines_without_cost: number;
+            /** Margin Percent */
+            margin_percent?: string | null;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            revenue?: components["schemas"]["Money"] | null;
+            /**
+             * Threshold Percent
+             * @example 5760.00
+             */
+            threshold_percent: string;
+        };
+        /**
          * QuoteOrigin
          * @enum {string}
          */
@@ -16074,6 +17480,84 @@ export interface components {
             tainted: boolean;
             undo?: components["schemas"]["UndoInfo"] | null;
         };
+        /** ReceiptCreate */
+        ReceiptCreate: {
+            /**
+             * Amount
+             * @example 5760.00
+             */
+            amount: string;
+            /** Bank Account Label */
+            bank_account_label?: string | null;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "INR" | "EUR" | "USD" | "GBP";
+            /** @default bank_transfer */
+            method: components["schemas"]["ReceiptMethod"];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /**
+             * Received On
+             * Format: date
+             */
+            received_on: string;
+            /** Reference */
+            reference?: string | null;
+        };
+        /** ReceiptDetail */
+        ReceiptDetail: {
+            allocated: components["schemas"]["Money"];
+            /** Allocations */
+            allocations: components["schemas"]["AllocationRead"][];
+            amount: components["schemas"]["Money"];
+            /** Bank Account Label */
+            bank_account_label: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            method: components["schemas"]["ReceiptMethod"];
+            /** Notes */
+            notes: string | null;
+            /** Open Invoices */
+            open_invoices: components["schemas"]["OpenInvoiceRef"][];
+            owner: components["schemas"]["FinanceUserRef"] | null;
+            party: components["schemas"]["FinancePartyRef"];
+            /** Receipt Number */
+            receipt_number: string;
+            /**
+             * Received On
+             * Format: date
+             */
+            received_on: string;
+            /** Reference */
+            reference: string | null;
+            /** Reverse Reason Code */
+            reverse_reason_code: string | null;
+            /** Reversed At */
+            reversed_at: string | null;
+            status: components["schemas"]["ReceiptStatus"];
+            unallocated: components["schemas"]["Money"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ReceiptMethod
+         * @enum {string}
+         */
+        ReceiptMethod: "bank_transfer" | "cheque" | "cash" | "card" | "other";
         /** ReceiptOut */
         ReceiptOut: {
             /** Action */
@@ -16118,6 +17602,44 @@ export interface components {
             undo_until: string | null;
             /** Undone At */
             undone_at: string | null;
+        };
+        /** ReceiptReverse */
+        ReceiptReverse: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+            /** Reason Code */
+            reason_code: string;
+        };
+        /**
+         * ReceiptStatus
+         * @enum {string}
+         */
+        ReceiptStatus: "recorded" | "reversed";
+        /** ReceiptSummary */
+        ReceiptSummary: {
+            allocated: components["schemas"]["Money"];
+            amount: components["schemas"]["Money"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            method: components["schemas"]["ReceiptMethod"];
+            owner: components["schemas"]["FinanceUserRef"] | null;
+            party: components["schemas"]["FinancePartyRef"];
+            /** Receipt Number */
+            receipt_number: string;
+            /**
+             * Received On
+             * Format: date
+             */
+            received_on: string;
+            /** Reference */
+            reference: string | null;
+            status: components["schemas"]["ReceiptStatus"];
+            unallocated: components["schemas"]["Money"];
         };
         /** RecentProduct */
         RecentProduct: {
@@ -16264,6 +17786,20 @@ export interface components {
             /** Reason Code */
             reason_code: string;
         };
+        /**
+         * ReconcileRequest
+         * @description Accounting-side references and totals (CSV adapter: typed in or imported; Demo: taken from the simulated
+         *     acknowledgement when omitted).
+         */
+        ReconcileRequest: {
+            /** Lines */
+            lines?: components["schemas"]["AckLine"][] | null;
+        };
+        /**
+         * ReconciliationStatus
+         * @enum {string}
+         */
+        ReconciliationStatus: "not_reconciled" | "matched" | "mismatch";
         /** RecordLink */
         RecordLink: {
             /** Label */
@@ -18277,6 +19813,46 @@ export interface components {
              */
             version: number;
         };
+        /** SuggestionDismiss */
+        SuggestionDismiss: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason Code */
+            reason_code: string;
+        };
+        /** SuggestionRead */
+        SuggestionRead: {
+            /**
+             * Challan Id
+             * Format: uuid
+             */
+            challan_id: string;
+            /** Challan Number */
+            challan_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invoice Id */
+            invoice_id: string | null;
+            party: components["schemas"]["FinancePartyRef"];
+            /** Sales Order Id */
+            sales_order_id: string | null;
+            status: components["schemas"]["SuggestionStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * SuggestionStatus
+         * @enum {string}
+         */
+        SuggestionStatus: "open" | "drafted" | "dismissed";
         /** SupersedeItemCommand */
         SupersedeItemCommand: {
             /** Expected Version */
@@ -18304,6 +19880,34 @@ export interface components {
             /** Reason Code */
             reason_code: string;
         };
+        /** SyncItemRead */
+        SyncItemRead: {
+            acknowledged_total: components["schemas"]["Money"] | null;
+            doc_type: components["schemas"]["DocType"];
+            /** Document Number */
+            document_number: string;
+            /** External Ref */
+            external_ref: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Mismatch Reason */
+            mismatch_reason: string | null;
+            status: components["schemas"]["SyncStatus"];
+            total: components["schemas"]["Money"];
+        };
+        /**
+         * SyncStatus
+         * @enum {string}
+         */
+        SyncStatus: "pending" | "exported" | "acknowledged" | "rejected" | "mismatch";
         /** TargetOut */
         TargetOut: {
             /**
@@ -18465,11 +20069,76 @@ export interface components {
              */
             verification_status: "unverified";
         };
+        /** TaxProfileCreate */
+        TaxProfileCreate: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /**
+             * Rate Percent
+             * @example 5760.00
+             */
+            rate_percent: string;
+            /**
+             * Requires E Invoice
+             * @default true
+             */
+            requires_e_invoice: boolean;
+            /** Scenario */
+            scenario: string;
+            /** Source Reference */
+            source_reference: string;
+        };
+        /** TaxProfileRead */
+        TaxProfileRead: {
+            author: components["schemas"]["FinanceUserRef"] | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Rate Percent
+             * @example 5760.00
+             */
+            rate_percent: string;
+            /** Requires E Invoice */
+            requires_e_invoice: boolean;
+            /** Scenario */
+            scenario: string;
+            /** Source Reference */
+            source_reference: string;
+            status: components["schemas"]["TaxProfileStatus"];
+            /** Verified At */
+            verified_at: string | null;
+            verified_by: components["schemas"]["FinanceUserRef"] | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * TaxProfileStatus
+         * @enum {string}
+         */
+        TaxProfileStatus: "draft" | "verified";
         /**
          * TaxScheme
          * @enum {string}
          */
         TaxScheme: "gstin" | "vat" | "eori" | "pan" | "iec" | "other";
+        /**
+         * TaxStatus
+         * @enum {string}
+         */
+        TaxStatus: "not_configured" | "unverified" | "verified";
         /** TaxonomyDelete */
         TaxonomyDelete: {
             /** Expected Reference Counts */
@@ -19089,11 +20758,6 @@ export interface components {
             /** Expected Version */
             expected_version: number;
         };
-        /** Versioned */
-        Versioned: {
-            /** Expected Version */
-            expected_version: number;
-        };
         /** Viewport */
         Viewport: {
             /** Height */
@@ -19236,6 +20900,16 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** Versioned */
+        app__modules__finance__schemas__Versioned: {
+            /** Expected Version */
+            expected_version: number;
+        };
+        /** Versioned */
+        app__modules__inventory__schemas__Versioned: {
+            /** Expected Version */
+            expected_version: number;
         };
         /** ArchiveRequest */
         app__modules__parties__router__ArchiveRequest: {
@@ -23285,6 +24959,1194 @@ export interface operations {
             };
         };
     };
+    finance_list_accounting_exports: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ExportRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_run_accounting_export: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_accounting_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_download_accounting_journal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_reconcile_accounting_export: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_accounting_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingStatus"];
+                };
+            };
+        };
+    };
+    finance_get_receivables_ageing: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgeingReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_reverse_allocation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                allocation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationReverse"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_list_credit_notes: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Tokens matched against numbers, party, reference */
+                q?: string | null;
+                status?: components["schemas"]["InvoiceStatus"][] | null;
+                party_id?: string | null;
+                overdue_only?: boolean;
+                open_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_InvoiceSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_create_credit_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_export_credit_notes_csv: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against numbers, party, reference */
+                q?: string | null;
+                status?: components["schemas"]["InvoiceStatus"][] | null;
+                party_id?: string | null;
+                overdue_only?: boolean;
+                open_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_credit_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credit_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_update_credit_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                credit_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_allocate_credit_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                credit_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditAllocationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_download_credit_note_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credit_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_transition_credit_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                credit_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceTransitionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_finance_exceptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExceptionsRead"];
+                };
+            };
+        };
+    };
+    finance_list_invoice_suggestions: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SuggestionStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_dismiss_invoice_suggestion: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                suggestion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionDismiss"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_list_invoices: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Tokens matched against numbers, party, reference */
+                q?: string | null;
+                status?: components["schemas"]["InvoiceStatus"][] | null;
+                party_id?: string | null;
+                overdue_only?: boolean;
+                open_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_InvoiceSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_create_invoice: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_export_invoices_csv: {
+        parameters: {
+            query?: {
+                /** @description Tokens matched against numbers, party, reference */
+                q?: string | null;
+                status?: components["schemas"]["InvoiceStatus"][] | null;
+                party_id?: string | null;
+                overdue_only?: boolean;
+                open_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_invoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_update_invoice: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_download_invoice_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_transition_invoice: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceTransitionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_quote_margin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteMargin"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_list_receipts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                q?: string | null;
+                party_id?: string | null;
+                status?: components["schemas"]["ReceiptStatus"][] | null;
+                unallocated_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ReceiptSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_record_receipt: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_receipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_allocate_receipt: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_reverse_receipt: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptReverse"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_get_finance_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceSummary"];
+                };
+            };
+        };
+    };
+    finance_list_tax_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileRead"][];
+                };
+            };
+        };
+    };
+    finance_create_tax_profile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finance_verify_tax_profile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__modules__finance__schemas__Versioned"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     system_get_live: {
         parameters: {
             query?: never;
@@ -26028,7 +28890,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Versioned"];
+                "application/json": components["schemas"]["app__modules__inventory__schemas__Versioned"];
             };
         };
         responses: {
@@ -26414,7 +29276,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Versioned"];
+                "application/json": components["schemas"]["app__modules__inventory__schemas__Versioned"];
             };
         };
         responses: {
@@ -26588,7 +29450,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Versioned"];
+                "application/json": components["schemas"]["app__modules__inventory__schemas__Versioned"];
             };
         };
         responses: {
@@ -27112,7 +29974,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Versioned"];
+                "application/json": components["schemas"]["app__modules__inventory__schemas__Versioned"];
             };
         };
         responses: {
@@ -27247,7 +30109,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Versioned"];
+                "application/json": components["schemas"]["app__modules__inventory__schemas__Versioned"];
             };
         };
         responses: {

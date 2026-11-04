@@ -139,7 +139,7 @@ def summary(uow: UnitOfWork) -> FinanceSummary:
     today = c.today(uow)
     inv_scope = uow.repo(Invoice).clause("read")
     by_status = dict(uow.session.execute(
-        select(Invoice.status, func.count()).where(inv_scope).group_by(Invoice.status)).tuples().all())
+        select(Invoice.status, func.count()).where(inv_scope).group_by(Invoice.status)).all())
     blocked = _count(uow, Invoice, inv_scope, Invoice.status != InvoiceStatus.ISSUED.value,
                      Invoice.status != InvoiceStatus.CANCELLED.value, func.jsonb_array_length(Invoice.last_blockers) > 0)
     figures: dict[str, dict[str, Decimal]] = defaultdict(lambda: defaultdict(lambda: c.ZERO))

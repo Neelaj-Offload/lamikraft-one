@@ -209,6 +209,20 @@ export const queryKeys = {
     order: (orderId: string) => ["orders", "order", { order_id: orderId }] as const,
     forQuote: (quoteId: string) => ["orders", "for-quote", { quote_id: quoteId }] as const,
   },
+  finance: {
+    all: () => ["finance"] as const,
+    summary: () => ["finance", "summary"] as const,
+    documents: (kind: string, params: Record<string, string | number | boolean | null | undefined>) => ["finance", "documents", kind, compact(params)] as const,
+    document: (kind: string, id: string) => ["finance", "document", { kind, id }] as const,
+    suggestions: () => ["finance", "suggestions"] as const,
+    receipts: (params: Record<string, string | number | boolean | null | undefined>) => ["finance", "receipts", compact(params)] as const,
+    receipt: (receiptId: string) => ["finance", "receipt", { receipt_id: receiptId }] as const,
+    ageing: (asOf: string | null) => ["finance", "ageing", { as_of: asOf }] as const,
+    exceptions: () => ["finance", "exceptions"] as const,
+    accounting: () => ["finance", "accounting"] as const,
+    exports: () => ["finance", "exports"] as const,
+    taxProfiles: () => ["finance", "tax-profiles"] as const,
+  },
   inventory: {
     all: () => ["inventory"] as const,
     warehouses: () => ["inventory", "warehouses"] as const,
@@ -257,6 +271,8 @@ export const invalidationMap = {
   "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
   "channels.changed": [queryKeys.channels.all()],
   // orders and inventory (Slice 4): a stock command can change orders, challans, stock, shortages and briefings
+  // finance (Slice 5): a finance command can change every finance read and the briefing
+  "finance.changed": [queryKeys.finance.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
   "inventory.changed": [queryKeys.inventory.all(), queryKeys.orders.all(), queryKeys.challans.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
 } as const;
 

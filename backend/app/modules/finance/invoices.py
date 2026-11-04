@@ -103,6 +103,7 @@ def _history(uow: UnitOfWork, inv: Invoice, action: InvoiceAction, frm: str, to:
             invoice_version=inv.version,
         )
     )
+    uow.flush()
 
 
 def _emit(uow: UnitOfWork, name: str, inv: Invoice, **payload: Any) -> None:
@@ -566,8 +567,8 @@ def _summary(uow: UnitOfWork, inv: Invoice, allocated: Decimal, today: Any, part
 def allocation_reads(uow: UnitOfWork, rows: list[Allocation]) -> list[AllocationRead]:
     receipt_ids = {r.receipt_id for r in rows if r.receipt_id}
     doc_ids = {r.invoice_id for r in rows} | {r.credit_note_id for r in rows if r.credit_note_id}
-    rnums = dict(uow.session.execute(select(Receipt.id, Receipt.receipt_number).where(Receipt.id.in_(receipt_ids))).tuples().all()) if receipt_ids else {}
-    dnums = dict(uow.session.execute(select(Invoice.id, Invoice.document_number).where(Invoice.id.in_(doc_ids))).tuples().all()) if doc_ids else {}
+    rnums = dict(uow.session.execute(select(Receipt.id, Receipt.receipt_number).where(Receipt.id.in_(receipt_ids))).all()) if receipt_ids else {}
+    dnums = dict(uow.session.execute(select(Invoice.id, Invoice.document_number).where(Invoice.id.in_(doc_ids))).all()) if doc_ids else {}
     reversed_ids = {r.reverses_allocation_id for r in rows if r.reverses_allocation_id}
     people = c.users(uow, [r.actor_user_id for r in rows])
     return [

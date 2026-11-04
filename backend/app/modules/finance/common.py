@@ -95,7 +95,7 @@ def party_refs(uow: UnitOfWork, pairs: Sequence[tuple[uuid.UUID, str]]) -> dict[
     numbers: dict[uuid.UUID, str] = {}
     if ids:
         numbers = dict(
-            uow.session.execute(select(Party.id, Party.party_number).where(Party.id.in_(ids))).tuples().all()
+            uow.session.execute(select(Party.id, Party.party_number).where(Party.id.in_(ids))).all()
         )
     return {
         pid: FinancePartyRef(id=pid, party_number=numbers.get(pid), display_name=name) for pid, name in pairs
@@ -113,7 +113,7 @@ def allocated_to_invoices(uow: UnitOfWork, invoice_ids: Sequence[uuid.UUID], *, 
     )
     if as_of is not None:
         stmt = stmt.where(Allocation.allocated_on <= as_of)
-    return {k: Decimal(v) for k, v in uow.session.execute(stmt).tuples().all()}
+    return {k: Decimal(v) for k, v in uow.session.execute(stmt).all()}
 
 
 def allocated_from_receipts(uow: UnitOfWork, receipt_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, Decimal]:
@@ -124,7 +124,7 @@ def allocated_from_receipts(uow: UnitOfWork, receipt_ids: Sequence[uuid.UUID]) -
         .where(Allocation.company_id == uow.actor.company_id, Allocation.receipt_id.in_(list(receipt_ids)))
         .group_by(Allocation.receipt_id)
     )
-    return {k: Decimal(v) for k, v in uow.session.execute(stmt).tuples().all() if k is not None}
+    return {k: Decimal(v) for k, v in uow.session.execute(stmt).all() if k is not None}
 
 
 def allocated_from_credit_notes(uow: UnitOfWork, cn_ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, Decimal]:
@@ -135,7 +135,7 @@ def allocated_from_credit_notes(uow: UnitOfWork, cn_ids: Sequence[uuid.UUID]) ->
         .where(Allocation.company_id == uow.actor.company_id, Allocation.credit_note_id.in_(list(cn_ids)))
         .group_by(Allocation.credit_note_id)
     )
-    return {k: Decimal(v) for k, v in uow.session.execute(stmt).tuples().all() if k is not None}
+    return {k: Decimal(v) for k, v in uow.session.execute(stmt).all() if k is not None}
 
 
 def outstanding(uow: UnitOfWork, inv: Invoice) -> Decimal:
