@@ -49,7 +49,7 @@ import {
 } from "./api";
 import { OPERATIONS_LEADING, ProductionTabs, WorkOrderStatus, dash, failure, qty, useProductionCommand } from "./common";
 import { workOrdersHref, type WorkOrderListState } from "./list-state";
-import { isPositiveDecimalStr, subtractDecimalStr } from "@/lib/format/decimal";
+import { isPositiveDecimalStr, subtractDecimalStr, trimDecimalStr } from "@/lib/format/decimal";
 
 const d = m.detail;
 
@@ -458,11 +458,16 @@ interface DialogProps {
   write: (r: WorkOrderRead) => WorkOrderRead;
 }
 
+/** A server quantity as people edit it ("6.000000" -> "6"); null stays null. */
+function plain(value: string | null | undefined): string | null {
+  return value == null ? null : trimDecimalStr(value);
+}
+
 function IssueDialog({ wo, onClose, run, pending, write }: DialogProps) {
   const open = wo.materials.filter((x) => isPositiveDecimalStr(x.qty_to_issue));
   const [materialId, setMaterialId] = useState<string | null>(open[0]?.id ?? null);
   const material = wo.materials.find((x) => x.id === materialId) ?? null;
-  const [quantity, setQuantity] = useState<string | null>(material?.qty_to_issue ?? null);
+  const [quantity, setQuantity] = useState<string | null>(plain(material?.qty_to_issue));
   const [source, setSource] = useState<string | null>(null);
   const position = useQuery({
     queryKey: ["production", "position", material?.component.id ?? ""],
@@ -502,7 +507,7 @@ function IssueDialog({ wo, onClose, run, pending, write }: DialogProps) {
       )}
     >
       <div className="flex flex-col gap-4">
-        <Select label={d.materialColumns.component} options={open.map((x) => ({ id: x.id, label: `${x.component.product_key} · ${x.qty_to_issue} ${x.uom_code}` }))} value={materialId} onChange={(v) => { setMaterialId(v); setSource(null); setQuantity(wo.materials.find((x) => x.id === v)?.qty_to_issue ?? null); }} />
+        <Select label={d.materialColumns.component} options={open.map((x) => ({ id: x.id, label: `${x.component.product_key} · ${x.qty_to_issue} ${x.uom_code}` }))} value={materialId} onChange={(v) => { setMaterialId(v); setSource(null); setQuantity(plain(wo.materials.find((x) => x.id === v)?.qty_to_issue)); }} />
         <Select label={d.fromBin} options={sources} value={chosen} onChange={setSource} placeholder={d.lotPlaceholder} />
         <NumberField label={d.quantityOf(material?.component.product_key ?? "")} value={quantity} onChange={setQuantity} uom={material?.uom_code} isRequired />
       </div>
@@ -514,7 +519,7 @@ function WipDialog({ kind, wo, onClose, run, pending, write }: DialogProps & { k
   const inWip = wo.materials.filter((x) => isPositiveDecimalStr(x.qty_in_wip));
   const [materialId, setMaterialId] = useState<string | null>(inWip[0]?.id ?? null);
   const material = wo.materials.find((x) => x.id === materialId) ?? null;
-  const [quantity, setQuantity] = useState<string | null>(material?.qty_in_wip ?? null);
+  const [quantity, setQuantity] = useState<string | null>(plain(material?.qty_in_wip));
   const title = kind === "consume" ? d.consume : d.returnTitle;
   return (
     <Dialog
@@ -544,7 +549,7 @@ function WipDialog({ kind, wo, onClose, run, pending, write }: DialogProps & { k
       )}
     >
       <div className="flex flex-col gap-4">
-        <Select label={d.materialColumns.component} options={inWip.map((x) => ({ id: x.id, label: `${x.component.product_key} · ${x.qty_in_wip} ${x.uom_code}` }))} value={materialId} onChange={(v) => { setMaterialId(v); setQuantity(wo.materials.find((x) => x.id === v)?.qty_in_wip ?? null); }} />
+        <Select label={d.materialColumns.component} options={inWip.map((x) => ({ id: x.id, label: `${x.component.product_key} · ${x.qty_in_wip} ${x.uom_code}` }))} value={materialId} onChange={(v) => { setMaterialId(v); setQuantity(plain(wo.materials.find((x) => x.id === v)?.qty_in_wip)); }} />
         <NumberField label={d.quantityOf(material?.component.product_key ?? "")} value={quantity} onChange={setQuantity} uom={material?.uom_code} isRequired />
       </div>
     </Dialog>
