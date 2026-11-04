@@ -1,0 +1,40 @@
+[
+  {
+    "id": "d-1",
+    "challan_number": "DC-2025-0001",
+    "challan_date": "2025-04-01",
+    "challan_type": "outward",
+    "return_type": "non_returnable",
+    "source_location": "Crown / Lamikraft Office",
+    "destination_type": "customer",
+    "destination_party": "Kaveri Exports",
+    "status": "issued",
+    "created_by": "u-admin",
+    "created_by_name": "Priya (legacy admin)"
+  },
+  {
+    "id": "d-2",
+    "challan_number": "DC-2025-0002",
+    "challan_date": "2025-04-03",
+    "challan_type": "sample",
+    "return_type": "returnable",
+    "destination_type": "customer",
+    "destination_party": "Nordhaus GmbH",
+    "status": "dispatched",
+    "created_by_name": "Meera"
+  },
+  {
+    "id": "d-3",
+    "challan_number": "DC-2025-0003",
+    "challan_type": "job_work",
+    "destination_party": "Precision Edge",
+    "status": "issued"
+  },
+  {
+    "id": "d-4",
+    "challan_number": "DC-2025-0003",
+    "challan_type": "job_work",
+    "destination_party": "Precision Edge",
+    "status": "closed"
+  }
+]

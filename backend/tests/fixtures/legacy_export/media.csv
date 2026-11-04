@@ -1,0 +1,7 @@
+id,product_key,media_type,file_path,file_url,drive_link,file_name,is_primary
+m-1,LKX-1001,image,oak_tray.png,,,oak_tray.png,true
+m-2,LKX-1003,image,walnut_board.png,,,walnut_board.png,true
+m-3,LKX-1002,image,missing_large.png,,,missing_large.png,true
+m-4,LKX-1008,image,,https://legacy.example.invalid/media/maple.jpg,,maple.jpg,true
+m-5,LKX-1001,document,../outside.pdf,,,outside.pdf,false
+m-6,LKX-1003,packaging_photo,,,https://drive.google.com/file/d/1AbCdEf/view,pack.jpg,false

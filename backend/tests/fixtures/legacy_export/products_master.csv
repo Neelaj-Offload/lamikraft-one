@@ -1,0 +1,11 @@
+product_key,display_sku,product_name,brand,category,subcategory,unit_of_sale,size_mm,decor_no,decor_name,finish,status,source_sheet,source_row,legacy_colour_code
+LKX-1001,OT-01,Oak serving tray,LK,Serveware,Trays,pcs,450 x 300,4410,Natural Oak,Matt,active,Master,2,N1
+LKX-1002,OT-01,"Oak serving tray, large",LK,Serveware,Trays,pcs,600 x 400,4410,Natural Oak,Matt,active,Master,3,
+LKX-1003,WB-02,Walnut board,LK,Serveware,Boards,pcs,400 x 250,120.0,Walnut,Oiled,active,Master,4,
+LKX-1004,AB-03,Ash board,LK,Serveware,Boards,pcs,350 x 200,5120,Ash,Matt,active,Master,5,
+LKX-1004,AB-03,Ash board (old name),LK,Serveware,Boards,pcs,350 x 200,5120,Ash,Matt,inactive,Archive,9,
+LKX-1005,MT-05,Maple tray,LK,Serveware,Trays,pcs,300 x 200,6001,Maple,Matt,active,Master,6,
+lkx-1005,MT-05,Maple tray (lower-case key),LK,Serveware,Trays,pcs,300 x 200,6001,Maple,Matt,active,Master,7,
+LKX-1006,GP-06,Garden planter,CR,Garden,Planters,pcs,500,7000,Teak,Oiled,under_development,Master,8,
+LKX-1007,XX-07,Product without a category,LK,,,pcs,,,,,active,Master,10,
+LKX-1008,TR-08,Maple trivet,LK,Serveware,Trivets,pcs,200 x 200,6001,Maple,Matt,active,Master,11,

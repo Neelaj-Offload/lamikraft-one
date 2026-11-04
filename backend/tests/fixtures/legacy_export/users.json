@@ -1,0 +1,77 @@
+[
+  {
+    "_id": {
+      "$oid": "65f000000000000000000001"
+    },
+    "id": "u-admin",
+    "email": "priya.admin@legacy.example",
+    "name": "Priya (legacy admin)",
+    "role": "admin",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.000000",
+    "is_active": true,
+    "created_at": {
+      "$date": "2024-01-05T09:00:00Z"
+    },
+    "last_login": {
+      "$date": "2026-10-30T08:00:00Z"
+    },
+    "permission_overrides": {
+      "grant": [],
+      "revoke": []
+    }
+  },
+  {
+    "id": "u-meera",
+    "email": "meera.sales@legacy.example",
+    "name": "Meera",
+    "role": "sales",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.111111",
+    "is_active": true,
+    "permission_overrides": {
+      "grant": [
+        "edit_all_quotes"
+      ],
+      "revoke": [
+        "export_quotes"
+      ]
+    }
+  },
+  {
+    "id": "u-old",
+    "email": "rohit.former@legacy.example",
+    "name": "Rohit (left 2025)",
+    "role": "sales",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.222222",
+    "is_active": false,
+    "permission_overrides": {
+      "grant": [
+        "no_such_permission"
+      ],
+      "revoke": []
+    }
+  },
+  {
+    "id": "u-dup1",
+    "email": "Shared.Mailbox@legacy.example",
+    "name": "Shared mailbox A",
+    "role": "management",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.333333",
+    "is_active": true
+  },
+  {
+    "id": "u-dup2",
+    "email": "shared.mailbox@legacy.example",
+    "name": "Shared mailbox B",
+    "role": "operations",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.444444",
+    "is_active": true
+  },
+  {
+    "id": "u-ops",
+    "email": "warehouse@legacy.example",
+    "name": "Warehouse desk",
+    "role": "warehouse",
+    "password_hash": "$2b$12$synthetic.not.a.real.hash.555555",
+    "is_active": true
+  }
+]
