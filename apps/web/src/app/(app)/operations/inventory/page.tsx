@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { StockScreen, stockStateFrom } from "@/features/inventory/stock-screens";
+import { stockStateFrom } from "@/features/inventory/list-state";
+import { StockScreen } from "@/features/inventory/stock-screens";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("operations-inventory");

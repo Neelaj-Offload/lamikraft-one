@@ -28,7 +28,7 @@ from app.platform.org.reference import ensure_default_uoms
 from app.platform.uow import UnitOfWork
 from app.seed.context import D0
 from app.seed.world import keys
-from tests.integration.catalogue.world import World, build_personas
+from tests.integration.catalogue.world import World
 from tests.support import drain
 
 __all__ = ["D0", "InvWorld", "assert_ledger_consistent", "build_inv_world", "inv_world"]

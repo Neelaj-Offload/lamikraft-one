@@ -24,8 +24,9 @@ test.beforeAll(async ({ request }, info) => {
 
 /** A JSON command with the session's CSRF token (the browser app sends the same headers). */
 async function command(page: Page, path: string, body: unknown) {
-  const cookies = await page.context().cookies();
-  const csrf = cookies.find((c) => c.name === "lk_csrf")?.value ?? "";
+  // the bootstrap answers the session's current (rotated) CSRF value, as the app reads it
+  const bootstrap = await page.request.get("/api/v1/session/bootstrap");
+  const csrf = ((await bootstrap.json()) as { csrf_token?: string | null }).csrf_token ?? "";
   const origin = new URL(page.url()).origin;
   const response = await page.request.post(path, {
     data: body,

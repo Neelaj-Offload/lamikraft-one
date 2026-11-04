@@ -13,6 +13,9 @@
 
 import { api, idempotencyHeaders, unwrap, type ApiClient } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
+import { ORDER_STATUSES } from "./list-state";
+
+export { ORDER_STATUSES };
 
 type Schemas = components["schemas"];
 export type OrderSummary = Schemas["SalesOrderSummary"];
@@ -23,7 +26,6 @@ export type Conversion = Schemas["ConversionResult"];
 export type ReserveResponse = Schemas["ReserveResponse"];
 
 export const ORDERS_PAGE_SIZE = 25;
-export const ORDER_STATUSES = ["draft", "confirmed", "on_hold", "completed", "cancelled"] as const;
 
 export interface OrderListParams {
   q?: string | null;

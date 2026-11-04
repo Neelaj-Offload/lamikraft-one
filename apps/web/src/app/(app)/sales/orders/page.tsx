@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { OrderList, orderListStateFrom } from "@/features/orders/order-list";
+import { orderListStateFrom } from "@/features/orders/list-state";
+import { OrderList } from "@/features/orders/order-list";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("sales-orders");

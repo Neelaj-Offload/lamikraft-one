@@ -10,7 +10,13 @@ import pytest
 from sqlalchemy import select
 
 from app.core.errors import ValidationFailed
-from app.modules.challans.schemas import ChallanCreate, ChallanLineCreate, ChallanType, DestinationType, LineType
+from app.modules.challans.schemas import (
+    ChallanCreate,
+    ChallanLineCreate,
+    ChallanType,
+    DestinationType,
+    LineType,
+)
 from app.modules.inventory.models import StockMovement, StockPosting
 from app.modules.orders import service as orders
 from app.modules.orders.schemas import ChallanFromOrder

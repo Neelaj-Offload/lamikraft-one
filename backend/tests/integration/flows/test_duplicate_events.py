@@ -44,7 +44,13 @@ def _state(w: InvWorld) -> dict[str, object]:
 
 def test_replayed_outbox_events_have_single_effect(inv_world: InvWorld) -> None:
     from app.modules.challans import service as challans
-    from app.modules.challans.schemas import ChallanCreate, ChallanLineCreate, ChallanType, DestinationType, LineType
+    from app.modules.challans.schemas import (
+        ChallanCreate,
+        ChallanLineCreate,
+        ChallanType,
+        DestinationType,
+        LineType,
+    )
     from app.modules.orders import service as orders
 
     w = inv_world

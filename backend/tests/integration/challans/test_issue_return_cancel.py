@@ -131,7 +131,7 @@ def test_cancel_issued_is_document_only_and_blocked_by_returns(challan_world: Ch
 # =====================================================================================================
 # Slice 4: the movement policy (LP-10.5, LP-10.6, SCN-I3) — the world adds WH-MAIN, the opening batch and go-live
 # =====================================================================================================
-from tests.integration.inventory.world import InvWorld, assert_ledger_consistent, inv_world  # noqa: E402, F401
+from tests.integration.inventory.world import InvWorld, assert_ledger_consistent  # noqa: E402
 
 
 def _order_with_reservation(w: InvWorld, qty: str = "240") -> tuple[object, object]:

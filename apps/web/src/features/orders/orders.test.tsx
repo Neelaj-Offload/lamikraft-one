@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { queryKeys } from "@/lib/api/query-keys";
 import { controlsWithoutVisibleFocus, renderWithQueries, textOf } from "@/lib/test-support/render";
 import { testBootstrap } from "@/lib/test-support/session";
-import { StockScreen, stockHref, stockStateFrom } from "@/features/inventory/stock-screens";
+import { stockHref, stockStateFrom } from "@/features/inventory/list-state";
+import { StockScreen } from "@/features/inventory/stock-screens";
 import { DocumentScreen, PickListScreen } from "@/features/inventory/document-screens";
 import type { DocumentRead, PickListRead, StockPage } from "@/features/inventory/api";
 import type { OrderDetail, OrderPage } from "./api";
-import { OrderList, orderListHref, orderListStateFrom } from "./order-list";
+import { orderListHref, orderListStateFrom } from "./list-state";
+import { OrderList } from "./order-list";
 import { OrderWorkspace } from "./order-workspace";
 
 vi.mock("next/navigation", () => ({
