@@ -223,6 +223,21 @@ export const queryKeys = {
     pickList: (pickListId: string) => ["inventory", "pick-list", { pick_list_id: pickListId }] as const,
     document: (kind: string, id: string) => ["inventory", "document", { kind, id }] as const,
   },
+  // production (Slice 4)
+  production: {
+    all: () => ["production"] as const,
+    workOrders: (params: Record<string, string | number | boolean | null | undefined>) => ["production", "work-orders", compact(params)] as const,
+    workOrder: (id: string) => ["production", "work-order", { work_order_id: id }] as const,
+    boms: (params: Record<string, string | number | boolean | null | undefined>) => ["production", "boms", compact(params)] as const,
+    bom: (id: string) => ["production", "bom", { bom_id: id }] as const,
+    routings: (params: Record<string, string | number | boolean | null | undefined>) => ["production", "routings", compact(params)] as const,
+    routing: (id: string) => ["production", "routing", { routing_id: id }] as const,
+    workCentres: () => ["production", "work-centres"] as const,
+    workCentre: (id: string) => ["production", "work-centre", { work_center_id: id }] as const,
+    capacity: (params: Record<string, string | number | boolean | null | undefined>) => ["production", "capacity", compact(params)] as const,
+    costRollups: (productId: string) => ["production", "cost-rollups", { product_id: productId }] as const,
+    feasibility: (lineId: string, needBy: string | null) => ["production", "feasibility", compact({ line_id: lineId, need_by: needBy })] as const,
+  },
   channels: {
     all: () => ["channels"] as const,
     account: () => ["channels", "account"] as const,
@@ -260,6 +275,8 @@ export const invalidationMap = {
   "channels.changed": [queryKeys.channels.all()],
   // orders and inventory (Slice 4): a stock command can change orders, challans, stock, shortages and briefings
   "inventory.changed": [queryKeys.inventory.all(), queryKeys.orders.all(), queryKeys.challans.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
+  // production (Slice 4): a work-order command moves stock and reservations, and can block or unblock work
+  "production.changed": [queryKeys.production.all(), queryKeys.inventory.all(), queryKeys.cutting.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

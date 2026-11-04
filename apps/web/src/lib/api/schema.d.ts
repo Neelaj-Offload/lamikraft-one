@@ -4812,6 +4812,621 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/production/boms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Boms */
+        get: operations["production_list_boms"];
+        put?: never;
+        /**
+         * Create Bom
+         * @description A new draft version of the product's BOM (``copy_from_id`` starts from an existing version's lines).
+         */
+        post: operations["production_create_bom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/boms/{bom_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bom */
+        get: operations["production_get_bom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Bom
+         * @description Draft versions only (approved and retired versions are immutable: 409 ``version_approved``).
+         */
+        patch: operations["production_update_bom"];
+        trace?: never;
+    };
+    "/api/v1/production/boms/{bom_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Bom
+         * @description Never by the version's author (403 ``separation_of_duties``); validates units, alternates and cycles; retires
+         *     the previously approved version.
+         */
+        post: operations["production_approve_bom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/boms/{bom_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Bom */
+        post: operations["production_retire_bom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Capacity
+         * @description Load per work centre per day (pending operations of released work orders) against calendar capacity; at most 63
+         *     days (default: two weeks from today).
+         */
+        get: operations["production_get_capacity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/cost-rollups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cost Rollups */
+        get: operations["production_list_cost_rollups"];
+        put?: never;
+        /**
+         * Run Cost Rollup
+         * @description Deterministic rollup; the same inputs return the stored result (``reused``). Figures need ``pricing.cost.read``.
+         */
+        post: operations["production_run_cost_rollup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/cost-rollups/{rollup_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cost Rollup */
+        get: operations["production_get_cost_rollup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/feasibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assess Feasibility
+         * @description Read-only: stock, supply, components and capacity evidence; nothing is reserved, posted or saved.
+         */
+        post: operations["production_assess_feasibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/feasibility/order-lines/{line_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assess Order Line Feasibility
+         * @description The remaining quantity of an order line by its requested date (404 when the order is not visible).
+         */
+        get: operations["production_assess_order_line_feasibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/routings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Routings */
+        get: operations["production_list_routings"];
+        put?: never;
+        /** Create Routing */
+        post: operations["production_create_routing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/routings/{routing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Routing */
+        get: operations["production_get_routing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Routing */
+        patch: operations["production_update_routing"];
+        trace?: never;
+    };
+    "/api/v1/production/routings/{routing_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Routing */
+        post: operations["production_approve_routing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/routings/{routing_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Routing */
+        post: operations["production_retire_routing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/simulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Simulation
+         * @description What-if over an in-memory overlay next to the unchanged baseline; never writes.
+         */
+        post: operations["production_run_simulation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-centers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Work Centers
+         * @description Work centres with their standard daily minutes (shifts x machines x efficiency); the hourly rate only for
+         *     ``pricing.cost.read``.
+         */
+        get: operations["production_list_work_centers"];
+        put?: never;
+        /** Create Work Center */
+        post: operations["production_create_work_center"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-centers/{work_center_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Work Center
+         * @description Calendar, shifts, exceptions and the capabilities of the caller.
+         */
+        get: operations["production_get_work_center"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Work Center */
+        patch: operations["production_update_work_center"];
+        trace?: never;
+    };
+    "/api/v1/production/work-centers/{work_center_id}/capacity-exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Capacity Exception
+         * @description Set the available minutes of one day (maintenance, overtime); replaces an existing exception of that day.
+         */
+        put: operations["production_set_capacity_exception"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-centers/{work_center_id}/capacity-exceptions/{exception_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Capacity Exception */
+        delete: operations["production_delete_capacity_exception"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Work Orders
+         * @description Work orders within the actor's scope (production company, operations their branches); filters before paging.
+         */
+        get: operations["production_list_work_orders"];
+        put?: never;
+        /**
+         * Create Work Order
+         * @description Plan from a sales order line (product, remaining quantity, warehouse and date default from the order) or
+         *     standalone; pins the product's approved BOM and routing versions.
+         */
+        post: operations["production_create_work_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Work Order By Number */
+        get: operations["production_get_work_order_by_number"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Work Order
+         * @description Materials (required, reserved, issued, consumed, returned, in WIP, free), operations with the linked cut plan,
+         *     stock transactions, ``capabilities`` and ``allowed_transitions``.
+         */
+        get: operations["production_get_work_order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Work Order
+         * @description Draft only: quantity (materials and minutes are re-planned), dates, notes.
+         */
+        patch: operations["production_update_work_order"];
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consume Work Order Materials
+         * @description Post WIP -> production (consumption).
+         */
+        post: operations["production_consume_work_order_materials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Work Order Materials
+         * @description Post stock -> WIP (one posting), consuming the materials' reservations first.
+         */
+        post: operations["production_issue_work_order_materials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/offcuts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Work Order Offcut
+         * @description A measured offcut becomes an ``offcut`` lot (``inventory.lot.measured``) posted production -> stock.
+         */
+        post: operations["production_record_work_order_offcut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Work Order Operation */
+        post: operations["production_complete_work_order_operation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/cut-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Work Order Cut Plan
+         * @description Link a calculated cut plan to the board operation: the sheet material then requires the plan's boards
+         *     (``requirement_source=cut_plan``); a released work order releases the plan at once.
+         */
+        post: operations["production_link_work_order_cut_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule Work Order Operation
+         * @description Move a pending operation to another day (capacity load and overloads follow).
+         */
+        post: operations["production_schedule_work_order_operation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/output": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Work Order Output
+         * @description Post good finished goods production -> stock (QC hold when the product requires QC); scrap is recorded.
+         */
+        post: operations["production_report_work_order_output"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recheck Work Order Materials
+         * @description Reserve again now (the event consumer does the same when stock arrives).
+         */
+        post: operations["production_recheck_work_order_materials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return Work Order Materials
+         * @description Post WIP -> stock (unused material back); it is reserved again for the work order.
+         */
+        post: operations["production_return_work_order_materials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production/work-orders/{work_order_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition Work Order
+         * @description ``release`` (reserves materials; blocked when short; releases linked cut plans), ``complete`` (needs output),
+         *     ``close`` (needs WIP cleared), ``cancel`` (reason; refused once output or consumption was posted).
+         */
+        post: operations["production_transition_work_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/receipts/{receipt_id}": {
         parameters: {
             query?: never;
@@ -7220,6 +7835,23 @@ export interface components {
             /** Name */
             name?: string | null;
         };
+        /**
+         * BlockCauseRef
+         * @description A ``caused_by`` reference (shortage, cut plan) with a label for the reader.
+         */
+        BlockCauseRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label?: string | null;
+            /** Path */
+            path?: string | null;
+            /** Type */
+            type: string;
+        };
         /** BoardRead */
         BoardRead: {
             /** Board No */
@@ -7274,6 +7906,129 @@ export interface components {
              * @example 5760.00
              */
             usable_width_mm: string;
+        };
+        /** BomCreate */
+        BomCreate: {
+            /** Copy From Id */
+            copy_from_id?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["BomLineIn"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+        };
+        /** BomLineIn */
+        BomLineIn: {
+            /** Alternate For Line No */
+            alternate_for_line_no?: number | null;
+            /**
+             * Component Product Id
+             * Format: uuid
+             */
+            component_product_id: string;
+            /**
+             * Is Sheet Material
+             * @default false
+             */
+            is_sheet_material: boolean;
+            /** Line No */
+            line_no?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Qty Per
+             * @example 5760.00
+             */
+            qty_per: string;
+            /**
+             * Scrap Pct
+             * @default 0
+             * @example 5760.00
+             */
+            scrap_pct: string;
+            /** Uom Code */
+            uom_code?: string | null;
+        };
+        /** BomLineRead */
+        BomLineRead: {
+            /** Alternate For Line No */
+            alternate_for_line_no: number | null;
+            component: components["schemas"]["ProductionProductRef"];
+            /** Has Approved Bom */
+            has_approved_bom: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Sheet Material */
+            is_sheet_material: boolean;
+            /** Line No */
+            line_no: number;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Qty Per
+             * @example 5760.00
+             */
+            qty_per: string;
+            /**
+             * Scrap Pct
+             * @example 5760.00
+             */
+            scrap_pct: string;
+            /** Uom Code */
+            uom_code: string;
+        };
+        /** BomRead */
+        BomRead: {
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["app__core__http__capabilities__TransitionRead"][];
+            /** Approved At */
+            approved_at: string | null;
+            approved_by: components["schemas"]["ProductionUserRef"] | null;
+            author: components["schemas"]["ProductionUserRef"] | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Count */
+            line_count: number;
+            /** Lines */
+            lines: components["schemas"]["BomLineRead"][];
+            /** Notes */
+            notes: string | null;
+            product: components["schemas"]["ProductionProductRef"];
+            /** Retired At */
+            retired_at: string | null;
+            status: components["schemas"]["MasterStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Version No */
+            version_no: number;
+        };
+        /** BomUpdate */
+        BomUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lines */
+            lines?: components["schemas"]["BomLineIn"][] | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** BootstrapMembership */
         BootstrapMembership: {
@@ -7726,6 +8481,20 @@ export interface components {
              */
             usable_area_mm2: string;
         };
+        /** CalendarRef */
+        CalendarRef: {
+            /** Code */
+            code: string;
+            /** Id */
+            id: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "work_centre" | "company_default" | "built_in";
+        };
         /**
          * CancelReason
          * @enum {string}
@@ -7744,6 +8513,116 @@ export interface components {
             allowed: boolean;
             /** Reason Code */
             reason_code?: string | null;
+        };
+        /** CapacityChange */
+        CapacityChange: {
+            /** Extra Minutes Per Day */
+            extra_minutes_per_day?: number | null;
+            /** Machine Count */
+            machine_count?: number | null;
+            /**
+             * Work Center Id
+             * Format: uuid
+             */
+            work_center_id: string;
+        };
+        /** CapacityDay */
+        CapacityDay: {
+            /**
+             * Capacity Minutes
+             * @example 5760.00
+             */
+            capacity_minutes: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Day Type
+             * @enum {string}
+             */
+            day_type: "working" | "non_working" | "holiday";
+            /** Exception Reason */
+            exception_reason: string | null;
+            /**
+             * Load Minutes
+             * @example 5760.00
+             */
+            load_minutes: string;
+            /** Overloaded */
+            overloaded: boolean;
+            /** Utilisation Pct */
+            utilisation_pct: string | null;
+            /** Work Orders */
+            work_orders: string[];
+        };
+        /** CapacityExceptionIn */
+        CapacityExceptionIn: {
+            /** Available Minutes */
+            available_minutes: number;
+            /**
+             * Exception Date
+             * Format: date
+             */
+            exception_date: string;
+            /** Reason */
+            reason: string;
+        };
+        /** CapacityExceptionRead */
+        CapacityExceptionRead: {
+            /** Available Minutes */
+            available_minutes: number;
+            /**
+             * Exception Date
+             * Format: date
+             */
+            exception_date: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+        };
+        /** CapacityRead */
+        CapacityRead: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Overloaded Days */
+            overloaded_days: number;
+            /** Rows */
+            rows: components["schemas"]["CapacityRow"][];
+        };
+        /** CapacityRow */
+        CapacityRow: {
+            /** Days */
+            days: components["schemas"]["CapacityDay"][];
+            /**
+             * Total Capacity Minutes
+             * @example 5760.00
+             */
+            total_capacity_minutes: string;
+            /**
+             * Total Load Minutes
+             * @example 5760.00
+             */
+            total_load_minutes: string;
+            /**
+             * Unscheduled Minutes
+             * @example 5760.00
+             */
+            unscheduled_minutes: string;
+            work_center: components["schemas"]["WorkCenterRef"];
         };
         /** CategoryCount */
         CategoryCount: {
@@ -8945,6 +9824,96 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** CostLine */
+        CostLine: {
+            amount: components["schemas"]["Money"];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "material" | "operation";
+            /** Label */
+            label: string;
+            /** Path */
+            path: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Source */
+            source: string;
+            unit_cost: components["schemas"]["Money"];
+            /** Uom Code */
+            uom_code: string;
+        };
+        /** CostRollupRead */
+        CostRollupRead: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Batch Qty
+             * @example 5760.00
+             */
+            batch_qty: string;
+            /** Bom Id */
+            bom_id: string | null;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            computed_by: components["schemas"]["ProductionUserRef"] | null;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Hash */
+            input_hash: string;
+            /** Lines */
+            lines?: components["schemas"]["CostLine"][] | null;
+            material_total?: components["schemas"]["Money"] | null;
+            /** Missing Inputs */
+            missing_inputs: components["schemas"]["MissingInput"][];
+            operation_total?: components["schemas"]["Money"] | null;
+            product: components["schemas"]["ProductionProductRef"];
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            /**
+             * Reused
+             * @default false
+             */
+            reused: boolean;
+            /** Routing Id */
+            routing_id: string | null;
+            status: components["schemas"]["CostRollupStatus"];
+            total?: components["schemas"]["Money"] | null;
+        };
+        /** CostRollupRequest */
+        CostRollupRequest: {
+            /** As Of */
+            as_of?: string | null;
+            /** Batch Qty */
+            batch_qty?: string | null;
+            /** Currency */
+            currency?: ("INR" | "EUR" | "USD" | "GBP") | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+        };
+        /**
+         * CostRollupStatus
+         * @enum {string}
+         */
+        CostRollupStatus: "complete" | "incomplete";
         /**
          * CostSourceKind
          * @enum {string}
@@ -9774,6 +10743,48 @@ export interface components {
             /** Label */
             label?: string | null;
         };
+        /** CutPlanLink */
+        CutPlanLink: {
+            /**
+             * Cut Plan Id
+             * Format: uuid
+             */
+            cut_plan_id: string;
+            /** Expected Version */
+            expected_version: number;
+            /** Material Id */
+            material_id?: string | null;
+        };
+        /** CutPlanRef */
+        CutPlanRef: {
+            /** Boards */
+            boards: number | null;
+            /** Calculation Id */
+            calculation_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Plan Number */
+            plan_number: string;
+            /** Ready */
+            ready: boolean;
+            /** Reason Code */
+            reason_code: string | null;
+            /** Requires Verification */
+            requires_verification: boolean;
+            /** Stale */
+            stale: boolean;
+            /** Status */
+            status: string;
+            /** Verified */
+            verified: boolean;
+        };
         /** CutRead */
         CutRead: {
             /**
@@ -10532,6 +11543,25 @@ export interface components {
              */
             tainted: boolean;
         };
+        /** EvidenceItem */
+        EvidenceItem: {
+            /** Facts */
+            facts?: {
+                [key: string]: string;
+            };
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "stock" | "purchase_supply" | "components" | "capacity" | "routing" | "bom" | "lead_time";
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "short" | "missing" | "late" | "info";
+        };
         /** ExplainView */
         ExplainView: {
             /** Band */
@@ -10672,6 +11702,75 @@ export interface components {
             last_successful: components["schemas"]["LastSuccessfulView"] | null;
             /** Tasks */
             tasks: components["schemas"]["InboxItem"][];
+        };
+        /**
+         * FeasibilityOutcome
+         * @enum {string}
+         */
+        FeasibilityOutcome: "feasible" | "at_risk" | "not_feasible" | "estimate";
+        /** FeasibilityRead */
+        FeasibilityRead: {
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Earliest Completion */
+            earliest_completion: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceItem"][];
+            /**
+             * From Stock
+             * @example 5760.00
+             */
+            from_stock: string;
+            /** Missing Inputs */
+            missing_inputs: string[];
+            /**
+             * Need By
+             * Format: date
+             */
+            need_by: string;
+            outcome: components["schemas"]["FeasibilityOutcome"];
+            product: components["schemas"]["ProductionProductRef"];
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /**
+             * Read Only
+             * @default true
+             */
+            read_only: boolean;
+            /**
+             * To Make
+             * @example 5760.00
+             */
+            to_make: string;
+            /** Uom Code */
+            uom_code: string;
+            warehouse: components["schemas"]["ProductionWarehouseRef"];
+        };
+        /** FeasibilityRequest */
+        FeasibilityRequest: {
+            /**
+             * Need By
+             * Format: date
+             */
+            need_by: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** Warehouse Id */
+            warehouse_id?: string | null;
         };
         /**
          * FeedbackOutcome
@@ -11456,6 +12555,23 @@ export interface components {
              */
             user_id: string;
         };
+        /** IssueLine */
+        IssueLine: {
+            /** From Location Id */
+            from_location_id?: string | null;
+            /** Lot Id */
+            lot_id?: string | null;
+            /**
+             * Material Id
+             * Format: uuid
+             */
+            material_id: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+        };
         /** IssueRead */
         IssueRead: {
             /** Code */
@@ -11479,6 +12595,15 @@ export interface components {
             row_number: number | null;
             /** Severity */
             severity: string;
+        };
+        /** IssueRequest */
+        IssueRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lines */
+            lines: components["schemas"]["IssueLine"][];
+            /** Reason */
+            reason?: string | null;
         };
         /** ItemActionRequest */
         ItemActionRequest: {
@@ -12184,6 +13309,111 @@ export interface components {
              */
             reply_ref_type: string;
         };
+        /** MasterCommand */
+        MasterCommand: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * MasterStatus
+         * @description BOM and routing versions: a draft is edited by its author, approved by someone else, later retired.
+         * @enum {string}
+         */
+        MasterStatus: "draft" | "approved" | "retired";
+        /** MasterSummary */
+        MasterSummary: {
+            /** Approved At */
+            approved_at: string | null;
+            approved_by: components["schemas"]["ProductionUserRef"] | null;
+            author: components["schemas"]["ProductionUserRef"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Count */
+            line_count: number;
+            product: components["schemas"]["ProductionProductRef"];
+            status: components["schemas"]["MasterStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** MaterialRead */
+        MaterialRead: {
+            /** Alternates */
+            alternates: components["schemas"]["ProductionProductRef"][];
+            component: components["schemas"]["ProductionProductRef"];
+            /** Cut Plan Id */
+            cut_plan_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Sheet Material */
+            is_sheet_material: boolean;
+            /** Line No */
+            line_no: number;
+            /**
+             * Qty Consumed
+             * @example 5760.00
+             */
+            qty_consumed: string;
+            /**
+             * Qty Free
+             * @example 5760.00
+             */
+            qty_free: string;
+            /**
+             * Qty In Wip
+             * @example 5760.00
+             */
+            qty_in_wip: string;
+            /**
+             * Qty Issued
+             * @example 5760.00
+             */
+            qty_issued: string;
+            /**
+             * Qty Required
+             * @example 5760.00
+             */
+            qty_required: string;
+            /**
+             * Qty Required Bom
+             * @example 5760.00
+             */
+            qty_required_bom: string;
+            /**
+             * Qty Reserved
+             * @example 5760.00
+             */
+            qty_reserved: string;
+            /**
+             * Qty Returned
+             * @example 5760.00
+             */
+            qty_returned: string;
+            /**
+             * Qty To Issue
+             * @example 5760.00
+             */
+            qty_to_issue: string;
+            requirement_source: components["schemas"]["RequirementSource"];
+            /** Short */
+            short: boolean;
+            /** Uom Code */
+            uom_code: string;
+            /** Version */
+            version: number;
+        };
         /** MeRead */
         MeRead: {
             /** Locale */
@@ -12499,6 +13729,22 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** MissingInput */
+        MissingInput: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "material_cost" | "fx_rate" | "uom_conversion" | "work_centre_rate" | "bom" | "routing";
+            /** Label */
+            label: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Ref Id */
+            ref_id: string | null;
+            /** Ref Type */
+            ref_type: string;
+        };
         /** Money */
         Money: {
             /**
@@ -12769,6 +14015,38 @@ export interface components {
              */
             y_mm: string;
         };
+        /** OffcutRecord */
+        OffcutRecord: {
+            /** Expected Version */
+            expected_version: number;
+            /** Grain Axis */
+            grain_axis?: ("length" | "width" | "none") | null;
+            /**
+             * Length Mm
+             * @example 5760.00
+             */
+            length_mm: string;
+            /** Lot Code */
+            lot_code?: string | null;
+            /**
+             * Material Id
+             * Format: uuid
+             */
+            material_id: string;
+            /** Operation Id */
+            operation_id?: string | null;
+            /** Parent Lot Id */
+            parent_lot_id?: string | null;
+            /** Predicted Offcut Id */
+            predicted_offcut_id?: string | null;
+            /** Thickness Mm */
+            thickness_mm?: string | null;
+            /**
+             * Width Mm
+             * @example 5760.00
+             */
+            width_mm: string;
+        };
         /** OpeningBatchCreate */
         OpeningBatchCreate: {
             /** Lines */
@@ -12809,6 +14087,71 @@ export interface components {
             /** Unit */
             unit?: string | null;
         };
+        /** OperationComplete */
+        OperationComplete: {
+            /** Actual Minutes */
+            actual_minutes?: string | null;
+            /** Expected Version */
+            expected_version: number;
+        };
+        /** OperationRead */
+        OperationRead: {
+            /** Actual Minutes */
+            actual_minutes: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            completed_by: components["schemas"]["ProductionUserRef"] | null;
+            cut_plan: components["schemas"]["CutPlanRef"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Board Cutting */
+            is_board_cutting: boolean;
+            /** Name */
+            name: string;
+            /** Planned Date */
+            planned_date: string | null;
+            /**
+             * Planned Minutes
+             * @example 5760.00
+             */
+            planned_minutes: string;
+            /** Predicted Offcuts */
+            predicted_offcuts: components["schemas"]["PredictedOffcut"][];
+            /**
+             * Run Minutes Per Unit
+             * @example 5760.00
+             */
+            run_minutes_per_unit: string;
+            /** Seq */
+            seq: number;
+            /**
+             * Setup Minutes
+             * @example 5760.00
+             */
+            setup_minutes: string;
+            status: components["schemas"]["OperationStatus"];
+            /** Version */
+            version: number;
+            work_center: components["schemas"]["WorkCenterRef"];
+        };
+        /** OperationSchedule */
+        OperationSchedule: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Planned Date
+             * Format: date
+             */
+            planned_date: string;
+        };
+        /**
+         * OperationStatus
+         * @enum {string}
+         */
+        OperationStatus: "pending" | "done";
         /**
          * OptionAction
          * @description What the client posts as the next turn when the user picks this option (``TurnCreate.selected_option``).
@@ -12933,6 +14276,22 @@ export interface components {
             unit_price: components["schemas"]["Money"] | null;
             /** Version */
             version: number;
+        };
+        /** OrderLineRef */
+        OrderLineRef: {
+            /** Line Id */
+            line_id: string | null;
+            /** Line No */
+            line_no: number | null;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /** Order Number */
+            order_number: string;
+            /** Path */
+            path: string;
         };
         /** OrderPartyRef */
         OrderPartyRef: {
@@ -13127,6 +14486,26 @@ export interface components {
          * @enum {string}
          */
         OutboxState: "pending" | "sending" | "accepted" | "unknown" | "failed" | "blocked" | "cancelled" | "escalated";
+        /** OutputRequest */
+        OutputRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lot Code */
+            lot_code?: string | null;
+            /**
+             * Qty Good
+             * @example 5760.00
+             */
+            qty_good: string;
+            /**
+             * Qty Scrap
+             * @default 0
+             * @example 5760.00
+             */
+            qty_scrap: string;
+            /** Reason */
+            reason?: string | null;
+        };
         /** OverviewView */
         OverviewView: {
             /** Facts */
@@ -13294,6 +14673,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[CostRollupRead] */
+        Page_CostRollupRead_: {
+            /** Items */
+            items: components["schemas"]["CostRollupRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[CustomProductSummary] */
         Page_CustomProductSummary_: {
             /** Items */
@@ -13375,6 +14765,17 @@ export interface components {
         Page_LookupRead_: {
             /** Items */
             items: components["schemas"]["LookupRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MasterSummary] */
+        Page_MasterSummary_: {
+            /** Items */
+            items: components["schemas"]["MasterSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -13496,6 +14897,17 @@ export interface components {
         Page_SampleRead_: {
             /** Items */
             items: components["schemas"]["SampleRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[WorkOrderSummary] */
+        Page_WorkOrderSummary_: {
+            /** Items */
+            items: components["schemas"]["WorkOrderSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -14489,6 +15901,26 @@ export interface components {
             source_path: string | null;
             /** Source Type */
             source_type: string;
+        };
+        /** PredictedOffcut */
+        PredictedOffcut: {
+            /** Board No */
+            board_no: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Length Mm
+             * @example 5760.00
+             */
+            length_mm: string;
+            /**
+             * Width Mm
+             * @example 5760.00
+             */
+            width_mm: string;
         };
         /** Preferences */
         Preferences: {
@@ -15717,6 +17149,42 @@ export interface components {
             product: components["schemas"]["ProductDetail"];
             /** Warnings */
             warnings: string[];
+        };
+        /** ProductionProductRef */
+        ProductionProductRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Product Key */
+            product_key: string;
+            /** Stock Uom Code */
+            stock_uom_code: string | null;
+        };
+        /** ProductionUserRef */
+        ProductionUserRef: {
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** ProductionWarehouseRef */
+        ProductionWarehouseRef: {
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** ProfileView */
         ProfileView: {
@@ -17153,6 +18621,11 @@ export interface components {
             version: number;
             warehouse: components["schemas"]["WarehouseRef"];
         };
+        /**
+         * RequirementSource
+         * @enum {string}
+         */
+        RequirementSource: "bom" | "cut_plan";
         /** ReservationPage */
         ReservationPage: {
             /** Items */
@@ -17581,6 +19054,140 @@ export interface components {
             };
             /** Path */
             path: string;
+        };
+        /** RoutingCreate */
+        RoutingCreate: {
+            /** Copy From Id */
+            copy_from_id?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Operations */
+            operations?: components["schemas"]["RoutingOperationIn"][];
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /**
+             * Standard Batch Qty
+             * @default 1
+             * @example 5760.00
+             */
+            standard_batch_qty: string;
+        };
+        /** RoutingOperationIn */
+        RoutingOperationIn: {
+            /**
+             * Is Board Cutting
+             * @default false
+             */
+            is_board_cutting: boolean;
+            /**
+             * Is Job Work
+             * @default false
+             */
+            is_job_work: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Run Minutes Per Unit
+             * @default 0
+             * @example 5760.00
+             */
+            run_minutes_per_unit: string;
+            /** Seq */
+            seq: number;
+            /**
+             * Setup Minutes
+             * @default 0
+             * @example 5760.00
+             */
+            setup_minutes: string;
+            /**
+             * Work Center Id
+             * Format: uuid
+             */
+            work_center_id: string;
+        };
+        /** RoutingOperationRead */
+        RoutingOperationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Board Cutting */
+            is_board_cutting: boolean;
+            /** Is Job Work */
+            is_job_work: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Run Minutes Per Unit
+             * @example 5760.00
+             */
+            run_minutes_per_unit: string;
+            /** Seq */
+            seq: number;
+            /**
+             * Setup Minutes
+             * @example 5760.00
+             */
+            setup_minutes: string;
+            work_center: components["schemas"]["WorkCenterRef"];
+        };
+        /** RoutingRead */
+        RoutingRead: {
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["app__core__http__capabilities__TransitionRead"][];
+            /** Approved At */
+            approved_at: string | null;
+            approved_by: components["schemas"]["ProductionUserRef"] | null;
+            author: components["schemas"]["ProductionUserRef"] | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Count */
+            line_count: number;
+            /** Notes */
+            notes: string | null;
+            /** Operations */
+            operations: components["schemas"]["RoutingOperationRead"][];
+            product: components["schemas"]["ProductionProductRef"];
+            /** Retired At */
+            retired_at: string | null;
+            /**
+             * Standard Batch Qty
+             * @example 5760.00
+             */
+            standard_batch_qty: string;
+            status: components["schemas"]["MasterStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Version No */
+            version_no: number;
+        };
+        /** RoutingUpdate */
+        RoutingUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** Notes */
+            notes?: string | null;
+            /** Operations */
+            operations?: components["schemas"]["RoutingOperationIn"][] | null;
+            /** Standard Batch Qty */
+            standard_batch_qty?: string | null;
         };
         /** RowRead */
         RowRead: {
@@ -18512,6 +20119,19 @@ export interface components {
             /** Oversize Mm */
             oversize_mm?: string | null;
         };
+        /** ShiftMinutes */
+        ShiftMinutes: {
+            /** Code */
+            code: string;
+            /** End */
+            end: string;
+            /** Minutes */
+            minutes: number;
+            /** Name */
+            name: string;
+            /** Start */
+            start: string;
+        };
         /** ShiftWindow */
         ShiftWindow: {
             /** Code */
@@ -18578,6 +20198,38 @@ export interface components {
             /** Version */
             version: number;
             warehouse: components["schemas"]["WarehouseRef"];
+        };
+        /** SimulationRead */
+        SimulationRead: {
+            /** Baseline */
+            baseline: components["schemas"]["FeasibilityRead"][];
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /**
+             * Label
+             * @default What-if simulation: nothing was reserved, posted or saved
+             */
+            label: string;
+            /** Scenario */
+            scenario: components["schemas"]["FeasibilityRead"][];
+            /**
+             * Simulation
+             * @default true
+             * @constant
+             */
+            simulation: true;
+        };
+        /** SimulationRequest */
+        SimulationRequest: {
+            /** Capacity Changes */
+            capacity_changes?: components["schemas"]["CapacityChange"][];
+            /** Checks */
+            checks: components["schemas"]["FeasibilityRequest"][];
+            /** Stock Changes */
+            stock_changes?: components["schemas"]["StockChange"][];
         };
         /**
          * SizeBasis
@@ -18920,6 +20572,21 @@ export interface components {
             stock_uom_code: string | null;
             /** Track Lots */
             track_lots: boolean | null;
+        };
+        /** StockChange */
+        StockChange: {
+            /**
+             * Delta
+             * @example 5760.00
+             */
+            delta: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Warehouse Id */
+            warehouse_id?: string | null;
         };
         /** StockPage */
         StockPage: {
@@ -19439,6 +21106,61 @@ export interface components {
             redacted: boolean;
             /** Run Ids */
             run_ids: string[];
+        };
+        /**
+         * TransactionKind
+         * @description One row per stock event of a work order; its id is the posting source id (one posting per event).
+         * @enum {string}
+         */
+        TransactionKind: "issue" | "consume" | "return" | "output" | "offcut";
+        /** TransactionLineRead */
+        TransactionLineRead: {
+            /** From Location */
+            from_location: string | null;
+            /** Lot Code */
+            lot_code: string | null;
+            /** Material Id */
+            material_id: string | null;
+            product: components["schemas"]["ProductionProductRef"];
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+            /** To Location */
+            to_location: string | null;
+            /** Uom Code */
+            uom_code: string;
+        };
+        /** TransactionRead */
+        TransactionRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["ProductionUserRef"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["TransactionKind"];
+            /** Lines */
+            lines: components["schemas"]["TransactionLineRead"][];
+            /** Lot Id */
+            lot_id: string | null;
+            /**
+             * Posting Id
+             * Format: uuid
+             */
+            posting_id: string;
+            /** Qty Good */
+            qty_good: string | null;
+            /** Qty Scrap */
+            qty_scrap: string | null;
+            /** Reason */
+            reason: string | null;
         };
         /** TransferCreate */
         TransferCreate: {
@@ -20083,6 +21805,351 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** WipLine */
+        WipLine: {
+            /** Lot Id */
+            lot_id?: string | null;
+            /**
+             * Material Id
+             * Format: uuid
+             */
+            material_id: string;
+            /**
+             * Quantity
+             * @example 5760.00
+             */
+            quantity: string;
+        };
+        /** WipRequest */
+        WipRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lines */
+            lines: components["schemas"]["WipLine"][];
+            /** Reason */
+            reason?: string | null;
+        };
+        /** WorkCenterCreate */
+        WorkCenterCreate: {
+            /** Calendar Id */
+            calendar_id?: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Efficiency Pct
+             * @default 100
+             * @example 5760.00
+             */
+            efficiency_pct: string;
+            /** Job Work Party Id */
+            job_work_party_id?: string | null;
+            /** @default internal */
+            kind: components["schemas"]["WorkCenterKind"];
+            /**
+             * Machine Count
+             * @default 1
+             */
+            machine_count: number;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            rate_per_hour?: components["schemas"]["Money"] | null;
+        };
+        /**
+         * WorkCenterKind
+         * @enum {string}
+         */
+        WorkCenterKind: "internal" | "external";
+        /** WorkCenterRead */
+        WorkCenterRead: {
+            calendar: components["schemas"]["CalendarRef"];
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Code */
+            code: string;
+            /**
+             * Efficiency Pct
+             * @example 5760.00
+             */
+            efficiency_pct: string;
+            /** Exceptions */
+            exceptions: components["schemas"]["CapacityExceptionRead"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Job Work Party Id */
+            job_work_party_id: string | null;
+            kind: components["schemas"]["WorkCenterKind"];
+            /** Machine Count */
+            machine_count: number;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            rate_per_hour?: components["schemas"]["Money"] | null;
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            /** Shifts */
+            shifts: components["schemas"]["ShiftMinutes"][];
+            /**
+             * Standard Day Minutes
+             * @example 5760.00
+             */
+            standard_day_minutes: string;
+            /** Version */
+            version: number;
+        };
+        /** WorkCenterRef */
+        WorkCenterRef: {
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** WorkCenterSummary */
+        WorkCenterSummary: {
+            /** Code */
+            code: string;
+            /**
+             * Efficiency Pct
+             * @example 5760.00
+             */
+            efficiency_pct: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            kind: components["schemas"]["WorkCenterKind"];
+            /** Machine Count */
+            machine_count: number;
+            /** Name */
+            name: string;
+            rate_per_hour?: components["schemas"]["Money"] | null;
+            /** Redacted Fields */
+            redacted_fields?: string[];
+            /**
+             * Standard Day Minutes
+             * @example 5760.00
+             */
+            standard_day_minutes: string;
+        };
+        /** WorkCenterUpdate */
+        WorkCenterUpdate: {
+            /** Calendar Id */
+            calendar_id?: string | null;
+            /**
+             * Clear Rate
+             * @default false
+             */
+            clear_rate: boolean;
+            /** Efficiency Pct */
+            efficiency_pct?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Machine Count */
+            machine_count?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            rate_per_hour?: components["schemas"]["Money"] | null;
+        };
+        /**
+         * WorkOrderCancelReason
+         * @enum {string}
+         */
+        WorkOrderCancelReason: "not_needed" | "order_cancelled" | "replanned" | "data_error" | "other";
+        /** WorkOrderCreate */
+        WorkOrderCreate: {
+            /** Bom Id */
+            bom_id?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Planned Start Date */
+            planned_start_date?: string | null;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /** Routing Id */
+            routing_id?: string | null;
+            /** Sales Order Line Id */
+            sales_order_line_id?: string | null;
+            /** Uom Code */
+            uom_code?: string | null;
+            /** Warehouse Id */
+            warehouse_id?: string | null;
+        };
+        /** WorkOrderRead */
+        WorkOrderRead: {
+            /** Allowed Transitions */
+            allowed_transitions: components["schemas"]["app__core__http__capabilities__TransitionRead"][];
+            /** Blocked Causes */
+            blocked_causes: components["schemas"]["BlockCauseRef"][];
+            /** Blocked Since */
+            blocked_since: string | null;
+            bom: components["schemas"]["MasterSummary"];
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancel Reason Code */
+            cancel_reason_code: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Closed At */
+            closed_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Blocked */
+            is_blocked: boolean;
+            /** Materials */
+            materials: components["schemas"]["MaterialRead"][];
+            /** Notes */
+            notes: string | null;
+            /** Operations */
+            operations: components["schemas"]["OperationRead"][];
+            owner: components["schemas"]["ProductionUserRef"] | null;
+            /** Planned Start Date */
+            planned_start_date: string | null;
+            product: components["schemas"]["ProductionProductRef"];
+            /**
+             * Qty Good
+             * @example 5760.00
+             */
+            qty_good: string;
+            /**
+             * Qty Planned
+             * @example 5760.00
+             */
+            qty_planned: string;
+            /**
+             * Qty Scrap
+             * @example 5760.00
+             */
+            qty_scrap: string;
+            /** Released At */
+            released_at: string | null;
+            routing: components["schemas"]["MasterSummary"];
+            sales_order: components["schemas"]["OrderLineRef"] | null;
+            status: components["schemas"]["WorkOrderStatus"];
+            /** Transactions */
+            transactions: components["schemas"]["TransactionRead"][];
+            /** Uom Code */
+            uom_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            warehouse: components["schemas"]["ProductionWarehouseRef"];
+            /** Wo Number */
+            wo_number: string;
+        };
+        /**
+         * WorkOrderStatus
+         * @enum {string}
+         */
+        WorkOrderStatus: "draft" | "released" | "in_progress" | "completed" | "closed" | "cancelled";
+        /** WorkOrderSummary */
+        WorkOrderSummary: {
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Blocked */
+            is_blocked: boolean;
+            owner: components["schemas"]["ProductionUserRef"] | null;
+            /** Planned Start Date */
+            planned_start_date: string | null;
+            product: components["schemas"]["ProductionProductRef"];
+            /**
+             * Qty Good
+             * @example 5760.00
+             */
+            qty_good: string;
+            /**
+             * Qty Planned
+             * @example 5760.00
+             */
+            qty_planned: string;
+            sales_order: components["schemas"]["OrderLineRef"] | null;
+            status: components["schemas"]["WorkOrderStatus"];
+            /** Uom Code */
+            uom_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            warehouse: components["schemas"]["ProductionWarehouseRef"];
+            /** Wo Number */
+            wo_number: string;
+        };
+        /** WorkOrderTransition */
+        WorkOrderTransition: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "release" | "complete" | "close" | "cancel";
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason?: string | null;
+            reason_code?: components["schemas"]["WorkOrderCancelReason"] | null;
+        };
+        /** WorkOrderUpdate */
+        WorkOrderUpdate: {
+            /** Due Date */
+            due_date?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Notes */
+            notes?: string | null;
+            /** Planned Start Date */
+            planned_start_date?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+        };
+        /** WorkOrderVersioned */
+        WorkOrderVersioned: {
+            /** Expected Version */
+            expected_version: number;
         };
         /** TransitionRead */
         app__core__http__capabilities__TransitionRead: {
@@ -30091,6 +32158,1410 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductPrices"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_list_boms: {
+        parameters: {
+            query?: {
+                product_id?: string | null;
+                status?: components["schemas"]["MasterStatus"][] | null;
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MasterSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_create_bom: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BomCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_bom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bom_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_update_bom: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                bom_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BomUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_approve_bom: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                bom_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_retire_bom: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                bom_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_capacity: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                work_center_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapacityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_list_cost_rollups: {
+        parameters: {
+            query?: {
+                product_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CostRollupRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_run_cost_rollup: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CostRollupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostRollupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_cost_rollup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rollup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostRollupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_assess_feasibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeasibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeasibilityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_assess_order_line_feasibility: {
+        parameters: {
+            query?: {
+                need_by?: string | null;
+            };
+            header?: never;
+            path: {
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeasibilityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_list_routings: {
+        parameters: {
+            query?: {
+                product_id?: string | null;
+                status?: components["schemas"]["MasterStatus"][] | null;
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MasterSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_create_routing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_routing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                routing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_update_routing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                routing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_approve_routing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                routing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_retire_routing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                routing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_run_simulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimulationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_list_work_centers: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_create_work_center: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkCenterCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_work_center: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_center_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_update_work_center: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_center_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkCenterUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_set_capacity_exception: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_center_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapacityExceptionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_delete_capacity_exception: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_center_id: string;
+                exception_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCenterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_list_work_orders: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Tokens matched against the WO number, product and order */
+                q?: string | null;
+                status?: components["schemas"]["WorkOrderStatus"][] | null;
+                blocked?: boolean | null;
+                product_id?: string | null;
+                sales_order_id?: string | null;
+                scope?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_WorkOrderSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_create_work_order: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_work_order_by_number: {
+        parameters: {
+            query: {
+                wo_number: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_get_work_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_update_work_order: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_consume_work_order_materials: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_issue_work_order_materials: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_record_work_order_offcut: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OffcutRecord"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_complete_work_order_operation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OperationComplete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_link_work_order_cut_plan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CutPlanLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_schedule_work_order_operation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OperationSchedule"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_report_work_order_output: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutputRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_recheck_work_order_materials: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderVersioned"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_return_work_order_materials: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    production_transition_work_order: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderRead"];
                 };
             };
             /** @description Validation Error */

@@ -88,6 +88,30 @@ def derive_shortage(uow: UnitOfWork, shortage_id: uuid.UUID, *, cache: SourceCac
                     scope_branch_id=order.branch_id,
                 )
             )
+        elif cause["type"] == "production.wo_material":
+            # the work order whose material is short (Slice-4 merge, production request 5)
+            from app.modules.production.models import WoMaterial
+
+            material = uow.session.get(WoMaterial, uuid.UUID(cause["id"]))
+            if material is None:
+                continue
+            wo = cache.read(uow, "production.work_order", material.work_order_id)
+            if wo is None:
+                continue
+            members.append(
+                MemberSpec(
+                    key=f"cause:{cause['type']}:{cause['id']}",
+                    ref_type="production.work_order",
+                    ref_id=wo.source_id,
+                    ref_version=wo.version,
+                    label=cause.get("label") or wo.label,
+                    facts={"wo_number": wo.facts.get("wo_number"), "cause": cause["type"]},
+                    required_permission="production.work_order.read",
+                    role=MemberRole.EVIDENCE.value,
+                    scope_owner_id=wo.owner_user_id,
+                    scope_branch_id=wo.branch_id,
+                )
+            )
     tasks: list[TaskSpec] = []
     if not s.is_closed:
         named = responsibility.resolve(uow, "ops.shortages", [])

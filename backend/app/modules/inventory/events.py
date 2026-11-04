@@ -61,6 +61,11 @@ SHORTAGE_TRIGGERS: tuple[str, ...] = (
     "orders.sales_order.completed",
     "orders.sales_order.cancelled",
     "orders.sales_order_line.cancelled",
+    # work-order materials are demand while released / in progress (production lane; pair resolver in its manifest)
+    "production.work_order.released",
+    "production.work_order.completed",
+    "production.work_order.closed",
+    "production.work_order.cancelled",
 )
 SHORTAGE_REFRESH = "inventory.shortage_refresh"
 

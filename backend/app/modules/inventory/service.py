@@ -13,6 +13,9 @@ Extension points (register in a manifest ``on_load``)
 - ``register_demand_provider(name, fn)``: open demand per (product, warehouse) for the shortage state.
 - ``register_pair_resolver(event_prefix, fn)``: which (product, warehouse) pairs a module's event touches.
 - ``register_cause_provider(name, fn)``: supply-side causes (late PO lines) for ``caused_by``.
+Production (Slice-4 production lane)
+- ``wip_location(uow, warehouse_id)``: the warehouse's WIP location (issue internal -> WIP, consume WIP -> production).
+- ``record_measured_lot(uow, ...)``: a new lot with measured dimensions (offcuts, board lots), ``inventory.lot.measured``.
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ from app.modules.inventory.locations import (
     holding_location,
     office_location,
     warehouse_location,
+    wip_location,
 )
 from app.modules.inventory.models import StockMovement, StockPosting, Warehouse
 from app.modules.inventory.posting import (
@@ -102,6 +106,8 @@ __all__ = [
     "stock_quantity",
     "summary_of",
     "warehouse_location",
+    "wip_location",
+    "record_measured_lot",
 ]
 
 
@@ -180,3 +186,44 @@ def posting_by_id(uow: UnitOfWork, posting_id: uuid.UUID) -> StockPosting | None
 
 
 ZERO = Decimal(0)
+
+
+def record_measured_lot(
+    uow: UnitOfWork,
+    *,
+    product_id: uuid.UUID,
+    lot_code: str,
+    lot_kind: str,
+    length_mm: Decimal,
+    width_mm: Decimal,
+    thickness_mm: Decimal | None,
+    grain_axis: str | None,
+    parent_lot_id: uuid.UUID | None = None,
+) -> uuid.UUID:
+    """Create a lot (``offcut`` / ``board_lot``) and record its measured dimensions in one step (``inventory.lot.manage``;
+    emits ``inventory.lot.measured``). Returns the lot id. ``parent_lot_id`` must be a lot of the same product."""
+    from app.modules.inventory.documents import create_lot, measure_lot
+    from app.modules.inventory.enums import LotKind
+    from app.modules.inventory.models import Lot
+    from app.modules.inventory.schemas import LotCreate, LotMeasure
+
+    if parent_lot_id is not None:
+        parent = uow.session.scalars(
+            select(Lot).where(Lot.company_id == uow.actor.company_id, Lot.id == parent_lot_id)
+        ).first()
+        if parent is None or parent.product_id != product_id:
+            raise ValidationFailed(
+                "The parent lot belongs to another product",
+                errors=[{"loc": ["body", "parent_lot_id"], "msg": "lot of another product", "code": "lot_mismatch"}],
+            )
+    lot = create_lot(uow, LotCreate(product_id=product_id, lot_code=lot_code, lot_kind=LotKind(lot_kind)))
+    if parent_lot_id is not None:
+        lot.parent_lot_id = parent_lot_id
+        uow.flush()
+    measure_lot(
+        uow,
+        lot.id,
+        LotMeasure(length_mm=length_mm, width_mm=width_mm,
+                   thickness_mm=thickness_mm, grain_axis=grain_axis),
+    )
+    return lot.id

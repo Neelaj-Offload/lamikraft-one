@@ -67,6 +67,7 @@ PEOPLE: dict[str, Person] = {
         _p("ANANYA", "Ananya Rao", "finance", "company", None, None),
         _p("PRIYA", "Priya Nair", "admin", "company", None, None),
         _p("VIKRAM", "Vikram Singh", "operations", "branch", TEAMS.OPS_HO, "RAVI", slice_no=2),
+        _p("DEEPA", "Deepa Menon", "production", "company", None, None, slice_no=4),
     )
 }
 USERS = SimpleNamespace(**{k: k for k in PEOPLE})
@@ -210,6 +211,20 @@ OPENING_LINES = (
     ("WALNUT_BOARD", "40", "A-12", "WB-2610-A"),
 )
 LOTS = SimpleNamespace(WALNUT="WB-2610-A")
+
+# ---- production (slice 4; fixtures.md §8) -----------------------------------------------------
+#: the finished product made from walnut boards (created by the production seed)
+PRODUCTION_PRODUCTS = SimpleNamespace(WALNUT_PANEL_SET="LK-WP-0001")
+PRODUCTION_PRODUCT_NAMES = {"WALNUT_PANEL_SET": "Walnut cabinet panel set"}
+#: work centre codes (SeedContext.refs keys are "WC_" + attribute)
+WORK_CENTERS = SimpleNamespace(PANEL_SAW="PANEL-SAW", EDGE_BAND="EDGE-BAND", ASSEMBLY="ASSEMBLY")
+WORK_CENTER_REFS = SimpleNamespace(**{k: f"WC_{k}" for k in vars(WORK_CENTERS)})
+#: WO-2026-0001: 8 panel sets at WH-MAIN; 6 sheets of LK-WB-1800 each = 48 > 40 on hand -> blocked by the shortage
+WORK_ORDERS = SimpleNamespace(PANEL_SETS="WO-2026-0001")
+WORK_ORDER_REFS = SimpleNamespace(PANEL_SETS="WO_PANEL_SETS")
+PRODUCTION_REFS = SimpleNamespace(BOM_PANEL_SET="BOM_PANEL_SET", ROUTING_PANEL_SET="ROUTING_PANEL_SET")
+#: the walnut board's cost of record (INR per sheet, effective D-30) recorded by the production seed
+WALNUT_BOARD_COST = "2450.0000"
 
 # ---- tasks and reminders ---------------------------------------------------------------------
 TASKS = SimpleNamespace(KABIR_COUNT="TASK_KABIR_COUNT", ARJUN_WALKTHROUGH="TASK_ARJUN_WALKTHROUGH")

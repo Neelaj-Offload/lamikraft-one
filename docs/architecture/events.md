@@ -54,7 +54,8 @@ contract 5. Code anchors: `backend/app/platform/events/{defs,models,service}.py`
 | `channels.revoke_on_deactivation` | channels | revokes channel sessions and voids armed action refs | 3 |
 | `channels.ack_sync` | channels | mirrors acknowledgements to WhatsApp state | 3 |
 | `agents.automation_dispatch` | agents | enqueues automation runs (subscribes only to event types used by active automations) | 3 |
-| `inventory.shortage_refresh` | inventory | debounced recompute of `inventory_shortage_state` | 4 |
+| `inventory.shortage_refresh` | inventory | recompute of `inventory_shortage_state` for the (product, warehouse) pairs an event touches; one key per trigger, `inventory.shortage_refresh:<event>` (like `tasks.rules:<event>`); triggers are `inventory.events.SHORTAGE_TRIGGERS` (orders, stock, reservation and `production.work_order.{released,completed,closed,cancelled}` events; pair resolvers registered by production) | 4 |
+| `production.material_retry` | production | `production.material_retry:<event>` on `inventory.stock.posted`, `inventory.posting.reversed`, `inventory.reservation.released`: blocked work orders reserve again and unblock (idempotent on replay) | 4 |
 | `logistics.packing_list_staleness` | logistics | flags draft packing lists stale when packaging changes | 4 |
 | `logistics.shipment_status` | logistics | sets shipment dispatched when the linked challan is issued | 4 |
 | `finance.invoice_suggestion` | finance | suggests a draft invoice for issued delivery challans | 5 |
@@ -304,7 +305,7 @@ Customer and vendor messages arriving through channels become `sales_customer_me
 | 2 | common.delegation | `identity.delegation.*`, `identity.absence.*` |
 | 2 | scope reassignment | `sales.quote.owner_changed`, `parties.party.owner_changed` |
 | 3 | common.handled, channels, admin.failed_integrations | `agents.automation_run.*`, `channels.message.delivery_unknown`, `channels.conversation.escalated`, `system.integration.status_changed`, `sales.quote.delivery_status_changed` |
-| 4 | ops.shortages, ops.receipts, ops.qc, ops.production_dependencies, ops.dispatch_cutoffs, mgmt.decisions, mgmt.cross_team_blockers | §3.10 events |
+| 4 | ops.shortages (live: one issue per short product × warehouse, causes — order lines, work-order materials — as evidence members), ops.picking, admin.stock_integrity (live), ops.production_dependencies (live: blocked work order with its shortage, overloaded day, incomplete rollup), ops.receipts, ops.qc, ops.dispatch_cutoffs, mgmt.decisions, mgmt.cross_team_blockers | §3.10 events; `inventory.pick_list.*`, `inventory.projection.mismatch_detected`, `production.capacity.overloaded`, `production.cost_rollup.computed` |
 | 5 | fin.*, mgmt.margin_exceptions, mgmt.financial_visibility | §3.11 events |
 
 Rules treat events as triggers and re-read authoritative state; a stale `aggregate_version` is ignored; replays and

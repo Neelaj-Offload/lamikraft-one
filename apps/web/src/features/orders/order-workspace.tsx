@@ -15,6 +15,7 @@ import { ErrorState, Loading, NotAvailable, PermissionDenied } from "@/component
 import { toast } from "@/components/ui/toast";
 import { useScreenContribution } from "@/features/assistant/screen-context-store";
 import { useCommand } from "@/features/inventory/use-command";
+import { OrderFeasibilityPanel } from "@/features/production/feasibility-panel";
 import { ProblemError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
 import { ordersMessages as m } from "@/messages/orders";
@@ -208,6 +209,7 @@ function Workspace({ order }: { order: OrderDetail }) {
       <SectionCard title={w.lines}>
         <DataTable caption={w.linesCaption} hideCaption columns={lineColumns} rows={order.lines} rowId={(l) => l.id} />
       </SectionCard>
+      <OrderFeasibilityPanel lines={order.lines} requestedDate={order.requested_delivery_date ?? order.promised_date ?? null} />
       <SectionCard title={w.reservations}>
         {order.reservations.length === 0 ? (
           <p className="text-sm text-ink-muted">{w.reservationsEmpty}</p>

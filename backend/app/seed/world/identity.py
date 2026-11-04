@@ -33,7 +33,7 @@ IST = ZoneInfo(keys.ZONE)
 BRANCH_NAMES = {keys.BRANCHES.HO: "Head Office", keys.BRANCHES.FAC: "Factory"}
 TEAM_NAMES = {keys.TEAMS.EXP_SALES: "Export Sales", keys.TEAMS.OPS_HO: "Operations HO"}
 #: managers first so their memberships exist when reports are provisioned
-PROVISION_ORDER = ("PRIYA", "SAHIL", "RAVI", "MEERA", "NEHA", "KABIR", "ANANYA", "VIKRAM", "ARJUN")
+PROVISION_ORDER = ("PRIYA", "SAHIL", "RAVI", "MEERA", "NEHA", "KABIR", "ANANYA", "VIKRAM", "DEEPA", "ARJUN")
 
 
 def demo_company_spec() -> CompanySpec:

@@ -30,10 +30,10 @@ export const areaMessages = {
   operations: {
     title: "Operations",
     intro: "Cutting, challans, stock, purchasing, production, quality and dispatch.",
-    stateTitle: "Cutting, challans, inventory and reservations are here; the rest of Operations arrives in Slice 4",
+    stateTitle: "Cutting, challans, inventory, reservations and production are here; the rest of Operations arrives in Slice 4",
     stateBody:
-      "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, and reservations with pick lists are available now; once inventory is live an issued challan moves stock exactly once. Purchasing, production, quality, dispatch and logistics follow in Slice 4.",
-    liveNote: "Cutting, challans, inventory and reservations are available now; the other parts below are not switched on yet.",
+      "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, reservations with pick lists, and production (work orders, BOMs, routings, work centres and capacity) are available now; once inventory is live an issued challan moves stock exactly once. Purchasing, quality, dispatch and logistics follow in Slice 4.",
+    liveNote: "Cutting, challans, inventory, reservations and production are available now; the other parts below are not switched on yet.",
     partsHeading: "What this area will hold",
     parts: [
       { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },
@@ -41,7 +41,8 @@ export const areaMessages = {
       { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4, routeId: "operations-inventory" },
       { label: "Reservations and pick lists with no oversell", slice: 4, routeId: "operations-reservations" },
       { label: "Purchasing: requisition, purchase order, goods receipt", slice: 4 },
-      { label: "Production: BOMs, routings, work orders and offcut lots", slice: 4 },
+      { label: "Production: BOMs, routings, work orders and offcut lots", slice: 4, routeId: "operations-production-work-orders" },
+      { label: "Capacity: load per work centre per day against the work calendar", slice: 4, routeId: "operations-production-capacity" },
       { label: "Quality checks on receipts", slice: 4 },
       { label: "Dispatch and logistics: packing lists, shipments and cutoffs", slice: 4 },
     ],
