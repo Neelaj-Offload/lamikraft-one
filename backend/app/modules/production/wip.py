@@ -74,9 +74,14 @@ def _post(uow: UnitOfWork, wo: WorkOrder, kind: TransactionKind, lines: list[inv
 
 
 def _for_posting(uow: UnitOfWork, work_order_id: uuid.UUID, expected_version: int) -> WorkOrder:
-    wo = get_work_order(uow, work_order_id, "post", for_update=True)
-    uow.expect_version(wo, expected_version)
+    """Lock the work order: 404 when it is invisible, then the warehouse scope (404 for a warehouse the actor cannot
+    see, 403 without ``inventory.stock.post`` there), then ``production.work_order.post`` and its state rule (403)."""
+    from app.modules.production.models import WorkOrder as _WO
+
+    wo = get_work_order(uow, work_order_id, "read", for_update=True)
     require_warehouse(uow, wo.warehouse_id, STOCK_POST)
+    uow.repo(_WO).require_action(wo, "post")
+    uow.expect_version(wo, expected_version)
     return wo
 
 

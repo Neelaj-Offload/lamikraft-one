@@ -25,6 +25,7 @@ export const inventoryMessages = {
     transfer: "Transfer",
     relocation: "Bin move",
     reversal: "Reversal",
+    work_order: "Work order",
   } as Record<string, string>,
   stock: {
     title: "Inventory",

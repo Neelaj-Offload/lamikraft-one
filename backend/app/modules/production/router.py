@@ -372,6 +372,6 @@ def assess_order_line_feasibility(actor: Actor, line_id: uuid.UUID, need_by: dat
 
 
 @router.post("/simulations", openapi_extra=requires("production.simulation.run"))
-def simulate(actor: Actor, body: SimulationRequest) -> SimulationRead:
+def run_simulation(actor: Actor, body: SimulationRequest) -> SimulationRead:
     """What-if over an in-memory overlay next to the unchanged baseline; never writes."""
     return service.simulate(actor, body)
