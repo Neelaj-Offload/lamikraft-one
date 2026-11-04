@@ -107,6 +107,11 @@ def dispatch_linked_samples(uow: UnitOfWork, challan_id: uuid.UUID) -> list[uuid
 # =====================================================================================================
 # lineage
 # =====================================================================================================
+#: lifecycle order for events at the same instant
+_ORDER = ("custom_product_created", "spec_revision_recorded", "quote_issued", "sample_requested", "challan_issued",
+          "sample_dispatched", "sample_delivered", "feedback_recorded", "sample_closed", "product_promoted")
+
+
 def _hidden(kind: str) -> LineageNode:
     return LineageNode(kind=kind, state="not_visible")  # type: ignore[arg-type]
 
@@ -194,7 +199,7 @@ def lineage(uow: UnitOfWork, sample_id: uuid.UUID) -> SampleLineage:
     event("feedback_recorded", "Feedback recorded", sample.feedback_at, ref="sample")
     if sample.status == SampleStatus.CLOSED.value:
         event("sample_closed", "Closed", sample.closed_at, ref="sample")
-    events.sort(key=lambda e: (e.on, e.at.timestamp() if e.at is not None else 0.0, e.kind))
+    events.sort(key=lambda e: (e.on, e.at.timestamp() if e.at is not None else 0.0, _ORDER.index(e.kind)))
     missing = [k for k, v in (("custom_product", sample.custom_product_id), ("quote", sample.quote_id),
                               ("challan", sample.challan_id)) if v is None]
     return SampleLineage(
