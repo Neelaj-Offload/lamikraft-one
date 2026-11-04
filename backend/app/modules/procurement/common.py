@@ -123,3 +123,10 @@ def require_scope(uow: UnitOfWork, model: type, record_id: uuid.UUID, action: st
     repo = uow.repo(model)
     if uow.session.scalar(select(model.id).where(model.id == record_id, repo.clause(action))) is None:
         raise Forbidden(code="permission_denied", permission=repo.policy.permission(action))
+
+
+def money4(value: Decimal | int | None) -> Decimal:
+    """Money as stored (NUMERIC(18,4)): four places in read models whatever the in-memory scale."""
+    from app.core.money import quantize_unit_price
+
+    return quantize_unit_price(Decimal(value or 0))

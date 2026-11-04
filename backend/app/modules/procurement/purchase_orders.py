@@ -30,6 +30,7 @@ from app.modules.procurement.common import (
     business_date,
     cap,
     invalid,
+    money4,
     number,
     party_briefs,
     plain,
@@ -82,6 +83,8 @@ TRANSITIONS: dict[tuple[str, str], tuple[str, str]] = {
     (P.APPROVED.value, A.CANCEL.value): (P.CANCELLED.value, "transition"),
     (P.ISSUED.value, A.CANCEL.value): (P.CANCELLED.value, "transition"),
     (P.ISSUED.value, A.CLOSE.value): (P.CLOSED.value, "transition"),
+    #: listed so the refusal names the reason (``received_cannot_cancel``); close it instead
+    (P.PARTIALLY_RECEIVED.value, A.CANCEL.value): (P.CANCELLED.value, "transition"),
     (P.PARTIALLY_RECEIVED.value, A.CLOSE.value): (P.CLOSED.value, "transition"),
     (P.RECEIVED.value, A.CLOSE.value): (P.CLOSED.value, "transition"),
 }
@@ -451,8 +454,9 @@ def convert_requisition(uow: UnitOfWork, requisition_id: uuid.UUID, data: Conver
     from app.modules.procurement.requisitions import lines_of as req_lines
 
     uow.actor.require(CREATE)
-    r = uow.repo(Requisition).get(requisition_id, for_update=True)
-    require_warehouse(uow, r.warehouse_id)
+    from app.modules.procurement.requisitions import get_visible
+
+    r = get_visible(uow, requisition_id, for_update=True)
     uow.expect_version(r, data.expected_version)
     if r.status != "approved":
         raise Conflict(
@@ -572,7 +576,7 @@ def _summaries(uow: UnitOfWork, rows: list[PurchaseOrder]) -> list[dict]:  # typ
             "warehouse": whs[r.warehouse_id],
             "owner": users[r.owner_user_id],
             "currency": r.currency,
-            "total_amount": Decimal(r.total_amount),
+            "total_amount": money4(r.total_amount),
             "order_date": r.order_date,
             "next_expected_date": nxt.get(r.id) if r.status in OPEN_VALUES else None,
             "is_overdue": r.status in OPEN_VALUES and r.id in late,
@@ -631,9 +635,9 @@ def line_reads(uow: UnitOfWork, po: PurchaseOrder, lines: list[PurchaseOrderLine
             product=products[ln.product_id],
             quantity=plain(ln.quantity),
             unit=ln.uom_code,
-            unit_price=Decimal(ln.unit_price),
+            unit_price=money4(ln.unit_price),
             price_override_reason=ln.price_override_reason,
-            line_amount=Decimal(ln.line_amount),
+            line_amount=money4(ln.line_amount),
             lead_time_days_assumed=ln.lead_time_days_assumed,
             expected_date=ln.expected_date,
             is_overdue=is_line_overdue(ln, po.status, today),

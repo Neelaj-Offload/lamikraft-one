@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.core.errors import NotFound
 from app.modules.procurement.common import (
     business_date,
+    money4,
     party_briefs,
     product_briefs,
     require_vendor,
@@ -33,7 +34,7 @@ def reads(uow: UnitOfWork, rows: list[VendorItem]) -> list[VendorItemRead]:
             product=products[r.product_id],
             vendor_code=r.vendor_code,
             lead_time_days=r.lead_time_days,
-            unit_price=Decimal(r.unit_price),
+            unit_price=money4(r.unit_price),
             currency=r.currency,
             price_uom=r.price_uom,
             min_order_qty=Decimal(r.min_order_qty) if r.min_order_qty is not None else None,

@@ -20,7 +20,7 @@ from sqlalchemy import func, select
 from app.core.errors import Conflict
 from app.core.money import quantize_money
 from app.modules.procurement import events as ev
-from app.modules.procurement.common import ZERO, cap, invalid, party_briefs, plain, product_briefs
+from app.modules.procurement.common import ZERO, cap, invalid, money4, party_briefs, plain, product_briefs
 from app.modules.procurement.enums import MatchStatus, VendorBillStatus
 from app.modules.procurement.events import ProcurementPolicy
 from app.modules.procurement.models import PurchaseOrder, PurchaseOrderLine, VendorBill, VendorBillLine
@@ -265,10 +265,10 @@ def read(uow: UnitOfWork, bill: VendorBill) -> BillRead:
             id=po.id, number=po.po_number, status=po.status, path=f"/operations/purchasing/orders/{po.id}"
         ),
         currency=bill.currency,
-        subtotal_amount=Decimal(bill.subtotal_amount),
-        tax_amount=Decimal(bill.tax_amount),
-        total_amount=Decimal(bill.total_amount),
-        computed_subtotal=sum((Decimal(ln.line_amount) for ln in lines), ZERO),
+        subtotal_amount=money4(bill.subtotal_amount),
+        tax_amount=money4(bill.tax_amount),
+        total_amount=money4(bill.total_amount),
+        computed_subtotal=money4(sum((Decimal(ln.line_amount) for ln in lines), ZERO)),
         status=bill.status,
         match_status=bill.match_status,  # type: ignore[arg-type]
         match_exceptions=[MatchException.model_validate(e) for e in bill.match_exceptions or []],
@@ -283,9 +283,9 @@ def read(uow: UnitOfWork, bill: VendorBill) -> BillRead:
                 po_line_no=pls[ln.po_line_id].line_no,
                 product=products[pls[ln.po_line_id].product_id],
                 quantity=plain(ln.quantity),
-                unit_price=Decimal(ln.unit_price),
-                line_amount=Decimal(ln.line_amount),
-                po_unit_price=Decimal(pls[ln.po_line_id].unit_price),
+                unit_price=money4(ln.unit_price),
+                line_amount=money4(ln.line_amount),
+                po_unit_price=money4(pls[ln.po_line_id].unit_price),
                 qty_accepted=plain(pls[ln.po_line_id].qty_accepted),
                 qty_billed_before=plain(_billed_elsewhere(uow, ln.po_line_id, bill.id)),
             )

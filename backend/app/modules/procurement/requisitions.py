@@ -11,9 +11,9 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, or_, select
 
-from app.core.errors import Conflict, Forbidden
+from app.core.errors import Conflict, Forbidden, NotFound
 from app.core.http.pagination import Page
 from app.modules.inventory.policies import require_warehouse
 from app.modules.procurement import events as ev
@@ -123,10 +123,26 @@ def create_requisition(uow: UnitOfWork, data: RequisitionCreate) -> Requisition:
     return r
 
 
-def _locked(uow: UnitOfWork, requisition_id: uuid.UUID, action: str = "read") -> Requisition:
-    r = uow.repo(Requisition).get(requisition_id, action, for_update=True)
+def visible_clause(uow: UnitOfWork) -> ColumnElement[bool]:
+    """Read scope, widened to the approver's scope: approvers (management holds ``requisition.approve`` but not
+    ``.read``) see the requisitions they may decide."""
+    repo = uow.repo(Requisition)
+    return or_(repo.clause("read"), repo.clause("approve"))
+
+
+def get_visible(uow: UnitOfWork, requisition_id: uuid.UUID, *, for_update: bool = False) -> Requisition:
+    stmt = select(Requisition).where(Requisition.id == requisition_id, visible_clause(uow))
+    if for_update:
+        stmt = stmt.with_for_update()
+    r = uow.session.scalars(stmt).first()
+    if r is None:
+        raise NotFound(code="not_found", resource_type="procurement.requisition")
     require_warehouse(uow, r.warehouse_id)
     return r
+
+
+def _locked(uow: UnitOfWork, requisition_id: uuid.UUID) -> Requisition:
+    return get_visible(uow, requisition_id, for_update=True)
 
 
 def _emit(uow: UnitOfWork, r: Requisition, name: str) -> None:
@@ -276,7 +292,11 @@ def list_requisitions(
     if q and (f := repo.search_filter(q, ["search_text"])) is not None:
         filters.append(f)
     page = repo.list(
-        *filters, order_by=[Requisition.created_at.desc(), Requisition.id.desc()], limit=limit, offset=offset
+        *filters,
+        order_by=[Requisition.created_at.desc(), Requisition.id.desc()],
+        limit=limit,
+        offset=offset,
+        stmt=select(Requisition).where(visible_clause(uow)),
     )
     items = [RequisitionSummary(**d) for d in _summary_fields(uow, list(page.items))]
     return Page[RequisitionSummary](items=items, total=page.total, limit=page.limit, offset=page.offset)
@@ -362,9 +382,7 @@ def detail(uow: UnitOfWork, r: Requisition) -> RequisitionDetail:
 
 
 def get_requisition(uow: UnitOfWork, requisition_id: uuid.UUID) -> RequisitionDetail:
-    r = uow.repo(Requisition).get(requisition_id)
-    require_warehouse(uow, r.warehouse_id)
-    return detail(uow, r)
+    return detail(uow, get_visible(uow, requisition_id))
 
 
 READ = PR_READ
