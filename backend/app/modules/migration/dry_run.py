@@ -170,6 +170,8 @@ def _persist_id_maps(uow: UnitOfWork, an: Analysis, run_id: uuid.UUID) -> dict[s
             stats["unchanged"] += 1
         if prev is not None and prev[1] == MapStatus.APPLIED.value:
             status = MapStatus.APPLIED.value
+        if prev is not None and prev[1] != status:
+            stats["status_changed"] += 1
         rows.append(
             {
                 "id": uuid.uuid7(),
@@ -204,7 +206,8 @@ def _persist_id_maps(uow: UnitOfWork, an: Analysis, run_id: uuid.UUID) -> dict[s
         )
         uow.session.execute(stmt)
     stats["total"] = len(rows)
-    return dict(stats)
+    return {k: int(stats.get(k, 0)) for k in ("total", "new", "changed", "unchanged", "status_changed",
+                                              "missing_from_export")}
 
 
 def _persist_candidates(uow: UnitOfWork, an: Analysis, run_id: uuid.UUID, found: dict[Any, Any]) -> None:
