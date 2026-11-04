@@ -99,3 +99,14 @@ branches in the same worktrees, continuing from the state on disk: `lane/s4-prod
 and the lane report left), `lane/s4-procurement-logistics` (`work`/4: backend committed, web screens in progress),
 `lane/s5-finance` (`identity`/1: module in progress, no commits). Next: the Slice-4 integrator once both Slice-4
 lanes report (→ CP5), then the migration follow-up and the Slice-5 integrator (→ CP6), then Slice 6 (→ CP7).
+
+## Paused 2026-11-04 (owner: "pause for now")
+
+All three lanes stopped; no lane processes left running. Uncommitted work stays in the worktrees; resume each by
+relaunching its brief on its branch in the same worktree, continuing from the state on disk:
+
+| Lane | Worktree / slot | Tip | State when paused |
+|---|---|---|---|
+| Production | `sales` / 6 | `f3cb604` | code and tests committed; `npm run check` 7/7; full `test:api` was started and stopped (rerun it); lane report `docs/lanes/production-s4.md` untracked and unfinished |
+| Procurement / quality / logistics | `work` / 4 | `f067626` | web screens and procure-to-pay e2e spec committed, tree clean; was about to run `npm run check`; then `test:api`, lane e2e, lane report |
+| Finance | `identity` / 1 | `42d6b50` | module, manifest and seed committed; uncommitted edits in `accounting.py`, `ageing.py`, `common.py`, `invoices.py`, `seed/world/finance.py` and new untracked `tests/{unit,integration,contract}/finance/`; was running the accounting tests; web area, scenario M, gates and report not done |
