@@ -47,6 +47,7 @@ import {
   type WorkCenterSummary,
 } from "./api";
 import { MasterStatus, OPERATIONS_LEADING, ProductionTabs, dash, failure, qty, useProductionCommand } from "./common";
+import { isPositiveDecimalStr, trimDecimalStr } from "@/lib/format/decimal";
 
 const ms = m.masters;
 
@@ -347,8 +348,8 @@ export function WorkCentresScreen() {
     { id: "name", header: c.name, mobile: "key", cell: (r) => r.name },
     { id: "kind", header: c.kind, cell: (r) => w.kinds[r.kind] ?? r.kind },
     { id: "machines", header: c.machines, numeric: true, cell: (r) => r.machine_count },
-    { id: "eff", header: c.efficiency, numeric: true, cell: (r) => `${Number(r.efficiency_pct)} %` },
-    { id: "day", header: c.day, numeric: true, mobile: "amount", cell: (r) => m.minutes(String(Number(r.standard_day_minutes))) },
+    { id: "eff", header: c.efficiency, numeric: true, cell: (r) => `${trimDecimalStr(r.efficiency_pct)} %` },
+    { id: "day", header: c.day, numeric: true, mobile: "amount", cell: (r) => m.minutes(trimDecimalStr(r.standard_day_minutes)) },
     { id: "rate", header: c.rate, numeric: true, cell: (r) => (r.rate_per_hour ? <Money value={r.rate_per_hour} /> : r.redacted_fields?.includes("rate_per_hour") ? <span className="text-ink-muted">{w.rateHidden}</span> : dash) },
   ];
   return (
@@ -403,8 +404,8 @@ function WorkCentre({ wc }: { wc: WorkCenterRead }) {
       <KeyValueGrid
         items={[
           { term: w.columns.machines, description: String(wc.machine_count), numeric: true },
-          { term: w.columns.efficiency, description: `${Number(wc.efficiency_pct)} %`, numeric: true },
-          { term: w.columns.day, description: m.minutes(String(Number(wc.standard_day_minutes))), numeric: true },
+          { term: w.columns.efficiency, description: `${trimDecimalStr(wc.efficiency_pct)} %`, numeric: true },
+          { term: w.columns.day, description: m.minutes(trimDecimalStr(wc.standard_day_minutes)), numeric: true },
           { term: w.calendar, description: `${wc.calendar.name} (${w.sources[wc.calendar.source] ?? wc.calendar.source})` },
           { term: w.shifts, description: wc.shifts.map((s) => `${s.name} ${s.start}–${s.end}`).join(", ") || dash },
           { term: w.columns.rate, description: wc.rate_per_hour ? <Money value={wc.rate_per_hour} /> : wc.redacted_fields?.includes("rate_per_hour") ? w.rateHidden : dash },
@@ -422,7 +423,7 @@ function WorkCentre({ wc }: { wc: WorkCenterRead }) {
               {...unavailableWhen((!day || minutes == null || !reason.trim()) ? m.fillIn : null)}
               onPress={() =>
                 day && minutes != null
-                  ? void run("exception", (k) => setCapacityException(wc.id, { exception_date: day, available_minutes: Number(minutes), reason: reason.trim() }, k), { done: w.saved, failed: w.failed, write: (r) => r })
+                  ? void run("exception", (k) => setCapacityException(wc.id, { exception_date: day, available_minutes: Number.parseInt(minutes, 10), reason: reason.trim() }, k), { done: w.saved, failed: w.failed, write: (r) => r })
                   : undefined
               }
             >
@@ -477,13 +478,13 @@ function CapacityTable({ row }: { row: CapacityRead["rows"][number] }) {
   type Day = (typeof row.days)[number];
   const columns: DataTableColumn<Day>[] = [
     { id: "day", header: c.columns.day, isRowHeader: true, mobile: "title", cell: (x) => <LocalDate value={x.day} /> },
-    { id: "capacity", header: c.columns.capacity, numeric: true, cell: (x) => (x.day_type === "working" || Number(x.capacity_minutes) > 0 ? m.minutes(String(Number(x.capacity_minutes))) : x.day_type === "holiday" ? c.holiday : c.nonWorking) },
-    { id: "load", header: c.columns.load, numeric: true, mobile: "amount", cell: (x) => m.minutes(String(Number(x.load_minutes))) },
-    { id: "use", header: c.columns.use, numeric: true, mobile: "status", cell: (x) => (x.overloaded ? <StatusPill tone="danger">{c.overloaded}</StatusPill> : x.utilisation_pct != null ? `${Number(x.utilisation_pct)} %` : dash) },
+    { id: "capacity", header: c.columns.capacity, numeric: true, cell: (x) => (x.day_type === "working" || isPositiveDecimalStr(x.capacity_minutes) ? m.minutes(trimDecimalStr(x.capacity_minutes)) : x.day_type === "holiday" ? c.holiday : c.nonWorking) },
+    { id: "load", header: c.columns.load, numeric: true, mobile: "amount", cell: (x) => m.minutes(trimDecimalStr(x.load_minutes)) },
+    { id: "use", header: c.columns.use, numeric: true, mobile: "status", cell: (x) => (x.overloaded ? <StatusPill tone="danger">{c.overloaded}</StatusPill> : x.utilisation_pct != null ? `${trimDecimalStr(x.utilisation_pct)} %` : dash) },
     { id: "orders", header: c.columns.orders, mobile: "meta", cell: (x) => (x.work_orders.length ? x.work_orders.join(", ") : dash) },
   ];
   return (
-    <SectionCard title={`${row.work_center.code} · ${row.work_center.name}`} description={Number(row.unscheduled_minutes) > 0 ? c.unscheduled(String(Number(row.unscheduled_minutes))) : undefined}>
+    <SectionCard title={`${row.work_center.code} · ${row.work_center.name}`} description={isPositiveDecimalStr(row.unscheduled_minutes) ? c.unscheduled(trimDecimalStr(row.unscheduled_minutes)) : undefined}>
       <DataTable caption={c.caption(row.work_center.code)} hideCaption columns={columns} rows={row.days} rowId={(x) => x.day} />
     </SectionCard>
   );

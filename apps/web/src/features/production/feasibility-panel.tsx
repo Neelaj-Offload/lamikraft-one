@@ -13,6 +13,7 @@ import { useSession } from "@/lib/session/context";
 import { productionMessages as m } from "@/messages/production";
 import { fetchOrderLineFeasibility, type FeasibilityRead } from "./api";
 import { qty } from "./common";
+import { isPositiveDecimalStr } from "@/lib/format/decimal";
 
 const f = m.feasibility;
 const TONES: Record<string, Tone> = { feasible: "success", at_risk: "warning", not_feasible: "danger", estimate: "info" };
@@ -34,7 +35,7 @@ export interface FeasibilityLine {
  */
 export function OrderFeasibilityPanel({ lines, requestedDate }: { lines: readonly FeasibilityLine[]; requestedDate: string | null }) {
   const { permissionKeys } = useSession();
-  const open = lines.filter((l) => l.product_key && l.line_kind !== "charge" && Number(l.qty_remaining) > 0);
+  const open = lines.filter((l) => l.product_key && l.line_kind !== "charge" && isPositiveDecimalStr(l.qty_remaining));
   const [needBy, setNeedBy] = useState<string | null>(requestedDate);
   const [checking, setChecking] = useState<string | null>(null);
   if (!permissionKeys.has("production.feasibility.run") || open.length === 0) return null;
@@ -75,7 +76,7 @@ export function Outcome({ result }: { result: FeasibilityRead }) {
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill tone={TONES[result.outcome] ?? "neutral"}>{f.outcomes[result.outcome] ?? result.outcome}</StatusPill>
         <span>{f.fromStock(`${result.from_stock} ${result.uom_code}`)}</span>
-        {Number(result.to_make) > 0 ? <span>· {f.toMake(`${result.to_make} ${result.uom_code}`)}</span> : null}
+        {isPositiveDecimalStr(result.to_make) ? <span>· {f.toMake(`${result.to_make} ${result.uom_code}`)}</span> : null}
         {result.earliest_completion ? (
           <span className="text-ink-muted">
             · {f.earliest} <LocalDate value={result.earliest_completion} />

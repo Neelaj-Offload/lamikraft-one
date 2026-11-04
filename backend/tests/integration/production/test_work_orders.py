@@ -207,3 +207,31 @@ def test_plan_from_an_order_line_reserves_through_inventory_and_releases_on_canc
     wo = w.act(wo.id, "cancel", reason_code="not_needed", reason="test")
     assert wo.status == "cancelled" and w.summary("WALNUT_BOARD")[1] == Decimal(0)
     assert len(_events(w, "production.work_order.cancelled", wo.id)) == 1
+
+
+def test_output_of_a_qc_required_product_requests_one_inspection_linked_to_the_work_order(prod_world: ProdWorld) -> None:
+    """Slice-4 merge (procurement-logistics request 5): output of a QC-required product lands in QC hold and asks
+    quality for an inspection of exactly that output; ``quality_inspection.work_order_id`` references the work order."""
+    from app.modules.catalogue.models import Product
+    from app.modules.quality.models import Inspection
+
+    w = prod_world
+    w.cancel_seed_wo()
+    with w.system() as uow:
+        product = uow.session.get(Product, w.panel_set)
+        assert product is not None
+        product.qc_required = True
+    wo = w.act(w.new_wo("2").id, "release")
+    for qty in ("1", "1"):
+        with w.uow(DEEPA, idempotency_key=str(uuid.uuid7())) as uow:
+            wo = service.report_output(uow, wo.id, OutputRequest(expected_version=wo.version, qty_good=Decimal(qty)))
+    with w.system() as uow:
+        outputs = list(uow.session.scalars(select(WoTransaction).where(WoTransaction.work_order_id == wo.id,
+                                                                       WoTransaction.kind == "output")))
+        inspections = list(uow.session.scalars(select(Inspection).where(Inspection.work_order_id == wo.id)))
+        assert len(outputs) == 2
+        assert sorted(i.subject_id for i in inspections) == sorted(t.id for t in outputs)
+        assert {(i.subject_type, i.status, i.quantity, i.source_id) for i in inspections} == {
+            ("production.work_order", "pending", Decimal(1), wo.id)
+        }
+    assert len(_events(w, "quality.inspection.requested")) == 2

@@ -82,12 +82,15 @@ def _json_safe(value: Any) -> Any:
 def published_facts() -> dict[str, dict[str, str]]:
     """The fixture constants e2e specs read (``apps/web/e2e/support/world.ts``): ``expected`` (the string values
     of ``keys.EXPECTED``, e.g. ``SCENARIO_C_TOTAL``), ``quotes`` (``keys.QUOTES``: fixture name -> quote number)
-    and ``enquiries`` (``keys.ENQUIRIES``: fixture name -> enquiry number)."""
+    and ``enquiries`` (``keys.ENQUIRIES``: fixture name -> enquiry number); Slice 4 adds ``purchase_orders`` and
+    ``work_orders`` (document numbers by fixture name)."""
     return {
         "expected": {k: v for k, v in vars(keys.EXPECTED).items() if isinstance(v, str)},
         "quotes": dict(vars(keys.QUOTES)),
         "enquiries": dict(vars(keys.ENQUIRIES)),
         "challans": dict(vars(keys.CHALLANS)),
+        "purchase_orders": dict(vars(keys.PURCHASE_ORDERS)),
+        "work_orders": dict(vars(keys.WORK_ORDERS)),
     }
 
 
@@ -98,6 +101,8 @@ def business_key_refs(ctx: SeedContext) -> dict[str, str]:
     pairs = [(f"Q_{name}", number) for name, number in vars(keys.QUOTES).items()]
     pairs += [(f"ENQ_{name}", number) for name, number in vars(keys.ENQUIRIES).items()]
     pairs += [(f"DC_{name}", number) for name, number in vars(keys.CHALLANS).items()]
+    pairs += [(getattr(keys.PURCHASE_ORDER_REFS, name), number) for name, number in vars(keys.PURCHASE_ORDERS).items()]
+    pairs += [(getattr(keys.WORK_ORDER_REFS, name), number) for name, number in vars(keys.WORK_ORDERS).items()]
     for fixture_key, business_key in pairs:
         if fixture_key in ctx.refs:
             out[business_key] = str(ctx.refs[fixture_key])

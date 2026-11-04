@@ -308,7 +308,7 @@ export function AccessRequestsScreen() {
         permission_key: key ?? String(form.get("permission_key") ?? "").trim(),
         scope,
         reason: String(form.get("reason") ?? "").trim(),
-        duration_days: Number(form.get("duration_days") ?? 7),
+        duration_days: Number.parseInt(String(form.get("duration_days") ?? "7"), 10),
       });
       toast.success("Request sent");
       setOpen(false);

@@ -30,6 +30,7 @@ from app.modules.production.schemas import (
 from app.platform.audit.models import AuditLog
 from app.platform.authz.redaction import redact
 from app.platform.events.models import DomainEvent
+from app.seed.context import D0
 from app.seed.world import keys
 from tests.integration.production.world import DEEPA, ProdWorld
 
@@ -115,8 +116,11 @@ def test_cost_redaction_canary(prod_world: ProdWorld) -> None:
     assert facts is not None and facts.money == [] and not any("amount" in k or "cost" in k for k in facts.facts)
 
 
-def test_feasibility_evidence_from_stock_components_and_capacity(prod_world: ProdWorld) -> None:
+def test_feasibility_evidence_from_stock_components_and_capacity(prod_world: ProdWorld, monkeypatch: pytest.MonkeyPatch) -> None:
     w = prod_world
+    # the lane's view: no supply source registered (since the Slice-4 merge procurement registers one; see
+    # test_procurement_purchase_order_lines_are_feasibility_supply for the real provider)
+    monkeypatch.delitem(feas._SUPPLY, "procurement.purchase_order_line", raising=False)
     with w.uow(MEERA) as uow:  # sales may run feasibility
         stock = service.assess_feasibility(uow, FeasibilityRequest(product_id=w.ref("OAK_TRAY"), quantity=Decimal(100),
                                                                    need_by=w.d(3)))
@@ -141,8 +145,9 @@ def test_feasibility_evidence_from_stock_components_and_capacity(prod_world: Pro
     assert late.outcome == "not_feasible"  # 360 sheets needed, 20 due
 
 
-def test_feasibility_and_simulation_write_nothing(prod_world: ProdWorld) -> None:
+def test_feasibility_and_simulation_write_nothing(prod_world: ProdWorld, monkeypatch: pytest.MonkeyPatch) -> None:
     w = prod_world
+    monkeypatch.delitem(feas._SUPPLY, "procurement.purchase_order_line", raising=False)  # baseline is an estimate
 
     def counts() -> tuple[int, ...]:
         with w.system() as uow:
@@ -181,3 +186,24 @@ def test_order_line_feasibility_follows_order_visibility(prod_world: ProdWorld) 
     assert res.outcome == "feasible" and res.quantity == Decimal(240)
     with w.uow(keys.USERS.NEHA) as uow, pytest.raises(NotFound):  # another salesperson's order: never confirmed
         service.assess_order_line(uow, line.id, w.d(10))
+
+
+def test_procurement_purchase_order_lines_are_feasibility_supply(prod_world: ProdWorld) -> None:
+    """Slice-4 merge (production request 2): procurement registers its open PO lines as supply. With every walnut sheet
+    reserved, no open PO means nothing is coming (not feasible); the fixture PO-2026-0001 (60 sheets, expected D0+3)
+    then covers the boards by its expected date."""
+    from app.seed.world.procurement import seed_procurement
+
+    w = prod_world
+    assert "procurement.purchase_order_line" in feas.supply_providers()
+    with w.uow(DEEPA) as uow:
+        none = service.assess_feasibility(uow, FeasibilityRequest(product_id=w.panel_set, quantity=Decimal(2), need_by=w.d(4)))
+    assert none.outcome == "not_feasible"
+    seed_procurement(w.ctx)
+    w.at(D0)
+    with w.uow(DEEPA) as uow:
+        early = service.assess_feasibility(uow, FeasibilityRequest(product_id=w.panel_set, quantity=Decimal(2), need_by=w.d(2)))
+        ok = service.assess_feasibility(uow, FeasibilityRequest(product_id=w.panel_set, quantity=Decimal(2), need_by=w.d(5)))
+    assert early.outcome == "not_feasible"  # the PO is due at D0+3
+    assert ok.outcome in ("feasible", "at_risk") and ok.earliest_completion is not None and ok.earliest_completion <= w.d(5)
+    assert "lead_time:LK-WB-1800" not in ok.missing_inputs

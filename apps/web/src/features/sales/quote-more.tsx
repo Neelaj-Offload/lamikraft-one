@@ -291,8 +291,8 @@ export function CompareRevisions({ quote, revisions }: { quote: QuoteDetail; rev
     <div className="flex flex-col gap-3 rounded-md border p-3">
       <h3 className="font-semibold text-ink">{cmp.title}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <Select label={cmp.from} options={options} value={String(from)} onChange={(value) => (value ? (setFrom(Number(value)), setRun(false)) : null)} />
-        <Select label={cmp.to} options={[{ id: "", label: cmp.working }, ...options]} value={to === null ? "" : String(to)} onChange={(value) => (setTo(value ? Number(value) : null), setRun(false))} />
+        <Select label={cmp.from} options={options} value={String(from)} onChange={(value) => (value ? (setFrom(Number.parseInt(value, 10)), setRun(false)) : null)} />
+        <Select label={cmp.to} options={[{ id: "", label: cmp.working }, ...options]} value={to === null ? "" : String(to)} onChange={(value) => (setTo(value ? Number.parseInt(value, 10) : null), setRun(false))} />
         <Button variant="secondary" onPress={() => setRun(true)}>
           {cmp.run}
         </Button>

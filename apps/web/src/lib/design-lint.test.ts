@@ -79,7 +79,22 @@ describe("design lint: banned patterns", () => {
       "components/ui/number-field.tsx",
       "components/ui/format.tsx",
     ]);
-    expect(offenders(/parseFloat\(|Number\(|parseInt\(|\+\s*value\b|Math\.round\(/, (file) => !moneyCode.has(file))).toEqual([]);
+    // Not money or quantities, so a float is correct there (reason per file). The predicate used to be inverted
+    // (`!moneyCode.has(file)` allowed every other file); fixed at the Slice-4 merge (procurement request 8).
+    const notMoney = new Set([
+      "app/(auth)/login/material-stage.tsx", // parallax depth from a data attribute
+      "features/material-viewer/geometry.ts", // millimetres to WebGL scene units (display only)
+      "features/ai-admin/parse.ts", // error rates per thousand calls
+      "features/briefing/listen/speech.ts", // speech duration in milliseconds
+      "features/collab/api.ts", // file sizes in KB
+      "lib/format/time.ts", // day and relative-time arithmetic
+      "lib/design/css-tokens.ts", // hex colour channels
+    ]);
+    // Base-10 integer parsing (offsets, counts, days, versions) is not a float conversion: `Number.parseInt(x, 10)`
+    // stays allowed; a bare `Number(...)`, `parseInt(` without `Number.`, `parseFloat` and `Math.round` do not.
+    expect(
+      offenders(/parseFloat\(|(?<![.\w])Number\(|(?<![.\w])parseInt\(|\+\s*value\b|Math\.round\(/, (file) => moneyCode.has(file) || notMoney.has(file)),
+    ).toEqual([]);
   });
 
   it("never builds CSV files in the browser (exports come from the server's csv_safe writer)", () => {

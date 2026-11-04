@@ -49,6 +49,7 @@ import {
 } from "./api";
 import { OPERATIONS_LEADING, ProductionTabs, WorkOrderStatus, dash, failure, qty, useProductionCommand } from "./common";
 import { workOrdersHref, type WorkOrderListState } from "./list-state";
+import { isPositiveDecimalStr, subtractDecimalStr } from "@/lib/format/decimal";
 
 const d = m.detail;
 
@@ -458,7 +459,7 @@ interface DialogProps {
 }
 
 function IssueDialog({ wo, onClose, run, pending, write }: DialogProps) {
-  const open = wo.materials.filter((x) => Number(x.qty_to_issue) > 0);
+  const open = wo.materials.filter((x) => isPositiveDecimalStr(x.qty_to_issue));
   const [materialId, setMaterialId] = useState<string | null>(open[0]?.id ?? null);
   const material = wo.materials.find((x) => x.id === materialId) ?? null;
   const [quantity, setQuantity] = useState<string | null>(material?.qty_to_issue ?? null);
@@ -469,7 +470,7 @@ function IssueDialog({ wo, onClose, run, pending, write }: DialogProps) {
     enabled: Boolean(material),
   });
   const sources = (position.data?.balances ?? [])
-    .filter((b) => b.location.warehouse_id === wo.warehouse.id && b.location.location_type === "internal" && Number(b.quantity) > 0 && b.lot?.lot_kind !== "offcut")
+    .filter((b) => b.location.warehouse_id === wo.warehouse.id && b.location.location_type === "internal" && isPositiveDecimalStr(b.quantity) && b.lot?.lot_kind !== "offcut")
     .map((b) => ({ id: `${b.location.id}|${b.lot?.id ?? ""}`, label: `${b.location.code}${b.lot ? ` · ${b.lot.lot_code}` : ""} (${b.quantity})` }));
   const chosen = source ?? sources[0]?.id ?? null;
   const [locationId, lotId] = chosen ? chosen.split("|") : [null, null];
@@ -510,7 +511,7 @@ function IssueDialog({ wo, onClose, run, pending, write }: DialogProps) {
 }
 
 function WipDialog({ kind, wo, onClose, run, pending, write }: DialogProps & { kind: "consume" | "return" }) {
-  const inWip = wo.materials.filter((x) => Number(x.qty_in_wip) > 0);
+  const inWip = wo.materials.filter((x) => isPositiveDecimalStr(x.qty_in_wip));
   const [materialId, setMaterialId] = useState<string | null>(inWip[0]?.id ?? null);
   const material = wo.materials.find((x) => x.id === materialId) ?? null;
   const [quantity, setQuantity] = useState<string | null>(material?.qty_in_wip ?? null);
@@ -551,7 +552,7 @@ function WipDialog({ kind, wo, onClose, run, pending, write }: DialogProps & { k
 }
 
 function OutputDialog({ wo, onClose, run, pending, write }: DialogProps) {
-  const remaining = String(Math.max(Number(wo.qty_planned) - Number(wo.qty_good), 0));
+  const remaining = (() => { const left = subtractDecimalStr(wo.qty_planned, wo.qty_good); return isPositiveDecimalStr(left) ? left : "0"; })();
   const [good, setGood] = useState<string | null>(remaining);
   const [scrap, setScrap] = useState<string | null>("0");
   return (

@@ -56,7 +56,7 @@ contract 5. Code anchors: `backend/app/platform/events/{defs,models,service}.py`
 | `agents.automation_dispatch` | agents | enqueues automation runs (subscribes only to event types used by active automations) | 3 |
 | `inventory.shortage_refresh` | inventory | recompute of `inventory_shortage_state` for the (product, warehouse) pairs an event touches; one key per trigger, `inventory.shortage_refresh:<event>` (like `tasks.rules:<event>`); triggers are `inventory.events.SHORTAGE_TRIGGERS` (orders, stock, reservation and `production.work_order.{released,completed,closed,cancelled}` events; pair resolvers registered by production) | 4 |
 | `production.material_retry` | production | `production.material_retry:<event>` on `inventory.stock.posted`, `inventory.posting.reversed`, `inventory.reservation.released`: blocked work orders reserve again and unblock (idempotent on replay) | 4 |
-| `logistics.packing_list_staleness` | logistics | flags draft packing lists stale when packaging changes | 4 |
+| `logistics.packing_list_staleness` | logistics | `logistics.packing_list_staleness:<event>` on `catalogue.product.updated`, `orders.sales_order_line.cancelled`, `orders.sales_order.cancelled`: flags draft packing lists stale (`logistics.packing_list.became_stale`) | 4 |
 | `logistics.shipment_status` | logistics | sets shipment dispatched when the linked challan is issued | 4 |
 | `finance.invoice_suggestion` | finance | suggests a draft invoice for issued delivery challans | 5 |
 
@@ -266,7 +266,7 @@ Customer and vendor messages arriving through channels become `sales_customer_me
 | `quality.inspection.passed` / `.failed` | 1 | 4 | inspection_id, subject_type, subject_id | tasks.rules |
 | `procurement.requisition.submitted` / `.approved` / `.rejected` | 1 | 4 | requisition_id, requisition_number | tasks.rules |
 | `procurement.purchase_order.approved` / `.issued` / `.closed` / `.cancelled` | 1 | 4 | purchase_order_id, po_number | inventory.shortage_refresh, tasks.rules |
-| `procurement.purchase_order.became_overdue` | 1 | 4 | purchase_order_id, po_line_ids[] (scheduled) | tasks.rules |
+| `procurement.purchase_order.became_overdue` | 1 | 4 | purchase_order_id, po_line_ids[] (scheduled) | tasks.rules, inventory.shortage_refresh (a newly late line shows in `caused_by`) |
 | `procurement.purchase_order_line.expected_date_changed` | 1 | 4 | purchase_order_id, po_line_id, from_date, to_date | inventory.shortage_refresh, tasks.rules |
 | `procurement.goods_receipt.posted` | 1 | 4 | goods_receipt_id, purchase_order_id, line_ids[] | tasks.rules (ops.receipts), inventory.shortage_refresh |
 | `procurement.vendor_bill.mismatch_detected` / `.handed_off` | 1 | 4 | vendor_bill_id, match_status | tasks.rules |

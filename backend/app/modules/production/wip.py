@@ -277,9 +277,19 @@ def output(uow: UnitOfWork, work_order_id: uuid.UUID, data: OutputRequest) -> Wo
     line = inventory.PostingLine(product_id=p.id, quantity=data.qty_good, uom_code=wo.uom_code, from_location_id=src.id,
                                  to_location_id=dest.id, lot_id=lot_id, source_line_type="production.work_order",
                                  source_line_id=wo.id)
-    _post(uow, wo, TransactionKind.OUTPUT, [line],
-          [_snap(None, p.id, data.qty_good, wo.uom_code, lot_id, src.id, dest.id)], lot_id=lot_id,
-          qty_good=data.qty_good, qty_scrap=data.qty_scrap, reason=data.reason)
+    txn = _post(uow, wo, TransactionKind.OUTPUT, [line],
+                [_snap(None, p.id, data.qty_good, wo.uom_code, lot_id, src.id, dest.id)], lot_id=lot_id,
+                qty_good=data.qty_good, qty_scrap=data.qty_scrap, reason=data.reason)
+    if p.qc_required and data.qty_good > 0:
+        # output into QC hold asks quality for an inspection of exactly this output (Slice-4 merge): the subject is the
+        # output transaction, the work order is linked (quality_inspection.work_order_id, FK in 0025)
+        from app.modules.quality import service as quality
+
+        quality.request_inspection(
+            uow, subject_type="production.work_order", subject_id=txn.id, subject_label=f"{wo.wo_number} output",
+            product_id=p.id, warehouse_id=wo.warehouse_id, quantity=data.qty_good, uom_code=wo.uom_code,
+            lot_id=lot_id, source_type="production.work_order", source_id=wo.id, work_order_id=wo.id,
+        )
     wo.qty_good = dec(wo.qty_good) + data.qty_good
     wo.qty_scrap = dec(wo.qty_scrap) + data.qty_scrap
     mark_started(uow, wo)

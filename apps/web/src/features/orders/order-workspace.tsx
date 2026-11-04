@@ -32,6 +32,7 @@ import {
   type OrderLine,
 } from "./api";
 import { OrderStatusPill } from "./order-list";
+import { isPositiveDecimalStr } from "@/lib/format/decimal";
 
 const w = m.workspace;
 
@@ -80,7 +81,7 @@ function Workspace({ order }: { order: OrderDetail }) {
             void run("reserve", (k) => reserveOrder(order.id, k), {
               failed: w.failed,
               write: (r) => {
-                const short = r.outcomes.filter((o) => Number(o.shortfall) > 0).length;
+                const short = r.outcomes.filter((o) => isPositiveDecimalStr(o.shortfall)).length;
                 (short ? toastWarn : toastOk)(w.reserved(r.outcomes.length, short));
                 return r.order;
               },
@@ -165,7 +166,7 @@ function Workspace({ order }: { order: OrderDetail }) {
       id: "actions",
       header: "",
       cell: (l) =>
-        caps.cancel_line?.allowed && Number(l.qty_remaining) > 0 && l.line_kind !== "charge" ? (
+        caps.cancel_line?.allowed && isPositiveDecimalStr(l.qty_remaining) && l.line_kind !== "charge" ? (
           <Button size="sm" variant="quiet" onPress={() => setDialog({ line: l })}>
             {w.cancelLine}
           </Button>

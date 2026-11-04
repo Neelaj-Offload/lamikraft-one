@@ -226,6 +226,12 @@ PRODUCTION_REFS = SimpleNamespace(BOM_PANEL_SET="BOM_PANEL_SET", ROUTING_PANEL_S
 #: the walnut board's cost of record (INR per sheet, effective D-30) recorded by the production seed
 WALNUT_BOARD_COST = "2450.0000"
 
+# ---- procurement (slice 4; fixtures.md §8) ---------------------------------------------------
+#: PO-2026-0001: Kaveri, 60 sheets of LK-WB-1800 into WH-MAIN, expected D0 moved to D0+3 -> the late supply that is
+#: WO-2026-0001's root cause (the shortage's ``caused_by`` names its line through procurement's cause provider)
+PURCHASE_ORDERS = SimpleNamespace(KAVERI_WALNUT="PO-2026-0001")
+PURCHASE_ORDER_REFS = SimpleNamespace(KAVERI_WALNUT="PO_KAVERI")
+
 # ---- tasks and reminders ---------------------------------------------------------------------
 TASKS = SimpleNamespace(KABIR_COUNT="TASK_KABIR_COUNT", ARJUN_WALKTHROUGH="TASK_ARJUN_WALKTHROUGH")
 REMINDERS = SimpleNamespace(MEERA="REMINDER_MEERA")

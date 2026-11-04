@@ -62,6 +62,7 @@ through the test-support router. Email domain `demo.lamikraft.test`.
 | `ANANYA` | Ananya Rao | ananya.rao@demo.lamikraft.test | finance | HO | — | empty briefing until Slice 5 | 1 |
 | `PRIYA` | Priya Nair | priya.nair@demo.lamikraft.test | admin | HO | — | | 1 |
 | `VIKRAM` | Vikram Singh | vikram.singh@demo.lamikraft.test | operations (branch scope HO) | HO / OPS-HO | Ravi | night shift NGT; delegate for Ravi's leave tests (B-11, B-13) | 2 |
+| `DEEPA` | Deepa Menon | deepa.menon@demo.lamikraft.test | production (company scope) | HO | — | owns WO-2026-0001; provisioned before Arjun | 4 |
 
 ## 4. Parties
 
@@ -190,9 +191,9 @@ after 24 hours.
 | 2 | FX demo rate | §6 |
 | 2 | Vikram, shift NGT | §2, §3 |
 | 4 | Warehouses | Main Warehouse `WH-MAIN` (HO) with bin A-12; opening batch approved by Sahil (created by Ravi) |
-| 4 | Purchase order **PO-2026-0001** | Kaveri, line 1 LK-WB-1800; expected date moved from D0 to D0+3 at D−1 11:03 |
-| 4 | Shortage | LK-WB-1800 at WH-MAIN, caused by the late PO line |
-| 4 | Work order **WO-2026-0001** | afternoon shift, blocked by the shortage |
+| 4 | Purchase order **PO-2026-0001** | Kaveri, line 1 LK-WB-1800 × 60 sheets into WH-MAIN; created and submitted by Priya D−9 10:00, approved by Sahil D−9 11:30, issued D−9 12:00; expected date moved from D0 to D0+3 at D−1 11:03 (`keys.PURCHASE_ORDERS.KAVERI_WALNUT`) |
+| 4 | Shortage | LK-WB-1800 at WH-MAIN; `caused_by` names WO-2026-0001's material and the late PO line (procurement's cause provider); the `ops.shortages` issue lists both as evidence |
+| 4 | Work order **WO-2026-0001** | Deepa; 8 walnut panel sets (`LK-WP-0001`), 48 sheets needed, 40 reserved: blocked by the shortage (`keys.WORK_ORDERS.PANEL_SETS`) |
 | 4 | Reservation conflict | two demands on LK-WB-1800 → a decision for Sahil |
 | 5 | Receipt **RCPT-2026-0001** | Maison, EUR 2,400.0000, unallocated |
 | 5 | Accounting adapter | "Not connected (demo)" |

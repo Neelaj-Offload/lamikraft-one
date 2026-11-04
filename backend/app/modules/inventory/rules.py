@@ -112,6 +112,31 @@ def derive_shortage(uow: UnitOfWork, shortage_id: uuid.UUID, *, cache: SourceCac
                     scope_branch_id=wo.branch_id,
                 )
             )
+        elif cause["type"] == "procurement.purchase_order_line":
+            # late supply (procurement's cause provider): the purchase order of the outstanding line (Slice-4 merge)
+            from app.modules.procurement.models import PurchaseOrderLine
+
+            po_line = uow.session.get(PurchaseOrderLine, uuid.UUID(cause["id"]))
+            if po_line is None:
+                continue
+            po = cache.read(uow, "procurement.purchase_order", po_line.purchase_order_id)
+            if po is None:
+                continue
+            members.append(
+                MemberSpec(
+                    key=f"cause:{cause['type']}:{cause['id']}",
+                    ref_type="procurement.purchase_order",
+                    ref_id=po.source_id,
+                    ref_version=po.version,
+                    label=cause.get("label") or f"{po.label} line {po_line.line_no}",
+                    facts={"po_number": po.facts.get("po_number"), "po_line_id": cause["id"],
+                           "cause": "late_supply"},
+                    required_permission="procurement.purchase_order.read",
+                    role=MemberRole.EVIDENCE.value,
+                    scope_owner_id=po.owner_user_id,
+                    scope_branch_id=po.branch_id,
+                )
+            )
     tasks: list[TaskSpec] = []
     if not s.is_closed:
         named = responsibility.resolve(uow, "ops.shortages", [])

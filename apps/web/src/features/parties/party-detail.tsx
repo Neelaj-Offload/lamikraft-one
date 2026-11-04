@@ -19,6 +19,7 @@ import { fieldErrorClasses, labelClasses, linkClasses } from "@/components/ui/st
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
 import { useScreenContribution } from "@/features/assistant/screen-context-store";
+import { VendorItemsSection } from "@/features/procurement/vendor-items";
 import { quoteListHref } from "@/features/sales/list-state";
 import { QuoteStatusPill } from "@/features/sales/quote-list";
 import { problemDescription } from "@/features/sales/use-quote-command";
@@ -153,6 +154,10 @@ function Record({ party }: { party: Party }) {
         <TaxIdentifiers party={party} />
         {canReadQuotes ? <Quotes party={party} /> : null}
       </div>
+      {/* procurement lane (Slice 4): vendor items on a vendor's record */}
+      {party.roles.includes("vendor") && permissionKeys.has("procurement.vendor_item.read") ? (
+        <VendorItemsSection vendorId={party.id} defaultCurrency={party.default_currency || null} />
+      ) : null}
 
       <RailContent>
         <PartyContext party={party} />

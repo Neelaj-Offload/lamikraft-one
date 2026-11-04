@@ -370,13 +370,13 @@ describe("screens (server render)", () => {
 });
 
 describe("operations overview", () => {
-  it("links the delivered challans part and keeps the rest planned", async () => {
+  it("links the delivered challans part; every Slice-4 part is available", async () => {
     const { AreaOverview } = await import("@/features/areas/area-overview");
     const { renderInSession } = await import("@/lib/test-support/render");
     const { testBootstrap } = await import("@/lib/test-support/session");
     const html = renderInSession(<AreaOverview area="operations" />, testBootstrap({ permissions: [{ key: "challans.challan.read", scope: "company" }] }));
     expect(html).toContain('href="/operations/challans"');
-    expect(textOf(html)).toContain("challans, inventory, reservations and production are available now");
-    expect(textOf(html)).toContain("Planned · Slice 4");
+    expect(textOf(html)).toContain("Every part below is available now");
+    expect(textOf(html)).not.toContain("Planned · Slice 4");
   });
 });

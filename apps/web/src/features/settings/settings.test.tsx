@@ -87,9 +87,9 @@ describe("area overviews", () => {
   it("say what is planned, with slice badges and links to Today and the Inbox, and show no figures", () => {
     const html = renderInSession(<AreaOverview area="operations" />);
     const text = textOf(html);
-    expect(text).toContain("the rest of Operations arrives in Slice 4");
+    expect(text).toContain("Every part below is available now");
     expect(text).toContain("Available");
-    expect(text).toContain("Planned · Slice 4");
+    expect(text).not.toContain("Planned · Slice 4");
     expect(html).toContain('href="/today"');
     expect(html).toContain('href="/inbox"');
     expect(text).not.toMatch(/\b\d+ (open|items|invoices|orders)\b/);
@@ -97,5 +97,6 @@ describe("area overviews", () => {
     const finance = textOf(renderInSession(<AreaOverview area="finance" />));
     expect(finance).toContain("Finance is planned for Slice 5");
     expect(finance).toContain("Receipts and allocations");
+    expect(finance).toContain("Planned · Slice 5");
   });
 });

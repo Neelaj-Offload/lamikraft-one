@@ -84,3 +84,25 @@ export function compareDecimalStr(a: string, b: string): -1 | 0 | 1 {
   if (fx === fy) return 0;
   return (fx > fy ? flip : -flip) as -1 | 1;
 }
+
+/** True when a DecimalStr is greater than zero (no float conversion; null and malformed values are not positive). */
+export function isPositiveDecimalStr(value: string | null | undefined): boolean {
+  return isDecimalStr(value) && compareDecimalStr(value, "0") > 0;
+}
+
+/** a − b for DecimalStr values with scaled BigInt arithmetic (never a float), trimmed ("48.000" − "40" -> "8"). */
+export function subtractDecimalStr(a: string, b: string): string {
+  if (!isDecimalStr(a) || !isDecimalStr(b)) throw new TypeError("subtractDecimalStr needs DecimalStr values");
+  const scale = Math.max(a.split(".")[1]?.length ?? 0, b.split(".")[1]?.length ?? 0);
+  const scaled = (value: string) => {
+    const negative = value.startsWith("-");
+    const [int = "0", frac = ""] = (negative ? value.slice(1) : value).split(".");
+    const n = BigInt(int + frac.padEnd(scale, "0"));
+    return negative ? -n : n;
+  };
+  const diff = scaled(a) - scaled(b);
+  const negative = diff < 0n;
+  const digits = (negative ? -diff : diff).toString().padStart(scale + 1, "0");
+  const text = scale ? `${digits.slice(0, -scale)}.${digits.slice(-scale)}` : digits;
+  return trimDecimalStr(`${negative ? "-" : ""}${text}`);
+}

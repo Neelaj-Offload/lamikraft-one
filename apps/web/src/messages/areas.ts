@@ -30,21 +30,21 @@ export const areaMessages = {
   operations: {
     title: "Operations",
     intro: "Cutting, challans, stock, purchasing, production, quality and dispatch.",
-    stateTitle: "Cutting, challans, inventory, reservations and production are here; the rest of Operations arrives in Slice 4",
+    stateTitle: "Cutting, challans, inventory, reservations, purchasing, quality, dispatch and production are here",
     stateBody:
-      "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, reservations with pick lists, and production (work orders, BOMs, routings, work centres and capacity) are available now; once inventory is live an issued challan moves stock exactly once. Purchasing, quality, dispatch and logistics follow in Slice 4.",
-    liveNote: "Cutting, challans, inventory, reservations and production are available now; the other parts below are not switched on yet.",
+      "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, reservations with pick lists, purchasing from requisition to vendor bill, QC inspections, dispatch with packing lists and cutoffs, and production (work orders, BOMs, routings, work centres and capacity) are available now; once inventory is live an issued challan moves stock exactly once.",
+    liveNote: "Every part below is available now; each opens for people whose role includes it.",
     partsHeading: "What this area will hold",
     parts: [
       { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },
       { label: "Delivery challans: numbering, transitions, PDF and CSV; one stock posting per issue", slice: 2, routeId: "operations-challans" },
       { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4, routeId: "operations-inventory" },
       { label: "Reservations and pick lists with no oversell", slice: 4, routeId: "operations-reservations" },
-      { label: "Purchasing: requisition, purchase order, goods receipt", slice: 4 },
+      { label: "Purchasing: requisition, purchase order, goods receipt, vendor bill match", slice: 4, routeId: "operations-purchasing-orders" },
       { label: "Production: BOMs, routings, work orders and offcut lots", slice: 4, routeId: "operations-production-work-orders" },
       { label: "Capacity: load per work centre per day against the work calendar", slice: 4, routeId: "operations-production-capacity" },
-      { label: "Quality checks on receipts", slice: 4 },
-      { label: "Dispatch and logistics: packing lists, shipments and cutoffs", slice: 4 },
+      { label: "Quality checks on receipts", slice: 4, routeId: "operations-quality" },
+      { label: "Dispatch and logistics: packing lists, shipments and cutoffs", slice: 4, routeId: "operations-dispatch" },
     ],
   },
   finance: {
