@@ -22,6 +22,19 @@ def _router() -> Any:
     return router
 
 
+def _test_support_router() -> Any:
+    """Mounted only in the test environment (an empty router elsewhere, so the path is 404)."""
+    from fastapi import APIRouter
+
+    from app.core.config import get_settings
+
+    if not get_settings().is_test:
+        return APIRouter()
+    from app.modules.inventory.testsupport import router
+
+    return router
+
+
 def _refresh(uow: Any, event: Any) -> None:
     from app.modules.inventory.shortages import handle_refresh
 
@@ -51,7 +64,7 @@ MANIFEST = ModuleManifest(
     policies=list(POLICIES),
     sequences=list(SEQUENCES),
     settings=[INVENTORY_POLICY],
-    routers=[_router],
+    routers=[_router, _test_support_router],
     subscriptions=[
         Subscription(event=name, handler_key=f"{SHORTAGE_REFRESH}:{name}", handler=_refresh)
         for name in SHORTAGE_TRIGGERS
