@@ -104,6 +104,17 @@ fails at the checksum without restoring). No `lk_rehearsal_*` database is left b
 - **Remote media download** (`--fetch-media`) is implemented but untested against a live host (no authorised host).
 - **No real legacy export exists**; everything is proven on the synthetic fixture.
 
-## 7. Gates
+## 7. Gates (on a700927)
 
-See the final section appended after the gate runs.
+| Gate | Command | Result |
+|---|---|---|
+| check | `npm run check -- --keep-going` | **7/7 PASS** (ruff; pytest unit + contract 641; alembic heads 1; api:check; web lint; typecheck; vitest 57 files / 638 tests) |
+| API suite | `npm run test:api` | **1503 passed, 7 skipped** (live-only), 0 failed, 37 min 32 s (includes the committed backup/restore rehearsal tests) |
+| migrations | `alembic upgrade head` → `downgrade 0018` → `upgrade head`; `alembic check` on `lk_wt6` | clean, heads 1 |
+| api:generate | `npm run api:generate` | committed (273 paths) |
+| browser | slot-6 dev servers, Priya with TOTP enrolled on the demo DB | Settings › Migration, a run page (reconciliation, quarantine filters, original values), Settings › Backups at 1440 and 375 px, light and dark; no horizontal scroll at 375 px; a candidate link decision made through the UI; servers stopped afterwards |
+| e2e | `npm run test:e2e -- e2e/axe-sweep.spec.ts --grep "settings/(migration|backups)"` | **not run**: the machine-wide e2e lock was held by the integrator lane (`D:\lk-wt\integ`). The new routes are in the manifest, so the integrator's full e2e run covers them in the axe sweep (Sahil sees the permission-denied state; the run page is skipped there for lack of a fixture run id). |
+
+A first `check` run found three gate failures, fixed in a700927: the apply's CSV is written through `csv_safe`
+(lossless round trip into the workbench), the `text()` helper was renamed (`field_text`, the raw-SQL contract test
+matches calls named `text`), and the step-up state uses `LockIcon` instead of a round span (design lint).
