@@ -110,3 +110,14 @@ relaunching its brief on its branch in the same worktree, continuing from the st
 | Production | `sales` / 6 | `f3cb604` | code and tests committed; `npm run check` 7/7; full `test:api` was started and stopped (rerun it); lane report `docs/lanes/production-s4.md` untracked and unfinished |
 | Procurement / quality / logistics | `work` / 4 | `f067626` | web screens and procure-to-pay e2e spec committed, tree clean; was about to run `npm run check`; then `test:api`, lane e2e, lane report |
 | Finance | `identity` / 1 | `42d6b50` | module, manifest and seed committed; uncommitted edits in `accounting.py`, `ageing.py`, `common.py`, `invoices.py`, `seed/world/finance.py` and new untracked `tests/{unit,integration,contract}/finance/`; was running the accounting tests; web area, scenario M, gates and report not done |
+
+## 2026-11-05: Slice-4 lanes done; integrator and new capabilities running
+
+Lanes finished: production `lane/s4-production` 27f3697, procurement/logistics `lane/s4-procurement-logistics`
+1c590ce, finance `lane/s5-finance` 0545c25 (the coordinator's rerun of its test:api found one stale settings test,
+fixed in 4447092; the lane's first reported count was another lane's log from a shared scratchpad, withdrawn).
+`lane/s5-migration` gained bf8279e (the Settings › Backups page had been ignored by an unanchored `backups/` rule).
+Running: Slice-4 integrator `lane/s4-merge` (`integ`/8; three lanes merged at c4210a3, post-merge gates in progress)
+and the migration brief's "new capabilities" part as its own lane `lane/s5-capabilities` from c4210a3 (`sales`/6,
+placeholder 0090). The Slice-5 integrator merges finance, migration and capabilities onto CP5. Lanes now write
+test logs to lane-named files under `D:\lk-wt\`, not the shared scratchpad.
