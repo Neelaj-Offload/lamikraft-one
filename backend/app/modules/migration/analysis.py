@@ -181,7 +181,7 @@ class Analysis:
 
 
 # ---- shared rules -------------------------------------------------------------------------------------------------
-def text(values: Mapping[str, Any], *names: str) -> str | None:
+def field_text(values: Mapping[str, Any], *names: str) -> str | None:
     """The first non-blank value among ``names`` as trimmed text."""
     for name in names:
         value = as_text(values.get(name))
@@ -248,5 +248,5 @@ __all__ = [
     "fold_key",
     "group_duplicates",
     "sha256_hex",
-    "text",
+    "field_text",
 ]

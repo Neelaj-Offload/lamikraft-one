@@ -23,7 +23,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.modules.migration.analysis import Analysis, text
+from app.modules.migration.analysis import Analysis, field_text
 
 LEGAL_FORMS = frozenset(
     {
@@ -138,10 +138,10 @@ def collect(an: Analysis) -> dict[tuple[str, str], CandidateAgg]:
     out: dict[tuple[str, str], CandidateAgg] = {}
     for entity, number_field in (("quotes", "quote_number"), ("custom_products", "custom_code")):
         for key, acc in an.accepted[entity].items():
-            name = text(acc.row.values, "customer_name")
+            name = field_text(acc.row.values, "customer_name")
             if not name:
                 continue
-            country_text = text(acc.row.values, "customer_country")
+            country_text = field_text(acc.row.values, "customer_country")
             nk = normalise_name(name)
             if not nk:
                 continue
@@ -155,7 +155,7 @@ def collect(an: Analysis) -> dict[tuple[str, str], CandidateAgg]:
                     {
                         "entity": entity,
                         "source_key": key,
-                        "document_number": text(acc.row.values, number_field),
+                        "document_number": field_text(acc.row.values, number_field),
                     }
                 )
     return out

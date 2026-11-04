@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { needsStepUp, useStepUp } from "@/app/(app)/settings/_lib/step-up";
 import { StatusPill, type Tone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LockIcon } from "@/components/ui/icons";
 import { ErrorState, StateView } from "@/components/ui/states";
 import { formatCount } from "@/lib/format/money";
 import { migrationMessages as m } from "@/messages/migration";
@@ -48,7 +49,7 @@ export function QueryProblem({ error, what, retry }: { error: unknown; what: str
   return (
     <>
       <StateView
-        icon={<span className="block size-5 rounded-full border-2 border-current" />}
+        icon={<LockIcon />}
         title={m.stepUp.title}
         tone="warning"
         actions={

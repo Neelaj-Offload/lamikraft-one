@@ -21,9 +21,7 @@ from the same source row, so applying twice writes nothing twice.
 
 from __future__ import annotations
 
-import csv
 import hashlib
-import io
 import json
 import tempfile
 import uuid
@@ -35,9 +33,10 @@ from typing import Any
 from sqlalchemy import select, update
 
 from app.core.config import get_settings
+from app.core.csv_safe import write_csv
 from app.core.errors import AppError
 from app.modules.imports.definitions import definition
-from app.modules.migration.analysis import Accepted, Analysis, Options, text
+from app.modules.migration.analysis import Accepted, Analysis, Options, field_text
 from app.modules.migration.catalogue import IMPORT_TYPES, _mapping, _values
 from app.modules.migration.documents import cents, money
 from app.modules.migration.dry_run import RunResult, complete, fail, run_dry_run
@@ -152,11 +151,9 @@ def _csv(an: Analysis, entity: str, rows: list[Accepted]) -> bytes:
                 extras.append(k)
             record[k] = v
         records.append(record)
-    buffer = io.StringIO(newline="")
-    writer = csv.DictWriter(buffer, fieldnames=fields + extras, lineterminator="\n", extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(records)
-    return buffer.getvalue().encode("utf-8")
+    headers = fields + extras
+    # the formula guard of csv_safe is removed again by the workbench reader (lossless round trip)
+    return write_csv(headers, ([record.get(h, "") for h in headers] for record in records))
 
 
 def _import_job(actor: ActorContext, an: Analysis, entity: str, rows: list[Accepted], options: Options) -> dict[str, Any]:
@@ -261,7 +258,7 @@ def _payload_hash(payload: dict[str, Any]) -> str:
 
 def _sort(rows: list[Accepted], field: str) -> list[Accepted]:
     def key(a: Accepted) -> tuple[int, str]:
-        raw = text(a.row.values, field) or ""
+        raw = field_text(a.row.values, field) or ""
         return (int(raw) if raw.isdigit() else 0, a.key)
 
     return sorted(rows, key=key)
@@ -272,13 +269,13 @@ def _legacy_records(an: Analysis) -> list[dict[str, Any]]:
     users = {c["source_key"]: c for c in (an.report.get("users") or {}).get("candidates", [])}
     lines_by_quote: dict[str, list[Accepted]] = defaultdict(list)
     for acc in an.accepted["quote_lines"].values():
-        lines_by_quote[text(acc.row.values, "quote_id") or ""].append(acc)
+        lines_by_quote[field_text(acc.row.values, "quote_id") or ""].append(acc)
     revisions_by_quote: dict[str, list[Accepted]] = defaultdict(list)
     for acc in an.accepted["quote_revisions"].values():
-        revisions_by_quote[text(acc.row.values, "quote_id") or ""].append(acc)
+        revisions_by_quote[field_text(acc.row.values, "quote_id") or ""].append(acc)
     lines_by_challan: dict[str, list[Accepted]] = defaultdict(list)
     for acc in an.accepted["delivery_challan_lines"].values():
-        lines_by_challan[text(acc.row.values, "challan_id") or ""].append(acc)
+        lines_by_challan[field_text(acc.row.values, "challan_id") or ""].append(acc)
     out: list[dict[str, Any]] = []
     for entity in LEGACY_ENTITIES:
         for key, acc in sorted(an.accepted[entity].items()):
@@ -290,18 +287,18 @@ def _legacy_records(an: Analysis) -> list[dict[str, Any]]:
                 revs = _sort(revisions_by_quote.get(key, []), "version")
                 record["payload"] = {"quote": v, "lines": [scrub(a.row.values) for a in lines],
                                      "revisions": [scrub(a.row.values) for a in revs]}
-                record["number"] = text(v, "quote_number")
-                record["currency"] = (text(v, "currency") or "").upper() or None
+                record["number"] = field_text(v, "quote_number")
+                record["currency"] = (field_text(v, "currency") or "").upper() or None
                 record["legacy_total"] = money(v, "total_amount", [])
                 recomputed = acc.values.get("_recomputed_total")
                 record["recomputed"] = money({"x": recomputed}, "x", []) if recomputed is not None else None
                 record["members"] = {"quote_lines": [a.key for a in lines], "quote_revisions": [a.key for a in revs]}
-                record["customer"] = (text(v, "customer_name"), text(v, "customer_country"))
+                record["customer"] = (field_text(v, "customer_name"), field_text(v, "customer_country"))
             elif entity == "delivery_challans":
                 lines = _sort(lines_by_challan.get(key, []), "sort_order")
                 record["payload"] = {"challan": v, "lines": [scrub(a.row.values) for a in lines],
                                      "inventory_effect": "none"}
-                record["number"] = text(v, "challan_number")
+                record["number"] = field_text(v, "challan_number")
                 record["members"] = {"delivery_challan_lines": [a.key for a in lines]}
             elif entity == "users":
                 plan = users.get(key, {})
@@ -310,11 +307,11 @@ def _legacy_records(an: Analysis) -> list[dict[str, Any]]:
                 record["number"] = plan.get("email")
             elif entity == "custom_products":
                 record["payload"] = {"custom_product": v}
-                record["number"] = text(v, "custom_code")
-                record["customer"] = (text(v, "customer_name"), None)
+                record["number"] = field_text(v, "custom_code")
+                record["customer"] = (field_text(v, "customer_name"), None)
             else:
                 record["payload"] = {entity: v}
-                record["number"] = text(v, "decor", "decor_no") if entity == "grain_locked_decors" else None
+                record["number"] = field_text(v, "decor", "decor_no") if entity == "grain_locked_decors" else None
             out.append(record)
     return out
 

@@ -19,7 +19,7 @@ from typing import Any
 from sqlalchemy import select
 
 from app.core.errors import Conflict, NotFound, ServiceUnavailable, VersionConflict
-from app.modules.migration.analysis import Analysis, text
+from app.modules.migration.analysis import Analysis, field_text
 from app.modules.migration.documents import money
 from app.modules.migration.models import OpeningBatch, OpeningLine, OpeningLineStatus, OpeningStatus
 from app.platform.authz.context import ActorContext
@@ -63,16 +63,16 @@ def stage_batch(actor: ActorContext, an: Analysis, run_id: uuid.UUID) -> uuid.UU
         valid = quarantined = 0
         for row in rows:
             qty = money(row.values, "quantity", [])
-            pk = text(row.values, "product_key")
-            loc = text(row.values, "location_code", "location", "warehouse")
-            uom = (text(row.values, "uom", "uom_code", "unit") or "").upper()
+            pk = field_text(row.values, "product_key")
+            loc = field_text(row.values, "location_code", "location", "warehouse")
+            uom = (field_text(row.values, "uom", "uom_code", "unit") or "").upper()
             if row.row_number in rejected or qty is None or not pk or not loc or not uom:
                 continue  # rejected rows stay in the quarantine report only
             ok = row.row_number in accepted
             uow.add(OpeningLine(
                 batch_id=batch.id, row_number=row.row_number, product_key=pk[:200], product_id=ids.get(pk),
                 location_code=loc[:80], quantity=qty, uom_code=uom[:20], unit_cost=money(row.values, "unit_cost", []),
-                cost_currency=(text(row.values, "cost_currency") or None),
+                cost_currency=(field_text(row.values, "cost_currency") or None),
                 status=OpeningLineStatus.VALID.value if ok else OpeningLineStatus.QUARANTINED.value,
                 issue_code=None if ok else quarantined_codes.get(row.row_number),
             ))
