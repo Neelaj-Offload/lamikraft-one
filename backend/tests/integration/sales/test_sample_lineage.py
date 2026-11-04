@@ -16,7 +16,14 @@ from sqlalchemy import select
 
 from app.core.errors import Conflict, NotFound, ValidationFailed
 from app.modules.challans import service as challans
-from app.modules.challans.schemas import ChallanCreate, ChallanLineCreate, ChallanTransition, ChallanType, LineType, ReturnType
+from app.modules.challans.schemas import (
+    ChallanCreate,
+    ChallanLineCreate,
+    ChallanTransition,
+    ChallanType,
+    LineType,
+    ReturnType,
+)
 from app.modules.challans.transitions import transition_challan_command
 from app.modules.sales import service as sales
 from app.modules.sales.samples import dispatch_by_challan

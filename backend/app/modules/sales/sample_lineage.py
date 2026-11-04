@@ -8,8 +8,8 @@
   Linking a challan that is already issued (or closed) dispatches the sample at once with the challan's issue time.
 - **Lineage** (``GET /sales/samples/{id}/lineage``): the custom product and spec revision, the quote, the challan,
   the catalogue product (the sample's own or the one the custom product was promoted to) and other samples of the
-  same custom product, each through its own module's read scope. A link to a record the actor cannot see is shown
-  as ``not_visible`` without its identity; ``missing`` names links the sample does not have yet.
+  same custom product, each through its own module's read scope (archived records included: archiving is not a scope
+  change). A link to a record the actor cannot see is shown as ``not_visible`` without its identity; ``missing`` names links the sample does not have yet.
 """
 
 from __future__ import annotations
@@ -136,7 +136,7 @@ def lineage(uow: UnitOfWork, sample_id: uuid.UUID) -> SampleLineage:
     custom: CustomProduct | None = None
     if sample.custom_product_id is not None:
         repo = uow.repo(CustomProduct)
-        custom = uow.session.scalars(repo.select().where(CustomProduct.id == sample.custom_product_id)).first()
+        custom = uow.session.scalars(repo.select(include_archived=True).where(CustomProduct.id == sample.custom_product_id)).first()
         if custom is None:
             custom_node = _hidden("custom_product")
         else:
@@ -145,7 +145,7 @@ def lineage(uow: UnitOfWork, sample_id: uuid.UUID) -> SampleLineage:
                                       path=f"/sales/custom-products/{custom.id}")
             event("custom_product_created", f"{custom.custom_code} created", custom.created_at, ref="custom_product")
             others = uow.session.scalars(
-                uow.repo(Sample).select().where(Sample.custom_product_id == custom.id, Sample.id != sample.id)
+                uow.repo(Sample).select(include_archived=True).where(Sample.custom_product_id == custom.id, Sample.id != sample.id)
                 .order_by(Sample.created_at, Sample.id).limit(20))
             related = [LineageNode(kind="sample", state="linked", id=o.id, label=o.sample_number, title=o.description,
                                    status=o.status, path=f"/sales/samples/{o.id}") for o in others]
@@ -162,7 +162,7 @@ def lineage(uow: UnitOfWork, sample_id: uuid.UUID) -> SampleLineage:
                                     facts=facts)
             event("spec_revision_recorded", f"Spec revision {rev.revision_no} recorded", rev.created_at, ref="spec_revision")
     if sample.quote_id is not None:
-        quote = uow.session.scalars(uow.repo(Quote).select().where(Quote.id == sample.quote_id)).first()
+        quote = uow.session.scalars(uow.repo(Quote).select(include_archived=True).where(Quote.id == sample.quote_id)).first()
         if quote is None:
             quote_node = _hidden("quote")
         else:
@@ -214,7 +214,7 @@ def _challan_node(uow: UnitOfWork, challan_id: uuid.UUID, event: Any) -> Lineage
 
     if not uow.actor.can(CHALLAN_READ):
         return _hidden("challan")
-    challan = uow.session.scalars(uow.repo(Challan).select().where(Challan.id == challan_id)).first()
+    challan = uow.session.scalars(uow.repo(Challan).select(include_archived=True).where(Challan.id == challan_id)).first()
     if challan is None:
         return _hidden("challan")
     facts = {"challan_type": challan.challan_type, "challan_date": challan.challan_date.isoformat()}
