@@ -10,14 +10,16 @@ import io
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app.core.errors import ValidationFailed
 from app.modules.finance import accounting
 from app.modules.finance.models import Invoice
 from app.modules.finance.schemas import AckLine, ExportRequest, ReconcileRequest
+from app.modules.tasks.models import Issue
 from app.platform.org import service as org
 from tests.integration.finance.world import ANANYA, SAHIL, FinWorld
+from tests.support import drain
 
 pytestmark = pytest.mark.db
 EVIL = '=HYPERLINK("http://evil.test","x")'
@@ -32,6 +34,11 @@ def _map(w: FinWorld, **codes: str) -> None:
 def _export(w: FinWorld, adapter: str) -> object:
     with w.uow(ANANYA, step_up=True) as uow:
         return accounting.export_read(uow, accounting.run_export(uow, ExportRequest(adapter=adapter)))  # type: ignore[arg-type]
+
+
+def _sync_issues(w: FinWorld) -> list[Issue]:
+    with w.system() as uow:
+        return list(uow.session.scalars(select(Issue).where(Issue.company_id == w.company_id, Issue.family == "fin.accounting_sync")))
 
 
 def _rows(content: bytes) -> list[dict[str, str]]:
@@ -57,11 +64,16 @@ def test_csv_export_inert_formulas_and_mapping_blocks(fin_world: FinWorld) -> No
     assert w.events("finance.accounting_export.failed")[-1].payload["error_code"] == "account_mapping_missing"
     with w.uow(ANANYA) as uow:
         assert accounting.status(uow).pending_documents == 1
+    drain()
+    [issue] = _sync_issues(w)
+    assert issue.state == "open"
 
     _map(w, receivable_account="1100-AR", sales_account="4000-SALES")
     done = _export(w, "csv")
     assert (done.status, done.document_count, done.simulated, done.acknowledgement_ref) == ("completed", 1, False, None)
     assert [i.status for i in done.items] == ["exported"]
+    drain()
+    assert all(i.state != "open" for i in _sync_issues(w))  # a later completed batch settles the failed one
     with w.uow(ANANYA) as uow:
         name, content = accounting.export_content(uow, done.id)
     assert name.endswith("-journal.csv") and hashlib.sha256(content).hexdigest() == done.content_sha256

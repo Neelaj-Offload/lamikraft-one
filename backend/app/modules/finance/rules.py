@@ -8,6 +8,8 @@
   closed when settled.
 - ``fin.unallocated_receipts``: a receipt still (partly) unallocated: an "allocate" task for whoever recorded it;
   closed when fully allocated or reversed.
+- ``fin.accounting_sync``: a failed accounting export or a reconciliation mismatch: a task for whoever ran it (or the
+  members who can run exports); closed when a later reconciliation matches.
 - ``mgmt.margin_exceptions``: an issued quote whose margin from costs of record is below the policy threshold: a
   review task for members who hold cost read (``costing`` sensitivity). Facts carry ids and names only — never the
   margin, revenue or cost.
@@ -33,6 +35,7 @@ INVOICE = "finance.invoice"
 RECEIPT = "finance.receipt"
 SUGGESTION = "finance.invoice_suggestion"
 MARGIN = "finance.margin_exception"
+EXPORT = "finance.accounting_export"
 
 #: event -> families it feeds (the tasks consumer wires every one to ``on_event``)
 EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
@@ -52,6 +55,9 @@ EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
     "finance.receipt.unallocated_detected": ("fin.unallocated_receipts",),
     "finance.receipt.reversed": ("fin.unallocated_receipts",),
     "sales.quote.margin_below_threshold": ("mgmt.margin_exceptions",),
+    "finance.accounting_export.completed": ("fin.accounting_sync",),
+    "finance.accounting_export.failed": ("fin.accounting_sync",),
+    "finance.accounting_export.reconciled": ("fin.accounting_sync",),
 }
 
 
@@ -217,6 +223,26 @@ def derive_margin(uow: UnitOfWork, exception_id: uuid.UUID, *, cache: SourceCach
                     permission=c.INVOICE_READ, tasks=tasks, closed_reason="margin_cleared")
 
 
+# ---- fin.accounting_sync -------------------------------------------------------------------------------------------
+def derive_export(uow: UnitOfWork, export_id: uuid.UUID, *, cache: SourceCache) -> IssueOutcome | None:
+    x = cache.read(uow, EXPORT, export_id)
+    if x is None:
+        return None
+    tasks = []
+    if not x.is_closed:
+        failed = x.status == "failed"
+        tasks.append(_task(
+            x, key=f"export:{x.source_id}:attention", kind="fix_accounting_sync", check="export_settled",
+            title=(f"Accounting export {x.facts['export_number']} failed ({x.facts['error_code']})" if failed
+                   else f"Accounting export {x.facts['export_number']} does not reconcile"),
+            permission=c.EXPORT_RUN, owner=_active(uow, x.owner_user_id), candidates=holders(uow, c.EXPORT_RUN),
+            family="fin.accounting_sync", uow=uow,
+        ))
+    return _outcome(x, key=f"export:{x.source_id}", family="fin.accounting_sync",
+                    title=f"Accounting sync {x.facts['export_number']}", permission=c.INVOICE_READ, tasks=tasks,
+                    closed_reason="export_settled")
+
+
 # ---- dispatch -------------------------------------------------------------------------------------------------------
 def on_event(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
     p = event.payload or {}
@@ -242,6 +268,18 @@ def on_event(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterato
         rid = _uuid(p.get("receipt_id"))
         if rid is not None:
             yield derive_receipt(uow, rid, cache=cache)
+    if "fin.accounting_sync" in families:
+        xid = _uuid(p.get("export_id"))
+        if xid is not None:
+            yield derive_export(uow, xid, cache=cache)
+        if name == "finance.accounting_export.completed":
+            from sqlalchemy import select
+
+            from app.modules.finance.models import AccountingExport
+
+            for fid in uow.session.scalars(select(AccountingExport.id).where(
+                    AccountingExport.company_id == uow.actor.company_id, AccountingExport.status == "failed")):
+                yield derive_export(uow, fid, cache=cache)
     if "mgmt.margin_exceptions" in families:
         eid = _uuid(p.get("exception_id"))
         if eid is not None:
@@ -297,7 +335,15 @@ def _margin_cleared(uow: UnitOfWork, task: Any) -> completion.CompletionResult:
     return completion.CompletionResult(False, remaining=["margin_exception_open"])
 
 
+def _export_settled(uow: UnitOfWork, task: Any) -> completion.CompletionResult:
+    x = _read(uow, EXPORT, task.primary_ref_id)
+    if x is None or x.is_closed:
+        return completion.CompletionResult(True, evidence={"export": "settled"})
+    return completion.CompletionResult(False, remaining=["export_attention"])
+
+
 CHECKS = {
+    "export_settled": (_export_settled, EXPORT),
     "suggestion_handled": (_suggestion_handled, SUGGESTION),
     "invoice_approval_decided": (_approval_decided, INVOICE),
     "invoice_issued": (_issued, INVOICE),

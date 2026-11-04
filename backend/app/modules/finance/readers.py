@@ -106,6 +106,14 @@ def read_export(uow: UnitOfWork, export_id: uuid.UUID) -> SourceFacts | None:
     if x is None:
         return None
     attention = x.status == "failed" or x.reconciliation_status == "mismatch"
+    if x.status == "failed":
+        # a failed batch exported nothing; it stops needing attention once a later batch completed
+        from sqlalchemy import select
+
+        later = uow.session.scalar(select(AccountingExport.id).where(
+            AccountingExport.company_id == x.company_id, AccountingExport.status == "completed",
+            AccountingExport.id > x.id).limit(1))  # uuid7: later ids sort after
+        attention = later is None
     return SourceFacts(
         source_type="finance.accounting_export", source_id=x.id, version=None, label=x.export_number,
         status=x.status, owner_user_id=x.actor_user_id, branch_id=None, required_permission=c.INVOICE_READ,
