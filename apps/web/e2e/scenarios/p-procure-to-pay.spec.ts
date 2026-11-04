@@ -93,6 +93,7 @@ test("inspection: Ravi accepts 18 and rejects 2 with a reason; the order shows b
   await expect(page).toHaveURL(/\/operations\/quality\/[0-9a-f-]{36}$/);
   await page.getByRole("textbox", { name: /^Accepted/ }).fill("18");
   await page.getByRole("textbox", { name: /^Rejected/ }).fill("2");
+  await page.keyboard.press("Tab"); // number fields commit on blur
   await page.getByRole("button", { name: "Why rejected" }).click();
   await page.getByRole("option", { name: "Surface damage" }).click();
   await page.getByRole("textbox", { name: "Findings" }).fill("Two sheets with deep scratches on the face.");
@@ -118,6 +119,7 @@ test("bill: Ananya records the vendor bill and it matches the accepted quantity"
   // 18 × 4,850.0000: the line defaults (accepted, not yet billed; the order price) come from the order
   await bills.getByRole("textbox", { name: /^Subtotal as billed/ }).fill("87300");
   await bills.getByRole("textbox", { name: /^Total as billed/ }).fill("87300");
+  await page.keyboard.press("Tab");
   await bills.getByRole("button", { name: "Record vendor bill" }).click();
   await expect(page.getByText("Bill recorded and matched").first()).toBeVisible();
   await expect(bills).toContainText("KTS/INV/2210");

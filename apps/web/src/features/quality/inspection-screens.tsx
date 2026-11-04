@@ -266,7 +266,6 @@ function DecideForm({ insp }: { insp: InspectionDetail }) {
           >
             {d.decide}
           </Button>
-          {blocked ? <span className="text-sm text-ink-muted">{blocked}</span> : null}
         </div>
       </div>
     </SectionCard>
