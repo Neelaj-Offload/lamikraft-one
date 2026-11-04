@@ -85,3 +85,9 @@ briefings and the other two Slice-4 lanes build on it; it is merged after CP4 by
   Migration/backup finished (`lane/s5-migration` 45981fb, rehearsal 9/9). The two remaining wave-4a lanes branch
   from d2942ac so they call the real inventory posting service: `lane/s4-procurement-logistics` in `work`/4
   (placeholder 0060+) and `lane/s4-production` in `sales`/6 (placeholder 0070+).
+- 2026-11-04: **CP4 on `main`** (fast-forward to `lane/s3-merge` 533f8b5; BUILD_STATE §13; test:api 1571/0,
+  check 7/7, e2e 219/0 incl. SSE and scenarios B/C/J/K). `lane/s5-finance` starts early from
+  `lane/s4-orders-inventory` d2942ac in `identity`/1 (placeholder 0080+): it needs orders and challans, not
+  procurement or production. Remaining after the two Slice-4 lanes: the Slice-4 integrator (orders-inventory,
+  procurement-logistics, production → CP5), then migration follow-up (new capabilities) and the Slice-5
+  integrator (finance, migration → CP6), then Slice 6.
