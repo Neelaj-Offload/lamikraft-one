@@ -228,4 +228,9 @@ EVENTS: tuple[dict, ...] = (
     {'name': 'logistics.shipment.exception_recorded', 'version': 1, 'slice': 4, 'fields': ['shipment_id', 'challan_id', 'evidence_kind', 'exception_code']},
     {'name': 'logistics.packing_list.finalised', 'version': 1, 'slice': 4, 'fields': ['packing_list_id']},
     {'name': 'logistics.packing_list.became_stale', 'version': 1, 'slice': 4, 'fields': ['packing_list_id']},
+    {'name': 'migration.run.completed', 'version': 1, 'slice': 5, 'fields': ['run_id', 'kind', 'source_digest', 'quarantined', 'errors']},
+    {'name': 'migration.run.failed', 'version': 1, 'slice': 5, 'fields': ['run_id', 'kind', 'error_code']},
+    {'name': 'system.backup.completed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'database', 'dump_sha256', 'dump_bytes']},
+    {'name': 'system.backup.failed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'database', 'error_code']},
+    {'name': 'system.restore_rehearsal.completed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'outcome', 'checks_passed', 'checks_failed']},
 )

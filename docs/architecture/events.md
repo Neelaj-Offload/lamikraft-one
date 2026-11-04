@@ -285,6 +285,20 @@ Customer and vendor messages arriving through channels become `sales_customer_me
 (payload ids only; margin values never), `migration.run.completed`, `migration.run.failed`, `system.backup.completed`,
 `system.backup.failed`, `system.restore_rehearsal.completed`. Detailed in a Slice-5 revision of this file.
 
+### 3.12 migration, backup (Slice 5)
+
+Emitted by `app/modules/migration` (dry runs, the guarded apply, `lk backup create` and `lk backup restore-rehearsal`).
+Backups cover the whole database, so the backup events are written once per company in it (company-scoped like every
+other event). Payloads carry ids, digests and counts only; never paths with personal data, file contents or credentials.
+
+| Event | v | Slice | Payload | Consumers |
+|---|---|---|---|---|
+| `migration.run.completed` | 1 | 5 | run_id, kind (dry_run, apply), source_digest, quarantined, errors | — |
+| `migration.run.failed` | 1 | 5 | run_id, kind, error_code | — |
+| `system.backup.completed` | 1 | 5 | backup_id, database, dump_sha256, dump_bytes | — |
+| `system.backup.failed` | 1 | 5 | backup_id, database, error_code | — |
+| `system.restore_rehearsal.completed` | 1 | 5 | backup_id, outcome (passed, failed), checks_passed, checks_failed | — |
+
 ## 4. Consumer index: briefing rule families (`tasks.rules`)
 
 | Slice | Family | Triggering events |
