@@ -1901,6 +1901,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cutting/plans/{plan_id}/offcut-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cut Plan Offcut Candidates
+         * @description Measured offcut lots on hand (visible warehouses) the plan could cut from, with whether a group matches and
+         *     which other plans chose them. Without ``inventory.stock.read`` the list is empty (``stock_visible: false``).
+         */
+        get: operations["cutting_list_cut_plan_offcut_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cutting/plans/{plan_id}/offcuts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace Cut Plan Offcuts
+         * @description Replace the offcut lots the plan may cut from (filled in this order before standard sheets); every lot must
+         *     be on hand with a measured size (422 ``offcut_not_available``). A changed selection marks a calculated plan stale.
+         */
+        put: operations["cutting_replace_cut_plan_offcuts"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cutting/plans/{plan_id}/transitions": {
         parameters: {
             query?: never;
@@ -7029,6 +7071,49 @@ export interface paths {
         patch: operations["sales_update_sample"];
         trace?: never;
     };
+    "/api/v1/sales/samples/{sample_id}/challan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Sample Challan
+         * @description Link (or unlink with ``challan_id: null``) the delivery challan that will carry a requested sample: issuing that
+         *     challan dispatches the sample; an already issued challan dispatches it now. The challan must be visible, for the
+         *     sample's customer, outbound and not cancelled.
+         */
+        post: operations["sales_link_sample_challan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/samples/{sample_id}/lineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sample Lineage
+         * @description The custom product and spec revision, quote, delivery challan, catalogue product and sibling samples of a sample,
+         *     each through its own read scope (a link outside the actor's scope is ``not_visible``), with a dated timeline.
+         */
+        get: operations["sales_get_sample_lineage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/samples/{sample_id}/transitions": {
         parameters: {
             query?: never;
@@ -8708,6 +8793,10 @@ export interface components {
             efficiency_pct: string;
             /** Index */
             index: number;
+            /** Lot Code */
+            lot_code?: string | null;
+            /** Lot Id */
+            lot_id?: string | null;
             /**
              * Margin Mm
              * @example 5760.00
@@ -9270,6 +9359,11 @@ export interface components {
             extra: number;
             /** Lower Bound Boards */
             lower_bound_boards: number;
+            /**
+             * Offcut Boards
+             * @default 0
+             */
+            offcut_boards: number;
             /**
              * Placed Area M2
              * @example 5760.00
@@ -13192,6 +13286,11 @@ export interface components {
              */
             mode: "nested" | "guillotine";
             /**
+             * Offcut Boards
+             * @default 0
+             */
+            offcut_boards: number;
+            /**
              * Placed Area M2
              * @example 5760.00
              */
@@ -14389,6 +14488,56 @@ export interface components {
          * @enum {string}
          */
         LineType: "catalog" | "manual" | "custom";
+        /** LineageEvent */
+        LineageEvent: {
+            /** At */
+            at: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "custom_product_created" | "spec_revision_recorded" | "quote_issued" | "sample_requested" | "challan_issued" | "sample_dispatched" | "sample_delivered" | "feedback_recorded" | "sample_closed" | "product_promoted";
+            /** Label */
+            label: string;
+            /**
+             * On
+             * Format: date
+             */
+            on: string;
+            /** Ref Kind */
+            ref_kind?: ("custom_product" | "spec_revision" | "quote" | "challan" | "product" | "sample") | null;
+        };
+        /**
+         * LineageNode
+         * @description One record a sample is linked to. ``not_visible``: the link exists but the record is outside the actor's scope
+         *     (its identity is not shown).
+         */
+        LineageNode: {
+            /** Facts */
+            facts?: {
+                [key: string]: string;
+            };
+            /** Id */
+            id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "custom_product" | "spec_revision" | "quote" | "challan" | "product" | "sample";
+            /** Label */
+            label?: string | null;
+            /** Path */
+            path?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "linked" | "not_visible";
+            /** Status */
+            status?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** LoadAllocation */
         LoadAllocation: {
             /** Cartons */
@@ -15374,6 +15523,70 @@ export interface components {
             body: string;
             /** Expected Version */
             expected_version: number;
+        };
+        /** OffcutCandidate */
+        OffcutCandidate: {
+            /** Decor Key */
+            decor_key: string;
+            /** Grain Axis */
+            grain_axis: ("length" | "width" | "none") | null;
+            /**
+             * Length Mm
+             * @example 5760.00
+             */
+            length_mm: string;
+            /** Location Code */
+            location_code: string;
+            /** Lot Code */
+            lot_code: string;
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Matches Group */
+            matches_group: boolean;
+            /** Other Plans */
+            other_plans?: string[];
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Key */
+            product_key: string | null;
+            /** Product Name */
+            product_name: string | null;
+            /** Selected */
+            selected: boolean;
+            /** Thickness Key */
+            thickness_key: string;
+            /** Thickness Mm */
+            thickness_mm: string | null;
+            /** Warehouse Code */
+            warehouse_code: string;
+            /**
+             * Warehouse Id
+             * Format: uuid
+             */
+            warehouse_id: string;
+            /**
+             * Width Mm
+             * @example 5760.00
+             */
+            width_mm: string;
+        };
+        /** OffcutCandidates */
+        OffcutCandidates: {
+            /** Items */
+            items: components["schemas"]["OffcutCandidate"][];
+            /**
+             * Note
+             * @default Offcut lots on hand with a measured size; a lot is checked again when the plan is released
+             */
+            note: string;
+            /** Stock Visible */
+            stock_visible: boolean;
         };
         /** OffcutRead */
         OffcutRead: {
@@ -17256,6 +17469,8 @@ export interface components {
             name: string;
             /** Notes */
             notes: string | null;
+            /** Offcuts */
+            offcuts?: components["schemas"]["PlanOffcutRead"][];
             owner: components["schemas"]["app__modules__cutting__schemas__UserRef"];
             /** Path */
             path: string;
@@ -17355,6 +17570,58 @@ export interface components {
              * @example 5760.00
              */
             width_mm: string;
+        };
+        /**
+         * PlanOffcutRead
+         * @description An offcut lot chosen for the plan, with the size pinned when it was chosen (grain along the length).
+         */
+        PlanOffcutRead: {
+            /** Decor Key */
+            decor_key: string;
+            /** Grain Axis */
+            grain_axis: ("length" | "width" | "none") | null;
+            /**
+             * Length Mm
+             * @example 5760.00
+             */
+            length_mm: string;
+            /** Lot Code */
+            lot_code: string;
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Matches Group */
+            matches_group: boolean;
+            /** On Hand */
+            on_hand: boolean | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Seq */
+            seq: number;
+            /** Thickness Mm */
+            thickness_mm: string;
+            /** Used */
+            used: boolean;
+            /**
+             * Width Mm
+             * @example 5760.00
+             */
+            width_mm: string;
+        };
+        /**
+         * PlanOffcutsUpdate
+         * @description Replace the plan's offcut selection (order = the order the optimiser fills them).
+         */
+        PlanOffcutsUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lot Ids */
+            lot_ids: string[];
         };
         /**
          * PlanSettingsIn
@@ -21641,6 +21908,17 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * SampleChallanLink
+         * @description Link (or, with ``challan_id: null``, unlink) the delivery challan that will carry a requested sample. Issuing
+         *     that challan dispatches the sample (``sales.sample_dispatch``); linking an already issued challan dispatches it now.
+         */
+        SampleChallanLink: {
+            /** Challan Id */
+            challan_id: string | null;
+            /** Expected Version */
+            expected_version: number;
+        };
         /** SampleCreate */
         SampleCreate: {
             /** Branch Id */
@@ -21675,6 +21953,32 @@ export interface components {
              * @enum {string}
              */
             unit_code: "pcs" | "nos" | "sheets" | "kg" | "g" | "m" | "mm" | "cm" | "sqm" | "sqft" | "box" | "set" | "roll" | "bundle" | "carton";
+        };
+        /**
+         * SampleLineage
+         * @description Where a sample comes from and where it went: custom product (and spec revision), quote, delivery challan, the
+         *     catalogue product (direct or promoted), other samples of the same custom product, and a dated timeline.
+         */
+        SampleLineage: {
+            challan: components["schemas"]["LineageNode"] | null;
+            custom_product: components["schemas"]["LineageNode"] | null;
+            /** Missing */
+            missing: ("custom_product" | "quote" | "challan")[];
+            product: components["schemas"]["LineageNode"] | null;
+            quote: components["schemas"]["LineageNode"] | null;
+            /** Related Samples */
+            related_samples: components["schemas"]["LineageNode"][];
+            /**
+             * Sample Id
+             * Format: uuid
+             */
+            sample_id: string;
+            /** Sample Number */
+            sample_number: string;
+            spec_revision: components["schemas"]["LineageNode"] | null;
+            status: components["schemas"]["SampleStatus"];
+            /** Timeline */
+            timeline: components["schemas"]["LineageEvent"][];
         };
         /** SampleRead */
         SampleRead: {
@@ -28574,6 +28878,74 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cutting_list_cut_plan_offcut_candidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OffcutCandidates"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cutting_replace_cut_plan_offcuts: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanOffcutsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDetail"];
                 };
             };
             /** @description Validation Error */
@@ -39778,6 +40150,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SampleRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_link_sample_challan: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleChallanLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_sample_lineage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleLineage"];
                 };
             };
             /** @description Validation Error */
