@@ -98,8 +98,8 @@ def test_update_creates_revision_event_and_audit(api: ApiClient, people, company
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["version"] == 1 and body["configured"] is True
-    assert body["value"] == {"quote": "Prices ex-works.", "challan": None, "footer": "Demo"}
-    assert body["not_configured_fields"] == ["challan"]
+    assert body["value"] == {"quote": "Prices ex-works.", "challan": None, "invoice": None, "footer": "Demo"}
+    assert body["not_configured_fields"] == ["challan", "invoice"]
     assert body["capabilities"]["update"]["allowed"] is True
 
     r2 = _put(api, "document_terms", {"quote": "Prices FOB.", "footer": "Demo"}, 1)
