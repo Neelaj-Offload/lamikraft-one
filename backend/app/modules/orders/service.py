@@ -832,6 +832,7 @@ def transition_order(uow: UnitOfWork, order_id: uuid.UUID, data: OrderTransition
         reason=data.reason,
         details={"from_status": frm, "to_status": to, "reason_code": data.reason_code},
     )
+    uow.flush()
     return order
 
 
@@ -941,6 +942,7 @@ def cancel_line(uow: UnitOfWork, order_id: uuid.UUID, line_id: uuid.UUID, data: 
         uow.flush()
         _history(uow, order, OrderAction.CANCEL.value, frm, order.status, reason_code=data.reason_code.value)
         _emit_order(uow, ev.ORDER_CANCELLED, order, data.reason_code.value)
+    uow.flush()
     return order
 
 
