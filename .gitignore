@@ -22,7 +22,7 @@ apps/web/playwright-report/
 apps/web/blob-report/
 # runtime data
 var/
-backups/
+/backups/
 *.log
 # os
 .DS_Store
