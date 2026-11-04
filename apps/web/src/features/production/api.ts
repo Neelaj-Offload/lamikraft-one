@@ -196,6 +196,15 @@ export function fetchOrderLineFeasibility(lineId: string, needBy: string | null,
   return unwrap(client.GET("/api/v1/production/feasibility/order-lines/{line_id}", { params: { path: { line_id: lineId }, query: { need_by: needBy || undefined } }, signal }));
 }
 
+// ---- what-if (Slice 5): read-only simulation over the feasibility engine --------------------------------------------------
+export type SimulationRequest = Schemas["SimulationRequest"];
+export type SimulationRead = Schemas["SimulationRead"];
+
+/** Baseline vs scenario for each check; the server refuses every write while simulating (nothing is reserved, posted or saved). */
+export function runSimulation(body: SimulationRequest, signal?: AbortSignal, client: ApiClient = api): Promise<SimulationRead> {
+  return unwrap(client.POST("/api/v1/production/simulations", { body, signal }));
+}
+
 /** Where a component sits (bins and lots) so an issue names the lot and bin it takes from. */
 export type ProductPosition = Schemas["ProductPosition"];
 export function fetchPosition(productId: string, signal?: AbortSignal, client: ApiClient = api): Promise<ProductPosition> {

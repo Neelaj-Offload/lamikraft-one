@@ -1087,6 +1087,17 @@ export const routes = [
     requiredPermission: "production.",
     access: "session",
   },
+  // what-if (Slice 5 capabilities): read-only production simulation over the feasibility engine
+  {
+    id: "operations-production-what-if",
+    path: "/operations/production/what-if",
+    label: "What-if",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "production.",
+    access: "session",
+  },
   // cutting (Slice 2 wave 2): saved cut plans, plan editor, grain locks
   {
     id: "operations-cutting",
