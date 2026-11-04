@@ -40,7 +40,7 @@ class OrderQuoteRef(BaseModel):
     revision_no: int
 
 
-class WarehouseRef(BaseModel):
+class OrderWarehouseRef(BaseModel):
     id: uuid.UUID
     code: str
     name: str
@@ -93,7 +93,7 @@ class OrderLineRead(BaseModel):
 class OrderReservationRead(BaseModel):
     id: uuid.UUID
     line_id: uuid.UUID
-    warehouse: WarehouseRef
+    warehouse: OrderWarehouseRef
     quantity: DecimalStr
     remaining: DecimalStr
     unit: str
@@ -127,7 +127,7 @@ class SalesOrderDetail(SalesOrderSummary):
     surcharge: Money
     terms: dict[str, object]
     snapshot_hash: str
-    default_warehouse: WarehouseRef | None
+    default_warehouse: OrderWarehouseRef | None
     ship_to: str | None
     customer_reference: str | None
     confirmed_at: datetime | None
@@ -240,7 +240,7 @@ class ImpactLine(BaseModel):
 
 class ImpactPreview(BaseModel):
     order_id: uuid.UUID
-    warehouse: WarehouseRef | None
+    warehouse: OrderWarehouseRef | None
     lines: list[ImpactLine]
 
 

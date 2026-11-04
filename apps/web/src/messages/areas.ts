@@ -30,16 +30,16 @@ export const areaMessages = {
   operations: {
     title: "Operations",
     intro: "Cutting, challans, stock, purchasing, production, quality and dispatch.",
-    stateTitle: "Cutting and challans are here; the rest of Operations arrives in Slice 4",
+    stateTitle: "Cutting, challans, inventory and reservations are here; the rest of Operations arrives in Slice 4",
     stateBody:
-      "Saved cut plans with a true-scale board canvas and delivery challans as documents (numbering, transitions, PDF and CSV; no stock is moved) are available now. Slice 4 connects inventory, reservations, purchasing, production, quality, dispatch and logistics.",
-    liveNote: "The cutting optimiser and delivery challans are available now; the other parts below are not switched on yet.",
+      "Saved cut plans, delivery challans, the stock ledger with warehouses and stock takes, and reservations with pick lists are available now; once inventory is live an issued challan moves stock exactly once. Purchasing, production, quality, dispatch and logistics follow in Slice 4.",
+    liveNote: "Cutting, challans, inventory and reservations are available now; the other parts below are not switched on yet.",
     partsHeading: "What this area will hold",
     parts: [
       { label: "Cutting optimiser: saved plans with a true-scale board canvas", slice: 2, routeId: "operations-cutting" },
-      { label: "Delivery challans as documents: numbering, transitions, PDF and CSV", slice: 2, routeId: "operations-challans" },
-      { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4 },
-      { label: "Reservations and pick lists with no oversell", slice: 4 },
+      { label: "Delivery challans: numbering, transitions, PDF and CSV; one stock posting per issue", slice: 2, routeId: "operations-challans" },
+      { label: "Inventory: warehouses, lots and a double-entry movement ledger", slice: 4, routeId: "operations-inventory" },
+      { label: "Reservations and pick lists with no oversell", slice: 4, routeId: "operations-reservations" },
       { label: "Purchasing: requisition, purchase order, goods receipt", slice: 4 },
       { label: "Production: BOMs, routings, work orders and offcut lots", slice: 4 },
       { label: "Quality checks on receipts", slice: 4 },

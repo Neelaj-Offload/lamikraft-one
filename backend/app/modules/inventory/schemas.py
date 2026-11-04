@@ -62,7 +62,7 @@ class LotRef(BaseModel):
     lot_kind: LotKind
 
 
-class UserRef(BaseModel):
+class InventoryUserRef(BaseModel):
     id: uuid.UUID
     display_name: str | None
 
@@ -225,7 +225,7 @@ class PostingRead(BaseModel):
     reason_code: str | None
     reason: str | None
     posted_at: datetime
-    posted_by: UserRef | None
+    posted_by: InventoryUserRef | None
     reverses_posting_id: uuid.UUID | None
     reversed_by_posting_id: uuid.UUID | None
     movements: list[MovementRead]
@@ -357,9 +357,9 @@ class DocumentRead(BaseModel):
     reason_code: str | None = None
     reason: str | None = None
     notes: str | None
-    created_by: UserRef | None
+    created_by: InventoryUserRef | None
     created_at: datetime
-    decided_by: UserRef | None = None
+    decided_by: InventoryUserRef | None = None
     decided_at: datetime | None = None
     decision_note: str | None = None
     posting_id: uuid.UUID | None
@@ -376,7 +376,7 @@ class DocumentSummary(BaseModel):
     status: str
     warehouse: WarehouseRef
     line_count: int
-    created_by: UserRef | None
+    created_by: InventoryUserRef | None
     created_at: datetime
     path: str
 
@@ -481,9 +481,9 @@ class CountRead(BaseModel):
     location: LocationRef | None
     snapshot_seq: int | None
     frozen_at: datetime | None
-    frozen_by: UserRef | None
-    submitted_by: UserRef | None
-    approved_by: UserRef | None
+    frozen_by: InventoryUserRef | None
+    submitted_by: InventoryUserRef | None
+    approved_by: InventoryUserRef | None
     approved_at: datetime | None
     posting_id: uuid.UUID | None
     notes: str | None
@@ -491,7 +491,7 @@ class CountRead(BaseModel):
     counted_lines: int
     variance_lines: int
     created_at: datetime
-    created_by: UserRef | None
+    created_by: InventoryUserRef | None
     version: int
     capabilities: dict[str, Capability]
 
@@ -539,7 +539,7 @@ class PickListRead(BaseModel):
     warehouse: WarehouseRef
     order_id: uuid.UUID
     order_number: str
-    assignee: UserRef | None
+    assignee: InventoryUserRef | None
     released_at: datetime | None
     picked_at: datetime | None
     challan_id: uuid.UUID | None

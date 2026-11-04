@@ -32,6 +32,7 @@ from app.modules.inventory.schemas import (
     Availability,
     BalanceRead,
     CauseRef,
+    InventoryUserRef,
     LocationRef,
     LotRef,
     MovementPage,
@@ -45,7 +46,6 @@ from app.modules.inventory.schemas import (
     StockPage,
     StockRow,
     StockTotals,
-    UserRef,
     WarehouseRef,
 )
 from app.platform.identity.models import AppUser
@@ -112,12 +112,12 @@ def lot_refs(uow: UnitOfWork, ids: Iterable[uuid.UUID | None]) -> dict[uuid.UUID
     return {lot.id: LotRef(id=lot.id, lot_code=lot.lot_code, lot_kind=lot.lot_kind) for lot in rows}  # type: ignore[arg-type]
 
 
-def user_refs(uow: UnitOfWork, ids: Iterable[uuid.UUID | None]) -> dict[uuid.UUID, UserRef]:
+def user_refs(uow: UnitOfWork, ids: Iterable[uuid.UUID | None]) -> dict[uuid.UUID, InventoryUserRef]:
     wanted = {i for i in ids if i}
     if not wanted:
         return {}
     rows = uow.session.execute(select(AppUser.id, AppUser.display_name).where(AppUser.id.in_(wanted))).all()
-    return {r[0]: UserRef(id=r[0], display_name=r[1]) for r in rows}
+    return {r[0]: InventoryUserRef(id=r[0], display_name=r[1]) for r in rows}
 
 
 SOURCE_PATHS = {

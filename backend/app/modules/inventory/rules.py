@@ -51,8 +51,19 @@ def derive_shortage(uow: UnitOfWork, shortage_id: uuid.UUID, *, cache: SourceCac
     assert row is not None
     key = shortage_key(row.product_id, row.warehouse_id)
     title = f"Short of {s.facts['product_key']} at {s.facts['warehouse_code']}"
-    members = [MemberSpec(key=f"shortage:{s.source_id}", ref_type=SHORTAGE, ref_id=s.source_id, ref_version=s.version, label=s.label,
-                          facts=dict(s.facts), required_permission=READ, role=MemberRole.ROOT.value, scope_branch_id=s.branch_id)]
+    members = [
+        MemberSpec(
+            key=f"shortage:{s.source_id}",
+            ref_type=SHORTAGE,
+            ref_id=s.source_id,
+            ref_version=s.version,
+            label=s.label,
+            facts=dict(s.facts),
+            required_permission=READ,
+            role=MemberRole.ROOT.value,
+            scope_branch_id=s.branch_id,
+        )
+    ]
     for cause in s.facts.get("caused_by") or []:
         if cause["type"] == "orders.sales_order_line":
             from app.modules.orders.models import SalesOrderLine
@@ -63,26 +74,55 @@ def derive_shortage(uow: UnitOfWork, shortage_id: uuid.UUID, *, cache: SourceCac
             order = cache.read(uow, "orders.sales_order", line.order_id)
             if order is None:
                 continue
-            members.append(MemberSpec(key=f"cause:{cause['type']}:{cause['id']}", ref_type="orders.sales_order", ref_id=order.source_id,
-                                      ref_version=order.version, label=cause.get("label") or order.label,
-                                      facts={"order_number": order.facts.get("order_number"), "cause": cause["type"]},
-                                      required_permission="orders.sales_order.read", role=MemberRole.EVIDENCE.value,
-                                      scope_owner_id=order.owner_user_id, scope_branch_id=order.branch_id))
+            members.append(
+                MemberSpec(
+                    key=f"cause:{cause['type']}:{cause['id']}",
+                    ref_type="orders.sales_order",
+                    ref_id=order.source_id,
+                    ref_version=order.version,
+                    label=cause.get("label") or order.label,
+                    facts={"order_number": order.facts.get("order_number"), "cause": cause["type"]},
+                    required_permission="orders.sales_order.read",
+                    role=MemberRole.EVIDENCE.value,
+                    scope_owner_id=order.owner_user_id,
+                    scope_branch_id=order.branch_id,
+                )
+            )
     tasks: list[TaskSpec] = []
     if not s.is_closed:
         named = responsibility.resolve(uow, "ops.shortages", [])
-        tasks.append(TaskSpec(
-            dedup_key=f"{key}:resolve", kind="resolve_shortage", title=f"Resolve the shortage of {s.facts['product_key']} at {s.facts['warehouse_code']}",
-            completion_check="shortage_resolved", required_permission=READ, facts=dict(s.facts),
-            primary_ref_type=SHORTAGE, primary_ref_id=s.source_id, primary_ref_version=s.version,
-            owner_user_id=named.owner_user_id, assignee_user_id=named.assignee_user_id, queue_code=named.queue_code,
-            due_kind=DueKind.NONE.value, scope_branch_id=s.branch_id, branch_id=s.branch_id,
-        ))
+        tasks.append(
+            TaskSpec(
+                dedup_key=f"{key}:resolve",
+                kind="resolve_shortage",
+                title=f"Resolve the shortage of {s.facts['product_key']} at {s.facts['warehouse_code']}",
+                completion_check="shortage_resolved",
+                required_permission=READ,
+                facts=dict(s.facts),
+                primary_ref_type=SHORTAGE,
+                primary_ref_id=s.source_id,
+                primary_ref_version=s.version,
+                owner_user_id=named.owner_user_id,
+                assignee_user_id=named.assignee_user_id,
+                queue_code=named.queue_code,
+                due_kind=DueKind.NONE.value,
+                scope_branch_id=s.branch_id,
+                branch_id=s.branch_id,
+            )
+        )
     return IssueOutcome(
-        issue_key=key, family="ops.shortages", root_ref_type=SHORTAGE, root_ref_id=s.source_id, title=title,
-        title_facts={"product_key": s.facts["product_key"], "warehouse_code": s.facts["warehouse_code"]}, required_permission=READ,
-        scope_branch_id=s.branch_id, members=members, tasks=tasks,
-        closure=Closure(TaskState.DONE.value, {"reason": "shortage_resolved"}), resolution=IssueResolution.COMPLETED.value,
+        issue_key=key,
+        family="ops.shortages",
+        root_ref_type=SHORTAGE,
+        root_ref_id=s.source_id,
+        title=title,
+        title_facts={"product_key": s.facts["product_key"], "warehouse_code": s.facts["warehouse_code"]},
+        required_permission=READ,
+        scope_branch_id=s.branch_id,
+        members=members,
+        tasks=tasks,
+        closure=Closure(TaskState.DONE.value, {"reason": "shortage_resolved"}),
+        resolution=IssueResolution.COMPLETED.value,
         root_version=s.version,
     )
 
@@ -102,21 +142,61 @@ def derive_pick_list(uow: UnitOfWork, pick_list_id: uuid.UUID, *, cache: SourceC
     tasks: list[TaskSpec] = []
     if p.status == "released":
         named = responsibility.resolve(uow, "ops.picking", [p.owner_user_id])
-        tasks.append(TaskSpec(
-            dedup_key=f"{key}:pick", kind="pick", title=f"Pick {p.facts['pick_list_number']} for {p.facts['order_number']}",
-            completion_check="pick_list_picked", required_permission=READ, facts=dict(p.facts),
-            primary_ref_type=PICK_LIST, primary_ref_id=p.source_id, primary_ref_version=p.version,
-            owner_user_id=named.owner_user_id, assignee_user_id=named.assignee_user_id, queue_code=named.queue_code,
-            due_kind=DueKind.SOFT.value, due_at=uow.now(), scope_owner_id=p.owner_user_id, scope_branch_id=p.branch_id, branch_id=p.branch_id,
-        ))
+        tasks.append(
+            TaskSpec(
+                dedup_key=f"{key}:pick",
+                kind="pick",
+                title=f"Pick {p.facts['pick_list_number']} for {p.facts['order_number']}",
+                completion_check="pick_list_picked",
+                required_permission=READ,
+                facts=dict(p.facts),
+                primary_ref_type=PICK_LIST,
+                primary_ref_id=p.source_id,
+                primary_ref_version=p.version,
+                owner_user_id=named.owner_user_id,
+                assignee_user_id=named.assignee_user_id,
+                queue_code=named.queue_code,
+                due_kind=DueKind.SOFT.value,
+                due_at=uow.now(),
+                scope_owner_id=p.owner_user_id,
+                scope_branch_id=p.branch_id,
+                branch_id=p.branch_id,
+            )
+        )
     return IssueOutcome(
-        issue_key=key, family="ops.picking", root_ref_type=PICK_LIST, root_ref_id=p.source_id, title=p.label,
-        title_facts={"pick_list_number": p.facts["pick_list_number"], "order_number": p.facts["order_number"]}, required_permission=READ,
-        scope_owner_id=p.owner_user_id, scope_branch_id=p.branch_id,
-        members=[MemberSpec(key=key, ref_type=PICK_LIST, ref_id=p.source_id, ref_version=p.version, label=p.label, facts=dict(p.facts),
-                            required_permission=READ, role=MemberRole.ROOT.value, scope_owner_id=p.owner_user_id, scope_branch_id=p.branch_id)],
-        tasks=tasks, closure=Closure(TaskState.DONE.value if p.status == "picked" else TaskState.CANCELLED.value, {"reason": f"pick_list_{p.status}"}),
-        resolution=IssueResolution.COMPLETED.value, root_version=p.version,
+        issue_key=key,
+        family="ops.picking",
+        root_ref_type=PICK_LIST,
+        root_ref_id=p.source_id,
+        title=p.label,
+        title_facts={
+            "pick_list_number": p.facts["pick_list_number"],
+            "order_number": p.facts["order_number"],
+        },
+        required_permission=READ,
+        scope_owner_id=p.owner_user_id,
+        scope_branch_id=p.branch_id,
+        members=[
+            MemberSpec(
+                key=key,
+                ref_type=PICK_LIST,
+                ref_id=p.source_id,
+                ref_version=p.version,
+                label=p.label,
+                facts=dict(p.facts),
+                required_permission=READ,
+                role=MemberRole.ROOT.value,
+                scope_owner_id=p.owner_user_id,
+                scope_branch_id=p.branch_id,
+            )
+        ],
+        tasks=tasks,
+        closure=Closure(
+            TaskState.DONE.value if p.status == "picked" else TaskState.CANCELLED.value,
+            {"reason": f"pick_list_{p.status}"},
+        ),
+        resolution=IssueResolution.COMPLETED.value,
+        root_version=p.version,
     )
 
 
@@ -144,17 +224,32 @@ def on_mismatch(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iter
     tasks = []
     if still:
         named = responsibility.resolve(uow, "admin.stock_integrity", [])
-        tasks.append(TaskSpec(
-            dedup_key=f"{key}:investigate", kind="investigate_integrity", title=f"Stock projection mismatch: {label}",
-            completion_check="assertion", required_permission="inventory.warehouse.manage",
-            facts={"kinds": sorted({m.kind for m in still})}, primary_ref_type=WAREHOUSE if wh else None,
-            primary_ref_id=warehouse_id if wh else None, owner_user_id=named.owner_user_id, assignee_user_id=named.assignee_user_id,
-            queue_code=named.queue_code, due_kind=DueKind.NONE.value,
-        ))
+        tasks.append(
+            TaskSpec(
+                dedup_key=f"{key}:investigate",
+                kind="investigate_integrity",
+                title=f"Stock projection mismatch: {label}",
+                completion_check="assertion",
+                required_permission="inventory.warehouse.manage",
+                facts={"kinds": sorted({m.kind for m in still})},
+                primary_ref_type=WAREHOUSE if wh else None,
+                primary_ref_id=warehouse_id if wh else None,
+                owner_user_id=named.owner_user_id,
+                assignee_user_id=named.assignee_user_id,
+                queue_code=named.queue_code,
+                due_kind=DueKind.NONE.value,
+            )
+        )
     yield IssueOutcome(
-        issue_key=key, family="admin.stock_integrity", root_ref_type=WAREHOUSE, root_ref_id=warehouse_id or product_id,
-        title=f"Stock projection mismatch: {label}", required_permission="inventory.warehouse.manage", tasks=tasks,
-        closure=Closure(TaskState.DONE.value, {"reason": "projection_consistent"}), resolution=IssueResolution.COMPLETED.value,
+        issue_key=key,
+        family="admin.stock_integrity",
+        root_ref_type=WAREHOUSE,
+        root_ref_id=warehouse_id or product_id,
+        title=f"Stock projection mismatch: {label}",
+        required_permission="inventory.warehouse.manage",
+        tasks=tasks,
+        closure=Closure(TaskState.DONE.value, {"reason": "projection_consistent"}),
+        resolution=IssueResolution.COMPLETED.value,
     )
 
 

@@ -18,6 +18,7 @@ import { Conflict, ErrorState, Loading } from "@/components/ui/states";
 import { linkClasses } from "@/components/ui/styles";
 import { TextArea, TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
+import { ConvertToOrder } from "@/features/orders/convert-to-order";
 import { Composer } from "@/features/assistant/composer";
 import { useScreenContribution } from "@/features/assistant/screen-context-store";
 import { conflictFromError, type ConflictInfo } from "@/lib/api/errors";
@@ -386,6 +387,10 @@ function Commands({ quote, commands }: { quote: QuoteDetail; commands: ReturnTyp
         </div>
       )}
       {commands.offline ? <p className="text-sm text-warning-text">{commands.offline}</p> : null}
+      {/* Slice 4: a won quote becomes a sales order once (orders lane) */}
+      <div className="flex flex-wrap gap-2">
+        <ConvertToOrder quoteId={quote.id} status={quote.status} />
+      </div>
       <ReasonDialog
         title={asking?.label ?? ""}
         description={quote.quote_number}

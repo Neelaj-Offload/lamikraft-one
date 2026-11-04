@@ -376,7 +376,7 @@ describe("operations overview", () => {
     const { testBootstrap } = await import("@/lib/test-support/session");
     const html = renderInSession(<AreaOverview area="operations" />, testBootstrap({ permissions: [{ key: "challans.challan.read", scope: "company" }] }));
     expect(html).toContain('href="/operations/challans"');
-    expect(textOf(html)).toContain("delivery challans are available now");
+    expect(textOf(html)).toContain("challans, inventory and reservations are available now");
     expect(textOf(html)).toContain("Planned · Slice 4");
   });
 });

@@ -18,7 +18,7 @@ export const challansMessages = {
   periods: { this_week: "This week", this_month: "This month" } as Record<string, string>,
   list: {
     title: "Delivery challans",
-    intro: "Material going out, coming in, on job work or out as samples. Documents only: stock is not moved yet.",
+    intro: "Material going out, coming in, on job work or out as samples. Once inventory is live, issuing a challan moves stock exactly once.",
     newChallan: "New challan",
     exportCsv: "Export CSV",
     search: "Search challans",

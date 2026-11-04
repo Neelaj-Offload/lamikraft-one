@@ -51,12 +51,12 @@ from app.modules.orders.schemas import (
     OrderTransition,
     OrderUpdate,
     OrderUserRef,
+    OrderWarehouseRef,
     ReleaseRequest,
     ReserveRequest,
     ReserveResponse,
     SalesOrderDetail,
     SalesOrderSummary,
-    WarehouseRef,
 )
 from app.platform.authz.policy import scope_clause
 from app.platform.identity.models import AppUser
@@ -383,14 +383,14 @@ def convert_quote_command(uow: UnitOfWork, quote_id: uuid.UUID) -> ConversionRes
 # =====================================================================================================
 # reads
 # =====================================================================================================
-def _warehouses(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, WarehouseRef]:
+def _warehouses(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, OrderWarehouseRef]:
     wanted = {i for i in ids if i}
     if not wanted:
         return {}
     rows = uow.session.scalars(
         select(Warehouse).where(Warehouse.company_id == uow.actor.company_id, Warehouse.id.in_(wanted))
     )
-    return {w.id: WarehouseRef(id=w.id, code=w.code, name=w.name) for w in rows}
+    return {w.id: OrderWarehouseRef(id=w.id, code=w.code, name=w.name) for w in rows}
 
 
 def _party_refs(uow: UnitOfWork, orders: Sequence[SalesOrder]) -> dict[uuid.UUID, OrderPartyRef]:
@@ -1307,7 +1307,7 @@ def impact_preview(uow: UnitOfWork, order_id: uuid.UUID) -> ImpactPreview:
         )  # type: ignore[arg-type]
     return ImpactPreview(
         order_id=order.id,
-        warehouse=WarehouseRef(id=wh.id, code=wh.code, name=wh.name) if wh else None,
+        warehouse=OrderWarehouseRef(id=wh.id, code=wh.code, name=wh.name) if wh else None,
         lines=out,
     )
 
