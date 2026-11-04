@@ -35,7 +35,7 @@ async function origin(page: Page): Promise<string> {
   return new URL(test.info().project.use.baseURL ?? page.url()).origin;
 }
 
-test("B: an active voice pin keeps the list in place while a new version arrives", async ({ page }) => {
+test("B: an active voice pin keeps the list in place while a new version arrives", async ({ page, request }) => {
   await signInAs(page, "MEERA");
   await page.goto("/today");
   await expect(page.locator('article[data-reveal="item"]').first()).toBeVisible();
@@ -54,8 +54,13 @@ test("B: an active voice pin keeps the list in place while a new version arrives
   const maison = ref(world, "MAISON");
   const meera = ref(world, "MEERA");
   expect(maison, "MAISON party ref").not.toBeNull();
-  const created = await page.request.post("/api/v1/sales/customer-messages", {
-    headers: { Origin: await origin(page), "Idempotency-Key": `b-stability-${Date.now()}` },
+  // the source change comes from a separate API session (the page's CSRF token rotates at bootstrap): sign in, then
+  // send the app's Origin and the double-submit token from that session's lk_csrf cookie
+  const headers = { Origin: await origin(page) };
+  expect((await request.post("/api/v1/_test/sign-in", { data: { user_key: "MEERA" }, headers })).status()).toBe(200);
+  const csrf = (await request.storageState()).cookies.find((cookie) => cookie.name === "lk_csrf")?.value ?? "";
+  const created = await request.post("/api/v1/sales/customer-messages", {
+    headers: { ...headers, "X-CSRF-Token": csrf, "Idempotency-Key": `b-stability-${Date.now()}` },
     data: { party_id: maison, channel: "email", subject: "Scenario B", body: "Could you confirm the delivery date?", assignee_user_id: meera },
   });
   expect(created.status(), await created.text()).toBe(201);

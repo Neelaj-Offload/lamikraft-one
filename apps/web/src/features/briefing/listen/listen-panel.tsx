@@ -123,14 +123,15 @@ export function ListenPanel({ state, speechLabel, disabledReason, onStart, onPau
       {state.phase === "error" && state.error ? <p className="text-sm text-danger-text">{state.error}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        {state.phase === "speaking" || state.phase === "starting" ? (
-          <Button variant="primary" className={TARGET} onPress={onPause} {...unavailableWhen(state.phase === "starting" ? m.listen.starting : null)}>
-            {m.listen.pause}
-          </Button>
-        ) : null}
-        {state.phase === "paused" ? (
-          <Button variant="primary" className={TARGET} onPress={onResume}>
-            {m.listen.resume}
+        {active ? (
+          // one toggle element, so keyboard focus stays on it between Pause and Resume
+          <Button
+            variant="primary"
+            className={TARGET}
+            onPress={state.phase === "paused" ? onResume : onPause}
+            {...unavailableWhen(state.phase === "starting" ? m.listen.starting : null)}
+          >
+            {state.phase === "paused" ? m.listen.resume : m.listen.pause}
           </Button>
         ) : null}
         {active ? (

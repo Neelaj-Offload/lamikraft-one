@@ -158,6 +158,7 @@ describe("Listen session", () => {
     await session.start("b-1");
     await flush();
     session.stop();
+    expect(ended).toEqual([]); // not before the pin has ended on the server
     endClip();
     await flush();
     expect(session.state).toEqual(IDLE_LISTEN);

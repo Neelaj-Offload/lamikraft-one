@@ -155,9 +155,13 @@ export function createListenSession(deps: {
       deps.speech.stop();
       if (current) {
         current.aborter.abort();
-        record(current.pinId, { state: "stopped", position: state.index });
+        const position = state.index;
         set(IDLE_LISTEN);
-        onEnded?.("stopped");
+        // refresh only once the pin has ended on the server, else Today would be served the pinned version again
+        void deps.api
+          .updatePin(current.pinId, { state: "stopped", position })
+          .catch(() => undefined)
+          .then(() => onEnded?.("stopped"));
       } else {
         set(IDLE_LISTEN);
       }
