@@ -18,7 +18,8 @@ const WIDTHS = [
 ] as const;
 const THEMES = ["light", "dark"] as const;
 
-test.skip(!process.env.LK_E2E_EVIDENCE, "evidence screenshots run only with LK_E2E_EVIDENCE=1");
+// only its own value: the later checkpoint specs use LK_E2E_EVIDENCE=cp3/cp4a/cp4/cp5, which must not rewrite these
+test.skip(process.env.LK_E2E_EVIDENCE !== "1", "evidence screenshots run only with LK_E2E_EVIDENCE=1");
 test.describe.configure({ mode: "serial" });
 
 let world: World;

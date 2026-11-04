@@ -219,9 +219,9 @@ function WorkOrder({ wo }: { wo: WorkOrderRead }) {
         status={<WorkOrderStatus status={wo.status} blocked={wo.is_blocked} />}
         meta={
           <>
-            <span>{d.planned(`${wo.qty_planned} ${wo.uom_code}`)}</span>
+            <span>{d.planned(`${trimDecimalStr(wo.qty_planned)} ${wo.uom_code}`)}</span>
             <MetaDot />
-            <span>{d.good(`${wo.qty_good} ${wo.uom_code}`)}</span>
+            <span>{d.good(`${trimDecimalStr(wo.qty_good)} ${wo.uom_code}`)}</span>
             <MetaDot />
             <span>{wo.warehouse.code}</span>
             {wo.sales_order ? (

@@ -603,6 +603,30 @@ def _cause_labels(uow: UnitOfWork, refs: list[dict[str, str]]) -> list[CauseRef]
             .where(SalesOrderLine.id.in_(line_ids))
         ).all():
             labels[str(ln.id)] = (f"{o.order_number} · line {ln.line_no}", f"/sales/orders/{o.id}")
+    # Slice-4 merge: the other lanes' causes (work-order materials, late PO lines) get labels and links too
+    material_ids = [uuid.UUID(r["id"]) for r in refs if r["type"] == "production.wo_material"]
+    if material_ids:
+        from app.modules.production.models import WoMaterial, WorkOrder
+
+        for m, w in uow.session.execute(
+            select(WoMaterial, WorkOrder)
+            .join(WorkOrder, WorkOrder.id == WoMaterial.work_order_id)
+            .where(WoMaterial.id.in_(material_ids))
+        ).all():
+            labels[str(m.id)] = (f"{w.wo_number} · material {m.line_no}", f"/operations/production/work-orders/{w.id}")
+    po_line_ids = [uuid.UUID(r["id"]) for r in refs if r["type"] == "procurement.purchase_order_line"]
+    if po_line_ids:
+        from app.modules.procurement.models import PurchaseOrder, PurchaseOrderLine
+
+        for pl, po in uow.session.execute(
+            select(PurchaseOrderLine, PurchaseOrder)
+            .join(PurchaseOrder, PurchaseOrder.id == PurchaseOrderLine.purchase_order_id)
+            .where(PurchaseOrderLine.id.in_(po_line_ids))
+        ).all():
+            labels[str(pl.id)] = (
+                f"{po.po_number} · line {pl.line_no} (expected {pl.expected_date.isoformat()})",
+                f"/operations/purchasing/orders/{po.id}",
+            )
     return [
         CauseRef(
             type=r["type"],

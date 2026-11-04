@@ -73,6 +73,14 @@ def test_release_blocks_on_shortage_and_unblocks_on_receipt(prod_world: ProdWorl
             if m.ref_type == "production.work_order"
         ]
         assert wo_members == [w.wo_id]
+    # the shortages list labels and links the work-order cause instead of showing the raw ref type (Slice-4 merge)
+    from app.modules.inventory.reads import shortage_reads
+
+    with w.uow(RAVI) as uow:
+        causes = [c for s in shortage_reads(uow) for c in s.caused_by if c.type == "production.wo_material"]
+    assert [(c.label, c.path) for c in causes] == [
+        ("WO-2026-0001 · material 1", f"/operations/production/work-orders/{w.wo_id}")
+    ]
     # supply arrives (a goods receipt stand-in posting through the inventory service): 8 more sheets of the lot
     w.receive("WALNUT_BOARD", "8", lot_code=keys.LOTS.WALNUT, location=keys.WAREHOUSE_REFS.BIN_A12)
     w.drain()
