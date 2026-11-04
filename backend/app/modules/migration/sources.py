@@ -30,7 +30,7 @@ from app.modules.imports.headers import normalise_header
 #: legacy collection -> accepted file stems (the collection name first)
 ENTITY_FILES: dict[str, tuple[str, ...]] = {
     "category_taxonomy": ("category_taxonomy", "taxonomy"),
-    "products_master": ("products_master", "products"),
+    "products_master": ("products_master",),
     "pricing": ("pricing",),
     "packaging": ("packaging",),
     "specifications": ("specifications",),

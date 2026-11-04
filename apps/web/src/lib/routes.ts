@@ -679,6 +679,10 @@ export const routes = [
   { id: "settings-import", path: "/settings/imports/[jobId]", label: "Import", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "imports.", access: "session" },
   { id: "settings-lookups", path: "/settings/lookups", label: "Lookup reference", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "catalogue.", access: "session" },
   { id: "settings-customer-types", path: "/settings/customer-types", label: "Customer types", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "parties.", access: "session" },
+  // s5-migration lane (Slice 5): legacy migration runs and backup facts
+  { id: "settings-migration", path: "/settings/migration", label: "Migration", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "migration.", access: "session" },
+  { id: "settings-migration-run", path: "/settings/migration/runs/[runId]", label: "Migration run", area: "settings", navGroup: null, mobileTab: "more", requiredPermission: "migration.", access: "session" },
+  { id: "settings-backups", path: "/settings/backups", label: "Backups", area: "settings", navGroup: "context", mobileTab: "more", requiredPermission: "system.", access: "session" },
   // commercial-2 lane (Slice 2): custom products, samples, quote settings, FX rates
   {
     id: "sales-custom-products",

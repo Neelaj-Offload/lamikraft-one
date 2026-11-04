@@ -75,3 +75,13 @@ def test_candidate_names_drop_legal_forms_and_punctuation() -> None:
     assert normalise_name("Maison Lumière") == "maison lumière"
     assert country_code("germany") == "DE" and country_code("United Kingdom") == "GB" and country_code("se") == "SE"
     assert country_code("Atlantis") is None
+
+
+def test_cleared_legacy_collections_are_reported_as_skipped(tmp_path: Path) -> None:
+    """FG-MSC-01/02: ``revision_history`` and the legacy ``products`` collection are not migrated, only reported."""
+    (tmp_path / "products_master.csv").write_text("product_key,category\nK1,Trays\n", encoding="utf-8")
+    for name in ("products.json", "revision_history.json", "search_history.jsonl"):
+        (tmp_path / name).write_text("[]", encoding="utf-8")
+    source = read_export(tmp_path)
+    assert set(source.files) == {"products_master"}
+    assert source.ignored == ["products.json", "revision_history.json", "search_history.jsonl"]

@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from app.core.http.capabilities import Capability
 
 
-class RunSummary(BaseModel):
+class MigrationRunSummary(BaseModel):
     id: uuid.UUID
     kind: str
     status: str
@@ -30,7 +30,7 @@ class RunSummary(BaseModel):
     path: str
 
 
-class RunDetail(RunSummary):
+class MigrationRunDetail(MigrationRunSummary):
     export_manifest: dict[str, Any]
     files: list[dict[str, Any]]
     options: dict[str, Any]
@@ -41,7 +41,7 @@ class RunDetail(RunSummary):
     issues_csv_path: str
 
 
-class IssueRead(BaseModel):
+class MigrationIssueRead(BaseModel):
     id: uuid.UUID
     entity: str
     source_file: str | None
@@ -66,7 +66,7 @@ class IssueFacets(BaseModel):
     code: list[IssueFacet]
 
 
-class PartyRef(BaseModel):
+class CandidatePartyRef(BaseModel):
     id: uuid.UUID
     party_number: str
     display_name: str
@@ -86,8 +86,8 @@ class CandidateRead(BaseModel):
     match_kind: str
     score: Decimal
     status: str
-    suggested_party: PartyRef | None
-    linked_party: PartyRef | None
+    suggested_party: CandidatePartyRef | None
+    linked_party: CandidatePartyRef | None
     decided_by_name: str | None
     decided_at: datetime | None
     decision_note: str | None
@@ -171,10 +171,10 @@ __all__ = [
     "CandidateRead",
     "IssueFacet",
     "IssueFacets",
-    "IssueRead",
+    "MigrationIssueRead",
     "OpeningBatchRead",
-    "PartyRef",
+    "CandidatePartyRef",
     "RehearsalCheck",
-    "RunDetail",
-    "RunSummary",
+    "MigrationRunDetail",
+    "MigrationRunSummary",
 ]

@@ -18,10 +18,10 @@ from app.modules.migration.schemas import (
     CandidateDecide,
     CandidateRead,
     IssueFacets,
-    IssueRead,
+    MigrationIssueRead,
+    MigrationRunDetail,
+    MigrationRunSummary,
     OpeningBatchRead,
-    RunDetail,
-    RunSummary,
 )
 from app.platform.uow import UnitOfWork
 
@@ -39,13 +39,13 @@ def list_migration_runs(
     kind: RunKind | None = None,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
-) -> Page[RunSummary]:
+) -> Page[MigrationRunSummary]:
     """Dry runs and applies, newest first."""
     return service.list_runs(actor, kind=kind.value if kind else None, limit=limit, offset=offset)
 
 
 @router.get("/runs/{run_id}", openapi_extra=READ)
-def get_migration_run(actor: Actor, run_id: uuid.UUID) -> RunDetail:
+def get_migration_run(actor: Actor, run_id: uuid.UUID) -> MigrationRunDetail:
     """One run with its reconciliation report (counts, totals by currency, links, file hashes, ID maps)."""
     return service.get_run(actor, run_id)
 
@@ -59,7 +59,7 @@ def list_migration_issues(
     code: Annotated[str | None, Query(max_length=60)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-) -> Page[IssueRead]:
+) -> Page[MigrationIssueRead]:
     """The quarantine browser: every issue with its row reference (file, row, source key) and original values."""
     return service.list_issues(actor, run_id, severity=severity.value if severity else None, entity=entity,
                                code=code, limit=limit, offset=offset)

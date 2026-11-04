@@ -31,15 +31,15 @@ from app.modules.migration.schemas import (
     BackupRead,
     CandidateDecide,
     CandidateDecision,
+    CandidatePartyRef,
     CandidateRead,
     IssueFacet,
     IssueFacets,
-    IssueRead,
+    MigrationIssueRead,
+    MigrationRunDetail,
+    MigrationRunSummary,
     OpeningBatchRead,
-    PartyRef,
     RehearsalCheck,
-    RunDetail,
-    RunSummary,
 )
 from app.platform.authz.permissions import Scope
 from app.platform.authz.stepup import require_step_up
@@ -74,7 +74,7 @@ def _run(uow: UnitOfWork, run_id: uuid.UUID) -> MigrationRun:
 
 
 @query(RUN_READ, at_least=Scope.COMPANY)
-def list_runs(uow: UnitOfWork, *, kind: str | None = None, limit: int = 25, offset: int = 0) -> Page[RunSummary]:
+def list_runs(uow: UnitOfWork, *, kind: str | None = None, limit: int = 25, offset: int = 0) -> Page[MigrationRunSummary]:
     require_step_up(uow, RUN_READ)
     stmt = select(MigrationRun)
     if kind:
@@ -82,14 +82,14 @@ def list_runs(uow: UnitOfWork, *, kind: str | None = None, limit: int = 25, offs
     total = uow.session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = uow.session.scalars(stmt.order_by(MigrationRun.started_at.desc(), MigrationRun.id.desc())
                                .limit(min(limit, MAX_LIMIT)).offset(offset))
-    return Page(items=[RunSummary(**_summary(r)) for r in rows], total=int(total), limit=limit, offset=offset)
+    return Page(items=[MigrationRunSummary(**_summary(r)) for r in rows], total=int(total), limit=limit, offset=offset)
 
 
 @query(RUN_READ, at_least=Scope.COMPANY)
-def get_run(uow: UnitOfWork, run_id: uuid.UUID) -> RunDetail:
+def get_run(uow: UnitOfWork, run_id: uuid.UUID) -> MigrationRunDetail:
     require_step_up(uow, RUN_READ)
     run = _run(uow, run_id)
-    return RunDetail(
+    return MigrationRunDetail(
         **_summary(run), export_manifest=dict(run.export_manifest or {}), files=list(run.files or []),
         options=dict(run.options or {}), counts=dict(run.counts or {}), report=dict(run.report or {}),
         error_detail=run.error_detail, issues_csv_path=f"/api/v1/migration/runs/{run.id}/issues.csv",
@@ -109,7 +109,7 @@ def _issue_filters(run_id: uuid.UUID, severity: str | None, entity: str | None, 
 
 @query(RUN_READ, at_least=Scope.COMPANY)
 def list_issues(uow: UnitOfWork, run_id: uuid.UUID, *, severity: str | None = None, entity: str | None = None,
-                code: str | None = None, limit: int = 50, offset: int = 0) -> Page[IssueRead]:
+                code: str | None = None, limit: int = 50, offset: int = 0) -> Page[MigrationIssueRead]:
     require_step_up(uow, RUN_READ)
     _run(uow, run_id)
     conds = _issue_filters(run_id, severity, entity, code)
@@ -119,7 +119,7 @@ def list_issues(uow: UnitOfWork, run_id: uuid.UUID, *, severity: str | None = No
         .order_by(MigrationIssue.entity, MigrationIssue.row_number.nulls_first(), MigrationIssue.code, MigrationIssue.id)
         .limit(min(limit, MAX_LIMIT)).offset(offset)
     )
-    items = [IssueRead(id=i.id, entity=i.entity, source_file=i.source_file, row_number=i.row_number,
+    items = [MigrationIssueRead(id=i.id, entity=i.entity, source_file=i.source_file, row_number=i.row_number,
                        source_key=i.source_key, code=i.code, severity=i.severity, message=i.message, field=i.field,
                        raw_value=i.raw_value, raw=i.raw) for i in rows]
     return Page(items=items, total=int(total), limit=limit, offset=offset)
@@ -154,7 +154,7 @@ def issues_csv(uow: UnitOfWork, run_id: uuid.UUID) -> bytes:
 
 
 # ---- candidates ----------------------------------------------------------------------------------------------------
-def _party_refs(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, PartyRef]:
+def _party_refs(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, CandidatePartyRef]:
     from app.modules.parties.models import Party
 
     clean = {i for i in ids if i}
@@ -162,7 +162,7 @@ def _party_refs(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.U
         return {}
     rows = uow.session.execute(select(Party.id, Party.party_number, Party.display_name, Party.country_code)
                                .where(Party.id.in_(clean)))
-    return {pid: PartyRef(id=pid, party_number=num, display_name=name, country_code=cc,
+    return {pid: CandidatePartyRef(id=pid, party_number=num, display_name=name, country_code=cc,
                           path=f"/sales/parties/{pid}") for pid, num, name, cc in rows}
 
 
@@ -175,7 +175,7 @@ def _names(uow: UnitOfWork, ids: Sequence[uuid.UUID | None]) -> dict[uuid.UUID, 
     return dict(uow.session.execute(select(AppUser.id, AppUser.display_name).where(AppUser.id.in_(clean))).all())
 
 
-def _candidate(uow: UnitOfWork, c: PartyCandidate, parties: dict[uuid.UUID, PartyRef],
+def _candidate(uow: UnitOfWork, c: PartyCandidate, parties: dict[uuid.UUID, CandidatePartyRef],
                names: dict[uuid.UUID, str]) -> CandidateRead:
     can = uow.actor.can(CANDIDATE_UPDATE, Scope.COMPANY)
     open_ = c.status == CandidateStatus.PROPOSED.value

@@ -6523,6 +6523,22 @@ export interface components {
          * @enum {string}
          */
         CandidateDecision: "link" | "new_party" | "reject" | "reopen";
+        /** CandidatePartyRef */
+        CandidatePartyRef: {
+            /** Country Code */
+            country_code: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Party Number */
+            party_number: string;
+            /** Path */
+            path: string;
+        };
         /** CandidateRead */
         CandidateRead: {
             /** Capabilities */
@@ -6546,7 +6562,7 @@ export interface components {
             legacy_country: string | null;
             /** Legacy Name */
             legacy_name: string;
-            linked_party: components["schemas"]["app__modules__migration__schemas__PartyRef"] | null;
+            linked_party: components["schemas"]["CandidatePartyRef"] | null;
             /** Match Kind */
             match_kind: string;
             /** Name Key */
@@ -6561,7 +6577,7 @@ export interface components {
             }[];
             /** Status */
             status: string;
-            suggested_party: components["schemas"]["app__modules__migration__schemas__PartyRef"] | null;
+            suggested_party: components["schemas"]["CandidatePartyRef"] | null;
             /** Variants */
             variants: {
                 [key: string]: unknown;
@@ -7696,7 +7712,7 @@ export interface components {
             /** Provider Label */
             provider_label: string;
             /** Runs */
-            runs: components["schemas"]["app__modules__agents__schemas__RunSummary"][];
+            runs: components["schemas"]["RunSummary"][];
             status: components["schemas"]["ConversationStatus"];
             /** Title */
             title: string | null;
@@ -8040,7 +8056,7 @@ export interface components {
             packaging: components["schemas"]["CustomPackaging"] | null;
             /** Packaging Notes */
             packaging_notes: string | null;
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"] | null;
+            party: components["schemas"]["PartyRef"] | null;
             /** Path */
             path: string;
             /** Product Name */
@@ -8157,7 +8173,7 @@ export interface components {
             /** Legacy Customer Name */
             legacy_customer_name: string | null;
             owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"] | null;
+            party: components["schemas"]["PartyRef"] | null;
             /** Path */
             path: string;
             /** Product Name */
@@ -8317,7 +8333,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"];
+            party: components["schemas"]["PartyRef"];
             /** Path */
             path: string;
             /** Quote Id */
@@ -8939,7 +8955,7 @@ export interface components {
             /** Outcome Code */
             outcome_code: string | null;
             owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"];
+            party: components["schemas"]["PartyRef"];
             /** Path */
             path: string;
             /** Quote Id */
@@ -9820,6 +9836,30 @@ export interface components {
             /** Severity */
             severity: components["schemas"]["IssueFacet"][];
         };
+        /** IssueRead */
+        IssueRead: {
+            /** Code */
+            code: string;
+            /** Column */
+            column: string | null;
+            /** Field */
+            field: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Phase */
+            phase: string;
+            /** Raw Value */
+            raw_value: string | null;
+            /** Row Number */
+            row_number: number | null;
+            /** Severity */
+            severity: string;
+        };
         /**
          * IssueSeverity
          * @enum {string}
@@ -10651,6 +10691,134 @@ export interface components {
             /** Session Verified */
             session_verified: boolean;
         };
+        /** MigrationIssueRead */
+        MigrationIssueRead: {
+            /** Code */
+            code: string;
+            /** Entity */
+            entity: string;
+            /** Field */
+            field: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            } | null;
+            /** Raw Value */
+            raw_value: string | null;
+            /** Row Number */
+            row_number: number | null;
+            /** Severity */
+            severity: string;
+            /** Source File */
+            source_file: string | null;
+            /** Source Key */
+            source_key: string | null;
+        };
+        /** MigrationRunDetail */
+        MigrationRunDetail: {
+            /** Backup Id */
+            backup_id: string | null;
+            /** Counts */
+            counts: {
+                [key: string]: unknown;
+            };
+            /** Error Code */
+            error_code: string | null;
+            /** Error Count */
+            error_count: number;
+            /** Error Detail */
+            error_detail: string | null;
+            /** Export Manifest */
+            export_manifest: {
+                [key: string]: unknown;
+            };
+            /** Files */
+            files: {
+                [key: string]: unknown;
+            }[];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issue Count */
+            issue_count: number;
+            /** Issues Csv Path */
+            issues_csv_path: string;
+            /** Kind */
+            kind: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+            /** Path */
+            path: string;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            };
+            /** Source Digest */
+            source_digest: string;
+            /** Source Label */
+            source_label: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By Name */
+            started_by_name: string;
+            /** Status */
+            status: string;
+        };
+        /** MigrationRunSummary */
+        MigrationRunSummary: {
+            /** Backup Id */
+            backup_id: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Count */
+            error_count: number;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issue Count */
+            issue_count: number;
+            /** Kind */
+            kind: string;
+            /** Path */
+            path: string;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Source Digest */
+            source_digest: string;
+            /** Source Label */
+            source_label: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By Name */
+            started_by_name: string;
+            /** Status */
+            status: string;
+        };
         /** MinimumOut */
         MinimumOut: {
             minimum_order_value: components["schemas"]["Money"] | null;
@@ -11184,6 +11352,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[IssueRead] */
+        Page_IssueRead_: {
+            /** Items */
+            items: components["schemas"]["IssueRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[JobSummary] */
         Page_JobSummary_: {
             /** Items */
@@ -11199,6 +11378,28 @@ export interface components {
         Page_LookupRead_: {
             /** Items */
             items: components["schemas"]["LookupRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MigrationIssueRead] */
+        Page_MigrationIssueRead_: {
+            /** Items */
+            items: components["schemas"]["MigrationIssueRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MigrationRunSummary] */
+        Page_MigrationRunSummary_: {
+            /** Items */
+            items: components["schemas"]["MigrationRunSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -11309,17 +11510,6 @@ export interface components {
         Page_RuleSetRead_: {
             /** Items */
             items: components["schemas"]["RuleSetRead"][];
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-            /** Total */
-            total: number;
-        };
-        /** Page[RunSummary] */
-        Page_RunSummary_: {
-            /** Items */
-            items: components["schemas"]["app__modules__migration__schemas__RunSummary"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -11450,6 +11640,20 @@ export interface components {
         };
         /** PartyMini */
         PartyMini: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Party Number */
+            party_number: string;
+        };
+        /** PartyRef */
+        PartyRef: {
+            /** Country Code */
+            country_code: string;
             /** Display Name */
             display_name: string;
             /**
@@ -13643,7 +13847,7 @@ export interface components {
             /** Origin Message Id */
             origin_message_id: string | null;
             owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"];
+            party: components["schemas"]["PartyRef"];
             party_snapshot: components["schemas"]["PartySnapshot"];
             /** Path */
             path: string;
@@ -14086,7 +14290,7 @@ export interface components {
             line_count: number;
             origin: components["schemas"]["QuoteOrigin"];
             owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"];
+            party: components["schemas"]["PartyRef"];
             /** Path */
             path: string;
             /** Quote Number */
@@ -15046,6 +15250,25 @@ export interface components {
          */
         RuleSetStatus: "draft" | "active" | "retired";
         /**
+         * RunDetail
+         * @description The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.
+         */
+        RunDetail: {
+            /** After Seq */
+            after_seq: number;
+            /** Cards */
+            cards: (components["schemas"]["QuoteDraftCard"] | components["schemas"]["ClarificationCard"] | components["schemas"]["ErrorCard"] | components["schemas"]["RecordLinkCard"] | components["schemas"]["ReceiptCard"])[];
+            /** Done */
+            done: boolean;
+            /** Last Seq */
+            last_seq: number;
+            run: components["schemas"]["RunSummary"];
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /** Text */
+            text: string | null;
+        };
+        /**
          * RunKind
          * @enum {string}
          */
@@ -15055,6 +15278,78 @@ export interface components {
          * @enum {string}
          */
         RunStatus: "queued" | "running" | "succeeded" | "failed" | "budget_exceeded" | "cancelled";
+        /** RunSummary */
+        RunSummary: {
+            /** Assistant Turn Id */
+            assistant_turn_id: string | null;
+            /** Channel */
+            channel: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Correlation Id */
+            correlation_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Degraded Reason */
+            degraded_reason?: string | null;
+            /** Elapsed Ms */
+            elapsed_ms: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Input Token Budget
+             * @default 0
+             */
+            input_token_budget: number;
+            /**
+             * Input Tokens Used
+             * @default 0
+             */
+            input_tokens_used: number;
+            /** Mode */
+            mode: string;
+            /** Model Route */
+            model_route: string | null;
+            provider: components["schemas"]["ProviderName"];
+            /** Provider Label */
+            provider_label: string;
+            /** Request Type */
+            request_type: string | null;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["RunStatus"];
+            /** Step Budget */
+            step_budget: number;
+            /** Step Count */
+            step_count: number;
+            /** Tainted */
+            tainted: boolean;
+            /** Time Budget Seconds */
+            time_budget_seconds: number;
+            /** Tool Call Count */
+            tool_call_count: number;
+            trigger: components["schemas"]["RunTrigger"];
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+        };
         /**
          * RunTrigger
          * @enum {string}
@@ -15142,7 +15437,7 @@ export interface components {
             /** Notes */
             notes: string | null;
             owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
-            party: components["schemas"]["app__modules__sales__schemas__PartyRef"];
+            party: components["schemas"]["PartyRef"];
             /** Path */
             path: string;
             /** Product Id */
@@ -16816,119 +17111,6 @@ export interface components {
             /** To Status */
             to_status: string;
         };
-        /** Page[IssueRead] */
-        app__core__http__pagination__Page_IssueRead___1: {
-            /** Items */
-            items: components["schemas"]["app__modules__imports__schemas__IssueRead"][];
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-            /** Total */
-            total: number;
-        };
-        /** Page[IssueRead] */
-        app__core__http__pagination__Page_IssueRead___2: {
-            /** Items */
-            items: components["schemas"]["app__modules__migration__schemas__IssueRead"][];
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-            /** Total */
-            total: number;
-        };
-        /**
-         * RunDetail
-         * @description The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.
-         */
-        app__modules__agents__schemas__RunDetail: {
-            /** After Seq */
-            after_seq: number;
-            /** Cards */
-            cards: (components["schemas"]["QuoteDraftCard"] | components["schemas"]["ClarificationCard"] | components["schemas"]["ErrorCard"] | components["schemas"]["RecordLinkCard"] | components["schemas"]["ReceiptCard"])[];
-            /** Done */
-            done: boolean;
-            /** Last Seq */
-            last_seq: number;
-            run: components["schemas"]["app__modules__agents__schemas__RunSummary"];
-            /** Steps */
-            steps: components["schemas"]["StepOut"][];
-            /** Text */
-            text: string | null;
-        };
-        /** RunSummary */
-        app__modules__agents__schemas__RunSummary: {
-            /** Assistant Turn Id */
-            assistant_turn_id: string | null;
-            /** Channel */
-            channel: string;
-            /**
-             * Conversation Id
-             * Format: uuid
-             */
-            conversation_id: string;
-            /** Correlation Id */
-            correlation_id?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Degraded Reason */
-            degraded_reason?: string | null;
-            /** Elapsed Ms */
-            elapsed_ms: number | null;
-            /** Error Code */
-            error_code: string | null;
-            /** Error Message */
-            error_message: string | null;
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Input Token Budget
-             * @default 0
-             */
-            input_token_budget: number;
-            /**
-             * Input Tokens Used
-             * @default 0
-             */
-            input_tokens_used: number;
-            /** Mode */
-            mode: string;
-            /** Model Route */
-            model_route: string | null;
-            provider: components["schemas"]["ProviderName"];
-            /** Provider Label */
-            provider_label: string;
-            /** Request Type */
-            request_type: string | null;
-            /** Started At */
-            started_at: string | null;
-            status: components["schemas"]["RunStatus"];
-            /** Step Budget */
-            step_budget: number;
-            /** Step Count */
-            step_count: number;
-            /** Tainted */
-            tainted: boolean;
-            /** Time Budget Seconds */
-            time_budget_seconds: number;
-            /** Tool Call Count */
-            tool_call_count: number;
-            trigger: components["schemas"]["RunTrigger"];
-            /**
-             * Turn Id
-             * Format: uuid
-             */
-            turn_id: string;
-        };
         /** ArchiveRequest */
         app__modules__catalogue__products__ArchiveRequest: {
             /** Expected Version */
@@ -16963,174 +17145,6 @@ export interface components {
              */
             id: string;
         };
-        /** IssueRead */
-        app__modules__imports__schemas__IssueRead: {
-            /** Code */
-            code: string;
-            /** Column */
-            column: string | null;
-            /** Field */
-            field: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Message */
-            message: string;
-            /** Phase */
-            phase: string;
-            /** Raw Value */
-            raw_value: string | null;
-            /** Row Number */
-            row_number: number | null;
-            /** Severity */
-            severity: string;
-        };
-        /** IssueRead */
-        app__modules__migration__schemas__IssueRead: {
-            /** Code */
-            code: string;
-            /** Entity */
-            entity: string;
-            /** Field */
-            field: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Message */
-            message: string;
-            /** Raw */
-            raw: {
-                [key: string]: unknown;
-            } | null;
-            /** Raw Value */
-            raw_value: string | null;
-            /** Row Number */
-            row_number: number | null;
-            /** Severity */
-            severity: string;
-            /** Source File */
-            source_file: string | null;
-            /** Source Key */
-            source_key: string | null;
-        };
-        /** PartyRef */
-        app__modules__migration__schemas__PartyRef: {
-            /** Country Code */
-            country_code: string;
-            /** Display Name */
-            display_name: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Party Number */
-            party_number: string;
-            /** Path */
-            path: string;
-        };
-        /** RunDetail */
-        app__modules__migration__schemas__RunDetail: {
-            /** Backup Id */
-            backup_id: string | null;
-            /** Counts */
-            counts: {
-                [key: string]: unknown;
-            };
-            /** Error Code */
-            error_code: string | null;
-            /** Error Count */
-            error_count: number;
-            /** Error Detail */
-            error_detail: string | null;
-            /** Export Manifest */
-            export_manifest: {
-                [key: string]: unknown;
-            };
-            /** Files */
-            files: {
-                [key: string]: unknown;
-            }[];
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Issue Count */
-            issue_count: number;
-            /** Issues Csv Path */
-            issues_csv_path: string;
-            /** Kind */
-            kind: string;
-            /** Options */
-            options: {
-                [key: string]: unknown;
-            };
-            /** Path */
-            path: string;
-            /** Quarantined Count */
-            quarantined_count: number;
-            /** Report */
-            report: {
-                [key: string]: unknown;
-            };
-            /** Source Digest */
-            source_digest: string;
-            /** Source Label */
-            source_label: string;
-            /**
-             * Started At
-             * Format: date-time
-             */
-            started_at: string;
-            /** Started By Name */
-            started_by_name: string;
-            /** Status */
-            status: string;
-        };
-        /** RunSummary */
-        app__modules__migration__schemas__RunSummary: {
-            /** Backup Id */
-            backup_id: string | null;
-            /** Error Code */
-            error_code: string | null;
-            /** Error Count */
-            error_count: number;
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Issue Count */
-            issue_count: number;
-            /** Kind */
-            kind: string;
-            /** Path */
-            path: string;
-            /** Quarantined Count */
-            quarantined_count: number;
-            /** Source Digest */
-            source_digest: string;
-            /** Source Label */
-            source_label: string;
-            /**
-             * Started At
-             * Format: date-time
-             */
-            started_at: string;
-            /** Started By Name */
-            started_by_name: string;
-            /** Status */
-            status: string;
-        };
         /** ArchiveRequest */
         app__modules__parties__router__ArchiveRequest: {
             /** Expected Version */
@@ -17151,20 +17165,6 @@ export interface components {
          * @enum {string}
          */
         app__modules__sales__schemas__MessageStatus: "received" | "replied";
-        /** PartyRef */
-        app__modules__sales__schemas__PartyRef: {
-            /** Country Code */
-            country_code: string;
-            /** Display Name */
-            display_name: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Party Number */
-            party_number: string;
-        };
         /** TransitionRead */
         app__modules__sales__schemas__TransitionRead: {
             /** Action */
@@ -17394,7 +17394,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__agents__schemas__RunDetail"];
+                    "application/json": components["schemas"]["RunDetail"];
                 };
             };
             /** @description Validation Error */
@@ -17425,7 +17425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__agents__schemas__RunSummary"];
+                    "application/json": components["schemas"]["RunSummary"];
                 };
             };
             /** @description Validation Error */
@@ -23453,7 +23453,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__core__http__pagination__Page_IssueRead___1"];
+                    "application/json": components["schemas"]["Page_IssueRead_"];
                 };
             };
             /** @description Validation Error */
@@ -23903,7 +23903,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_RunSummary_"];
+                    "application/json": components["schemas"]["Page_MigrationRunSummary_"];
                 };
             };
             /** @description Validation Error */
@@ -23934,7 +23934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__migration__schemas__RunDetail"];
+                    "application/json": components["schemas"]["MigrationRunDetail"];
                 };
             };
             /** @description Validation Error */
@@ -24002,7 +24002,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__core__http__pagination__Page_IssueRead___2"];
+                    "application/json": components["schemas"]["Page_MigrationIssueRead_"];
                 };
             };
             /** @description Validation Error */

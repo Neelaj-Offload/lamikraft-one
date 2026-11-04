@@ -103,6 +103,9 @@ def test_apply_writes_through_the_workbench_and_reruns_without_duplication(world
         assert q2 is not None and q2.document_number == "LK-QT-2025-0002" and q2.has_discrepancy
         assert str(q2.legacy_total) == "2400.0000" and str(q2.recomputed_total) == "2000.0000"
         assert q2.payload["quote"]["total_amount"] == "2400.00" and len(q2.payload["lines"]) == 2
+        # the legacy revision snapshot is kept verbatim (here a JSON string, exactly as exported)
+        assert [r["id"] for r in q2.payload["revisions"]] == ["r-2"]
+        assert json.loads(q2.payload["revisions"][0]["snapshot"])["total_amount"] == "2400.00"
         assert q2.party_candidate_id is not None
         d1 = uow.session.scalar(select(LegacyRecord).where(LegacyRecord.source_entity == "delivery_challans",
                                                            LegacyRecord.source_key == "d-1"))

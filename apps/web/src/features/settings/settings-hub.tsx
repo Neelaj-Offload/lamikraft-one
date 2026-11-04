@@ -10,6 +10,7 @@ import { canAccessRoute, contextRoutesFor } from "@/lib/routes";
 import { useSession } from "@/lib/session/context";
 import type { IntegrationMode, SessionBootstrap } from "@/lib/session/types";
 import { aiMessages } from "@/messages/ai";
+import { migrationMessages } from "@/messages/migration";
 import { settingsMessages as m } from "@/messages/settings";
 import { ModeBadge } from "./mode-badge";
 
@@ -32,6 +33,8 @@ const HINTS: Record<string, string> = {
   "settings-fx-rates": m.hub.fxRatesHint,
   "settings-ai": aiMessages.settings.hubHint,
   "settings-whatsapp": m.hub.whatsappHint,
+  "settings-migration": migrationMessages.hubHint,
+  "settings-backups": migrationMessages.backupsHubHint,
 };
 
 export const SETTINGS_NAV_LEADING = [{ id: "settings", label: "Overview", href: "/settings" }] as const;

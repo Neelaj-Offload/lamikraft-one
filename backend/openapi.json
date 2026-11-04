@@ -3798,6 +3798,40 @@
         "title": "CandidateDecision",
         "type": "string"
       },
+      "CandidatePartyRef": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name",
+          "country_code",
+          "path"
+        ],
+        "title": "CandidatePartyRef",
+        "type": "object"
+      },
       "CandidateRead": {
         "properties": {
           "capabilities": {
@@ -3868,7 +3902,7 @@
           "linked_party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__migration__schemas__PartyRef"
+                "$ref": "#/components/schemas/CandidatePartyRef"
               },
               {
                 "type": "null"
@@ -3913,7 +3947,7 @@
           "suggested_party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__migration__schemas__PartyRef"
+                "$ref": "#/components/schemas/CandidatePartyRef"
               },
               {
                 "type": "null"
@@ -7762,7 +7796,7 @@
           },
           "runs": {
             "items": {
-              "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
+              "$ref": "#/components/schemas/RunSummary"
             },
             "title": "Runs",
             "type": "array"
@@ -9191,7 +9225,7 @@
           "party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+                "$ref": "#/components/schemas/PartyRef"
               },
               {
                 "type": "null"
@@ -9688,7 +9722,7 @@
           "party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+                "$ref": "#/components/schemas/PartyRef"
               },
               {
                 "type": "null"
@@ -10424,7 +10458,7 @@
             "type": "string"
           },
           "party": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+            "$ref": "#/components/schemas/PartyRef"
           },
           "path": {
             "title": "Path",
@@ -12377,7 +12411,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+            "$ref": "#/components/schemas/PartyRef"
           },
           "path": {
             "title": "Path",
@@ -14721,6 +14755,88 @@
           "code"
         ],
         "title": "IssueFacets",
+        "type": "object"
+      },
+      "IssueRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Column"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "row_number",
+          "column",
+          "field",
+          "code",
+          "severity",
+          "message",
+          "raw_value",
+          "phase"
+        ],
+        "title": "IssueRead",
         "type": "object"
       },
       "IssueSeverity": {
@@ -17330,6 +17446,367 @@
         "title": "MfaStatus",
         "type": "object"
       },
+      "MigrationIssueRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File"
+          },
+          "source_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Key"
+          }
+        },
+        "required": [
+          "id",
+          "entity",
+          "source_file",
+          "row_number",
+          "source_key",
+          "code",
+          "severity",
+          "message",
+          "field",
+          "raw_value",
+          "raw"
+        ],
+        "title": "MigrationIssueRead",
+        "type": "object"
+      },
+      "MigrationRunDetail": {
+        "properties": {
+          "backup_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Id"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "title": "Counts",
+            "type": "object"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "export_manifest": {
+            "additionalProperties": true,
+            "title": "Export Manifest",
+            "type": "object"
+          },
+          "files": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "issues_csv_path": {
+            "title": "Issues Csv Path",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "title": "Options",
+            "type": "object"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "report": {
+            "additionalProperties": true,
+            "title": "Report",
+            "type": "object"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by_name": {
+            "title": "Started By Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "source_label",
+          "source_digest",
+          "issue_count",
+          "quarantined_count",
+          "error_count",
+          "started_at",
+          "finished_at",
+          "started_by_name",
+          "backup_id",
+          "error_code",
+          "path",
+          "export_manifest",
+          "files",
+          "options",
+          "counts",
+          "report",
+          "error_detail",
+          "issues_csv_path"
+        ],
+        "title": "MigrationRunDetail",
+        "type": "object"
+      },
+      "MigrationRunSummary": {
+        "properties": {
+          "backup_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by_name": {
+            "title": "Started By Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "source_label",
+          "source_digest",
+          "issue_count",
+          "quarantined_count",
+          "error_count",
+          "started_at",
+          "finished_at",
+          "started_by_name",
+          "backup_id",
+          "error_code",
+          "path"
+        ],
+        "title": "MigrationRunSummary",
+        "type": "object"
+      },
       "MinimumOut": {
         "properties": {
           "minimum_order_value": {
@@ -19141,6 +19618,37 @@
         "title": "Page[HistoryEntry]",
         "type": "object"
       },
+      "Page_IssueRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IssueRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[IssueRead]",
+        "type": "object"
+      },
       "Page_JobSummary_": {
         "properties": {
           "items": {
@@ -19201,6 +19709,68 @@
           "offset"
         ],
         "title": "Page[LookupRead]",
+        "type": "object"
+      },
+      "Page_MigrationIssueRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MigrationIssueRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[MigrationIssueRead]",
+        "type": "object"
+      },
+      "Page_MigrationRunSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MigrationRunSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[MigrationRunSummary]",
         "type": "object"
       },
       "Page_OpeningBatchRead_": {
@@ -19511,37 +20081,6 @@
           "offset"
         ],
         "title": "Page[RuleSetRead]",
-        "type": "object"
-      },
-      "Page_RunSummary_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/app__modules__migration__schemas__RunSummary"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "Page[RunSummary]",
         "type": "object"
       },
       "Page_SampleRead_": {
@@ -19954,6 +20493,35 @@
           "display_name"
         ],
         "title": "PartyMini",
+        "type": "object"
+      },
+      "PartyRef": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name",
+          "country_code"
+        ],
+        "title": "PartyRef",
         "type": "object"
       },
       "PartyRole": {
@@ -27908,7 +28476,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+            "$ref": "#/components/schemas/PartyRef"
           },
           "party_snapshot": {
             "$ref": "#/components/schemas/PartySnapshot"
@@ -29539,7 +30107,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+            "$ref": "#/components/schemas/PartyRef"
           },
           "path": {
             "title": "Path",
@@ -32359,6 +32927,88 @@
         "title": "RuleSetStatus",
         "type": "string"
       },
+      "RunDetail": {
+        "description": "The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.",
+        "properties": {
+          "after_seq": {
+            "title": "After Seq",
+            "type": "integer"
+          },
+          "cards": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "clarification": "#/components/schemas/ClarificationCard",
+                  "error": "#/components/schemas/ErrorCard",
+                  "quote_draft": "#/components/schemas/QuoteDraftCard",
+                  "receipt": "#/components/schemas/ReceiptCard",
+                  "record_link": "#/components/schemas/RecordLinkCard"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/QuoteDraftCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ClarificationCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorCard"
+                },
+                {
+                  "$ref": "#/components/schemas/RecordLinkCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ReceiptCard"
+                }
+              ]
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "last_seq": {
+            "title": "Last Seq",
+            "type": "integer"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunSummary"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "run",
+          "steps",
+          "after_seq",
+          "last_seq",
+          "done",
+          "text",
+          "cards"
+        ],
+        "title": "RunDetail",
+        "type": "object"
+      },
       "RunKind": {
         "enum": [
           "dry_run",
@@ -32378,6 +33028,221 @@
         ],
         "title": "RunStatus",
         "type": "string"
+      },
+      "RunSummary": {
+        "properties": {
+          "assistant_turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Turn Id"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "degraded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degraded Reason"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_token_budget": {
+            "default": 0,
+            "title": "Input Token Budget",
+            "type": "integer"
+          },
+          "input_tokens_used": {
+            "default": 0,
+            "title": "Input Tokens Used",
+            "type": "integer"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "model_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Route"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderName"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "request_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Type"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "step_budget": {
+            "title": "Step Budget",
+            "type": "integer"
+          },
+          "step_count": {
+            "title": "Step Count",
+            "type": "integer"
+          },
+          "tainted": {
+            "title": "Tainted",
+            "type": "boolean"
+          },
+          "time_budget_seconds": {
+            "title": "Time Budget Seconds",
+            "type": "integer"
+          },
+          "tool_call_count": {
+            "title": "Tool Call Count",
+            "type": "integer"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "turn_id",
+          "assistant_turn_id",
+          "status",
+          "trigger",
+          "channel",
+          "provider",
+          "provider_label",
+          "mode",
+          "model_route",
+          "request_type",
+          "tainted",
+          "error_code",
+          "error_message",
+          "step_count",
+          "tool_call_count",
+          "step_budget",
+          "time_budget_seconds",
+          "elapsed_ms",
+          "started_at",
+          "finished_at",
+          "created_at"
+        ],
+        "title": "RunSummary",
+        "type": "object"
       },
       "RunTrigger": {
         "enum": [
@@ -32723,7 +33588,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
+            "$ref": "#/components/schemas/PartyRef"
           },
           "path": {
             "title": "Path",
@@ -38053,365 +38918,6 @@
         "title": "TransitionRead",
         "type": "object"
       },
-      "app__core__http__pagination__Page_IssueRead___1": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/app__modules__imports__schemas__IssueRead"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "Page[IssueRead]",
-        "type": "object"
-      },
-      "app__core__http__pagination__Page_IssueRead___2": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/app__modules__migration__schemas__IssueRead"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "Page[IssueRead]",
-        "type": "object"
-      },
-      "app__modules__agents__schemas__RunDetail": {
-        "description": "The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.",
-        "properties": {
-          "after_seq": {
-            "title": "After Seq",
-            "type": "integer"
-          },
-          "cards": {
-            "items": {
-              "discriminator": {
-                "mapping": {
-                  "clarification": "#/components/schemas/ClarificationCard",
-                  "error": "#/components/schemas/ErrorCard",
-                  "quote_draft": "#/components/schemas/QuoteDraftCard",
-                  "receipt": "#/components/schemas/ReceiptCard",
-                  "record_link": "#/components/schemas/RecordLinkCard"
-                },
-                "propertyName": "kind"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/QuoteDraftCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ClarificationCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ErrorCard"
-                },
-                {
-                  "$ref": "#/components/schemas/RecordLinkCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ReceiptCard"
-                }
-              ]
-            },
-            "title": "Cards",
-            "type": "array"
-          },
-          "done": {
-            "title": "Done",
-            "type": "boolean"
-          },
-          "last_seq": {
-            "title": "Last Seq",
-            "type": "integer"
-          },
-          "run": {
-            "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
-          },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/StepOut"
-            },
-            "title": "Steps",
-            "type": "array"
-          },
-          "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text"
-          }
-        },
-        "required": [
-          "run",
-          "steps",
-          "after_seq",
-          "last_seq",
-          "done",
-          "text",
-          "cards"
-        ],
-        "title": "RunDetail",
-        "type": "object"
-      },
-      "app__modules__agents__schemas__RunSummary": {
-        "properties": {
-          "assistant_turn_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Turn Id"
-          },
-          "channel": {
-            "title": "Channel",
-            "type": "string"
-          },
-          "conversation_id": {
-            "format": "uuid",
-            "title": "Conversation Id",
-            "type": "string"
-          },
-          "correlation_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Correlation Id"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "degraded_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Degraded Reason"
-          },
-          "elapsed_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Elapsed Ms"
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "error_message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Message"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "input_token_budget": {
-            "default": 0,
-            "title": "Input Token Budget",
-            "type": "integer"
-          },
-          "input_tokens_used": {
-            "default": 0,
-            "title": "Input Tokens Used",
-            "type": "integer"
-          },
-          "mode": {
-            "title": "Mode",
-            "type": "string"
-          },
-          "model_route": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Route"
-          },
-          "provider": {
-            "$ref": "#/components/schemas/ProviderName"
-          },
-          "provider_label": {
-            "title": "Provider Label",
-            "type": "string"
-          },
-          "request_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Type"
-          },
-          "started_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started At"
-          },
-          "status": {
-            "$ref": "#/components/schemas/RunStatus"
-          },
-          "step_budget": {
-            "title": "Step Budget",
-            "type": "integer"
-          },
-          "step_count": {
-            "title": "Step Count",
-            "type": "integer"
-          },
-          "tainted": {
-            "title": "Tainted",
-            "type": "boolean"
-          },
-          "time_budget_seconds": {
-            "title": "Time Budget Seconds",
-            "type": "integer"
-          },
-          "tool_call_count": {
-            "title": "Tool Call Count",
-            "type": "integer"
-          },
-          "trigger": {
-            "$ref": "#/components/schemas/RunTrigger"
-          },
-          "turn_id": {
-            "format": "uuid",
-            "title": "Turn Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "conversation_id",
-          "turn_id",
-          "assistant_turn_id",
-          "status",
-          "trigger",
-          "channel",
-          "provider",
-          "provider_label",
-          "mode",
-          "model_route",
-          "request_type",
-          "tainted",
-          "error_code",
-          "error_message",
-          "step_count",
-          "tool_call_count",
-          "step_budget",
-          "time_budget_seconds",
-          "elapsed_ms",
-          "started_at",
-          "finished_at",
-          "created_at"
-        ],
-        "title": "RunSummary",
-        "type": "object"
-      },
       "app__modules__catalogue__products__ArchiveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -38503,483 +39009,6 @@
         "title": "UserRef",
         "type": "object"
       },
-      "app__modules__imports__schemas__IssueRead": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "column": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Column"
-          },
-          "field": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Field"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "phase": {
-            "title": "Phase",
-            "type": "string"
-          },
-          "raw_value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw Value"
-          },
-          "row_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Row Number"
-          },
-          "severity": {
-            "title": "Severity",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "row_number",
-          "column",
-          "field",
-          "code",
-          "severity",
-          "message",
-          "raw_value",
-          "phase"
-        ],
-        "title": "IssueRead",
-        "type": "object"
-      },
-      "app__modules__migration__schemas__IssueRead": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "entity": {
-            "title": "Entity",
-            "type": "string"
-          },
-          "field": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Field"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "raw": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw"
-          },
-          "raw_value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw Value"
-          },
-          "row_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Row Number"
-          },
-          "severity": {
-            "title": "Severity",
-            "type": "string"
-          },
-          "source_file": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source File"
-          },
-          "source_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Key"
-          }
-        },
-        "required": [
-          "id",
-          "entity",
-          "source_file",
-          "row_number",
-          "source_key",
-          "code",
-          "severity",
-          "message",
-          "field",
-          "raw_value",
-          "raw"
-        ],
-        "title": "IssueRead",
-        "type": "object"
-      },
-      "app__modules__migration__schemas__PartyRef": {
-        "properties": {
-          "country_code": {
-            "title": "Country Code",
-            "type": "string"
-          },
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "party_number": {
-            "title": "Party Number",
-            "type": "string"
-          },
-          "path": {
-            "title": "Path",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "party_number",
-          "display_name",
-          "country_code",
-          "path"
-        ],
-        "title": "PartyRef",
-        "type": "object"
-      },
-      "app__modules__migration__schemas__RunDetail": {
-        "properties": {
-          "backup_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Backup Id"
-          },
-          "counts": {
-            "additionalProperties": true,
-            "title": "Counts",
-            "type": "object"
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "error_count": {
-            "title": "Error Count",
-            "type": "integer"
-          },
-          "error_detail": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Detail"
-          },
-          "export_manifest": {
-            "additionalProperties": true,
-            "title": "Export Manifest",
-            "type": "object"
-          },
-          "files": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Files",
-            "type": "array"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "issue_count": {
-            "title": "Issue Count",
-            "type": "integer"
-          },
-          "issues_csv_path": {
-            "title": "Issues Csv Path",
-            "type": "string"
-          },
-          "kind": {
-            "title": "Kind",
-            "type": "string"
-          },
-          "options": {
-            "additionalProperties": true,
-            "title": "Options",
-            "type": "object"
-          },
-          "path": {
-            "title": "Path",
-            "type": "string"
-          },
-          "quarantined_count": {
-            "title": "Quarantined Count",
-            "type": "integer"
-          },
-          "report": {
-            "additionalProperties": true,
-            "title": "Report",
-            "type": "object"
-          },
-          "source_digest": {
-            "title": "Source Digest",
-            "type": "string"
-          },
-          "source_label": {
-            "title": "Source Label",
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "title": "Started At",
-            "type": "string"
-          },
-          "started_by_name": {
-            "title": "Started By Name",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "status",
-          "source_label",
-          "source_digest",
-          "issue_count",
-          "quarantined_count",
-          "error_count",
-          "started_at",
-          "finished_at",
-          "started_by_name",
-          "backup_id",
-          "error_code",
-          "path",
-          "export_manifest",
-          "files",
-          "options",
-          "counts",
-          "report",
-          "error_detail",
-          "issues_csv_path"
-        ],
-        "title": "RunDetail",
-        "type": "object"
-      },
-      "app__modules__migration__schemas__RunSummary": {
-        "properties": {
-          "backup_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Backup Id"
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "error_count": {
-            "title": "Error Count",
-            "type": "integer"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "issue_count": {
-            "title": "Issue Count",
-            "type": "integer"
-          },
-          "kind": {
-            "title": "Kind",
-            "type": "string"
-          },
-          "path": {
-            "title": "Path",
-            "type": "string"
-          },
-          "quarantined_count": {
-            "title": "Quarantined Count",
-            "type": "integer"
-          },
-          "source_digest": {
-            "title": "Source Digest",
-            "type": "string"
-          },
-          "source_label": {
-            "title": "Source Label",
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "title": "Started At",
-            "type": "string"
-          },
-          "started_by_name": {
-            "title": "Started By Name",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "status",
-          "source_label",
-          "source_digest",
-          "issue_count",
-          "quarantined_count",
-          "error_count",
-          "started_at",
-          "finished_at",
-          "started_by_name",
-          "backup_id",
-          "error_code",
-          "path"
-        ],
-        "title": "RunSummary",
-        "type": "object"
-      },
       "app__modules__parties__router__ArchiveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -39028,35 +39057,6 @@
         ],
         "title": "MessageStatus",
         "type": "string"
-      },
-      "app__modules__sales__schemas__PartyRef": {
-        "properties": {
-          "country_code": {
-            "title": "Country Code",
-            "type": "string"
-          },
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "party_number": {
-            "title": "Party Number",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "party_number",
-          "display_name",
-          "country_code"
-        ],
-        "title": "PartyRef",
-        "type": "object"
       },
       "app__modules__sales__schemas__TransitionRead": {
         "properties": {
@@ -39437,7 +39437,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__agents__schemas__RunDetail"
+                  "$ref": "#/components/schemas/RunDetail"
                 }
               }
             },
@@ -39486,7 +39486,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
+                  "$ref": "#/components/schemas/RunSummary"
                 }
               }
             },
@@ -50961,7 +50961,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__core__http__pagination__Page_IssueRead___1"
+                  "$ref": "#/components/schemas/Page_IssueRead_"
                 }
               }
             },
@@ -51821,7 +51821,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page_RunSummary_"
+                  "$ref": "#/components/schemas/Page_MigrationRunSummary_"
                 }
               }
             },
@@ -51871,7 +51871,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__migration__schemas__RunDetail"
+                  "$ref": "#/components/schemas/MigrationRunDetail"
                 }
               }
             },
@@ -52043,7 +52043,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__core__http__pagination__Page_IssueRead___2"
+                  "$ref": "#/components/schemas/Page_MigrationIssueRead_"
                 }
               }
             },
