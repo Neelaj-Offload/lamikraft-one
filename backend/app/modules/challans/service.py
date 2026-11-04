@@ -336,7 +336,23 @@ def _build_line(
         remarks=data.remarks,
         original_line_id=original.id if original is not None else None,
         returned_qty=Decimal(0),
+        lot_id=_lot_for(uow, data.lot_id, data.product_id if data.line_type == LineType.CATALOG else None, errors, prefix),
     )
+
+
+def _lot_for(
+    uow: UnitOfWork, lot_id: uuid.UUID | None, product_id: uuid.UUID | None, errors: Errors, prefix: Sequence[str | int]
+) -> uuid.UUID | None:
+    """Slice 4: a lot is accepted only for a catalogue line of the same product (inventory's lot master)."""
+    if lot_id is None:
+        return None
+    from app.modules.inventory.models import Lot
+
+    lot = uow.session.scalars(select(Lot).where(Lot.company_id == uow.actor.company_id, Lot.id == lot_id)).first()
+    if lot is None or product_id is None or lot.product_id != product_id:
+        errors.add([*prefix, "lot_id"], "lot_mismatch", "The lot does not belong to this line's product")
+        return None
+    return lot.id
 
 
 def _touch(uow: UnitOfWork, challan: Challan, lines: Sequence[ChallanLine] | None = None) -> None:
@@ -548,6 +564,9 @@ def update_line(
                 continue
             setattr(line, name, getattr(data, name))
             changed.add(name)
+    if "lot_id" in sent and data.lot_id != line.lot_id:
+        line.lot_id = _lot_for(uow, data.lot_id, line.product_id, errors, [])
+        changed.add("lot_id")
     if "original_line_id" in sent and data.original_line_id != line.original_line_id:
         if data.original_line_id is None:
             line.original_line_id = None
@@ -794,6 +813,9 @@ def line_reads(lines: Sequence[ChallanLine]) -> list[ChallanLineRead]:
             original_line_id=ln.original_line_id,
             returned_quantity=plain(ln.returned_qty),
             outstanding_quantity=plain(max(Decimal(ln.quantity) - Decimal(ln.returned_qty), Decimal(0))),
+            is_non_stock=ln.is_non_stock,
+            sales_order_line_id=ln.sales_order_line_id,
+            lot_id=ln.lot_id,
         )
         for ln in lines
     ]
@@ -873,7 +895,9 @@ def issue_blockers(uow: UnitOfWork, challan: Challan, lines: Sequence[ChallanLin
             return "original_required"
         if any(ln.original_line_id is None for ln in lines):
             return "lines_need_original_lines"
-    return None
+    from app.modules.challans import movement
+
+    return movement.posting_blocker(uow, challan, list(lines))
 
 
 def allowed_transitions(
@@ -947,6 +971,9 @@ def detail(uow: UnitOfWork, challan: Challan, lines: Sequence[ChallanLine] | Non
         remarks=challan.remarks,
         direction=policy.direction(ChallanType(challan.challan_type)),  # type: ignore[arg-type]
         inventory_effect=InventoryEffect(challan.inventory_effect),
+        issue_posting_id=challan.issue_posting_id,
+        reversal_posting_id=challan.reversal_posting_id,
+        sales_order_id=challan.sales_order_id,
         original_challan=links.get(challan.original_challan_id) if challan.original_challan_id else None,
         duplicated_from=links.get(challan.duplicated_from_id) if challan.duplicated_from_id else None,
         issued_at=challan.issued_at,

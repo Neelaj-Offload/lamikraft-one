@@ -204,6 +204,25 @@ export const queryKeys = {
     grainLocks: () => ["cutting", "grain-locks"] as const,
     products: (q: string) => ["cutting", "products", compact({ q: q.trim() })] as const,
   },
+  // orders and inventory (Slice 4)
+  orders: {
+    all: () => ["orders"] as const,
+    list: (params: Record<string, string | number | boolean | null | undefined>) => ["orders", "list", compact(params)] as const,
+    order: (orderId: string) => ["orders", "order", { order_id: orderId }] as const,
+    forQuote: (quoteId: string) => ["orders", "for-quote", { quote_id: quoteId }] as const,
+  },
+  inventory: {
+    all: () => ["inventory"] as const,
+    warehouses: () => ["inventory", "warehouses"] as const,
+    stock: (params: Record<string, string | number | boolean | null | undefined>) => ["inventory", "stock", compact(params)] as const,
+    movements: (params: Record<string, string | number | boolean | null | undefined>) => ["inventory", "movements", compact(params)] as const,
+    reservations: (params: Record<string, string | number | boolean | null | undefined>) => ["inventory", "reservations", compact(params)] as const,
+    shortages: () => ["inventory", "shortages"] as const,
+    documents: (kind: string) => ["inventory", "documents", { kind }] as const,
+    count: (countId: string) => ["inventory", "count", { count_id: countId }] as const,
+    pickList: (pickListId: string) => ["inventory", "pick-list", { pick_list_id: pickListId }] as const,
+    document: (kind: string, id: string) => ["inventory", "document", { kind, id }] as const,
+  },
   channels: {
     all: () => ["channels"] as const,
     account: () => ["channels", "account"] as const,
@@ -239,6 +258,8 @@ export const invalidationMap = {
   "imports.changed": [queryKeys.imports.all(), queryKeys.catalogue.all()],
   "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
   "channels.changed": [queryKeys.channels.all()],
+  // orders and inventory (Slice 4): a stock command can change orders, challans, stock, shortages and briefings
+  "inventory.changed": [queryKeys.inventory.all(), queryKeys.orders.all(), queryKeys.challans.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

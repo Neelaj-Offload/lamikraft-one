@@ -15,6 +15,7 @@ from app.platform.authz.context import ActorContext
 from app.seed.world import keys
 from tests.integration.catalogue.world import member_actors, personas  # noqa: F401
 from tests.integration.challans.world import ChallanWorld, challan_world, world  # noqa: F401
+from tests.integration.inventory.world import inv_world  # noqa: F401
 from tests.integration.sales.http import api_app  # noqa: F401
 
 API = "/api/v1"

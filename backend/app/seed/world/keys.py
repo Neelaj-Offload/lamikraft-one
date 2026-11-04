@@ -194,6 +194,23 @@ CHALLAN_LINES = {
     "OUTWARD_DRAFT": ("OAK_TRAY", "40"),
 }
 
+# ---- inventory (slice 4; fixtures.md §8) --------------------------------------------------------
+WAREHOUSES = SimpleNamespace(MAIN="WH-MAIN")
+#: SeedContext.refs keys of the warehouses and bins
+WAREHOUSE_REFS = SimpleNamespace(MAIN="WH_MAIN", BIN_A12="BIN_A12")
+BINS = SimpleNamespace(A12="A-12")
+#: the approved opening batch (created by Ravi D-10 10:00, approved by Sahil D-10 11:30)
+OPENING_BATCHES = SimpleNamespace(MAIN="OB-2026-0001")
+OPENING_BATCH_REFS = SimpleNamespace(MAIN="OB_MAIN")
+#: (product key attribute, quantity in the stock unit, location: "STOCK" or the bin, lot code or None)
+OPENING_LINES = (
+    ("OAK_TRAY", "600", "STOCK", None),
+    ("MAPLE_TRIVET", "300", "STOCK", None),
+    ("ASH_BOARD", "200", "STOCK", None),
+    ("WALNUT_BOARD", "40", "A-12", "WB-2610-A"),
+)
+LOTS = SimpleNamespace(WALNUT="WB-2610-A")
+
 # ---- tasks and reminders ---------------------------------------------------------------------
 TASKS = SimpleNamespace(KABIR_COUNT="TASK_KABIR_COUNT", ARJUN_WALKTHROUGH="TASK_ARJUN_WALKTHROUGH")
 REMINDERS = SimpleNamespace(MEERA="REMINDER_MEERA")

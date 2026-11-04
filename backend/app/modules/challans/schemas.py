@@ -191,6 +191,8 @@ class ChallanLineCreate(BaseModel):
     remarks: LongText | None = None
     #: Return challans: the line of the original challan this line returns
     original_line_id: uuid.UUID | None = None
+    #: Slice 4: the lot shipped (lot-tracked products, when the challan posts stock)
+    lot_id: uuid.UUID | None = None
 
 
 class ChallanLineAdd(ChallanLineCreate):
@@ -216,6 +218,7 @@ class ChallanLineUpdate(BaseModel):
     unit: UnitText | None = None
     remarks: LongText | None = None
     original_line_id: uuid.UUID | None = None
+    lot_id: uuid.UUID | None = None
 
 
 class ChallanTransition(BaseModel):
@@ -321,6 +324,10 @@ class ChallanLineRead(BaseModel):
     original_line_id: uuid.UUID | None
     returned_quantity: DecimalStr
     outstanding_quantity: DecimalStr
+    #: Slice 4: explicitly non-stock (no movement), the order line delivered and the lot shipped
+    is_non_stock: bool = False
+    sales_order_line_id: uuid.UUID | None = None
+    lot_id: uuid.UUID | None = None
 
 
 class ReturnLinkRead(BaseModel):
@@ -362,6 +369,11 @@ class ChallanDetail(ChallanSummaryRow):
     remarks: str | None
     direction: Literal["outward", "inward"]
     inventory_effect: InventoryEffect
+    #: Slice 4: the stock posting of the issue and of the cancellation (null while documents only)
+    issue_posting_id: uuid.UUID | None = None
+    reversal_posting_id: uuid.UUID | None = None
+    #: Slice 4: the sales order this challan delivers
+    sales_order_id: uuid.UUID | None = None
     original_challan: ChallanLink | None
     duplicated_from: ChallanLink | None
     issued_at: datetime | None
