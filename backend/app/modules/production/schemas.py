@@ -18,7 +18,6 @@ from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import DecimalStr, Money
 from app.modules.pricing.schemas import COST_GUARD
 from app.modules.production.enums import (
-    CancelReason,
     CostRollupStatus,
     FeasibilityOutcome,
     MasterStatus,
@@ -26,6 +25,7 @@ from app.modules.production.enums import (
     RequirementSource,
     TransactionKind,
     WorkCenterKind,
+    WorkOrderCancelReason,
     WorkOrderStatus,
 )
 
@@ -72,7 +72,7 @@ class WorkCenterRef(BaseModel):
     name: str
 
 
-class CauseRef(BaseModel):
+class BlockCauseRef(BaseModel):
     """A ``caused_by`` reference (shortage, cut plan) with a label for the reader."""
 
     type: str
@@ -332,11 +332,11 @@ class WorkOrderUpdate(BaseModel):
 class WorkOrderTransition(BaseModel):
     action: Literal["release", "complete", "close", "cancel"]
     expected_version: int
-    reason_code: CancelReason | None = None
+    reason_code: WorkOrderCancelReason | None = None
     reason: Reason | None = None
 
 
-class Versioned(BaseModel):
+class WorkOrderVersioned(BaseModel):
     expected_version: int
 
 
@@ -540,7 +540,7 @@ class WorkOrderRead(WorkOrderSummary):
     bom: MasterSummary
     routing: MasterSummary
     qty_scrap: DecimalStr
-    blocked_causes: list[CauseRef]
+    blocked_causes: list[BlockCauseRef]
     blocked_since: datetime | None
     notes: str | None
     materials: list[MaterialRead]

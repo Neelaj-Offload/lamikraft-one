@@ -24,7 +24,7 @@ from app.modules.production.common import (
 from app.modules.production.masters import _summary, bom_lines
 from app.modules.production.models import Bom, Routing, WoMaterial, WorkOrder, WoTransaction
 from app.modules.production.schemas import (
-    CauseRef,
+    BlockCauseRef,
     CutPlanRef,
     MaterialRead,
     OperationRead,
@@ -122,7 +122,7 @@ def _cut_plan_ref(uow: UnitOfWork, plan_id: uuid.UUID, calc_id: uuid.UUID | None
                       path=f"/operations/cutting/{plan.id}")
 
 
-def _causes(uow: UnitOfWork, wo: WorkOrder) -> list[CauseRef]:
+def _causes(uow: UnitOfWork, wo: WorkOrder) -> list[BlockCauseRef]:
     from app.modules.inventory.models import ShortageState
 
     out = []
@@ -134,7 +134,7 @@ def _causes(uow: UnitOfWork, wo: WorkOrder) -> list[CauseRef]:
             if s is not None:
                 p = product_refs(uow, [s.product_id]).get(s.product_id)
                 label = f"Short of {p.product_key if p else 'a component'}"
-        out.append(CauseRef(type=c["type"], id=cid, label=label,
+        out.append(BlockCauseRef(type=c["type"], id=cid, label=label,
                             path="/operations/reservations" if c["type"] == "inventory.shortage" else None))
     return out
 

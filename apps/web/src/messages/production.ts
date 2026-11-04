@@ -23,6 +23,7 @@ export const productionMessages = {
   minutes: (value: string) => `${value} min`,
   version: (n: number) => `v${n}`,
   failedLoad: "Couldn't load this",
+  fillIn: "Fill in the required fields first",
   workOrders: {
     title: "Work orders",
     intro: "Work orders reserve their materials when released; a short material blocks the order until stock arrives.",

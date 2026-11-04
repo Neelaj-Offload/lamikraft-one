@@ -64,7 +64,7 @@ class FeasibilityOutcome(StrEnum):
     ESTIMATE = "estimate"
 
 
-class CancelReason(StrEnum):
+class WorkOrderCancelReason(StrEnum):
     NOT_NEEDED = "not_needed"
     ORDER_CANCELLED = "order_cancelled"
     REPLANNED = "replanned"

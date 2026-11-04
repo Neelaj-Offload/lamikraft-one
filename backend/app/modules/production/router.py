@@ -42,7 +42,6 @@ from app.modules.production.schemas import (
     RoutingUpdate,
     SimulationRead,
     SimulationRequest,
-    Versioned,
     WipRequest,
     WorkCenterCreate,
     WorkCenterRead,
@@ -54,6 +53,7 @@ from app.modules.production.schemas import (
     WorkOrderSummary,
     WorkOrderTransition,
     WorkOrderUpdate,
+    WorkOrderVersioned,
 )
 from app.platform.authz.redaction import redact
 from app.platform.uow import UnitOfWork
@@ -259,7 +259,7 @@ def transition_work_order(actor: Actor, work_order_id: uuid.UUID, body: WorkOrde
 
 
 @router.post("/work-orders/{work_order_id}/recheck", openapi_extra=requires(WO_TRANSITION))
-def recheck_work_order_materials(actor: Actor, work_order_id: uuid.UUID, body: Versioned, response: Response,
+def recheck_work_order_materials(actor: Actor, work_order_id: uuid.UUID, body: WorkOrderVersioned, response: Response,
                                  idempotency_key: IdempotencyKeyHeader = None) -> WorkOrderRead:
     """Reserve again now (the event consumer does the same when stock arrives)."""
     return _run(actor, response, f"production.work_order.recheck:{work_order_id}", body,

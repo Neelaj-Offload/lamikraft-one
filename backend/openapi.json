@@ -2514,6 +2514,48 @@
         "title": "BinCreate",
         "type": "object"
       },
+      "BlockCauseRef": {
+        "description": "A ``caused_by`` reference (shortage, cut plan) with a label for the reader.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ],
+        "title": "BlockCauseRef",
+        "type": "object"
+      },
       "BoardRead": {
         "properties": {
           "board_no": {
@@ -2638,6 +2680,385 @@
           "cuts"
         ],
         "title": "BoardRead",
+        "type": "object"
+      },
+      "BomCreate": {
+        "properties": {
+          "copy_from_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy From Id"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/BomLineIn"
+            },
+            "maxItems": 500,
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "BomCreate",
+        "type": "object"
+      },
+      "BomLineIn": {
+        "properties": {
+          "alternate_for_line_no": {
+            "anyOf": [
+              {
+                "maximum": 9999.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alternate For Line No"
+          },
+          "component_product_id": {
+            "format": "uuid",
+            "title": "Component Product Id",
+            "type": "string"
+          },
+          "is_sheet_material": {
+            "default": false,
+            "title": "Is Sheet Material",
+            "type": "boolean"
+          },
+          "line_no": {
+            "anyOf": [
+              {
+                "maximum": 9999.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line No"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "qty_per": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Per",
+            "type": "string"
+          },
+          "scrap_pct": {
+            "default": "0",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Scrap Pct",
+            "type": "string"
+          },
+          "uom_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uom Code"
+          }
+        },
+        "required": [
+          "component_product_id",
+          "qty_per"
+        ],
+        "title": "BomLineIn",
+        "type": "object"
+      },
+      "BomLineRead": {
+        "properties": {
+          "alternate_for_line_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alternate For Line No"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "has_approved_bom": {
+            "title": "Has Approved Bom",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_sheet_material": {
+            "title": "Is Sheet Material",
+            "type": "boolean"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "qty_per": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Per",
+            "type": "string"
+          },
+          "scrap_pct": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Scrap Pct",
+            "type": "string"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "line_no",
+          "component",
+          "qty_per",
+          "uom_code",
+          "scrap_pct",
+          "is_sheet_material",
+          "alternate_for_line_no",
+          "has_approved_bom",
+          "notes"
+        ],
+        "title": "BomLineRead",
+        "type": "object"
+      },
+      "BomRead": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/app__core__http__capabilities__TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/BomLineRead"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MasterStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "version_no",
+          "status",
+          "author",
+          "approved_by",
+          "approved_at",
+          "updated_at",
+          "line_count",
+          "notes",
+          "lines",
+          "retired_at",
+          "version",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "BomRead",
+        "type": "object"
+      },
+      "BomUpdate": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BomLineIn"
+                },
+                "maxItems": 500,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "BomUpdate",
         "type": "object"
       },
       "BootstrapMembership": {
@@ -3788,6 +4209,47 @@
         "title": "CalculationTotals",
         "type": "object"
       },
+      "CalendarRef": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "work_centre",
+              "company_default",
+              "built_in"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "source"
+        ],
+        "title": "CalendarRef",
+        "type": "object"
+      },
       "CancelReason": {
         "enum": [
           "customer_cancelled",
@@ -3845,6 +4307,267 @@
           "allowed"
         ],
         "title": "CapabilityView",
+        "type": "object"
+      },
+      "CapacityChange": {
+        "properties": {
+          "extra_minutes_per_day": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": -100000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extra Minutes Per Day"
+          },
+          "machine_count": {
+            "anyOf": [
+              {
+                "maximum": 500.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Machine Count"
+          },
+          "work_center_id": {
+            "format": "uuid",
+            "title": "Work Center Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "work_center_id"
+        ],
+        "title": "CapacityChange",
+        "type": "object"
+      },
+      "CapacityDay": {
+        "properties": {
+          "capacity_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Capacity Minutes",
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "day_type": {
+            "enum": [
+              "working",
+              "non_working",
+              "holiday"
+            ],
+            "title": "Day Type",
+            "type": "string"
+          },
+          "exception_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception Reason"
+          },
+          "load_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Load Minutes",
+            "type": "string"
+          },
+          "overloaded": {
+            "title": "Overloaded",
+            "type": "boolean"
+          },
+          "utilisation_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilisation Pct"
+          },
+          "work_orders": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Work Orders",
+            "type": "array"
+          }
+        },
+        "required": [
+          "day",
+          "day_type",
+          "capacity_minutes",
+          "load_minutes",
+          "utilisation_pct",
+          "overloaded",
+          "exception_reason",
+          "work_orders"
+        ],
+        "title": "CapacityDay",
+        "type": "object"
+      },
+      "CapacityExceptionIn": {
+        "properties": {
+          "available_minutes": {
+            "maximum": 1440000.0,
+            "minimum": 0.0,
+            "title": "Available Minutes",
+            "type": "integer"
+          },
+          "exception_date": {
+            "format": "date",
+            "title": "Exception Date",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exception_date",
+          "available_minutes",
+          "reason"
+        ],
+        "title": "CapacityExceptionIn",
+        "type": "object"
+      },
+      "CapacityExceptionRead": {
+        "properties": {
+          "available_minutes": {
+            "title": "Available Minutes",
+            "type": "integer"
+          },
+          "exception_date": {
+            "format": "date",
+            "title": "Exception Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "exception_date",
+          "available_minutes",
+          "reason"
+        ],
+        "title": "CapacityExceptionRead",
+        "type": "object"
+      },
+      "CapacityRead": {
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "overloaded_days": {
+            "title": "Overloaded Days",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "rows",
+          "overloaded_days"
+        ],
+        "title": "CapacityRead",
+        "type": "object"
+      },
+      "CapacityRow": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "total_capacity_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Total Capacity Minutes",
+            "type": "string"
+          },
+          "total_load_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Total Load Minutes",
+            "type": "string"
+          },
+          "unscheduled_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Unscheduled Minutes",
+            "type": "string"
+          },
+          "work_center": {
+            "$ref": "#/components/schemas/WorkCenterRef"
+          }
+        },
+        "required": [
+          "work_center",
+          "days",
+          "total_capacity_minutes",
+          "total_load_minutes",
+          "unscheduled_minutes"
+        ],
+        "title": "CapacityRow",
         "type": "object"
       },
       "CategoryCount": {
@@ -7909,6 +8632,280 @@
         "title": "CostComponent",
         "type": "object"
       },
+      "CostLine": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "kind": {
+            "enum": [
+              "material",
+              "operation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "unit_cost": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "path",
+          "label",
+          "quantity",
+          "uom_code",
+          "unit_cost",
+          "amount",
+          "source"
+        ],
+        "title": "CostLine",
+        "type": "object"
+      },
+      "CostRollupRead": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "batch_qty": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Batch Qty",
+            "type": "string"
+          },
+          "bom_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bom Id"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "computed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CostLine"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          },
+          "material_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/MissingInput"
+            },
+            "title": "Missing Inputs",
+            "type": "array"
+          },
+          "operation_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "reused": {
+            "default": false,
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "routing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CostRollupStatus"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "bom_id",
+          "routing_id",
+          "as_of",
+          "currency",
+          "batch_qty",
+          "input_hash",
+          "status",
+          "missing_inputs",
+          "computed_at",
+          "computed_by"
+        ],
+        "title": "CostRollupRead",
+        "type": "object"
+      },
+      "CostRollupRequest": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "batch_qty": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Qty"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "INR",
+                  "EUR",
+                  "USD",
+                  "GBP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "CostRollupRequest",
+        "type": "object"
+      },
+      "CostRollupStatus": {
+        "enum": [
+          "complete",
+          "incomplete"
+        ],
+        "title": "CostRollupStatus",
+        "type": "string"
+      },
       "CostSourceKind": {
         "enum": [
           "manual",
@@ -11263,6 +12260,128 @@
         "title": "CustomerTypeUpdate",
         "type": "object"
       },
+      "CutPlanLink": {
+        "properties": {
+          "cut_plan_id": {
+            "format": "uuid",
+            "title": "Cut Plan Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "material_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material Id"
+          }
+        },
+        "required": [
+          "expected_version",
+          "cut_plan_id"
+        ],
+        "title": "CutPlanLink",
+        "type": "object"
+      },
+      "CutPlanRef": {
+        "properties": {
+          "boards": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boards"
+          },
+          "calculation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculation Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "plan_number": {
+            "title": "Plan Number",
+            "type": "string"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "requires_verification": {
+            "title": "Requires Verification",
+            "type": "boolean"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "plan_number",
+          "name",
+          "status",
+          "calculation_id",
+          "boards",
+          "stale",
+          "requires_verification",
+          "verified",
+          "ready",
+          "reason_code",
+          "path"
+        ],
+        "title": "CutPlanRef",
+        "type": "object"
+      },
       "CutRead": {
         "properties": {
           "extent_end_mm": {
@@ -13578,6 +14697,52 @@
         "title": "ErrorCard",
         "type": "object"
       },
+      "EvidenceItem": {
+        "properties": {
+          "facts": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "kind": {
+            "enum": [
+              "stock",
+              "purchase_supply",
+              "components",
+              "capacity",
+              "routing",
+              "bom",
+              "lead_time"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "short",
+              "missing",
+              "late",
+              "info"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "label"
+        ],
+        "title": "EvidenceItem",
+        "type": "object"
+      },
       "ExplainView": {
         "properties": {
           "band": {
@@ -13699,6 +14864,155 @@
           "last_successful"
         ],
         "title": "FallbackView",
+        "type": "object"
+      },
+      "FeasibilityOutcome": {
+        "enum": [
+          "feasible",
+          "at_risk",
+          "not_feasible",
+          "estimate"
+        ],
+        "title": "FeasibilityOutcome",
+        "type": "string"
+      },
+      "FeasibilityRead": {
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "earliest_completion": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest Completion"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItem"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "from_stock": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "From Stock",
+            "type": "string"
+          },
+          "missing_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Inputs",
+            "type": "array"
+          },
+          "need_by": {
+            "format": "date",
+            "title": "Need By",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/FeasibilityOutcome"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "read_only": {
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "to_make": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "To Make",
+            "type": "string"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/ProductionWarehouseRef"
+          }
+        },
+        "required": [
+          "outcome",
+          "product",
+          "quantity",
+          "uom_code",
+          "warehouse",
+          "need_by",
+          "from_stock",
+          "to_make",
+          "earliest_completion",
+          "evidence",
+          "missing_inputs",
+          "computed_at"
+        ],
+        "title": "FeasibilityRead",
+        "type": "object"
+      },
+      "FeasibilityRequest": {
+        "properties": {
+          "need_by": {
+            "format": "date",
+            "title": "Need By",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          }
+        },
+        "required": [
+          "product_id",
+          "quantity",
+          "need_by"
+        ],
+        "title": "FeasibilityRequest",
         "type": "object"
       },
       "FeedbackOutcome": {
@@ -15739,6 +17053,53 @@
         "title": "InvitationView",
         "type": "object"
       },
+      "IssueLine": {
+        "properties": {
+          "from_location_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Location Id"
+          },
+          "lot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Id"
+          },
+          "material_id": {
+            "format": "uuid",
+            "title": "Material Id",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id",
+          "quantity"
+        ],
+        "title": "IssueLine",
+        "type": "object"
+      },
       "IssueRead": {
         "properties": {
           "code": {
@@ -15819,6 +17180,42 @@
           "phase"
         ],
         "title": "IssueRead",
+        "type": "object"
+      },
+      "IssueRequest": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/IssueLine"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Lines",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "expected_version",
+          "lines"
+        ],
+        "title": "IssueRequest",
         "type": "object"
       },
       "ItemActionRequest": {
@@ -17911,6 +19308,264 @@
         "title": "MarkReplied",
         "type": "object"
       },
+      "MasterCommand": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "MasterCommand",
+        "type": "object"
+      },
+      "MasterStatus": {
+        "description": "BOM and routing versions: a draft is edited by its author, approved by someone else, later retired.",
+        "enum": [
+          "draft",
+          "approved",
+          "retired"
+        ],
+        "title": "MasterStatus",
+        "type": "string"
+      },
+      "MasterSummary": {
+        "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MasterStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "version_no",
+          "status",
+          "author",
+          "approved_by",
+          "approved_at",
+          "updated_at",
+          "line_count"
+        ],
+        "title": "MasterSummary",
+        "type": "object"
+      },
+      "MaterialRead": {
+        "properties": {
+          "alternates": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionProductRef"
+            },
+            "title": "Alternates",
+            "type": "array"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "cut_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cut Plan Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_sheet_material": {
+            "title": "Is Sheet Material",
+            "type": "boolean"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "qty_consumed": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Consumed",
+            "type": "string"
+          },
+          "qty_free": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Free",
+            "type": "string"
+          },
+          "qty_in_wip": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty In Wip",
+            "type": "string"
+          },
+          "qty_issued": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Issued",
+            "type": "string"
+          },
+          "qty_required": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Required",
+            "type": "string"
+          },
+          "qty_required_bom": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Required Bom",
+            "type": "string"
+          },
+          "qty_reserved": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Reserved",
+            "type": "string"
+          },
+          "qty_returned": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Returned",
+            "type": "string"
+          },
+          "qty_to_issue": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty To Issue",
+            "type": "string"
+          },
+          "requirement_source": {
+            "$ref": "#/components/schemas/RequirementSource"
+          },
+          "short": {
+            "title": "Short",
+            "type": "boolean"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "line_no",
+          "component",
+          "uom_code",
+          "qty_required",
+          "qty_required_bom",
+          "qty_reserved",
+          "qty_issued",
+          "qty_consumed",
+          "qty_returned",
+          "qty_in_wip",
+          "qty_to_issue",
+          "qty_free",
+          "short",
+          "requirement_source",
+          "is_sheet_material",
+          "cut_plan_id",
+          "alternates",
+          "version"
+        ],
+        "title": "MaterialRead",
+        "type": "object"
+      },
       "MeRead": {
         "properties": {
           "locale": {
@@ -18933,6 +20588,55 @@
         "title": "MinimumRead",
         "type": "object"
       },
+      "MissingInput": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "material_cost",
+              "fx_rate",
+              "uom_conversion",
+              "work_centre_rate",
+              "bom",
+              "routing"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "ref_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Id"
+          },
+          "ref_type": {
+            "title": "Ref Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref_type",
+          "ref_id",
+          "label",
+          "reason_code"
+        ],
+        "title": "MissingInput",
+        "type": "object"
+      },
       "Money": {
         "properties": {
           "amount": {
@@ -19482,6 +21186,123 @@
         "title": "OffcutRead",
         "type": "object"
       },
+      "OffcutRecord": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "grain_axis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "length",
+                  "width",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grain Axis"
+          },
+          "length_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Length Mm",
+            "type": "string"
+          },
+          "lot_code": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Code"
+          },
+          "material_id": {
+            "format": "uuid",
+            "title": "Material Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
+          "parent_lot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Lot Id"
+          },
+          "predicted_offcut_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Offcut Id"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thickness Mm"
+          },
+          "width_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Width Mm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "material_id",
+          "length_mm",
+          "width_mm"
+        ],
+        "title": "OffcutRecord",
+        "type": "object"
+      },
       "OpeningBatchCreate": {
         "additionalProperties": false,
         "properties": {
@@ -19609,6 +21430,202 @@
         ],
         "title": "OpeningLineIn",
         "type": "object"
+      },
+      "OperationComplete": {
+        "properties": {
+          "actual_minutes": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Minutes"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "OperationComplete",
+        "type": "object"
+      },
+      "OperationRead": {
+        "properties": {
+          "actual_minutes": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Minutes"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "completed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cut_plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CutPlanRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_board_cutting": {
+            "title": "Is Board Cutting",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "planned_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Date"
+          },
+          "planned_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Planned Minutes",
+            "type": "string"
+          },
+          "predicted_offcuts": {
+            "items": {
+              "$ref": "#/components/schemas/PredictedOffcut"
+            },
+            "title": "Predicted Offcuts",
+            "type": "array"
+          },
+          "run_minutes_per_unit": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Run Minutes Per Unit",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "setup_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Setup Minutes",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "work_center": {
+            "$ref": "#/components/schemas/WorkCenterRef"
+          }
+        },
+        "required": [
+          "id",
+          "seq",
+          "name",
+          "work_center",
+          "setup_minutes",
+          "run_minutes_per_unit",
+          "planned_minutes",
+          "planned_date",
+          "actual_minutes",
+          "status",
+          "is_board_cutting",
+          "cut_plan",
+          "predicted_offcuts",
+          "completed_at",
+          "completed_by",
+          "version"
+        ],
+        "title": "OperationRead",
+        "type": "object"
+      },
+      "OperationSchedule": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "planned_date": {
+            "format": "date",
+            "title": "Planned Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "planned_date"
+        ],
+        "title": "OperationSchedule",
+        "type": "object"
+      },
+      "OperationStatus": {
+        "enum": [
+          "pending",
+          "done"
+        ],
+        "title": "OperationStatus",
+        "type": "string"
       },
       "OptionAction": {
         "description": "What the client posts as the next turn when the user picks this option (``TurnCreate.selected_option``).",
@@ -19934,6 +21951,55 @@
           "version"
         ],
         "title": "OrderLineRead",
+        "type": "object"
+      },
+      "OrderLineRef": {
+        "properties": {
+          "line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Id"
+          },
+          "line_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line No"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "order_number": {
+            "title": "Order Number",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "order_number",
+          "line_id",
+          "line_no",
+          "path"
+        ],
+        "title": "OrderLineRef",
         "type": "object"
       },
       "OrderPartyRef": {
@@ -20464,6 +22530,63 @@
         ],
         "title": "OutboxState",
         "type": "string"
+      },
+      "OutputRequest": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lot_code": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Code"
+          },
+          "qty_good": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Good",
+            "type": "string"
+          },
+          "qty_scrap": {
+            "default": "0",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Scrap",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "expected_version",
+          "qty_good"
+        ],
+        "title": "OutputRequest",
+        "type": "object"
       },
       "OverviewView": {
         "properties": {
@@ -21250,6 +23373,37 @@
         "title": "Page[ChangeRead]",
         "type": "object"
       },
+      "Page_CostRollupRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CostRollupRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CostRollupRead]",
+        "type": "object"
+      },
       "Page_CustomProductSummary_": {
         "properties": {
           "items": {
@@ -21496,6 +23650,37 @@
           "offset"
         ],
         "title": "Page[LookupRead]",
+        "type": "object"
+      },
+      "Page_MasterSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MasterSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[MasterSummary]",
         "type": "object"
       },
       "Page_PartySummary_": {
@@ -21837,6 +24022,37 @@
           "offset"
         ],
         "title": "Page[SampleRead]",
+        "type": "object"
+      },
+      "Page_WorkOrderSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[WorkOrderSummary]",
         "type": "object"
       },
       "ParseStatus": {
@@ -24691,6 +26907,43 @@
           "capabilities"
         ],
         "title": "PostingRead",
+        "type": "object"
+      },
+      "PredictedOffcut": {
+        "properties": {
+          "board_no": {
+            "title": "Board No",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "length_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Length Mm",
+            "type": "string"
+          },
+          "width_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Width Mm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "board_no",
+          "length_mm",
+          "width_mm"
+        ],
+        "title": "PredictedOffcut",
         "type": "object"
       },
       "Preferences": {
@@ -29645,6 +31898,92 @@
         "title": "ProductWriteResult",
         "type": "object"
       },
+      "ProductionProductRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "stock_uom_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock Uom Code"
+          }
+        },
+        "required": [
+          "id",
+          "product_key",
+          "name",
+          "stock_uom_code"
+        ],
+        "title": "ProductionProductRef",
+        "type": "object"
+      },
+      "ProductionUserRef": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "ProductionUserRef",
+        "type": "object"
+      },
+      "ProductionWarehouseRef": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "ProductionWarehouseRef",
+        "type": "object"
+      },
       "ProfileView": {
         "properties": {
           "display_name": {
@@ -34239,6 +36578,14 @@
         "title": "ReorderRuleRead",
         "type": "object"
       },
+      "RequirementSource": {
+        "enum": [
+          "bom",
+          "cut_plan"
+        ],
+        "title": "RequirementSource",
+        "type": "string"
+      },
       "ReservationPage": {
         "properties": {
           "items": {
@@ -35446,6 +37793,364 @@
           "path"
         ],
         "title": "RouteContext",
+        "type": "object"
+      },
+      "RoutingCreate": {
+        "properties": {
+          "copy_from_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy From Id"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingOperationIn"
+            },
+            "maxItems": 200,
+            "title": "Operations",
+            "type": "array"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "standard_batch_qty": {
+            "default": "1",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Standard Batch Qty",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "RoutingCreate",
+        "type": "object"
+      },
+      "RoutingOperationIn": {
+        "properties": {
+          "is_board_cutting": {
+            "default": false,
+            "title": "Is Board Cutting",
+            "type": "boolean"
+          },
+          "is_job_work": {
+            "default": false,
+            "title": "Is Job Work",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "run_minutes_per_unit": {
+            "default": "0",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Run Minutes Per Unit",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9999.0,
+            "minimum": 1.0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "setup_minutes": {
+            "default": "0",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Setup Minutes",
+            "type": "string"
+          },
+          "work_center_id": {
+            "format": "uuid",
+            "title": "Work Center Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "name",
+          "work_center_id"
+        ],
+        "title": "RoutingOperationIn",
+        "type": "object"
+      },
+      "RoutingOperationRead": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_board_cutting": {
+            "title": "Is Board Cutting",
+            "type": "boolean"
+          },
+          "is_job_work": {
+            "title": "Is Job Work",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "run_minutes_per_unit": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Run Minutes Per Unit",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "setup_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Setup Minutes",
+            "type": "string"
+          },
+          "work_center": {
+            "$ref": "#/components/schemas/WorkCenterRef"
+          }
+        },
+        "required": [
+          "id",
+          "seq",
+          "name",
+          "work_center",
+          "setup_minutes",
+          "run_minutes_per_unit",
+          "is_board_cutting",
+          "is_job_work"
+        ],
+        "title": "RoutingOperationRead",
+        "type": "object"
+      },
+      "RoutingRead": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/app__core__http__capabilities__TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingOperationRead"
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "standard_batch_qty": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Standard Batch Qty",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MasterStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "version_no",
+          "status",
+          "author",
+          "approved_by",
+          "approved_at",
+          "updated_at",
+          "line_count",
+          "standard_batch_qty",
+          "notes",
+          "operations",
+          "retired_at",
+          "version",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "RoutingRead",
+        "type": "object"
+      },
+      "RoutingUpdate": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operations": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RoutingOperationIn"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operations"
+          },
+          "standard_batch_qty": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Batch Qty"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "RoutingUpdate",
         "type": "object"
       },
       "RowRead": {
@@ -38129,6 +40834,39 @@
         "title": "SettingsUpdate",
         "type": "object"
       },
+      "ShiftMinutes": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "minutes": {
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "start",
+          "end",
+          "minutes"
+        ],
+        "title": "ShiftMinutes",
+        "type": "object"
+      },
       "ShiftWindow": {
         "properties": {
           "code": {
@@ -38281,6 +41019,81 @@
           "resolved_at"
         ],
         "title": "ShortageRead",
+        "type": "object"
+      },
+      "SimulationRead": {
+        "properties": {
+          "baseline": {
+            "items": {
+              "$ref": "#/components/schemas/FeasibilityRead"
+            },
+            "title": "Baseline",
+            "type": "array"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "label": {
+            "default": "What-if simulation: nothing was reserved, posted or saved",
+            "title": "Label",
+            "type": "string"
+          },
+          "scenario": {
+            "items": {
+              "$ref": "#/components/schemas/FeasibilityRead"
+            },
+            "title": "Scenario",
+            "type": "array"
+          },
+          "simulation": {
+            "const": true,
+            "default": true,
+            "title": "Simulation",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "baseline",
+          "scenario",
+          "computed_at"
+        ],
+        "title": "SimulationRead",
+        "type": "object"
+      },
+      "SimulationRequest": {
+        "properties": {
+          "capacity_changes": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityChange"
+            },
+            "maxItems": 50,
+            "title": "Capacity Changes",
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/FeasibilityRequest"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Checks",
+            "type": "array"
+          },
+          "stock_changes": {
+            "items": {
+              "$ref": "#/components/schemas/StockChange"
+            },
+            "maxItems": 50,
+            "title": "Stock Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "checks"
+        ],
+        "title": "SimulationRequest",
         "type": "object"
       },
       "SizeBasis": {
@@ -39565,6 +42378,41 @@
           "qc_required"
         ],
         "title": "StockAttributesRead",
+        "type": "object"
+      },
+      "StockChange": {
+        "properties": {
+          "delta": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Delta",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          }
+        },
+        "required": [
+          "product_id",
+          "delta"
+        ],
+        "title": "StockChange",
         "type": "object"
       },
       "StockPage": {
@@ -40982,6 +43830,199 @@
           "entries"
         ],
         "title": "TraceOut",
+        "type": "object"
+      },
+      "TransactionKind": {
+        "description": "One row per stock event of a work order; its id is the posting source id (one posting per event).",
+        "enum": [
+          "issue",
+          "consume",
+          "return",
+          "output",
+          "offcut"
+        ],
+        "title": "TransactionKind",
+        "type": "string"
+      },
+      "TransactionLineRead": {
+        "properties": {
+          "from_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Location"
+          },
+          "lot_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Code"
+          },
+          "material_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material Id"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "to_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Location"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id",
+          "product",
+          "quantity",
+          "uom_code",
+          "lot_code",
+          "from_location",
+          "to_location"
+        ],
+        "title": "TransactionLineRead",
+        "type": "object"
+      },
+      "TransactionRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TransactionKind"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionLineRead"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "lot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Id"
+          },
+          "posting_id": {
+            "format": "uuid",
+            "title": "Posting Id",
+            "type": "string"
+          },
+          "qty_good": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty Good"
+          },
+          "qty_scrap": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty Scrap"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "posting_id",
+          "lot_id",
+          "lines",
+          "qty_good",
+          "qty_scrap",
+          "reason",
+          "created_at",
+          "created_by"
+        ],
+        "title": "TransactionRead",
         "type": "object"
       },
       "TransferCreate": {
@@ -42548,6 +45589,1178 @@
           "name"
         ],
         "title": "WarehouseRef",
+        "type": "object"
+      },
+      "WipLine": {
+        "properties": {
+          "lot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Id"
+          },
+          "material_id": {
+            "format": "uuid",
+            "title": "Material Id",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id",
+          "quantity"
+        ],
+        "title": "WipLine",
+        "type": "object"
+      },
+      "WipRequest": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/WipLine"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Lines",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "expected_version",
+          "lines"
+        ],
+        "title": "WipRequest",
+        "type": "object"
+      },
+      "WorkCenterCreate": {
+        "properties": {
+          "calendar_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Id"
+          },
+          "code": {
+            "maxLength": 30,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._-]+$",
+            "title": "Code",
+            "type": "string"
+          },
+          "efficiency_pct": {
+            "default": "100",
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Efficiency Pct",
+            "type": "string"
+          },
+          "job_work_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Work Party Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WorkCenterKind",
+            "default": "internal"
+          },
+          "machine_count": {
+            "default": 1,
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Machine Count",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "rate_per_hour": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "WorkCenterCreate",
+        "type": "object"
+      },
+      "WorkCenterKind": {
+        "enum": [
+          "internal",
+          "external"
+        ],
+        "title": "WorkCenterKind",
+        "type": "string"
+      },
+      "WorkCenterRead": {
+        "properties": {
+          "calendar": {
+            "$ref": "#/components/schemas/CalendarRef"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "efficiency_pct": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Efficiency Pct",
+            "type": "string"
+          },
+          "exceptions": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityExceptionRead"
+            },
+            "title": "Exceptions",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "job_work_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Work Party Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WorkCenterKind"
+          },
+          "machine_count": {
+            "title": "Machine Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "rate_per_hour": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "shifts": {
+            "items": {
+              "$ref": "#/components/schemas/ShiftMinutes"
+            },
+            "title": "Shifts",
+            "type": "array"
+          },
+          "standard_day_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Standard Day Minutes",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "machine_count",
+          "efficiency_pct",
+          "is_active",
+          "standard_day_minutes",
+          "calendar",
+          "shifts",
+          "job_work_party_id",
+          "notes",
+          "exceptions",
+          "version",
+          "capabilities"
+        ],
+        "title": "WorkCenterRead",
+        "type": "object"
+      },
+      "WorkCenterRef": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "WorkCenterRef",
+        "type": "object"
+      },
+      "WorkCenterSummary": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "efficiency_pct": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Efficiency Pct",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WorkCenterKind"
+          },
+          "machine_count": {
+            "title": "Machine Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rate_per_hour": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "standard_day_minutes": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Standard Day Minutes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "machine_count",
+          "efficiency_pct",
+          "is_active",
+          "standard_day_minutes"
+        ],
+        "title": "WorkCenterSummary",
+        "type": "object"
+      },
+      "WorkCenterUpdate": {
+        "properties": {
+          "calendar_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Id"
+          },
+          "clear_rate": {
+            "default": false,
+            "title": "Clear Rate",
+            "type": "boolean"
+          },
+          "efficiency_pct": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Efficiency Pct"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "machine_count": {
+            "anyOf": [
+              {
+                "maximum": 500.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Machine Count"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "rate_per_hour": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "WorkCenterUpdate",
+        "type": "object"
+      },
+      "WorkOrderCancelReason": {
+        "enum": [
+          "not_needed",
+          "order_cancelled",
+          "replanned",
+          "data_error",
+          "other"
+        ],
+        "title": "WorkOrderCancelReason",
+        "type": "string"
+      },
+      "WorkOrderCreate": {
+        "properties": {
+          "bom_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bom Id"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "planned_start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Start Date"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "routing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Id"
+          },
+          "sales_order_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Order Line Id"
+          },
+          "uom_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uom Code"
+          },
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          }
+        },
+        "title": "WorkOrderCreate",
+        "type": "object"
+      },
+      "WorkOrderRead": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/app__core__http__capabilities__TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "blocked_causes": {
+            "items": {
+              "$ref": "#/components/schemas/BlockCauseRef"
+            },
+            "title": "Blocked Causes",
+            "type": "array"
+          },
+          "blocked_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Since"
+          },
+          "bom": {
+            "$ref": "#/components/schemas/MasterSummary"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "cancel_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason Code"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_blocked": {
+            "title": "Is Blocked",
+            "type": "boolean"
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/MaterialRead"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/OperationRead"
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "planned_start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Start Date"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "qty_good": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Good",
+            "type": "string"
+          },
+          "qty_planned": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Planned",
+            "type": "string"
+          },
+          "qty_scrap": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Scrap",
+            "type": "string"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "routing": {
+            "$ref": "#/components/schemas/MasterSummary"
+          },
+          "sales_order": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderLineRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkOrderStatus"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionRead"
+            },
+            "title": "Transactions",
+            "type": "array"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/ProductionWarehouseRef"
+          },
+          "wo_number": {
+            "title": "Wo Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "wo_number",
+          "product",
+          "qty_planned",
+          "uom_code",
+          "qty_good",
+          "status",
+          "is_blocked",
+          "warehouse",
+          "owner",
+          "planned_start_date",
+          "due_date",
+          "sales_order",
+          "updated_at",
+          "bom",
+          "routing",
+          "qty_scrap",
+          "blocked_causes",
+          "blocked_since",
+          "notes",
+          "materials",
+          "operations",
+          "transactions",
+          "released_at",
+          "completed_at",
+          "closed_at",
+          "cancelled_at",
+          "cancel_reason_code",
+          "cancel_reason",
+          "version",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "WorkOrderRead",
+        "type": "object"
+      },
+      "WorkOrderStatus": {
+        "enum": [
+          "draft",
+          "released",
+          "in_progress",
+          "completed",
+          "closed",
+          "cancelled"
+        ],
+        "title": "WorkOrderStatus",
+        "type": "string"
+      },
+      "WorkOrderSummary": {
+        "properties": {
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_blocked": {
+            "title": "Is Blocked",
+            "type": "boolean"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductionUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "planned_start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Start Date"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductionProductRef"
+          },
+          "qty_good": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Good",
+            "type": "string"
+          },
+          "qty_planned": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Planned",
+            "type": "string"
+          },
+          "sales_order": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderLineRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkOrderStatus"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/ProductionWarehouseRef"
+          },
+          "wo_number": {
+            "title": "Wo Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "wo_number",
+          "product",
+          "qty_planned",
+          "uom_code",
+          "qty_good",
+          "status",
+          "is_blocked",
+          "warehouse",
+          "owner",
+          "planned_start_date",
+          "due_date",
+          "sales_order",
+          "updated_at"
+        ],
+        "title": "WorkOrderSummary",
+        "type": "object"
+      },
+      "WorkOrderTransition": {
+        "properties": {
+          "action": {
+            "enum": [
+              "release",
+              "complete",
+              "close",
+              "cancel"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkOrderCancelReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "expected_version"
+        ],
+        "title": "WorkOrderTransition",
+        "type": "object"
+      },
+      "WorkOrderUpdate": {
+        "properties": {
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "planned_start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Start Date"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "WorkOrderUpdate",
+        "type": "object"
+      },
+      "WorkOrderVersioned": {
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "WorkOrderVersioned",
         "type": "object"
       },
       "app__core__http__capabilities__TransitionRead": {
@@ -62026,6 +66239,2949 @@
           "kind": "permission",
           "permissions": [
             "pricing.price.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/boms": {
+      "get": {
+        "operationId": "production_list_boms",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/MasterStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_MasterSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Boms",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "A new draft version of the product's BOM (``copy_from_id`` starts from an existing version's lines).",
+        "operationId": "production_create_bom",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BomCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Bom",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/boms/{bom_id}": {
+      "get": {
+        "operationId": "production_get_bom",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bom_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bom Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Bom",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Draft versions only (approved and retired versions are immutable: 409 ``version_approved``).",
+        "operationId": "production_update_bom",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bom_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bom Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BomUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Bom",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/boms/{bom_id}/approve": {
+      "post": {
+        "description": "Never by the version's author (403 ``separation_of_duties``); validates units, alternates and cycles; retires\nthe previously approved version.",
+        "operationId": "production_approve_bom",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bom_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bom Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MasterCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Bom",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.approve"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/boms/{bom_id}/retire": {
+      "post": {
+        "operationId": "production_retire_bom",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bom_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bom Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MasterCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Bom",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/capacity": {
+      "get": {
+        "description": "Load per work centre per day (pending operations of released work orders) against calendar capacity; at most 63\ndays (default: two weeks from today).",
+        "operationId": "production_get_capacity",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "work_center_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Work Center Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapacityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Capacity",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.capacity.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/cost-rollups": {
+      "get": {
+        "operationId": "production_list_cost_rollups",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CostRollupRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cost Rollups",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.read",
+            "production.cost_rollup.run"
+          ]
+        }
+      },
+      "post": {
+        "description": "Deterministic rollup; the same inputs return the stored result (``reused``). Figures need ``pricing.cost.read``.",
+        "operationId": "production_run_cost_rollup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostRollupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostRollupRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Cost Rollup",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.cost_rollup.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/cost-rollups/{rollup_id}": {
+      "get": {
+        "operationId": "production_get_cost_rollup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rollup_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rollup Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostRollupRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cost Rollup",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.bom.read",
+            "production.cost_rollup.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/feasibility": {
+      "post": {
+        "description": "Read-only: stock, supply, components and capacity evidence; nothing is reserved, posted or saved.",
+        "operationId": "production_assess_feasibility",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeasibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeasibilityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assess Feasibility",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.feasibility.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/feasibility/order-lines/{line_id}": {
+      "get": {
+        "description": "The remaining quantity of an order line by its requested date (404 when the order is not visible).",
+        "operationId": "production_assess_order_line_feasibility",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "need_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Need By"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeasibilityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assess Order Line Feasibility",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.feasibility.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/routings": {
+      "get": {
+        "operationId": "production_list_routings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/MasterStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_MasterSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Routings",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.read"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "production_create_routing",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Routing",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/routings/{routing_id}": {
+      "get": {
+        "operationId": "production_get_routing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "routing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Routing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Routing",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "production_update_routing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "routing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Routing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Routing",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/routings/{routing_id}/approve": {
+      "post": {
+        "operationId": "production_approve_routing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "routing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Routing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MasterCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Routing",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.approve"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/routings/{routing_id}/retire": {
+      "post": {
+        "operationId": "production_retire_routing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "routing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Routing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MasterCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Routing",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.routing.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/simulations": {
+      "post": {
+        "description": "What-if over an in-memory overlay next to the unchanged baseline; never writes.",
+        "operationId": "production_run_simulation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Simulation",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.simulation.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-centers": {
+      "get": {
+        "description": "Work centres with their standard daily minutes (shifts x machines x efficiency); the hourly rate only for\n``pricing.cost.read``.",
+        "operationId": "production_list_work_centers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkCenterSummary"
+                  },
+                  "title": "Response Production List Work Centers",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Work Centers",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.capacity.read"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "production_create_work_center",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkCenterCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkCenterRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Work Center",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_center.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-centers/{work_center_id}": {
+      "get": {
+        "description": "Calendar, shifts, exceptions and the capabilities of the caller.",
+        "operationId": "production_get_work_center",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_center_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Center Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkCenterRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Work Center",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.capacity.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "production_update_work_center",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_center_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Center Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkCenterUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkCenterRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Work Center",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_center.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-centers/{work_center_id}/capacity-exceptions": {
+      "put": {
+        "description": "Set the available minutes of one day (maintenance, overtime); replaces an existing exception of that day.",
+        "operationId": "production_set_capacity_exception",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_center_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Center Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapacityExceptionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkCenterRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Capacity Exception",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_center.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-centers/{work_center_id}/capacity-exceptions/{exception_id}": {
+      "delete": {
+        "operationId": "production_delete_capacity_exception",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_center_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Center Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exception_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exception Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkCenterRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Capacity Exception",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_center.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders": {
+      "get": {
+        "description": "Work orders within the actor's scope (production company, operations their branches); filters before paging.",
+        "operationId": "production_list_work_orders",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tokens matched against the WO number, product and order",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against the WO number, product and order",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkOrderStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blocked",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Blocked"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sales_order_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sales Order Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(mine|all)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_WorkOrderSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Work Orders",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Plan from a sales order line (product, remaining quantity, warehouse and date default from the order) or\nstandalone; pins the product's approved BOM and routing versions.",
+        "operationId": "production_create_work_order",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Work Order",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/lookup": {
+      "get": {
+        "operationId": "production_get_work_order_by_number",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "wo_number",
+            "required": true,
+            "schema": {
+              "maxLength": 20,
+              "title": "Wo Number",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Work Order By Number",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}": {
+      "get": {
+        "description": "Materials (required, reserved, issued, consumed, returned, in WIP, free), operations with the linked cut plan,\nstock transactions, ``capabilities`` and ``allowed_transitions``.",
+        "operationId": "production_get_work_order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Work Order",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Draft only: quantity (materials and minutes are re-planned), dates, notes.",
+        "operationId": "production_update_work_order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Work Order",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/consume": {
+      "post": {
+        "description": "Post WIP -> production (consumption).",
+        "operationId": "production_consume_work_order_materials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consume Work Order Materials",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post",
+            "inventory.stock.post"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/issue": {
+      "post": {
+        "description": "Post stock -> WIP (one posting), consuming the materials' reservations first.",
+        "operationId": "production_issue_work_order_materials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue Work Order Materials",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post",
+            "inventory.stock.post"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/offcuts": {
+      "post": {
+        "description": "A measured offcut becomes an ``offcut`` lot (``inventory.lot.measured``) posted production -> stock.",
+        "operationId": "production_record_work_order_offcut",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OffcutRecord"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Work Order Offcut",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post",
+            "inventory.lot.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/complete": {
+      "post": {
+        "operationId": "production_complete_work_order_operation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationComplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Work Order Operation",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/cut-plan": {
+      "post": {
+        "description": "Link a calculated cut plan to the board operation: the sheet material then requires the plan's boards\n(``requirement_source=cut_plan``); a released work order releases the plan at once.",
+        "operationId": "production_link_work_order_cut_plan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutPlanLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Work Order Cut Plan",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.transition"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/operations/{operation_id}/schedule": {
+      "post": {
+        "description": "Move a pending operation to another day (capacity load and overloads follow).",
+        "operationId": "production_schedule_work_order_operation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationSchedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Schedule Work Order Operation",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.transition"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/output": {
+      "post": {
+        "description": "Post good finished goods production -> stock (QC hold when the product requires QC); scrap is recorded.",
+        "operationId": "production_report_work_order_output",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Work Order Output",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post",
+            "inventory.stock.post"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/recheck": {
+      "post": {
+        "description": "Reserve again now (the event consumer does the same when stock arrives).",
+        "operationId": "production_recheck_work_order_materials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderVersioned"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recheck Work Order Materials",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.transition"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/return": {
+      "post": {
+        "description": "Post WIP -> stock (unused material back); it is reserved again for the work order.",
+        "operationId": "production_return_work_order_materials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Return Work Order Materials",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.post",
+            "inventory.stock.post"
+          ]
+        }
+      }
+    },
+    "/api/v1/production/work-orders/{work_order_id}/transitions": {
+      "post": {
+        "description": "``release`` (reserves materials; blocked when short; releases linked cut plans), ``complete`` (needs output),\n``close`` (needs WIP cleared), ``cancel`` (reason; refused once output or consumption was posted).",
+        "operationId": "production_transition_work_order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Work Order",
+        "tags": [
+          "production"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "production.work_order.transition"
           ]
         }
       }
