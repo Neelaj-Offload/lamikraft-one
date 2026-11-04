@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Button as RacButton, Link as RacLink } from "react-aria-components";
 import { cx } from "@/lib/cx";
 import { formatCount } from "@/lib/format/money";
@@ -89,7 +89,6 @@ export function DataTable<Row>({
 }: DataTableProps<Row>) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const overflows = useHorizontalScroll(scrollRef);
-  const captionId = useId();
   if (rows.length === 0 && empty) return <div className={className}>{empty}</div>;
   const ids = rows.map(rowId);
   const summary = selection ? selectionSummary(ids, selection.selected) : "none";
@@ -97,14 +96,15 @@ export function DataTable<Row>({
   return (
     <div className={cx("flex flex-col gap-3", className)}>
       {/* A wide table that scrolls sideways is reachable by keyboard (WCAG 2.1.1; axe scrollable-region-focusable):
-          the wrapper takes focus only while it actually overflows, so narrow tables add no tab stop. */}
+          the wrapper takes focus only while it actually overflows, so narrow tables add no tab stop. It gets no region
+          role: the table inside is already named by its caption, and locators by region name stay unambiguous. */}
       <div
         ref={scrollRef}
         className="hidden overflow-x-auto rounded-lg border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus md:block"
-        {...(overflows ? { tabIndex: 0, role: "region", "aria-labelledby": captionId } : {})}
+        {...(overflows ? { tabIndex: 0 } : {})}
       >
         <table className="w-full border-collapse text-sm">
-          <caption id={captionId} className={cx("px-4 pt-3 pb-1 text-start text-[15px] font-semibold text-ink", hideCaption && "sr-only")}>
+          <caption className={cx("px-4 pt-3 pb-1 text-start text-[15px] font-semibold text-ink", hideCaption && "sr-only")}>
             {caption}
           </caption>
           <thead>
