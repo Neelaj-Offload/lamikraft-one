@@ -1,4 +1,5 @@
-"""SCN-B3: an active spoken briefing never reorders; ordinals resolve against the pinned version."""
+"""SCN-B3: an active spoken briefing never reorders; ordinals resolve against the pinned version, and the Listen
+narration (Slice 3) keeps the pin's order while new versions arrive."""
 
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ def test_pinned_order_and_ordinal_resolution(world: FakeWorld) -> None:
     v1 = today(world, keys.USERS.MEERA)
     with world.uow(keys.USERS.MEERA) as uow:
         pin = service.create_pin(uow, v1.briefing_id, PinCreate(kind="voice"))  # type: ignore[arg-type]
+        script = service.pin_script(uow, pin.id)
     second = uuid.UUID(pin.ordinal_map[1]["issue_id"])
     new_message(world, "MSG_MAISON_NEW", "MAISON", d0(9, 10))
     world.at(d0(9, 15))
@@ -41,6 +43,10 @@ def test_pinned_order_and_ordinal_resolution(world: FakeWorld) -> None:
     assert [i.issue_id for i in pinned.items] == [i.issue_id for i in v1.items]
     nordhaus = next(i for i in pinned.items if i.issue_id == issue(world, issue_keys.message_key(world.refs[keys.MESSAGES.NORDHAUS])))
     assert nordhaus.ordinal == 3 and nordhaus.blocked and nordhaus.state.blocked_now is False  # approved, shown in place
+    with world.uow(keys.USERS.MEERA) as uow:  # the narration did not move either
+        spoken = service.pin_script(uow, pin.id)
+    assert [(s.ordinal, s.issue_id) for s in spoken.segments] == [(s.ordinal, s.issue_id) for s in script.segments]
+    assert spoken.segments[2].lead.startswith("Second. ") and spoken.segments[2].issue_id == second
     with world.uow(keys.USERS.MEERA) as uow:
         resolved = service.resolve_pin(uow, pin.id, 2)
         assert resolved.issue_id == second and not resolved.resolved_since

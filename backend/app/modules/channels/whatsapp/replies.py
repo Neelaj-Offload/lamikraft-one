@@ -176,6 +176,16 @@ def reply_for_run(uow: UnitOfWork, run_id: uuid.UUID, *, failed: bool) -> bool:
 
 
 # ---- buttons -----------------------------------------------------------------------------------------------------
+#: button kinds owned by other modules (``option_payload["kind"]`` -> handler(uow, identity, ref, wamid) -> reply text).
+#: Registered in a module's ``on_load``; the briefings module registers ``briefing_ack`` ("Got it" on the daily
+#: summary). The ref is already consumed; the handler acts as the linked member and returns the notice text.
+BUTTON_HANDLERS: dict[str, Any] = {}
+
+
+def register_button_handler(kind: str, handler: Any) -> None:
+    BUTTON_HANDLERS[kind] = handler
+
+
 REF_OUTCOME_TEXT = {
     "unknown": "That button is not valid any more. Send your request again or open the web app.",
     "wrong_identity": "That button belongs to another conversation.",
@@ -198,6 +208,12 @@ def handle_button(uow: UnitOfWork, identity: ChannelIdentity, reply_id: str, *, 
         return None
     data = dict(ref.option_payload or {})
     kind = data.get("kind") or ref.action
+    handler = BUTTON_HANDLERS.get(str(kind))
+    if handler is not None:
+        text = handler(uow, identity, ref, wamid)
+        if text:
+            notice(uow, identity, text, key=f"btn:{wamid}", reply_to=wamid)
+        return None
     if ref.action == "choose_option" and data.get("slot") and data.get("value") is not None:
         return {"turn": {"text": str(data.get("label") or data["value"]), "selected_option": {"slot": str(data["slot"]), "value": str(data["value"])}}}
     if ref.action in ("approve", "reject", "confirm") or (kind == "review" and data.get("target_id")):
@@ -217,6 +233,6 @@ def handle_button(uow: UnitOfWork, identity: ChannelIdentity, reply_id: str, *, 
 
 
 __all__ = [
-    "ASSISTANT_UNAVAILABLE", "NOT_LINKED", "REF_OUTCOME_TEXT", "UNSUPPORTED", "app_url", "handle_button", "member_actor", "notice",
-    "reply_for_run", "submit_turn", "utterance_id",
+    "ASSISTANT_UNAVAILABLE", "BUTTON_HANDLERS", "NOT_LINKED", "REF_OUTCOME_TEXT", "UNSUPPORTED", "app_url", "handle_button", "member_actor",
+    "notice", "register_button_handler", "reply_for_run", "submit_turn", "utterance_id",
 ]

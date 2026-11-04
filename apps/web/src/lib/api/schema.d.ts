@@ -266,6 +266,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/briefings/items/{issue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Item
+         * @description One item of today's briefing with its explanation and evidence (the Explain dialog as a page).
+         */
+        get: operations["briefings_get_item"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/briefings/items/{issue_id}/actions": {
         parameters: {
             query?: never;
@@ -311,6 +331,48 @@ export interface paths {
         put?: never;
         /** Resolve Pin Reference */
         post: operations["briefings_resolve_pin_reference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/briefings/pins/{pin_id}/script": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pin Script
+         * @description "Listen to my day": the narration of a live voice pin in its stable order (lead + phrased body per item,
+         *     read-back values for voice confirmations). 410 ``pin_ended`` once the pin stopped, completed or idled out.
+         */
+        get: operations["briefings_get_pin_script"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/briefings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Summary
+         * @description Send today's WhatsApp summary now (once per work date; the same gates as the scheduled push: opt-in, an
+         *     active link, the service window or an approved utility template). A skip is recorded with its reason.
+         */
+        post: operations["briefings_create_summary"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6260,9 +6322,9 @@ export interface components {
             /**
              * Ai Status
              * @default not_used
-             * @constant
+             * @enum {string}
              */
-            ai_status: "not_used";
+            ai_status: "not_used" | "demo" | "ok" | "unavailable";
             /** Briefing Id */
             briefing_id: string | null;
             /** Data As Of */
@@ -6304,6 +6366,7 @@ export interface components {
             updates_available: number;
             /** Version */
             version: number | null;
+            whatsapp_summary?: components["schemas"]["SummaryStateView"] | null;
             /**
              * Work Date
              * Format: date
@@ -9995,6 +10058,26 @@ export interface components {
             /** Task Ids */
             task_ids?: string[];
         };
+        /**
+         * ItemDetailView
+         * @description One item of the member's current briefing as a page: the row, its explanation and its evidence.
+         */
+        ItemDetailView: {
+            /**
+             * Briefing Id
+             * Format: uuid
+             */
+            briefing_id: string;
+            explanation: components["schemas"]["ExplainView"];
+            item: components["schemas"]["ItemView"];
+            /** Version */
+            version: number;
+            /**
+             * Work Date
+             * Format: date
+             */
+            work_date: string;
+        };
         /** ItemResultRead */
         ItemResultRead: {
             /** Extra */
@@ -10885,6 +10968,63 @@ export interface components {
             /** Workweek */
             workweek: number[];
         };
+        /**
+         * NarrationSegment
+         * @description One spoken part of "Listen to my day". ``lead`` is deterministic ("Second. Decision."); ``text`` is the
+         *     phrased body (or its template); ``readback`` lists the consequential values a voice confirmation repeats.
+         */
+        NarrationSegment: {
+            /** Issue Id */
+            issue_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "intro" | "item" | "outro";
+            /** Lead */
+            lead: string;
+            /** Ordinal */
+            ordinal?: number | null;
+            /** Path */
+            path?: string | null;
+            /** Readback */
+            readback?: string[];
+            /** Text */
+            text: string;
+            /**
+             * Text Source
+             * @enum {string}
+             */
+            text_source: "template" | "llm";
+        };
+        /** NarrationView */
+        NarrationView: {
+            /**
+             * Ai Status
+             * @enum {string}
+             */
+            ai_status: "not_used" | "demo" | "ok" | "unavailable";
+            /**
+             * Briefing Id
+             * Format: uuid
+             */
+            briefing_id: string;
+            /** Language */
+            language: string;
+            /**
+             * Pin Id
+             * Format: uuid
+             */
+            pin_id: string;
+            /** Pinned Version */
+            pinned_version: number;
+            /** Position */
+            position: number;
+            /** Segments */
+            segments: components["schemas"]["NarrationSegment"][];
+            /** State */
+            state: string;
+        };
         /** NavItem */
         NavItem: {
             /**
@@ -11073,14 +11213,19 @@ export interface components {
             greeting: string;
             /** Sentence */
             sentence: string;
+            /**
+             * Standard Sentence
+             * @default
+             */
+            standard_sentence: string;
             /** Template Code */
             template_code: string;
             /**
              * Text Source
              * @default template
-             * @constant
+             * @enum {string}
              */
-            text_source: "template";
+            text_source: "template" | "llm";
         };
         /**
          * PackagingIn
@@ -14614,6 +14759,10 @@ export interface components {
             reason: string;
             /** Reason Code */
             reason_code: string;
+            /** Text */
+            text?: string | null;
+            /** Text Source */
+            text_source?: ("template" | "llm") | null;
         };
         /** RecordLink */
         RecordLink: {
@@ -16282,6 +16431,37 @@ export interface components {
              */
             version: number;
         };
+        /**
+         * SummaryStateView
+         * @description Today's WhatsApp summary for the member: queued (through the outbox) or skipped with the reason.
+         */
+        SummaryStateView: {
+            /** Ack Channel */
+            ack_channel?: string | null;
+            /** Acknowledged At */
+            acknowledged_at?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Kind */
+            kind?: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "queued" | "skipped";
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Simulated
+             * @default false
+             */
+            simulated: boolean;
+            /** Version */
+            version?: number | null;
+        };
         /** SupersedeItemCommand */
         SupersedeItemCommand: {
             /** Expected Version */
@@ -17829,6 +18009,37 @@ export interface operations {
             };
         };
     };
+    briefings_get_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemDetailView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     briefings_run_item_action: {
         parameters: {
             query?: never;
@@ -17930,6 +18141,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefings_get_pin_script: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pin_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefings_create_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummaryStateView"];
                 };
             };
         };

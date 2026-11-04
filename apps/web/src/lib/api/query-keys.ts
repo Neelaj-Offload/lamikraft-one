@@ -32,6 +32,8 @@ export const queryKeys = {
     all: () => ["briefings"] as const,
     today: () => ["briefings", "today"] as const,
     explain: (issueId: string) => ["briefings", "explain", { issue_id: issueId }] as const,
+    delta: (since: string) => ["briefings", "delta", { since }] as const,
+    item: (issueId: string) => ["briefings", "item", { issue_id: issueId }] as const,
   },
   tasks: {
     all: () => ["tasks"] as const,

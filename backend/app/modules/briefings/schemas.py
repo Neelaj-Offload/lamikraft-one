@@ -27,6 +27,10 @@ class SourceRefView(BaseModel):
     path: str | None = None
 
 
+TextSource = Literal["template", "llm"]
+AiStatus = Literal["not_used", "demo", "ok", "unavailable"]
+
+
 class RecommendationView(BaseModel):
     id: uuid.UUID | None = None
     action_code: str
@@ -36,6 +40,10 @@ class RecommendationView(BaseModel):
     effect_code: str
     effect: str
     alternatives: list[str]
+    #: the recommendation as one or two sentences: the validated phrasing when available, else the template
+    #: ("{label}. {reason}"); ``text_source`` says which (template text after a failure is "Standard wording")
+    text: str | None = None
+    text_source: TextSource | None = None
 
 
 class ActionView(BaseModel):
@@ -105,8 +113,11 @@ class SectionView(BaseModel):
 
 class OverviewView(BaseModel):
     greeting: str
+    #: the sentence to show: the validated phrasing when available, else the deterministic template sentence
     sentence: str
-    text_source: Literal["template"] = "template"
+    text_source: TextSource = "template"
+    #: the deterministic sentence (always computed from the visible counts; the phrasing's source of truth)
+    standard_sentence: str = ""
     template_code: str
     #: counts, plus booleans such as ``rest_moving`` (fixtures 9.2)
     facts: dict[str, bool | int]
@@ -152,6 +163,19 @@ class FallbackView(BaseModel):
     last_successful: LastSuccessfulView | None
 
 
+class SummaryStateView(BaseModel):
+    """Today's WhatsApp summary for the member: queued (through the outbox) or skipped with the reason."""
+
+    outcome: Literal["queued", "skipped"]
+    reason: str | None = None
+    kind: str | None = None
+    version: int | None = None
+    simulated: bool = False
+    at: datetime
+    acknowledged_at: datetime | None = None
+    ack_channel: str | None = None
+
+
 class BriefingView(BaseModel):
     briefing_id: uuid.UUID | None
     work_date: date
@@ -159,7 +183,9 @@ class BriefingView(BaseModel):
     time_zone: str
     status: Literal["ready", "fallback"]
     fallback: bool
-    ai_status: Literal["not_used"] = "not_used"
+    #: ``not_used`` (no phrasing yet: the template text by design), ``demo`` (the Demo phraser), ``ok`` (validated
+    #: model wording) or ``unavailable`` (the template text stands in after a failure: "Standard wording")
+    ai_status: AiStatus = "not_used"
     version: int | None
     latest_version: int | None
     generated_at: datetime | None
@@ -176,6 +202,7 @@ class BriefingView(BaseModel):
     last_ack: AckView | None
     pin: PinView | None
     fallback_detail: FallbackView | None = None
+    whatsapp_summary: SummaryStateView | None = None
 
 
 class AcknowledgeRequest(BaseModel):
@@ -273,3 +300,38 @@ class PinResolution(BaseModel):
     issue_id: uuid.UUID
     resolved_since: bool
     item: ItemView | None
+
+
+class NarrationSegment(BaseModel):
+    """One spoken part of "Listen to my day". ``lead`` is deterministic ("Second. Decision."); ``text`` is the
+    phrased body (or its template); ``readback`` lists the consequential values a voice confirmation repeats."""
+
+    kind: Literal["intro", "item", "outro"]
+    ordinal: int | None = None
+    issue_id: uuid.UUID | None = None
+    lead: str
+    text: str
+    text_source: TextSource
+    readback: list[str] = Field(default_factory=list)
+    path: str | None = None
+
+
+class NarrationView(BaseModel):
+    pin_id: uuid.UUID
+    briefing_id: uuid.UUID
+    pinned_version: int
+    language: str
+    ai_status: AiStatus
+    state: str
+    position: int
+    segments: list[NarrationSegment]
+
+
+class ItemDetailView(BaseModel):
+    """One item of the member's current briefing as a page: the row, its explanation and its evidence."""
+
+    briefing_id: uuid.UUID
+    version: int
+    work_date: date
+    item: ItemView
+    explanation: ExplainView

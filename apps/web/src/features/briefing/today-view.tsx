@@ -34,7 +34,11 @@ import {
   sectionModels,
   totalItems,
 } from "./model";
+import { ListenPanel } from "./listen/listen-panel";
+import { useSpeechPort } from "./listen/speech-context";
+import { useListen } from "./listen/use-listen";
 import { refetchBriefing } from "./refresh";
+import { sendSummaryNow } from "./slice3-api";
 import type { BriefingAction, BriefingItem, BriefingView } from "./types";
 
 /** The open dialog; it stays described after closing so the exit animation keeps its content. */
@@ -98,7 +102,18 @@ export function TodayView() {
     void queryClient.invalidateQueries({ queryKey: TODAY_KEY });
   }, [polledVersion, polledDate, latest, queryClient]);
 
-  const update = view && latest ? pendingUpdateFor(view, latest, zone.locale) : null;
+  // "Listen to my day": the version on screen is pinned while it is read, so nothing below re-sorts and the
+  // "N updates" pill waits (motion-system §2-§3); finishing acknowledges it and the newest version is fetched.
+  const speech = useSpeechPort();
+  const listen = useListen({
+    briefingId: view?.briefing_id ?? null,
+    speech,
+    onEnded: () => void applyFresh([queryKeys.ui.poll()]),
+  });
+  const listening = listen.active;
+  const [sendingSummary, setSendingSummary] = useState(false);
+
+  const update = view && latest && !listen.active ? pendingUpdateFor(view, latest, zone.locale) : null;
   // One announcement per change, through the shared live announcer only.
   const announcement = update ? updateAnnouncement(update) : null;
   useEffect(() => {
@@ -113,6 +128,7 @@ export function TodayView() {
     [queryClient],
   );
   const refreshNow = () => void applyFresh();
+
 
   // briefing.md §11: no connection, so the last version stays, labelled, with actions disabled.
   const offline = !online || isNetworkError(query.error);
@@ -227,7 +243,7 @@ export function TodayView() {
   const generated = parseInstant(view.generated_at);
   const wording =
     view.ai_status === "demo"
-      ? { label: m.demoWording, hint: m.standardWordingHint }
+      ? { label: m.demoWording, hint: m.demoWordingHint }
       : view.ai_status === "unavailable" && view.overview?.text_source === "template"
         ? { label: m.standardWording, hint: m.standardWordingHint }
         : null;
@@ -252,6 +268,29 @@ export function TodayView() {
   };
   const canAcknowledge = !isFallback && view.briefing_id !== null && view.version !== null && !view.up_to_date;
 
+  const summary = view.whatsapp_summary ?? null;
+  const summaryLine = summary
+    ? summary.outcome === "queued"
+      ? [
+          (summary.simulated ? m.summary.queuedDemo : m.summary.queued)(formatTime(parseInstant(summary.at) ?? now, zone)),
+          summary.acknowledged_at && summary.ack_channel ? m.summary.acknowledged(summary.ack_channel) : null,
+        ].filter(Boolean).join(" · ")
+      : m.summary.skipped(m.summary.reasons[summary.reason ?? ""] ?? summary.reason ?? "")
+    : null;
+  const canSendSummary = !isFallback && view.day_type === "working" && summary?.outcome !== "queued";
+  const sendSummary = async () => {
+    if (sendingSummary || offline) return;
+    setSendingSummary(true);
+    try {
+      await sendSummaryNow(createIdempotencyKey());
+      await applyFresh();
+    } catch (error) {
+      toast.error(m.summary.failed, { description: error instanceof ProblemError ? (error.detail ?? error.title) : undefined });
+    } finally {
+      setSendingSummary(false);
+    }
+  };
+
   const sectionProps = {
     now,
     zone,
@@ -266,7 +305,7 @@ export function TodayView() {
   const revealKey = view.status === "ready" && view.briefing_id && view.version !== null ? `${view.briefing_id}:${view.version}` : null;
 
   return (
-    <GreetingReveal revealKey={revealKey} active={!offline && !query.isError}>
+    <GreetingReveal revealKey={revealKey} active={!offline && !query.isError && !listening}>
     <div className="flex flex-col gap-6">
       <BriefingHeader
         // A fallback has no greeting of its own; an older one could name the wrong time of day.
@@ -297,6 +336,43 @@ export function TodayView() {
         }
         wording={wording}
       />
+
+      <div className="flex flex-col gap-3">
+        {!isFallback ? (
+          <ListenPanel
+            state={listen.state}
+            speechLabel={speech.label}
+            disabledReason={offline ? m.offlineActions : view.briefing_id === null ? m.listen.starting : null}
+            onStart={() => void listen.start()}
+            onPause={listen.pause}
+            onResume={listen.resume}
+            onStop={listen.stop}
+            onClose={listen.reset}
+          />
+        ) : null}
+        {listening ? <p className="text-sm text-ink-muted">{m.listen.pinned}</p> : null}
+        <nav aria-label="Today" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <LinkButton variant="quiet" size="sm" href="/today/changes">
+            {m.links.changes}
+          </LinkButton>
+          <LinkButton variant="quiet" size="sm" href="/today/all">
+            {m.links.all}
+          </LinkButton>
+          {summaryLine ? <span className="text-ink-muted" data-testid="whatsapp-summary">{summaryLine}</span> : null}
+          {canSendSummary ? (
+            <Button
+              variant="quiet"
+              size="sm"
+              onPress={() => void sendSummary()}
+              isPending={sendingSummary}
+              pendingLabel={m.summary.sending}
+              {...unavailableWhen(offline ? m.offlineActions : null)}
+            >
+              {m.summary.send}
+            </Button>
+          ) : null}
+        </nav>
+      </div>
 
       <ComposerDock>
         {/* The command bar is the assistant composer; no voice control in Slice 1. */}

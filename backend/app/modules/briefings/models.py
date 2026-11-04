@@ -333,8 +333,91 @@ class Pin(IdMixin, TenantMixin, TimestampMixin, VersionMixin, Base):
     )
 
 
+class TextSource(StrEnum):
+    MODEL = "model"
+    TEMPLATE = "template"
+
+
+class PhrasingStatus(StrEnum):
+    #: phrased (or the template stands in after a failure); ``ai_status`` says which
+    READY = "ready"
+    #: a pre-shift batch is running; the deterministic text is served meanwhile
+    PENDING = "pending"
+
+
+class AiStatus(StrEnum):
+    DEMO = "demo"
+    OK = "ok"
+    UNAVAILABLE = "unavailable"
+
+
+class SummaryOutcome(StrEnum):
+    QUEUED = "queued"
+    SKIPPED = "skipped"
+
+
+class VersionText(IdMixin, TenantMixin, TimestampMixin, Base):
+    """The phrased wording of one version in one language (design §2 ``briefings_version_texts``).
+
+    Phrasing never creates a version: the deterministic text stays on the version and its items; this row holds
+    the validated model wording of the overview sentence, the item recommendations and the narration bodies
+    ("Listen to my day"), each with its source. A template entry is the labelled fallback ("Standard wording")."""
+
+    __tablename__ = "briefings_version_text"
+
+    briefing_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("briefings_briefing.id"), nullable=False)
+    version_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("briefings_version.id"), nullable=False)
+    language: Mapped[str] = mapped_column(String(12), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default=PhrasingStatus.READY.value)
+    ai_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    #: {"text", "source", "failures"}
+    overview: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    #: issue id -> {"text", "source", "failures"} (the recommendation sentence)
+    item_texts: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    #: issue id -> {"text", "source", "failures"} (the spoken body of the item; the lead is deterministic)
+    narration: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    model: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    batch_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    __table_args__ = (
+        Index("uq_briefings_version_text", "version_id", "language", unique=True),
+        CheckConstraint(f"status IN ({_values(PhrasingStatus)})", name="status_values"),
+        CheckConstraint(f"ai_status IN ({_values(AiStatus)})", name="ai_status_values"),
+    )
+
+
+class SummaryPush(IdMixin, TenantMixin, TimestampMixin, Base):
+    """The daily WhatsApp summary of one member's work date (design §14): queued through the channels outbox, or
+    skipped with the audited reason. One per member and work date (the job is idempotent)."""
+
+    __tablename__ = "briefings_summary_push"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("app_user.id"), nullable=False)
+    work_date: Mapped[date] = mapped_column(Date, nullable=False)
+    briefing_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("briefings_briefing.id"), nullable=True)
+    version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    outcome: Mapped[str] = mapped_column(String(20), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    kind: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    outbox_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    #: what was sent (the rendered text; counts and at most three titles within the channel's sensitivity limit)
+    text: Mapped[str | None] = mapped_column(String(1200), nullable=True)
+    simulated: Mapped[bool] = mapped_column(nullable=False, default=False)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ack_channel: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    __table_args__ = (
+        Index("uq_briefings_summary_push_user_date", "company_id", "user_id", "work_date", unique=True),
+        Index("ix_briefings_summary_push_briefing", "company_id", "briefing_id"),
+        CheckConstraint(f"outcome IN ({_values(SummaryOutcome)})", name="outcome_values"),
+        CheckConstraint("outcome = 'skipped' OR outbox_id IS NOT NULL", name="queued_has_outbox"),
+    )
+
+
 __all__ = [
     "AckMethod",
+    "AiStatus",
     "Acknowledgement",
     "Band",
     "Briefing",
@@ -347,9 +430,14 @@ __all__ = [
     "ItemState",
     "Pin",
     "PinKind",
+    "PhrasingStatus",
     "PinState",
     "Recommendation",
     "RecommendationStatus",
     "Section",
+    "SummaryOutcome",
+    "SummaryPush",
+    "TextSource",
     "VersionCause",
+    "VersionText",
 ]

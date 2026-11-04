@@ -78,6 +78,10 @@ export const routes = [
     requiredPermission: null,
     access: "session",
   },
+  // briefings-3 lane (Slice 3): the delta view, every item with filters, one item as a page
+  { id: "today-changes", path: "/today/changes", label: "What changed", area: "today", navGroup: null, mobileTab: "today", requiredPermission: null, access: "session" },
+  { id: "today-all", path: "/today/all", label: "All of today", area: "today", navGroup: null, mobileTab: "today", requiredPermission: null, access: "session" },
+  { id: "today-item", path: "/today/items/[itemId]", label: "Briefing item", area: "today", navGroup: null, mobileTab: "today", requiredPermission: null, access: "session" },
   {
     id: "inbox",
     path: "/inbox",
