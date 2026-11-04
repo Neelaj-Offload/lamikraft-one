@@ -251,6 +251,8 @@ class BankDetails(_Value):
 class DocumentTerms(_Value):
     quote: TermsText = None
     challan: TermsText = None
+    #: printed on invoices and credit notes (Slice 5); absent -> a labelled placeholder, never invented terms
+    invoice: TermsText = None
     footer: FooterText = None
 
 
@@ -361,7 +363,7 @@ BUILTIN_SETTINGS: tuple[SettingDef, ...] = (
     SettingDef(
         key="document_terms",
         model=DocumentTerms,
-        description="Terms printed on quotes and delivery challans, and the document footer",
+        description="Terms printed on quotes, delivery challans and invoices, and the document footer",
         read_permission="org.settings.read",
         manage_permission="org.settings.manage",
     ),

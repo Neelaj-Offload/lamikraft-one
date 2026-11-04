@@ -28,7 +28,7 @@ from tests.integration.org.platform_lane import ApiClient, audit_rows, events, m
 
 pytestmark = pytest.mark.db
 URL = "/api/v1/system/integrations"
-KEYS = ["accounting", "ai.anthropic", "ai.gemini", "channels.whatsapp", "email", "storage"]
+KEYS = ["accounting", "ai.anthropic", "ai.gemini", "channels.whatsapp", "e_invoice", "email", "storage"]
 
 
 @pytest.fixture

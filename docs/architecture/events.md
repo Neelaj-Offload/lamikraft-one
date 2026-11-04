@@ -58,6 +58,7 @@ contract 5. Code anchors: `backend/app/platform/events/{defs,models,service}.py`
 | `logistics.packing_list_staleness` | logistics | flags draft packing lists stale when packaging changes | 4 |
 | `logistics.shipment_status` | logistics | sets shipment dispatched when the linked challan is issued | 4 |
 | `finance.invoice_suggestion` | finance | suggests a draft invoice for issued delivery challans | 5 |
+| `finance.margin_check` | finance | checks issued quotes' margin from costs of record; emits `sales.quote.margin_below_threshold` | 5 |
 
 ## 3. Catalogue
 
@@ -277,13 +278,32 @@ Customer and vendor messages arriving through channels become `sales_customer_me
 | `logistics.shipment.dispatched` / `.delivered` / `.exception_recorded` | 1 | 4 | shipment_id, challan_id, evidence_kind, exception_code | tasks.rules |
 | `logistics.packing_list.finalised` / `.became_stale` | 1 | 4 | packing_list_id | tasks.rules |
 
-### 3.11 Slice 5 preview
+### 3.11 finance (Slice 5) and the Slice-5 preview
 
-`finance.invoice.draft_created`, `finance.invoice.issue_blocked`, `finance.invoice.issued`, `finance.invoice.became_overdue`,
-`finance.credit_note.issued`, `finance.receipt.recorded`, `finance.receipt.unallocated_detected`,
-`finance.accounting_export.completed`, `finance.accounting_export.failed`, `sales.quote.margin_below_threshold`
-(payload ids only; margin values never), `migration.run.completed`, `migration.run.failed`, `system.backup.completed`,
-`system.backup.failed`, `system.restore_rehearsal.completed`. Detailed in a Slice-5 revision of this file.
+Finance payloads carry ids, numbers, enum codes and dates only: never amounts, quantities, margins, bank details or
+free text (consumers re-read through `finance` readers). `sales.quote.margin_below_threshold` is emitted by the
+finance margin check (`finance.margin_check` consumer) and carries ids only — margin values never leave the
+restricted read path.
+
+| Event | v | Slice | Payload | Consumers |
+|---|---|---|---|---|
+| `finance.invoice.draft_created` | 1 | 5 | invoice_id, doc_type, party_id, sales_order_id, suggestion_id, original_invoice_id | tasks.rules (fin.invoice_suggestions) |
+| `finance.invoice.submitted` / `.approved` / `.rejected` / `.cancelled` | 1 | 5 | invoice_id, doc_type, version, reason_code | tasks.rules (fin.invoice_approvals) |
+| `finance.invoice.issue_blocked` | 1 | 5 | invoice_id, doc_type, version, blocker_codes[] | tasks.rules (fin.invoice_approvals) |
+| `finance.invoice.issued` | 1 | 5 | invoice_id, doc_type, document_number, party_id, due_date | tasks.rules |
+| `finance.invoice.became_overdue` | 1 | 5 | invoice_id, document_number, due_date (scheduled, once per invoice) | tasks.rules (fin.overdue_invoices) |
+| `finance.credit_note.issued` | 1 | 5 | credit_note_id, document_number, original_invoice_id | tasks.rules |
+| `finance.receipt.recorded` / `.reversed` | 1 | 5 | receipt_id, receipt_number, party_id, reason_code | tasks.rules (fin.unallocated_receipts) |
+| `finance.receipt.unallocated_detected` | 1 | 5 | receipt_id, receipt_number (scheduled, once per receipt) | tasks.rules (fin.unallocated_receipts) |
+| `finance.allocation.created` / `.reversed` | 1 | 5 | allocation_id, invoice_id, receipt_id, credit_note_id, reverses_allocation_id | tasks.rules (fin.unallocated_receipts, fin.overdue_invoices) |
+| `finance.invoice_suggestion.created` / `.dismissed` | 1 | 5 | suggestion_id, challan_id, sales_order_id, party_id | tasks.rules (fin.invoice_suggestions) |
+| `finance.accounting_export.completed` / `.failed` | 1 | 5 | export_id, adapter, error_code | tasks.rules (fin.accounting_sync) |
+| `finance.accounting_export.reconciled` | 1 | 5 | export_id, adapter, reconciliation_status | tasks.rules (fin.accounting_sync) |
+| `finance.tax_profile.verified` | 1 | 5 | tax_profile_id, version | — |
+| `sales.quote.margin_below_threshold` | 1 | 5 | quote_id, exception_id, revision_no | tasks.rules (mgmt.margin_exceptions) |
+
+Preview (other Slice-5 lanes): `migration.run.completed`, `migration.run.failed`, `system.backup.completed`,
+`system.backup.failed`, `system.restore_rehearsal.completed`.
 
 ## 4. Consumer index: briefing rule families (`tasks.rules`)
 
@@ -305,7 +325,7 @@ Customer and vendor messages arriving through channels become `sales_customer_me
 | 2 | scope reassignment | `sales.quote.owner_changed`, `parties.party.owner_changed` |
 | 3 | common.handled, channels, admin.failed_integrations | `agents.automation_run.*`, `channels.message.delivery_unknown`, `channels.conversation.escalated`, `system.integration.status_changed`, `sales.quote.delivery_status_changed` |
 | 4 | ops.shortages, ops.receipts, ops.qc, ops.production_dependencies, ops.dispatch_cutoffs, mgmt.decisions, mgmt.cross_team_blockers | §3.10 events |
-| 5 | fin.*, mgmt.margin_exceptions, mgmt.financial_visibility | §3.11 events |
+| 5 | fin.invoice_suggestions, fin.invoice_approvals, fin.overdue_invoices, fin.unallocated_receipts, fin.accounting_sync, mgmt.margin_exceptions (mgmt.financial_visibility: not built) | §3.11 events |
 
 Rules treat events as triggers and re-read authoritative state; a stale `aggregate_version` is ignored; replays and
 out-of-order deliveries create no new briefing version (tests B-02, B-03).
