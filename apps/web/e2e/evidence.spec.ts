@@ -69,7 +69,7 @@ for (const theme of THEMES) {
 
       await open(page, "MEERA", theme, width, "/today");
       await page.getByRole("textbox", { name: /Ask about your day/ }).fill("Prepare Nordhaus's usual oak tray quote");
-      await page.getByRole("button", { name: "Send" }).click();
+      await page.getByRole("button", { name: "Send", exact: true }).click();
       const card = page.locator('[data-card="quote_draft"]');
       await expect(card).toBeVisible({ timeout: 30_000 });
       await card.scrollIntoViewIfNeeded();

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ChangesView, deltaSinceFrom } from "@/features/briefing/changes-view";
+import { ChangesView } from "@/features/briefing/changes-view";
+import { deltaSinceFrom } from "@/features/briefing/slice3-api";
 import { getRoute } from "@/lib/routes";
 
 const route = getRoute("today-changes");

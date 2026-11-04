@@ -14,10 +14,8 @@ import { useNow, useSession } from "@/lib/session/context";
 import { briefingMessages as m } from "@/messages/briefing";
 import { DELTA_SINCE, fetchDelta, type DeltaSince, type WireDeltaChange, type WireDeltaGroup } from "./slice3-api";
 
-export function deltaSinceFrom(value: unknown): DeltaSince {
-  const raw = Array.isArray(value) ? value[0] : value;
-  return DELTA_SINCE.find((since) => since === raw) ?? "last_ack";
-}
+// the server page parses ?since= with this, so it lives in a module without "use client" (slice3-api.ts)
+export { deltaSinceFrom } from "./slice3-api";
 
 /** "sales.quote.changed" -> "Changed"; unknown codes become readable words, never raw identifiers. */
 export function changeKindLabel(code: string): string {

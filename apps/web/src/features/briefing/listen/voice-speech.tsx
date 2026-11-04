@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createSpeech, fetchVoiceCapabilities, type SpeechOut, type VoiceCapabilities } from "@/lib/voice/api";
 import { demoSpeech, readbackSentence, type SpeechPort } from "./speech";
 import { SpeechProvider } from "./speech-context";
@@ -32,15 +32,35 @@ export function speechFor(caps: VoiceCapabilities | null): SpeechPort {
   return voiceSpeech({ demo: caps.tts.status === "demo" });
 }
 
+/**
+ * One stable port whose calls go to the voice chosen by the latest capabilities. Stable on purpose: Listen builds
+ * its session per port, so swapping the port when the capabilities arrive would drop a session that had already
+ * started (found by the Slice-3 stage-2 e2e: a Listen pressed before they arrived stayed "Preparing" for ever).
+ */
+export function delegatingSpeech(current: { readonly current: SpeechPort }): SpeechPort {
+  return {
+    get label() {
+      return current.current.label;
+    },
+    speak: (text, signal) => current.current.speak(text, signal),
+    stop: () => current.current.stop(),
+    readback: (values) => current.current.readback(values),
+  };
+}
+
 export function VoiceSpeechProvider({ children }: { children: ReactNode }) {
-  const [caps, setCaps] = useState<VoiceCapabilities | null>(null);
+  const current = useRef<SpeechPort>(demoSpeech());
+  const [, setCaps] = useState<VoiceCapabilities | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetchVoiceCapabilities(controller.signal)
-      .then(setCaps)
-      .catch(() => setCaps(null));
+      .then((value) => {
+        current.current = speechFor(value);
+        setCaps(value);
+      })
+      .catch(() => undefined);
     return () => controller.abort();
   }, []);
-  const speech = useMemo(() => speechFor(caps), [caps]);
+  const speech = useMemo(() => delegatingSpeech(current), []);
   return <SpeechProvider speech={speech}>{children}</SpeechProvider>;
 }

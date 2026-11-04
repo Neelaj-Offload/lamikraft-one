@@ -22,6 +22,16 @@ function titles(page: Page): Promise<string[]> {
   return page.locator('article[data-reveal="item"] h3').allTextContents();
 }
 
+/**
+ * What the newer version changes on screen: the rows and the overview sentence. (Slice-3 stage-2 merge: earlier
+ * specs in the full run leave draft quotes in "Plan for today", so the new reply can land below the visible rows;
+ * its count still changes the overview.)
+ */
+async function onScreen(page: Page): Promise<string[]> {
+  const overview = (await page.locator("main h1 + p").first().textContent()) ?? "";
+  return [...(await titles(page)), overview];
+}
+
 /** The latest version of Meera's briefing on the server (the UI poll reports it even while a pin holds the view). */
 async function latestVersion(page: Page): Promise<number> {
   const response = await page.request.get("/api/v1/ui/poll");
@@ -41,6 +51,7 @@ test("B: an active voice pin keeps the list in place while a new version arrives
   await expect(page.locator('article[data-reveal="item"]').first()).toBeVisible();
   const before = await titles(page);
   expect(before.length).toBeGreaterThan(0);
+  const beforeScreen = await onScreen(page);
 
   await page.getByRole("button", { name: "Listen to my day" }).click();
   const panel = page.getByTestId("listen-panel");
@@ -80,7 +91,7 @@ test("B: an active voice pin keeps the list in place while a new version arrives
   await expect(panel).toHaveAttribute("data-phase", "speaking");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Listen to my day" })).toBeVisible();
-  await expect.poll(() => titles(page), { timeout: 20_000 }).not.toEqual(before);
+  await expect.poll(() => onScreen(page), { timeout: 20_000 }).not.toEqual(beforeScreen);
 });
 
 test("B: the waveform is a static meter under reduced motion", async ({ browser }) => {

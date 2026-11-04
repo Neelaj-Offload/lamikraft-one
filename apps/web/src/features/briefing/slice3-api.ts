@@ -24,6 +24,12 @@ export type WireSummaryState = Schemas["SummaryStateView"];
 export type DeltaSince = "last_ack" | "yesterday" | "last_workday";
 export const DELTA_SINCE: readonly DeltaSince[] = ["last_ack", "yesterday", "last_workday"];
 
+/** `?since=` from the URL (a server page reads it; never from a "use client" module). Unknown values → last_ack. */
+export function deltaSinceFrom(value: unknown): DeltaSince {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return DELTA_SINCE.find((since) => since === raw) ?? "last_ack";
+}
+
 export function createVoicePin(briefingId: string, idempotencyKey: string, client: ApiClient = api): Promise<WirePin> {
   return unwrap(
     client.POST("/api/v1/briefings/{briefing_id}/pins", {

@@ -37,7 +37,7 @@ test("a run to trace", async ({ page }) => {
   });
   await page.goto("/today");
   await page.getByRole("textbox", { name: /Ask about your day/ }).fill("Prepare Nordhaus's usual oak tray quote");
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator('[data-card="quote_draft"]')).toBeVisible({ timeout: 30_000 });
   expect(runId).not.toBe("");
   const run = await page.request.get(`/api/v1/agents/runs/${runId}`);

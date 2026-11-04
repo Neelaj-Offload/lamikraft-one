@@ -47,7 +47,7 @@ test("Meera drafts the quote through the assistant and requests review", async (
   });
 
   await (await composer(page)).fill(UTTERANCE);
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
 
   const card = page.locator('[data-card="quote_draft"]');
   await expect(card).toBeVisible({ timeout: 20_000 });

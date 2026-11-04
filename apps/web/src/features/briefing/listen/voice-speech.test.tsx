@@ -9,7 +9,7 @@ import type { SpeechOut, VoiceCapabilities } from "@/lib/voice/api";
 import type { WireNarration } from "../slice3-api";
 import type { ClipPlayer, SpeechClip } from "./speech";
 import { createListenSession, type ListenApi } from "./use-listen";
-import { speechFor, voiceSpeech } from "./voice-speech";
+import { delegatingSpeech, speechFor, voiceSpeech } from "./voice-speech";
 
 const flush = async () => {
   for (let i = 0; i < 8; i += 1) await Promise.resolve();
@@ -42,6 +42,18 @@ describe("voice module speech for Listen", () => {
     expect((await speechFor(caps("off")).speak("Hello there")).silent).toBe(true);
     expect(speechFor(caps("demo")).label).toBe("Demo voice");
     expect(speechFor(caps("configured")).label).toBeNull();
+  });
+});
+
+describe("the provider's port", () => {
+  it("stays one object and follows the voice chosen later", async () => {
+    const ref = { current: speechFor(null) };
+    const port = delegatingSpeech(ref);
+    expect(port.label).toBe("Demo voice");
+    expect((await port.speak("Hello there")).silent).toBe(true);
+    ref.current = voiceSpeech({ demo: false }, async (text) => out(text));
+    expect(port.label).toBeNull();
+    expect((await port.speak("Hello there")).silent).toBe(false);
   });
 });
 
