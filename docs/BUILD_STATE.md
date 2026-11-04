@@ -1,8 +1,8 @@
 # Build state
 
-**Checkpoint 3 — Slice 2 (legacy parity) on `main` 2026-11-04.** Slice-3 stage 1 (agents runtime + WhatsApp) is
-merged on `lane/s3-merge` as an **intermediate state, Checkpoint 4a** (section 12); Checkpoint 4 comes with stage 2
-(voice/vision and briefings). (Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
+**Checkpoint 4 — Slice 3 (agents runtime, WhatsApp, vision, voice, briefings) on `lane/s3-merge` 2026-11-04**
+(section 13; stage 1 = Checkpoint 4a, section 12), ready to fast-forward `main`. (Checkpoint 3 — Slice 2, legacy
+parity — 2026-11-04. Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
 2026-10-30. Checkpoint 0 — Slice 0 — 2026-10-23.)
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
@@ -37,10 +37,9 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 
 ## 2. In progress
 
-Slice 3, two-stage integration (completion program, "CP3 reached"). Stage 1 — `lane/s3-agents` and
-`lane/s3-whatsapp` reparented onto Checkpoint 3 — is merged on `lane/s3-merge` (section 12; report
-`docs/lanes/merge-s3a.md`). Stage 2 merges `lane/s3-voice-vision` (building from CP3) and `lane/s3-briefings`
-(branching from the stage-1 tip) and produces Checkpoint 4.
+Slice 4, wave 4a: `lane/s4-orders-inventory` (from the stage-1 tip `74c8cd5`, `identity`/1, migration placeholders
+0040+) is building; it reparents after `0021_briefings_slice3` at the Slice-4 merge. The other wave-4a lanes start
+from Checkpoint 4.
 
 ## 3. Blocked
 
@@ -135,14 +134,20 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-04 | CP4a | e2e on 8228d17 | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (build from the first run, own database, `--slice 2`) | 203 passed, 0 failed, 436 skipped; SSE asserted in scenario C (desktop, phone); `scenarios/k-whatsapp.spec.ts` 4/4 | scratchpad `s3a-e2e-final.log`; the first run found the defects in `docs/lanes/merge-s3a.md` |
 | 2026-11-04 | CP4a | evidence screenshots | `LK_E2E_EVIDENCE=cp4a npm run test:e2e -- --no-build e2e/evidence-cp4a.spec.ts --project=desktop` | 24 PNGs, 6 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-4a/` |
 | 2026-11-04 | CP4a | migrations | `alembic downgrade 0015` → `upgrade head`; `alembic check` on `lk_wt8` | chain 0015 → 0016 → 0017 → 0018, heads 1, no pending operations | console |
+| 2026-11-04 | CP4 | API suite on `lane/s3-merge` c8863a4 | `npm run test:api` | 1571 passed, 7 skipped (live-only `test_golden_live`), 0 failed, 59 min 55 s (stage 2a on 6cdf822: 1556 passed) | scratchpad `testapi2.log` (stage 2a `testapi1.log`) |
+| 2026-11-04 | CP4 | check on 46cf18e | `npm run check -- --keep-going` | 7/7 PASS (ruff; pytest unit+contract 681; alembic heads 1; api:check; web lint; typecheck; vitest 60 files / 661 tests) | scratchpad `check4.log` (run on d6acfe7 failed lint on a ref read during render, fixed in 46cf18e) |
+| 2026-11-04 | CP4 | e2e on d6acfe7 | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build, `--slice 2`) | 219 passed, 0 failed, 474 skipped; scenario C with SSE (desktop, phone), B 2/2, J-voice 8/8, C screen capture 2/2, K-WhatsApp 4/4, axe sweep light and dark incl. `/today/changes`, `/today/all` | scratchpad `e2e3.log`; runs 1–2 found the defects in `docs/lanes/merge-s3.md` |
+| 2026-11-04 | CP4 | targeted e2e on 46cf18e (after the lint fix) | `npm run test:e2e -- --workers=1 e2e/scenarios/b-briefing-stability.spec.ts e2e/scenarios/j-voice.spec.ts e2e/scenario-c.spec.ts` (fresh build) | 16 passed, 0 failed | scratchpad `e2e4.log` |
+| 2026-11-04 | CP4 | evidence screenshots | `LK_E2E_EVIDENCE=cp4 npm run test:e2e -- --no-build e2e/evidence-cp4.spec.ts --project=desktop` | 24 PNGs, 6 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-4/` |
+| 2026-11-04 | CP4 | migrations | `lk db migrate --revision 0018` → `migrate`; `lk db heads`; `alembic check` on `lk_wt8` | chain 0018 → 0019 → 0020 → 0021, heads 1; `alembic check` reports only the migration-only expression index `uq_vision_capture_conversation_sha` (ADR-061) | console |
 
 ## 8. Next executable step
 
-Fast-forward `main` to `lane/s3-merge` (Checkpoint 4a, section 12) if the owner wants stage 1 on `main` before
-stage 2; branch `lane/s3-briefings` from the stage-1 tip; when voice/vision and briefings finish, run the stage-2
-integrator onto `lane/s3-merge` (renumber their migrations after `0018_slice3_cross_lane_links`) to reach Checkpoint 4.
-Carry the Checkpoint-3 and 4a open items (sections 11–12) into the Slice-4 briefs. The Next.js security upgrade (16.4.4) is on `main`; worktrees created before
-it need `npm ci` (stale `node_modules` stopped the first Slice-2 e2e build).
+Fast-forward `main` to `lane/s3-merge` (Checkpoint 4, section 13). Then wave 4a continues: `lane/s4-orders-inventory`
+is building; start `s4-procurement-quality-logistics.md` and `s4-production.md` from Checkpoint 4 (at most three
+building lanes); the Slice-4 integrator reparents their migrations after `0021_briefings_slice3`. Carry the
+Checkpoint-3, 4a and 4 open items (sections 11–13) into the Slice-4 briefs. Worktrees created before the Next.js
+16.4.4 upgrade need `npm ci`.
 
 Open items carried from Slice 1 (owners in brackets):
 - Rendered quote PDFs are rendered on demand from the immutable snapshot; storing them through
@@ -331,3 +336,62 @@ briefings and the WhatsApp briefing push (briefings lane); `sales.quote_delivery
   credentials and the DPDP / WhatsApp decisions (§5 #6, #7) exist. [owner]
 - Settings → AI shows the provider as "Demo • Demo" (label and mode badge both). Cosmetic. [agents web]
 - Carried from Checkpoint 3 unchanged (section 11).
+
+## 13. Checkpoint 4 — Slice 3 (agents, WhatsApp, vision, voice, briefings) on `lane/s3-merge` (2026-11-04)
+
+Stage 2 of the Slice-3 integration merges the two wave-3b lanes onto Checkpoint 4a (section 12): voice/vision
+(`docs/lanes/voice-vision-s3.md`) and briefings (`docs/lanes/briefings-s3.md`); the merge, its decisions and the defects
+it fixed are in `docs/lanes/merge-s3.md`. Migration chain `0018_slice3_cross_lane_links` → `0019_voice_vision_slice3`
+(lane placeholder 0030) → `0020_slice3_stage2_cross_lane_links` (integrator: `agents_turn.corrects_turn_id`,
+`transcript_meta`, `vision_request_id`) → `0021_briefings_slice3` (lane placeholder 0035); `alembic heads` = 1.
+`openapi.json` / `schema.d.ts` regenerated (282 paths). Decision ADR-061.
+
+Slice-3 exit (PLAN.md): scenarios B, J and K; C via text, voice and WhatsApp Demo; graceful AI outage — see the
+verification table (section 7) and the PARITY moves below.
+
+### Implemented (verified) — new at this checkpoint
+- **Vision (Demo; Gemini adapter contract-tested over a fake transport):** masked screenshot of the app's own DOM
+  (restricted regions blacked out, never `getDisplayMedia`), stored restricted and purged after 24 h; instant screen
+  answers from the re-read screen context with hand-off; photo/document extraction into a confirmation card (uncertain
+  values are empty fields); the router sends `screen_question` to vision when a screenshot is attached; a confirmed
+  extraction reaches a run only as untrusted data and taints it; live capture needs `screen_capture.enabled` **and**
+  the recorded DPDP approval; vision model and quota from the routing table; `POST /admin/ai/verify` also verifies
+  `ai.gemini`.
+- **Voice (Demo STT/TTS):** push-to-talk with an editable final transcript, one turn per utterance id (resends
+  replay), corrections as new turns (`corrects_turn_id` on the turn), voice turns `input_mode="voice"` with transcript
+  facts, spoken replies interrupted by push-to-talk/typing/Stop, deterministic read-back, offline "Queued draft — not
+  sent", mic denial keeping the text path; a voice approval (`approvals.decide(channel="voice")`) needs a fresh
+  read-back; the voice module transcribes WhatsApp voice notes.
+- **Briefings:** Listen to my day (pinned order, pause/resume/stop on the pin, completion acknowledges the heard
+  version) speaking through the voice module (Demo voice by default) with a read-back of the paused item; LLM phrasing
+  as a background job with the validator and template fallback ("Standard wording"); delta, all-items and item pages;
+  the WhatsApp daily summary through the channels outbox with cross-channel "Got it".
+- PARITY_MATRIX: SCN-B3, SCN-B4, SCN-B6, SCN-C4, SCN-J1 implemented; SCN-J3 in progress (`3→4`); SCN-J2 stays in
+  progress.
+
+### Simulated (Demo)
+Claude (Demo orchestrator and phraser), Gemini (Demo vision from a fixture table; unknown images give empty
+confirmation fields), STT (fixture transcripts; unknown recordings get the scripted phrase labelled "Demo transcript —
+not from your recording"), TTS (silent clip labelled "Demo voice"), WhatsApp (Demo provider through the real signed
+webhook). Hindi and Hinglish are labelled **Untested**.
+
+### Open items carried (owners in brackets)
+- No live Anthropic, Gemini, STT/TTS or Meta call was made: the live checks are `POST /api/v1/admin/ai/verify` (now
+  both providers), one extraction of the demo delivery note, `test_golden_live`, the WhatsApp verify/handshake — once
+  credentials and the decisions in §5 (#5 STT/TTS vendor, #6 DPDP, #7 WhatsApp) exist. [owner]
+- No Gemini price row in the routing price table: vision usage shows unpriced in Settings → AI. [owner]
+- No spoken "approve" exists in the assistant; the voice approval guard is a server seam (`DecideIn.channel`); a
+  ReadbackCard kind is not built. [agents web]
+- Template quick replies (`button` messages) are not handled by channels inbound, so a template daily summary carries
+  no working "Got it" outside the 24-hour window. [channels]
+- The lane's expression index `uq_vision_capture_conversation_sha` lives in the migration only; `alembic check`
+  reports it (harmless). [vision]
+- `checks.ai` could move onto `register_readiness_check`; the phrasing cache could key by provider mode. [agents]
+- The DOM screenshot does not render cross-origin images or web fonts; compressed recordings' durations are the
+  recorder's. [vision, voice]
+- Quiet hours and personal summary times are not modelled (the summary goes at shift start). [briefings]
+- On a phone the docked composer with the voice row takes about a third of the viewport (evidence
+  `composer-voice-390-*`). [web voice, design]
+- The axe sweep skips `/today/items/[itemId]` (issue ids are computed, not fixture records); the page is in the
+  evidence screenshots only. [web]
+- Carried from Checkpoint 4a (section 12) and Checkpoint 3 (section 11) unchanged.

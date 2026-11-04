@@ -32,6 +32,15 @@ SCN-C5 (`e2e/scenario-c.spec.ts`, desktop and phone, now also asserting SSE prog
 and WhatsApp done, web voice is the voice lane's) and SCN-J2 (ambiguous customer done, ambiguous number/line/field
 not yet). Net: +4 implemented, +2 in progress, −6 planned.
 
+Checkpoint 4 (2026-11-04, Slice-3 stage-2 merge `lane/s3-merge`: voice/vision and briefings onto Checkpoint 4a):
+rows moved only where the named tests passed on the final tree — pytest from the full `npm run test:api`, Playwright
+from `npm run test:e2e`. **Implemented**: SCN-B3, SCN-B4, SCN-B6 (briefings lane §2), SCN-C4 (text, voice and WhatsApp
+Demo all drafting the same quote), SCN-J1 (repointed to `tests/integration/voice/test_voice_api.py`; the planned
+`test_transcript_idempotency.py` was not used). **In progress**: SCN-J3 (`j-voice.spec.ts` passes; its offline
+stock-movement part waits for Slice 4, so the row is `3→4`). SCN-J2 stays in progress (ambiguous customer by text and
+voice done; ambiguous number/line/field not yet). Net: +5 implemented, −5 planned (SCN-J3 planned → in progress, SCN-C4
+in progress → implemented).
+
 **Legend**
 - *New home*: backend path under `backend/app/` (`platform/<name>` kernel, `modules/<name>` domain) and web route under
   `apps/web/src/app/(app)` (detail routes use UUIDs; `/go/[type]/[key]` resolves business keys).
@@ -940,14 +949,14 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-A5 | E2E Today scope and isolation (desktop + mobile) | web Today | 1 | planned | `e2e/scenarios/a-today-scope.spec.ts::meera_today_and_restricted_user` |
 | SCN-B1 | Source change invalidates/refreshes recommendation; stable issue id | briefings | 1→2 | implemented | `tests/integration/briefings/test_source_change_invalidates_recommendation.py::test_stable_issue_id_and_stale_recommendation` |
 | SCN-B2 | No manufactured versions; replay and out-of-order handled | tasks + briefings | 1 | implemented | `tests/integration/briefings/test_no_manufactured_versions.py::test_replay_and_immaterial_change_create_no_version` |
-| SCN-B3 | Active spoken briefing never reorders | pins | 3 | planned | `tests/integration/briefings/test_voice_pin_no_reorder.py::test_pinned_order_and_ordinal_resolution` |
-| SCN-B4 | Snoozed/handled state survives reload and channel switching | item states | 1→3 | planned | `tests/integration/briefings/test_snooze_persists_across_reload_and_whatsapp.py::test_snooze_reload_and_whatsapp_sync` |
+| SCN-B3 | Active spoken briefing never reorders | pins | 3 | implemented | `tests/integration/briefings/test_voice_pin_no_reorder.py::test_pinned_order_and_ordinal_resolution`, `tests/integration/briefings/test_listen_and_phrasing.py::test_listen_script_keeps_the_pinned_order_and_reads_back_values`; `e2e/scenarios/b-briefing-stability.spec.ts` |
+| SCN-B4 | Snoozed/handled state survives reload and channel switching | item states | 1→3 | implemented | `tests/integration/briefings/test_snooze_persists_across_reload_and_whatsapp.py::test_snooze_reload_and_whatsapp_sync`, `::test_web_acknowledgement_marks_the_summary_and_voids_its_buttons` |
 | SCN-B5 | Midnight, weekend and shift boundaries explicit | workcal | 1→2 | implemented | `tests/integration/briefings/test_versions_and_actions.py::test_midnight_rollover` |
-| SCN-B6 | AI outage behaves explicitly | fallback | 1→3 | planned | `tests/integration/briefings/test_ai_outage_template_text.py::test_standard_wording_label` |
+| SCN-B6 | AI outage behaves explicitly | fallback | 1→3 | implemented | `tests/integration/briefings/test_ai_outage_template_text.py::test_standard_wording_label`, `tests/integration/briefings/test_listen_and_phrasing.py::test_listen_after_an_outage_speaks_the_template_wording` |
 | SCN-C1 | "Prepare Nordhaus's usual oak tray quote" resolves customer/product from fixtures, current EUR export price snapshotted, 240 × 24 = 5,760, reviewable draft | sales tools + Demo orchestrator | 1 | implemented | `tests/integration/sales/test_nordhaus_quote_path.py::test_scenario_c_nordhaus_repeat_quote` |
 | SCN-C2 | Correctly scoped next-action item | tasks | 1 | implemented | `tests/integration/tasks/test_agent_quote_draft_creates_scoped_next_action.py::test_review_task_for_meera_only` |
 | SCN-C3 | Catalogue changes cannot mutate the draft's snapshot | snapshots | 1 | implemented | `tests/integration/sales/test_quote_lines.py::test_catalog_line_snapshot_immune_to_catalogue_change` |
-| SCN-C4 | Same path via text, voice and WhatsApp demo | agents, voice, channels | 3 | in progress | `tests/integration/channels/test_scenario_c_whatsapp.py::test_c_whatsapp_text_drafts_the_quote_and_review_link_redirects`, `::test_c_whatsapp_voice_note_echoes_the_transcript_and_drafts`; `e2e/scenarios/k-whatsapp.spec.ts` (web voice: voice lane, stage 2) |
+| SCN-C4 | Same path via text, voice and WhatsApp demo | agents, voice, channels | 3 | implemented | `tests/integration/channels/test_scenario_c_whatsapp.py::test_c_whatsapp_text_drafts_the_quote_and_review_link_redirects`, `::test_c_whatsapp_voice_note_echoes_the_transcript_and_drafts`, `tests/integration/voice/test_voice_api.py::test_agent_c_voice_path_same_result`; `e2e/scenarios/k-whatsapp.spec.ts`, `e2e/scenarios/j-voice.spec.ts` |
 | SCN-C5 | E2E desktop and phone | web | 1 | implemented | `e2e/scenario-c.spec.ts` (desktop and phone; run progress over SSE) |
 | SCN-D1 | EUR 24, carton 24 → recommended 216 | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_recommended_quantity` |
 | SCN-D2 | EUR 4,800: off → 4,800; on → 5,200; 5,000 → no surcharge | engine | 1 | implemented | `tests/unit/commercial/test_engine.py::test_surcharge_table` |
@@ -972,9 +981,9 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-I2 | Reserve without overselling under concurrency | inventory | 4 | planned | `tests/integration/inventory/test_reservation_concurrency.py::test_no_oversell_under_concurrency` |
 | SCN-I3 | Fulfil partially; challan issue with exactly one movement | challans + inventory | 4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
 | SCN-I4 | Partial return linked to its original line; duplicate events cannot post again; cancellation auditable | returns, replay | 4 | planned | `tests/integration/flows/test_duplicate_events.py::test_replayed_outbox_events_have_single_effect` |
-| SCN-J1 | Corrected voice transcript does not submit twice | voice | 3 | planned | `tests/integration/voice/test_transcript_idempotency.py::test_same_utterance_id_one_turn` |
+| SCN-J1 | Corrected voice transcript does not submit twice | voice | 3 | implemented | `tests/integration/voice/test_voice_api.py::test_same_utterance_id_one_turn`, `::test_correction_after_submission_is_a_new_turn_that_revises_the_draft` |
 | SCN-J2 | Ambiguous customer/number prompts clarification | agents | 3 | in progress | `tests/integration/agents/test_scenario_c.py::test_agent_c_ambiguous_customer_asks_one_question`, `tests/evals/test_golden.py::test_golden_demo` (ambiguous customer; ambiguous number/line/field not yet) |
-| SCN-J3 | Interrupt stops speech; mic denial and network loss keep text/draft paths; no offline stock commit shown as success | web voice | 3 | planned | `e2e/scenarios/j-voice.spec.ts::fake_media_denial_interrupt_offline` |
+| SCN-J3 | Interrupt stops speech; mic denial and network loss keep text/draft paths; no offline stock commit shown as success | web voice | 3→4 | in progress | `e2e/scenarios/j-voice.spec.ts` (interrupt, mic denial, offline "Queued draft — not sent"); the offline stock-movement card waits for Slice 4 |
 | SCN-K1 | Webhook signature rejection, replay, out-of-order status | channels | 3 | implemented | `tests/integration/channels/test_webhook.py::test_k_signature_rejection_writes_a_rejection_row_without_the_payload`, `::test_k_replay_of_a_delivery_has_one_business_effect`, `::test_previous_secret_is_accepted_during_rotation`, `tests/integration/channels/test_scenario_k.py::test_k_out_of_order_status_never_lowers_the_rank_and_failed_does_not_override_delivered`, `::test_status_before_the_send_response_matches_by_biz_opaque` |
 | SCN-K2 | Employee unlink, expired approval, opt-out, closed messaging window | channels | 3 | implemented | `tests/integration/channels/test_scenario_k.py::test_k_employee_unlink_revokes_the_session_and_voids_armed_buttons`, `::test_k_button_for_an_expired_approval_does_nothing`, `::test_k_opt_out_confirms_and_blocks_proactive_messages_but_not_replies`, `::test_k_closed_window_blocks_with_a_reason`; `e2e/scenarios/k-whatsapp.spec.ts` |
 | SCN-K3 | Duplicate delivery → one business effect; simulated delivery labelled; real status from provider evidence | channels | 3 | implemented | `tests/integration/channels/test_webhook.py::test_k_replay_of_a_delivery_has_one_business_effect`, `tests/integration/channels/test_scenario_k.py::test_k_simulated_statuses_are_labelled_and_reach_read_through_the_webhook`, `tests/integration/channels/test_live_mode.py::test_live_outbound_needs_the_flag_and_the_allowlist_and_statuses_are_real` |
