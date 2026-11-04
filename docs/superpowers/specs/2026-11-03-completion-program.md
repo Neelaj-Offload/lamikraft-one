@@ -77,3 +77,7 @@ test:api 1479, check 7/7, e2e 203/0 with SSE proven in the browser (ADR-059) and
 simulator. `lane/s3-briefings` branches from 74c8cd5 in `sales`/6. Wave 4a's `lane/s4-orders-inventory` starts
 early from the same tip in `identity`/1 (migration placeholders 0040+), because it is independent of voice and
 briefings and the other two Slice-4 lanes build on it; it is merged after CP4 by the Slice-4 integrator.
+- 2026-11-04: `lane/s5-migration` starts early from 74c8cd5 in `sales`/6 with the migration dry-run tooling and
+  backup/restore parts of its brief (legacy entities are all Slice-2 and merged); its "new capabilities" part
+  (offcut reuse, sample lineage, what-if views) waits for Slice 4 and is a follow-up on the same branch.
+  Migration placeholder 0050+.
