@@ -34,6 +34,15 @@ function paramCandidates(world: World): Record<string, () => string | null> {
     planId: () => ref(world, "CUT_PLAN_WALNUT"),
     // Slice-3 stage-1 merge: a review link resolves once and redirects, so the sweep checks the invalid-link state
     token: () => "not-a-valid-token",
+    // Slice-4 merge (e2e seeds at --slice 4): the opening batch, PO-2026-0001, WO-2026-0001 and its BOM, routing and
+    // work centre. Orders, requisitions, receipts, inspections, shipments, packing lists, pick lists, counts,
+    // adjustments and transfers are not fixture records; their screens are covered by the scenario specs.
+    batchId: () => ref(world, "OB_MAIN"),
+    poId: () => byFact("purchase_orders", "KAVERI_WALNUT") ?? ref(world, "PO_KAVERI"),
+    workOrderId: () => byFact("work_orders", "PANEL_SETS") ?? ref(world, "WO_PANEL_SETS"),
+    bomId: () => ref(world, "BOM_PANEL_SET"),
+    routingId: () => ref(world, "ROUTING_PANEL_SET"),
+    workCenterId: () => ref(world, "WC_PANEL_SAW"),
   };
 }
 
