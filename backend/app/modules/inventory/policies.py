@@ -77,3 +77,16 @@ def require_warehouse(uow: UnitOfWork, warehouse_id: uuid.UUID, key: str = READ)
     if key != READ and not can_on_warehouse(uow, warehouse_id, key):
         raise Forbidden(code="permission_denied", permission=key)
     return wh
+
+
+def require_warehouse_for(uow: UnitOfWork, warehouse_id: uuid.UUID, key: str) -> Warehouse:
+    """Warehouse scope for a key that is granted per *record owner* as well as per branch (``inventory.stock.reserve``:
+    sales O, operations B). Warehouses have no owner, so an own/team grant is bounded by the actor's warehouse read
+    visibility (the record-level check happens on the demand, e.g. the order); a branch/company grant must cover the
+    warehouse itself. Invisible warehouse: 404; visible but out of the key's scope: 403."""
+    from app.platform.authz.permissions import Scope
+
+    scope = uow.actor.scope_for(key)
+    if scope is not None and scope < Scope.BRANCH:
+        return require_warehouse(uow, warehouse_id)
+    return require_warehouse(uow, warehouse_id, key)

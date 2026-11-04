@@ -232,6 +232,12 @@ def on_issue(uow: UnitOfWork, challan: Challan, lines: list[ChallanLine]) -> uui
         ]
         if stock:
             wh = inventory.resolve_warehouse(uow, challan.source_warehouse_id)
+            # IDOR: a challan posts only from (and to) warehouses its issuer can see (404 otherwise)
+            from app.modules.inventory.policies import require_warehouse as _visible
+
+            _visible(uow, wh.id)
+            if t == ChallanType.TRANSFER and challan.destination_warehouse_id is not None:
+                _visible(uow, challan.destination_warehouse_id)
             if challan.source_warehouse_id is None:
                 challan.source_warehouse_id = wh.id
             if t == ChallanType.INWARD:

@@ -29,6 +29,7 @@ from app.core.text import LIKE_ESCAPE, contains_pattern, tokens
 from app.modules.catalogue.models import Product
 from app.modules.inventory import service as inventory
 from app.modules.inventory.models import Reservation, Warehouse
+from app.modules.inventory.policies import require_warehouse, require_warehouse_for
 from app.modules.orders import events as ev
 from app.modules.orders.enums import FulfilmentMode, FulfilmentState, LineKind, OrderAction, OrderStatus
 from app.modules.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatusHistory
@@ -746,7 +747,8 @@ def update_order(uow: UnitOfWork, order_id: uuid.UUID, data: OrderUpdate) -> Sal
     uow.expect_version(order, data.expected_version)
     sent = data.model_fields_set - {"expected_version"}
     if "default_warehouse_id" in sent and data.default_warehouse_id is not None:
-        inventory.resolve_warehouse(uow, data.default_warehouse_id)
+        wh = inventory.resolve_warehouse(uow, data.default_warehouse_id)
+        require_warehouse(uow, wh.id)  # IDOR: only a warehouse the actor can see (404 otherwise)
     changed = []
     for name in ("requested_delivery_date", "promised_date", "default_warehouse_id", "ship_to"):
         if name in sent and getattr(order, name) != getattr(data, name):
@@ -970,6 +972,7 @@ def reserve_order(uow: UnitOfWork, order_id: uuid.UUID, data: ReserveRequest) ->
             "Only a confirmed order reserves stock", code="order_not_confirmed", current_status=order.status
         )
     warehouse = inventory.resolve_warehouse(uow, data.warehouse_id or order.default_warehouse_id)
+    require_warehouse_for(uow, warehouse.id, "inventory.stock.reserve")  # IDOR: the actor's warehouses only
     lines = [ln for ln in lines_of(uow, order) if ln.fulfilment_mode == FulfilmentMode.STOCK.value]
     if data.line_ids is not None:
         wanted = set(data.line_ids)
@@ -1225,6 +1228,9 @@ def create_challan_for_order(uow: UnitOfWork, order_id: uuid.UUID, data: Challan
         raise Conflict(
             "Nothing to deliver: reserve stock or choose quantities first", code="nothing_to_deliver"
         )
+    if data.warehouse_id is not None:
+        chosen = inventory.resolve_warehouse(uow, data.warehouse_id)
+        require_warehouse(uow, chosen.id)  # IDOR: only a warehouse the actor can see (404 otherwise)
     body = ChallanCreate(
         challan_type=ChallanType.OUTWARD,
         destination_type=DestinationType.CUSTOMER,
