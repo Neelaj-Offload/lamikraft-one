@@ -153,6 +153,9 @@ function parseBoard(value: unknown): Board {
   return {
     index: need(int(raw.index), "board index"),
     board_no: need(int(raw.board_no), "board number"),
+    source: raw.source === "offcut" || raw.source === "board_lot" ? raw.source : "standard",
+    lot_id: str(raw.lot_id),
+    lot_code: str(raw.lot_code),
     raw_length_mm: d("raw_length_mm"),
     raw_width_mm: d("raw_width_mm"),
     margin_mm: d("margin_mm"),
@@ -199,6 +202,7 @@ function parseGroup(value: unknown): Group {
     warnings: arr(raw.warnings).flatMap((w) => (typeof w === "string" ? [w] : [])),
     items: arr(raw.items).map(parseItemResult),
     boards: arr(raw.boards).map(parseBoard),
+    offcut_boards: int(raw.offcut_boards) ?? 0,
   };
 }
 
@@ -215,6 +219,7 @@ export function parseCalculation(value: unknown): Calculation {
     produced: n("produced"),
     unfit: n("unfit"),
     lower_bound_boards: n("lower_bound_boards"),
+    offcut_boards: int(t.offcut_boards) ?? 0,
   };
   return {
     id: str(raw.id),
@@ -300,6 +305,21 @@ export function parsePlanDetail(value: unknown): PlanDetail {
     },
     path: safeAppPath(str(raw.path)) ?? `/operations/cutting/${encodeURIComponent(need(str(raw.id), "plan id"))}`,
     warnings: arr(raw.warnings).flatMap((w) => (typeof w === "string" ? [w] : [])),
+    offcuts: arr(raw.offcuts).flatMap((entry) => {
+      if (!isObject(entry) || !str(entry.lot_id)) return [];
+      return [{
+        seq: int(entry.seq) ?? 0,
+        lot_id: str(entry.lot_id)!,
+        lot_code: text(entry.lot_code),
+        thickness_mm: text(entry.thickness_mm),
+        decor_key: text(entry.decor_key),
+        length_mm: dec(entry.length_mm) ?? "0",
+        width_mm: dec(entry.width_mm) ?? "0",
+        on_hand: typeof entry.on_hand === "boolean" ? entry.on_hand : null,
+        used: bool(entry.used),
+        matches_group: bool(entry.matches_group),
+      }];
+    }),
   };
 }
 

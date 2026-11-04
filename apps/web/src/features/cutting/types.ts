@@ -101,6 +101,10 @@ export interface Offcut {
 export interface Board {
   index: number;
   board_no: number;
+  /** standard sheet, or an offcut lot the plan chose (Slice 5 offcut reuse) */
+  source: "standard" | "board_lot" | "offcut";
+  lot_id: string | null;
+  lot_code: string | null;
   raw_length_mm: string;
   raw_width_mm: string;
   margin_mm: string;
@@ -140,6 +144,7 @@ export interface Group extends Areas {
   warnings: string[];
   items: ItemResult[];
   boards: Board[];
+  offcut_boards: number;
 }
 
 export interface Totals extends Areas {
@@ -150,6 +155,8 @@ export interface Totals extends Areas {
   produced: number;
   unfit: number;
   lower_bound_boards: number;
+  /** of `boards`, those cut from offcut lots */
+  offcut_boards: number;
 }
 
 export interface Calculation {
@@ -213,6 +220,22 @@ export interface PlanDetail {
   exports: { csv?: string; summary_csv?: string; pdf?: string };
   path: string;
   warnings: string[];
+  offcuts: PlanOffcut[];
+}
+
+/** An offcut lot the plan may cut from, with its size pinned when chosen (grain along the length). */
+export interface PlanOffcut {
+  seq: number;
+  lot_id: string;
+  lot_code: string;
+  thickness_mm: string;
+  decor_key: string;
+  length_mm: string;
+  width_mm: string;
+  /** null: the viewer cannot read stock */
+  on_hand: boolean | null;
+  used: boolean;
+  matches_group: boolean;
 }
 
 export interface PlanSummary {

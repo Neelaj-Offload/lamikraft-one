@@ -44,6 +44,7 @@ import {
   type RowField,
 } from "./editor-model";
 import { cuttingMessages as m } from "./messages";
+import { PlanOffcuts } from "./offcuts";
 import { QueryFailure } from "./query-failure";
 import { PlanStatusPill } from "./plan-list";
 import { Results } from "./results";
@@ -108,6 +109,7 @@ function PlanScreen({ plan }: { plan: PlanDetail }) {
         {plan.duplicated_from ? <p className="text-sm text-ink-muted">{m.editor.copyOf(plan.duplicated_from)}</p> : null}
       </header>
       {editable ? <Editor plan={plan} /> : <ReadOnlyInputs plan={plan} />}
+      <PlanOffcuts plan={plan} />
       <Verification plan={plan} />
       {plan.latest_calculation ? (
         <>
