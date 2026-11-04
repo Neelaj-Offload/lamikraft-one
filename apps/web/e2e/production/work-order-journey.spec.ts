@@ -44,7 +44,8 @@ test("blocked: Deepa sees WO-2026-0001 blocked by the walnut shortage", async ({
   await expect(page.getByText("Blocked by a material shortage").first()).toBeVisible();
   const materials = page.getByRole("region", { name: "Materials" });
   await expect(materials).toContainText("LK-WB-1800");
-  await expect(materials).toContainText("Short");
+  await expect(materials).toContainText("48 sheets"); // required
+  await expect(materials).toContainText("40 sheets"); // reserved: 8 short
 });
 
 test("supply: Ravi receives 8 sheets on PO-2026-0001, QC accepts them, and the work order unblocks", async ({ page }) => {

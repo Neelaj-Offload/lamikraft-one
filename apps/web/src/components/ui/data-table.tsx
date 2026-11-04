@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Button as RacButton, Link as RacLink } from "react-aria-components";
 import { cx } from "@/lib/cx";
 import { formatCount } from "@/lib/format/money";
@@ -87,15 +87,24 @@ export function DataTable<Row>({
   footer,
   className,
 }: DataTableProps<Row>) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const overflows = useHorizontalScroll(scrollRef);
+  const captionId = useId();
   if (rows.length === 0 && empty) return <div className={className}>{empty}</div>;
   const ids = rows.map(rowId);
   const summary = selection ? selectionSummary(ids, selection.selected) : "none";
 
   return (
     <div className={cx("flex flex-col gap-3", className)}>
-      <div className="hidden overflow-x-auto rounded-lg border bg-surface md:block">
+      {/* A wide table that scrolls sideways is reachable by keyboard (WCAG 2.1.1; axe scrollable-region-focusable):
+          the wrapper takes focus only while it actually overflows, so narrow tables add no tab stop. */}
+      <div
+        ref={scrollRef}
+        className="hidden overflow-x-auto rounded-lg border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus md:block"
+        {...(overflows ? { tabIndex: 0, role: "region", "aria-labelledby": captionId } : {})}
+      >
         <table className="w-full border-collapse text-sm">
-          <caption className={cx("px-4 pt-3 pb-1 text-start text-[15px] font-semibold text-ink", hideCaption && "sr-only")}>
+          <caption id={captionId} className={cx("px-4 pt-3 pb-1 text-start text-[15px] font-semibold text-ink", hideCaption && "sr-only")}>
             {caption}
           </caption>
           <thead>
@@ -351,4 +360,21 @@ export function KeysetPagination({
       {next ? <PageButton control={next} label="Next page" iconAfter={<ChevronRightIcon size={16} />} /> : null}
     </nav>
   );
+}
+
+/** Whether the element scrolls horizontally (measured after mount and on resize). */
+function useHorizontalScroll(ref: RefObject<HTMLDivElement | null>): boolean {
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setOverflows(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    return () => observer.disconnect();
+  }, [ref]);
+  return overflows;
 }

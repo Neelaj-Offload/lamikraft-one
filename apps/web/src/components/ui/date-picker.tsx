@@ -105,7 +105,7 @@ function PickerChrome({ label, description, errorMessage }: Pick<CommonProps, "l
           {(segment) => (
             <DateSegment
               segment={segment}
-              className="rounded-xs px-0.5 outline-hidden placeholder-shown:text-ink-muted focus:bg-forest focus:text-on-forest data-[type=literal]:px-0"
+              className="inline-block min-w-6 rounded-xs px-0.5 py-0.5 text-center outline-hidden placeholder-shown:text-ink-muted focus:bg-forest focus:text-on-forest data-[type=literal]:min-w-0 data-[type=literal]:px-0"
             />
           )}
         </DateInput>

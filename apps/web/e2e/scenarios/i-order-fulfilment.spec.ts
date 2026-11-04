@@ -72,6 +72,15 @@ test("convert_reserve_dispatch_partial: a won quote becomes one order, reserved 
 test("dispatch: Ravi delivers 100 of 240 on one challan; the issue moves stock once", async ({ page }) => {
   test.skip(!orderPath, "needs the order from the first test");
   await signInAs(page, "RAVI");
+  // on hand before the issue (the --slice 4 world has opening stock of 600, and earlier specs that issue challans of
+  // LK-OT-0450 now move stock too, since the seed turns inventory on)
+  const stock = await page.request.get("/api/v1/inventory/stock?q=LK-OT-0450");
+  expect(stock.status()).toBe(200);
+  const onHand = ((await stock.json()) as { items: Array<{ on_hand: string; warehouse: { code: string } }> }).items.find(
+    (row) => row.warehouse.code === "WH-MAIN",
+  )?.on_hand;
+  expect(onHand, "LK-OT-0450 at WH-MAIN").toBeTruthy();
+  const before = Number.parseInt(onHand!, 10); // whole pieces
   await page.goto(orderPath);
   await page.getByRole("button", { name: "Create delivery challan" }).click();
   await expect(page).toHaveURL(/\/operations\/challans\/[0-9a-f-]{36}$/);
@@ -91,10 +100,10 @@ test("dispatch: Ravi delivers 100 of 240 on one challan; the issue moves stock o
   await expect(lines).toContainText("140");
   await expect(page.getByRole("region", { name: "Delivery documents" })).toContainText(challanNumber);
 
-  // the ledger and the projection: one movement from the challan, on hand 600 -> 500
+  // the ledger and the projection: one movement from the challan, on hand down by exactly 100
   await page.goto("/operations/inventory/movements");
   await expect(page.getByRole("link", { name: challanNumber })).toHaveCount(1);
   await page.goto("/operations/inventory?q=LK-OT-0450");
   await expect(page.getByText("LK-OT-0450").first()).toBeVisible();
-  await expect(page.locator("main")).toContainText("500");
+  await expect(page.locator("main")).toContainText(`${before - 100} pcs`);
 });
