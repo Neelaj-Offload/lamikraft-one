@@ -2218,6 +2218,260 @@
         "title": "AuditEntryRead",
         "type": "object"
       },
+      "BackupFacts": {
+        "description": "Settings › Backups: the latest backup, the latest rehearsal and recent history (read-only; CLI-only actions).",
+        "properties": {
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/BackupRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "last_backup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_rehearsal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_age_hours_for_apply": {
+            "title": "Max Age Hours For Apply",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "last_backup",
+          "last_rehearsal",
+          "history",
+          "max_age_hours_for_apply"
+        ],
+        "title": "BackupFacts",
+        "type": "object"
+      },
+      "BackupRead": {
+        "properties": {
+          "alembic_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alembic Revision"
+          },
+          "backup_id": {
+            "title": "Backup Id",
+            "type": "string"
+          },
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
+          "dump_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dump Bytes"
+          },
+          "dump_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dump Sha256"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "manifest_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Sha256"
+          },
+          "rehearsal_checks": {
+            "items": {
+              "$ref": "#/components/schemas/RehearsalCheck"
+            },
+            "title": "Rehearsal Checks",
+            "type": "array"
+          },
+          "rehearsal_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehearsal Outcome"
+          },
+          "rehearsal_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehearsal Seconds"
+          },
+          "rehearsed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehearsed At"
+          },
+          "row_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Total"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "storage_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Bytes"
+          },
+          "storage_files": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Files"
+          },
+          "storage_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Sha256"
+          },
+          "table_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Count"
+          }
+        },
+        "required": [
+          "backup_id",
+          "status",
+          "database",
+          "alembic_revision",
+          "started_at",
+          "finished_at",
+          "dump_bytes",
+          "dump_sha256",
+          "storage_files",
+          "storage_bytes",
+          "storage_sha256",
+          "manifest_sha256",
+          "table_count",
+          "row_total",
+          "error_code",
+          "rehearsal_outcome",
+          "rehearsed_at",
+          "rehearsal_seconds",
+          "rehearsal_checks"
+        ],
+        "title": "BackupRead",
+        "type": "object"
+      },
       "BoardRead": {
         "properties": {
           "board_no": {
@@ -3491,6 +3745,226 @@
         ],
         "title": "CalculationTotals",
         "type": "object"
+      },
+      "CandidateDecide": {
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/CandidateDecision"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          }
+        },
+        "required": [
+          "expected_version",
+          "decision"
+        ],
+        "title": "CandidateDecide",
+        "type": "object"
+      },
+      "CandidateDecision": {
+        "enum": [
+          "link",
+          "new_party",
+          "reject",
+          "reopen"
+        ],
+        "title": "CandidateDecision",
+        "type": "string"
+      },
+      "CandidateRead": {
+        "properties": {
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "country_key": {
+            "title": "Country Key",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By Name"
+          },
+          "decision_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Note"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "legacy_country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Country"
+          },
+          "legacy_name": {
+            "title": "Legacy Name",
+            "type": "string"
+          },
+          "linked_party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__migration__schemas__PartyRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "match_kind": {
+            "title": "Match Kind",
+            "type": "string"
+          },
+          "name_key": {
+            "title": "Name Key",
+            "type": "string"
+          },
+          "occurrences": {
+            "title": "Occurrences",
+            "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Score"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "suggested_party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__migration__schemas__PartyRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "variants": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Variants",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "legacy_name",
+          "legacy_country",
+          "name_key",
+          "country_key",
+          "variants",
+          "occurrences",
+          "sources",
+          "match_kind",
+          "score",
+          "status",
+          "suggested_party",
+          "linked_party",
+          "decided_by_name",
+          "decided_at",
+          "decision_note",
+          "version",
+          "capabilities"
+        ],
+        "title": "CandidateRead",
+        "type": "object"
+      },
+      "CandidateStatus": {
+        "enum": [
+          "proposed",
+          "linked",
+          "new_party",
+          "rejected"
+        ],
+        "title": "CandidateStatus",
+        "type": "string"
       },
       "Capability": {
         "properties": {
@@ -7288,7 +7762,7 @@
           },
           "runs": {
             "items": {
-              "$ref": "#/components/schemas/RunSummary"
+              "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
             },
             "title": "Runs",
             "type": "array"
@@ -8717,7 +9191,7 @@
           "party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/PartyRef"
+                "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
               },
               {
                 "type": "null"
@@ -9214,7 +9688,7 @@
           "party": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/PartyRef"
+                "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
               },
               {
                 "type": "null"
@@ -9950,7 +10424,7 @@
             "type": "string"
           },
           "party": {
-            "$ref": "#/components/schemas/PartyRef"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
           },
           "path": {
             "title": "Path",
@@ -11903,7 +12377,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/PartyRef"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
           },
           "path": {
             "title": "Path",
@@ -14199,87 +14673,65 @@
         "title": "InvitationView",
         "type": "object"
       },
-      "IssueRead": {
+      "IssueFacet": {
         "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
+          "count": {
+            "title": "Count",
+            "type": "integer"
           },
-          "column": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Column"
-          },
-          "field": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Field"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "phase": {
-            "title": "Phase",
-            "type": "string"
-          },
-          "raw_value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw Value"
-          },
-          "row_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Row Number"
-          },
-          "severity": {
-            "title": "Severity",
+          "value": {
+            "title": "Value",
             "type": "string"
           }
         },
         "required": [
-          "id",
-          "row_number",
-          "column",
-          "field",
-          "code",
-          "severity",
-          "message",
-          "raw_value",
-          "phase"
+          "value",
+          "count"
         ],
-        "title": "IssueRead",
+        "title": "IssueFacet",
         "type": "object"
+      },
+      "IssueFacets": {
+        "properties": {
+          "code": {
+            "items": {
+              "$ref": "#/components/schemas/IssueFacet"
+            },
+            "title": "Code",
+            "type": "array"
+          },
+          "entity": {
+            "items": {
+              "$ref": "#/components/schemas/IssueFacet"
+            },
+            "title": "Entity",
+            "type": "array"
+          },
+          "severity": {
+            "items": {
+              "$ref": "#/components/schemas/IssueFacet"
+            },
+            "title": "Severity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "severity",
+          "entity",
+          "code"
+        ],
+        "title": "IssueFacets",
+        "type": "object"
+      },
+      "IssueSeverity": {
+        "enum": [
+          "error",
+          "quarantine",
+          "warning",
+          "info"
+        ],
+        "title": "IssueSeverity",
+        "type": "string"
       },
       "ItemActionRequest": {
         "additionalProperties": false,
@@ -17334,6 +17786,113 @@
         "title": "OffcutRead",
         "type": "object"
       },
+      "OpeningBatchRead": {
+        "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By Name"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "posted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posted At"
+          },
+          "poster_available": {
+            "title": "Poster Available",
+            "type": "boolean"
+          },
+          "posting_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Ref"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "totals": {
+            "additionalProperties": true,
+            "title": "Totals",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "status",
+          "source_digest",
+          "line_count",
+          "quarantined_count",
+          "totals",
+          "created_at",
+          "approved_at",
+          "approved_by_name",
+          "posted_at",
+          "posting_ref",
+          "poster_available"
+        ],
+        "title": "OpeningBatchRead",
+        "type": "object"
+      },
       "OptionAction": {
         "description": "What the client posts as the next turn when the user picks this option (``TurnCreate.selected_option``).",
         "properties": {
@@ -18334,6 +18893,37 @@
         "title": "PackagingSnapshot",
         "type": "object"
       },
+      "Page_CandidateRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CandidateRead]",
+        "type": "object"
+      },
       "Page_ChallanSummaryRow_": {
         "properties": {
           "items": {
@@ -18551,37 +19141,6 @@
         "title": "Page[HistoryEntry]",
         "type": "object"
       },
-      "Page_IssueRead_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/IssueRead"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "Page[IssueRead]",
-        "type": "object"
-      },
       "Page_JobSummary_": {
         "properties": {
           "items": {
@@ -18642,6 +19201,37 @@
           "offset"
         ],
         "title": "Page[LookupRead]",
+        "type": "object"
+      },
+      "Page_OpeningBatchRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OpeningBatchRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[OpeningBatchRead]",
         "type": "object"
       },
       "Page_PartySummary_": {
@@ -18921,6 +19511,37 @@
           "offset"
         ],
         "title": "Page[RuleSetRead]",
+        "type": "object"
+      },
+      "Page_RunSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__migration__schemas__RunSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[RunSummary]",
         "type": "object"
       },
       "Page_SampleRead_": {
@@ -19333,35 +19954,6 @@
           "display_name"
         ],
         "title": "PartyMini",
-        "type": "object"
-      },
-      "PartyRef": {
-        "properties": {
-          "country_code": {
-            "title": "Country Code",
-            "type": "string"
-          },
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "party_number": {
-            "title": "Party Number",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "party_number",
-          "display_name",
-          "country_code"
-        ],
-        "title": "PartyRef",
         "type": "object"
       },
       "PartyRole": {
@@ -27316,7 +27908,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/PartyRef"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
           },
           "party_snapshot": {
             "$ref": "#/components/schemas/PartySnapshot"
@@ -28947,7 +29539,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/PartyRef"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
           },
           "path": {
             "title": "Path",
@@ -30364,6 +30956,35 @@
         "title": "RefreshSnapshots",
         "type": "object"
       },
+      "RehearsalCheck": {
+        "properties": {
+          "check": {
+            "title": "Check",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "check",
+          "passed"
+        ],
+        "title": "RehearsalCheck",
+        "type": "object"
+      },
       "ReminderCreate": {
         "additionalProperties": false,
         "properties": {
@@ -31738,87 +32359,13 @@
         "title": "RuleSetStatus",
         "type": "string"
       },
-      "RunDetail": {
-        "description": "The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.",
-        "properties": {
-          "after_seq": {
-            "title": "After Seq",
-            "type": "integer"
-          },
-          "cards": {
-            "items": {
-              "discriminator": {
-                "mapping": {
-                  "clarification": "#/components/schemas/ClarificationCard",
-                  "error": "#/components/schemas/ErrorCard",
-                  "quote_draft": "#/components/schemas/QuoteDraftCard",
-                  "receipt": "#/components/schemas/ReceiptCard",
-                  "record_link": "#/components/schemas/RecordLinkCard"
-                },
-                "propertyName": "kind"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/QuoteDraftCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ClarificationCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ErrorCard"
-                },
-                {
-                  "$ref": "#/components/schemas/RecordLinkCard"
-                },
-                {
-                  "$ref": "#/components/schemas/ReceiptCard"
-                }
-              ]
-            },
-            "title": "Cards",
-            "type": "array"
-          },
-          "done": {
-            "title": "Done",
-            "type": "boolean"
-          },
-          "last_seq": {
-            "title": "Last Seq",
-            "type": "integer"
-          },
-          "run": {
-            "$ref": "#/components/schemas/RunSummary"
-          },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/StepOut"
-            },
-            "title": "Steps",
-            "type": "array"
-          },
-          "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text"
-          }
-        },
-        "required": [
-          "run",
-          "steps",
-          "after_seq",
-          "last_seq",
-          "done",
-          "text",
-          "cards"
+      "RunKind": {
+        "enum": [
+          "dry_run",
+          "apply"
         ],
-        "title": "RunDetail",
-        "type": "object"
+        "title": "RunKind",
+        "type": "string"
       },
       "RunStatus": {
         "enum": [
@@ -31831,221 +32378,6 @@
         ],
         "title": "RunStatus",
         "type": "string"
-      },
-      "RunSummary": {
-        "properties": {
-          "assistant_turn_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Turn Id"
-          },
-          "channel": {
-            "title": "Channel",
-            "type": "string"
-          },
-          "conversation_id": {
-            "format": "uuid",
-            "title": "Conversation Id",
-            "type": "string"
-          },
-          "correlation_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Correlation Id"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "degraded_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Degraded Reason"
-          },
-          "elapsed_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Elapsed Ms"
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "error_message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Message"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "input_token_budget": {
-            "default": 0,
-            "title": "Input Token Budget",
-            "type": "integer"
-          },
-          "input_tokens_used": {
-            "default": 0,
-            "title": "Input Tokens Used",
-            "type": "integer"
-          },
-          "mode": {
-            "title": "Mode",
-            "type": "string"
-          },
-          "model_route": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Route"
-          },
-          "provider": {
-            "$ref": "#/components/schemas/ProviderName"
-          },
-          "provider_label": {
-            "title": "Provider Label",
-            "type": "string"
-          },
-          "request_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Type"
-          },
-          "started_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started At"
-          },
-          "status": {
-            "$ref": "#/components/schemas/RunStatus"
-          },
-          "step_budget": {
-            "title": "Step Budget",
-            "type": "integer"
-          },
-          "step_count": {
-            "title": "Step Count",
-            "type": "integer"
-          },
-          "tainted": {
-            "title": "Tainted",
-            "type": "boolean"
-          },
-          "time_budget_seconds": {
-            "title": "Time Budget Seconds",
-            "type": "integer"
-          },
-          "tool_call_count": {
-            "title": "Tool Call Count",
-            "type": "integer"
-          },
-          "trigger": {
-            "$ref": "#/components/schemas/RunTrigger"
-          },
-          "turn_id": {
-            "format": "uuid",
-            "title": "Turn Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "conversation_id",
-          "turn_id",
-          "assistant_turn_id",
-          "status",
-          "trigger",
-          "channel",
-          "provider",
-          "provider_label",
-          "mode",
-          "model_route",
-          "request_type",
-          "tainted",
-          "error_code",
-          "error_message",
-          "step_count",
-          "tool_call_count",
-          "step_budget",
-          "time_budget_seconds",
-          "elapsed_ms",
-          "started_at",
-          "finished_at",
-          "created_at"
-        ],
-        "title": "RunSummary",
-        "type": "object"
       },
       "RunTrigger": {
         "enum": [
@@ -32391,7 +32723,7 @@
             "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
           },
           "party": {
-            "$ref": "#/components/schemas/PartyRef"
+            "$ref": "#/components/schemas/app__modules__sales__schemas__PartyRef"
           },
           "path": {
             "title": "Path",
@@ -37721,6 +38053,365 @@
         "title": "TransitionRead",
         "type": "object"
       },
+      "app__core__http__pagination__Page_IssueRead___1": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__imports__schemas__IssueRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[IssueRead]",
+        "type": "object"
+      },
+      "app__core__http__pagination__Page_IssueRead___2": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__migration__schemas__IssueRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[IssueRead]",
+        "type": "object"
+      },
+      "app__modules__agents__schemas__RunDetail": {
+        "description": "The polling payload: run status, steps after ``after_seq`` and, once finished, the assistant text and cards.",
+        "properties": {
+          "after_seq": {
+            "title": "After Seq",
+            "type": "integer"
+          },
+          "cards": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "clarification": "#/components/schemas/ClarificationCard",
+                  "error": "#/components/schemas/ErrorCard",
+                  "quote_draft": "#/components/schemas/QuoteDraftCard",
+                  "receipt": "#/components/schemas/ReceiptCard",
+                  "record_link": "#/components/schemas/RecordLinkCard"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/QuoteDraftCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ClarificationCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorCard"
+                },
+                {
+                  "$ref": "#/components/schemas/RecordLinkCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ReceiptCard"
+                }
+              ]
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "last_seq": {
+            "title": "Last Seq",
+            "type": "integer"
+          },
+          "run": {
+            "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "run",
+          "steps",
+          "after_seq",
+          "last_seq",
+          "done",
+          "text",
+          "cards"
+        ],
+        "title": "RunDetail",
+        "type": "object"
+      },
+      "app__modules__agents__schemas__RunSummary": {
+        "properties": {
+          "assistant_turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Turn Id"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "degraded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degraded Reason"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_token_budget": {
+            "default": 0,
+            "title": "Input Token Budget",
+            "type": "integer"
+          },
+          "input_tokens_used": {
+            "default": 0,
+            "title": "Input Tokens Used",
+            "type": "integer"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "model_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Route"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderName"
+          },
+          "provider_label": {
+            "title": "Provider Label",
+            "type": "string"
+          },
+          "request_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Type"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "step_budget": {
+            "title": "Step Budget",
+            "type": "integer"
+          },
+          "step_count": {
+            "title": "Step Count",
+            "type": "integer"
+          },
+          "tainted": {
+            "title": "Tainted",
+            "type": "boolean"
+          },
+          "time_budget_seconds": {
+            "title": "Time Budget Seconds",
+            "type": "integer"
+          },
+          "tool_call_count": {
+            "title": "Tool Call Count",
+            "type": "integer"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "turn_id",
+          "assistant_turn_id",
+          "status",
+          "trigger",
+          "channel",
+          "provider",
+          "provider_label",
+          "mode",
+          "model_route",
+          "request_type",
+          "tainted",
+          "error_code",
+          "error_message",
+          "step_count",
+          "tool_call_count",
+          "step_budget",
+          "time_budget_seconds",
+          "elapsed_ms",
+          "started_at",
+          "finished_at",
+          "created_at"
+        ],
+        "title": "RunSummary",
+        "type": "object"
+      },
       "app__modules__catalogue__products__ArchiveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -37812,6 +38503,483 @@
         "title": "UserRef",
         "type": "object"
       },
+      "app__modules__imports__schemas__IssueRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Column"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "row_number",
+          "column",
+          "field",
+          "code",
+          "severity",
+          "message",
+          "raw_value",
+          "phase"
+        ],
+        "title": "IssueRead",
+        "type": "object"
+      },
+      "app__modules__migration__schemas__IssueRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File"
+          },
+          "source_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Key"
+          }
+        },
+        "required": [
+          "id",
+          "entity",
+          "source_file",
+          "row_number",
+          "source_key",
+          "code",
+          "severity",
+          "message",
+          "field",
+          "raw_value",
+          "raw"
+        ],
+        "title": "IssueRead",
+        "type": "object"
+      },
+      "app__modules__migration__schemas__PartyRef": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name",
+          "country_code",
+          "path"
+        ],
+        "title": "PartyRef",
+        "type": "object"
+      },
+      "app__modules__migration__schemas__RunDetail": {
+        "properties": {
+          "backup_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Id"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "title": "Counts",
+            "type": "object"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "export_manifest": {
+            "additionalProperties": true,
+            "title": "Export Manifest",
+            "type": "object"
+          },
+          "files": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "issues_csv_path": {
+            "title": "Issues Csv Path",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "title": "Options",
+            "type": "object"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "report": {
+            "additionalProperties": true,
+            "title": "Report",
+            "type": "object"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by_name": {
+            "title": "Started By Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "source_label",
+          "source_digest",
+          "issue_count",
+          "quarantined_count",
+          "error_count",
+          "started_at",
+          "finished_at",
+          "started_by_name",
+          "backup_id",
+          "error_code",
+          "path",
+          "export_manifest",
+          "files",
+          "options",
+          "counts",
+          "report",
+          "error_detail",
+          "issues_csv_path"
+        ],
+        "title": "RunDetail",
+        "type": "object"
+      },
+      "app__modules__migration__schemas__RunSummary": {
+        "properties": {
+          "backup_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by_name": {
+            "title": "Started By Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "source_label",
+          "source_digest",
+          "issue_count",
+          "quarantined_count",
+          "error_count",
+          "started_at",
+          "finished_at",
+          "started_by_name",
+          "backup_id",
+          "error_code",
+          "path"
+        ],
+        "title": "RunSummary",
+        "type": "object"
+      },
       "app__modules__parties__router__ArchiveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -37860,6 +39028,35 @@
         ],
         "title": "MessageStatus",
         "type": "string"
+      },
+      "app__modules__sales__schemas__PartyRef": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "title": "Party Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name",
+          "country_code"
+        ],
+        "title": "PartyRef",
+        "type": "object"
       },
       "app__modules__sales__schemas__TransitionRead": {
         "properties": {
@@ -38240,7 +39437,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunDetail"
+                  "$ref": "#/components/schemas/app__modules__agents__schemas__RunDetail"
                 }
               }
             },
@@ -38289,7 +39486,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunSummary"
+                  "$ref": "#/components/schemas/app__modules__agents__schemas__RunSummary"
                 }
               }
             },
@@ -49764,7 +50961,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page_IssueRead_"
+                  "$ref": "#/components/schemas/app__core__http__pagination__Page_IssueRead___1"
                 }
               }
             },
@@ -50352,6 +51549,574 @@
           "kind": "permission",
           "permissions": [
             "imports.job.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/opening-balance-batches": {
+      "get": {
+        "operationId": "migration_list_opening_balance_batches",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_OpeningBatchRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Opening Balance Batches",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/party-candidates": {
+      "get": {
+        "description": "Legacy customer names with a suggested party, for review (never merged automatically).",
+        "operationId": "migration_list_party_candidates",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CandidateStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CandidateRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Party Candidates",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/party-candidates/{candidate_id}/decision": {
+      "post": {
+        "description": "Link the legacy name to a party of this company, mark it as a new party, reject it, or reopen it.",
+        "operationId": "migration_decide_party_candidate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateDecide"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide Party Candidate",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.party_candidate.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/runs": {
+      "get": {
+        "description": "Dry runs and applies, newest first.",
+        "operationId": "migration_list_migration_runs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RunKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_RunSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Migration Runs",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/runs/{run_id}": {
+      "get": {
+        "description": "One run with its reconciliation report (counts, totals by currency, links, file hashes, ID maps).",
+        "operationId": "migration_get_migration_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__modules__migration__schemas__RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Migration Run",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/runs/{run_id}/issue-facets": {
+      "get": {
+        "operationId": "migration_get_migration_issue_facets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueFacets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Migration Issue Facets",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/runs/{run_id}/issues": {
+      "get": {
+        "description": "The quarantine browser: every issue with its row reference (file, row, source key) and original values.",
+        "operationId": "migration_list_migration_issues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IssueSeverity"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__core__http__pagination__Page_IssueRead___2"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Migration Issues",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/migration/runs/{run_id}/issues.csv": {
+      "get": {
+        "operationId": "migration_get_migration_issues_csv",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Migration Issues Csv",
+        "tags": [
+          "migration"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "migration.run.read"
           ]
         }
       }
@@ -58159,6 +59924,34 @@
         ],
         "x-authz": {
           "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/system/backups": {
+      "get": {
+        "description": "The last backup, the last restore rehearsal and recent history (backups themselves are CLI-only).",
+        "operationId": "system_get_backup_facts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupFacts"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Backup Facts",
+        "tags": [
+          "system"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "system.backup.read"
+          ]
         }
       }
     },
