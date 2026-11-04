@@ -81,3 +81,7 @@ briefings and the other two Slice-4 lanes build on it; it is merged after CP4 by
   backup/restore parts of its brief (legacy entities are all Slice-2 and merged); its "new capabilities" part
   (offcut reuse, sample lineage, what-if views) waits for Slice 4 and is a follow-up on the same branch.
   Migration placeholder 0050+.
+- 2026-11-04: orders/inventory finished (`lane/s4-orders-inventory` d2942ac, scenario I green, test:api 1521/0).
+  Migration/backup finished (`lane/s5-migration` 45981fb, rehearsal 9/9). The two remaining wave-4a lanes branch
+  from d2942ac so they call the real inventory posting service: `lane/s4-procurement-logistics` in `work`/4
+  (placeholder 0060+) and `lane/s4-production` in `sales`/6 (placeholder 0070+).
