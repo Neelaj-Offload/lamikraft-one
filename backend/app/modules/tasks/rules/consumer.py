@@ -206,6 +206,16 @@ SLICE4_TRIGGERS: dict[str, tuple[str, str]] = {
     "inventory.pick_list.released": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
     "inventory.pick_list.picked": ("app.modules.inventory.rules.on_pick_list", "ops.picking"),
     "inventory.projection.mismatch_detected": ("app.modules.inventory.rules.on_mismatch", "admin.stock_integrity"),
+    # procurement / quality / logistics lane: ops.receipts (incl. PO overdue), ops.qc, ops.dispatch_cutoffs
+    **{name: ("app.modules.procurement.rules.on_po_event", "ops.receipts") for name in (
+        "procurement.purchase_order.approved", "procurement.purchase_order.issued", "procurement.purchase_order.closed",
+        "procurement.purchase_order.cancelled", "procurement.purchase_order.became_overdue",
+        "procurement.purchase_order_line.expected_date_changed", "procurement.goods_receipt.posted")},
+    **{name: ("app.modules.quality.rules.on_inspection", "ops.qc") for name in (
+        "quality.inspection.requested", "quality.inspection.passed", "quality.inspection.failed")},
+    **{name: ("app.modules.logistics.rules.on_shipment", "ops.dispatch_cutoffs") for name in (
+        "logistics.shipment.scheduled", "logistics.shipment.dispatched", "logistics.shipment.delivered",
+        "logistics.shipment.exception_recorded")},
 }
 
 TRIGGERS: dict[str, Trigger] = {
