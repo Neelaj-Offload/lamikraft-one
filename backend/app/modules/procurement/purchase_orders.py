@@ -650,6 +650,7 @@ def line_reads(uow: UnitOfWork, po: PurchaseOrder, lines: list[PurchaseOrderLine
             ),
             qty_cancelled=plain(ln.qty_cancelled),
             qty_billed=plain(ln.qty_billed),
+            qty_billable=plain(max(Decimal(ln.qty_accepted) - Decimal(ln.qty_billed), Decimal(0))),
             qty_outstanding=plain(ln.qty_outstanding),
             qty_receivable=plain(_receivable(ln)) if po.status in OPEN_VALUES else Decimal(0),
             requisition_line_id=ln.requisition_line_id,

@@ -549,6 +549,10 @@ def detail(uow: UnitOfWork, sh: Shipment) -> ShipmentDetail:
         scoped("update") and sh.status in PRE_DISPATCH,
         "invalid_status" if scoped("update") else "permission_denied",
     )
+    caps["add_tracking_ref"] = cap(
+        scoped("update") and sh.status != S.CANCELLED.value,
+        "invalid_status" if scoped("update") else "permission_denied",
+    )
     return ShipmentDetail(
         **_summaries(uow, [sh])[0],
         packing_list=DocRef(

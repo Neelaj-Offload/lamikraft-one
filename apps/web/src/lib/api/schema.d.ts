@@ -15690,6 +15690,11 @@ export interface components {
              */
             qty_accepted: string;
             /**
+             * Qty Billable
+             * @example 5760.00
+             */
+            qty_billable: string;
+            /**
              * Qty Billed
              * @example 5760.00
              */

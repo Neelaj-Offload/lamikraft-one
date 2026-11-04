@@ -27829,6 +27829,14 @@
             "title": "Qty Accepted",
             "type": "string"
           },
+          "qty_billable": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Qty Billable",
+            "type": "string"
+          },
           "qty_billed": {
             "examples": [
               "5760.00"
@@ -27941,6 +27949,7 @@
           "qty_pending_qc",
           "qty_cancelled",
           "qty_billed",
+          "qty_billable",
           "qty_outstanding",
           "qty_receivable",
           "requisition_line_id",

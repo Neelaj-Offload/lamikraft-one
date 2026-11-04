@@ -267,6 +267,8 @@ class PoLineRead(BaseModel):
     qty_pending_qc: DecimalStr
     qty_cancelled: DecimalStr
     qty_billed: DecimalStr
+    #: accepted and not yet billed (what a new vendor bill may cover)
+    qty_billable: DecimalStr
     qty_outstanding: DecimalStr
     #: what one more receipt may still bring in (tolerance included)
     qty_receivable: DecimalStr
