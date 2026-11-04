@@ -91,3 +91,11 @@ briefings and the other two Slice-4 lanes build on it; it is merged after CP4 by
   procurement or production. Remaining after the two Slice-4 lanes: the Slice-4 integrator (orders-inventory,
   procurement-logistics, production → CP5), then migration follow-up (new capabilities) and the Slice-5
   integrator (finance, migration → CP6), then Slice 6.
+
+## Resumed 2026-11-04 (owner: "continue and finish everything")
+
+The previous orchestrator stopped with three lanes mid-work and uncommitted edits on disk. Relaunched on their
+branches in the same worktrees, continuing from the state on disk: `lane/s4-production` (`sales`/6: two test edits
+and the lane report left), `lane/s4-procurement-logistics` (`work`/4: backend committed, web screens in progress),
+`lane/s5-finance` (`identity`/1: module in progress, no commits). Next: the Slice-4 integrator once both Slice-4
+lanes report (→ CP5), then the migration follow-up and the Slice-5 integrator (→ CP6), then Slice 6 (→ CP7).
