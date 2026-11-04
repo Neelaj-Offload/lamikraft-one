@@ -46,8 +46,11 @@ test("set-up: a won quote becomes an order and Ravi issues its delivery challan"
   for (const action of ["mark_sent", "mark_won"]) {
     await command(page, `/api/v1/sales/quotes/${quoteId}/transitions`, { action, expected_version: await version(page, `/api/v1/sales/quotes/${quoteId}`) });
   }
-  const converted = (await command(page, "/api/v1/orders/sales-orders/convert", { quote_id: quoteId })) as { order: { id: string } };
+  const converted = (await command(page, "/api/v1/orders/sales-orders/convert", { quote_id: quoteId })) as {
+    order: { id: string; lines: { id: string }[] };
+  };
   const orderId = converted.order.id;
+  const lineId = converted.order.lines[0]!.id;
   await command(page, `/api/v1/orders/sales-orders/${orderId}/transitions`, {
     action: "confirm",
     expected_version: await version(page, `/api/v1/orders/sales-orders/${orderId}`),
@@ -55,7 +58,9 @@ test("set-up: a won quote becomes an order and Ravi issues its delivery challan"
 
   await signInAs(page, "RAVI");
   await page.goto("/operations");
-  const created = (await command(page, `/api/v1/orders/sales-orders/${orderId}/challans`, {})) as { challan_id: string };
+  const created = (await command(page, `/api/v1/orders/sales-orders/${orderId}/challans`, { quantities: { [lineId]: "100" } })) as {
+    challan_id: string;
+  };
   await command(page, `/api/v1/challans/challans/${created.challan_id}/transitions`, {
     action: "issue",
     expected_version: await version(page, `/api/v1/challans/challans/${created.challan_id}`),

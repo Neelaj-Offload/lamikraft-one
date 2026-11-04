@@ -63,7 +63,7 @@ clean on `lk_wt1`.
 | Lane contracts (enum CHECKs, RLS, append-only, frozen triggers, events ids-only, FY sequences, every route permissioned, blocker codes) | `tests/contract/finance/test_lane_schema.py` (6 tests) | pass |
 | Pure rules (buckets, HALF_UP rounding, balanced inert journals, transition table) | `tests/unit/finance/test_finance_pure.py` | pass |
 | Web (URL state, blocker copy for every code, hub, gate listing, transitions from the server) | `apps/web/src/features/finance/finance.test.tsx` (4 tests) | pass |
-| UI path | `apps/web/e2e/scenarios/m-finance.spec.ts` | see Gates |
+| UI path: suggestion → draft labelled with blockers → submit → Sahil approves (the drafter cannot) → issue refused with reasons and no number, PDF served → receipt recorded → Accounting sync Demo — not connected | `apps/web/e2e/scenarios/m-finance.spec.ts` | pass (desktop) |
 
 ## Security
 - Finance records are company-level: personas without finance keys (sales, operations, warehouse) get 403 on every
@@ -120,5 +120,16 @@ clean on `lk_wt1`.
 - Agent tools `draft_invoice`, `get_receivable_ageing` (not in this brief).
 - Cross-currency allocation, live accounting / e-invoice adapters, GST rules (future scope, BUILD_STATE §5).
 
-## Gates
-(filled below with the real output)
+## Gates (2026-11-04, worktree `D:\lk-wt\identity`, slot 1)
+
+| Gate | Command | Result |
+|---|---|---|
+| check | `npm run check -- --keep-going` | **7/7 PASS**: ruff, pytest unit + contract (660 collected, all pass), alembic heads 1, api:check (`backend/openapi.json` matches the app), web lint, typecheck, vitest 58 files / 646 tests. The first run failed 2 steps (the settings PUT route-matrix contract now lists `finance.configuration.manage`; the e2e `PersonKey` lacked `ANANYA`), both fixed in `004f29d` |
+| API suite | `npm run test:api` | **1552 passed, 7 skipped, 0 failed** (pytest's own timer: 1:10:09). Observation: after printing the summary the pytest process did not exit for ~10 min (still holding connections to `lk_wt1_test`); it was killed. Not investigated further — worth a look by the integrator (no test failed) |
+| API generate | `npm run api:generate` | committed (`backend/openapi.json` 344 paths; `apps/web/src/lib/api/schema.d.ts`) |
+| Demo seed | `python -m app.cli seed demo --anchor-date 2026-10-12 --slice 5` on `lk_wt1` | ok (`RCPT_MAISON` among the references) |
+| Migration | `alembic upgrade head` / `downgrade -1` / `upgrade head` / `alembic check` on `lk_wt1` | clean |
+| e2e (this lane's spec) | `LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- e2e/scenarios/m-finance.spec.ts --workers=1` | **4 passed** (desktop; 8 skipped = tablet/phone via `onlyOnProjects("desktop")`), run with `--no-build` after a first build-and-run that exposed a spec set-up error (the order challan needs quantities when nothing is reserved; fixed in the spec) |
+
+Not run here: the full e2e suite and the axe sweep (the new list routes join the manifest-driven sweep automatically;
+the detail routes are skipped there for lack of fixture ids).
