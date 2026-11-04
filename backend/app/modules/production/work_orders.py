@@ -503,6 +503,12 @@ def _release(uow: UnitOfWork, wo: WorkOrder) -> None:
     for o in ops:
         if o.cut_plan_id is not None:
             release_for_work_order(uow, o.cut_plan_id, wo.id)
+    if any(o.cut_plan_id is not None for o in ops):
+        from app.modules.production.wip import issue_planned_offcuts  # wip imports this module
+
+        for o in ops:
+            if o.cut_plan_id is not None:
+                issue_planned_offcuts(uow, wo, o.cut_plan_id)
     uow.emit(ev.WO_RELEASED, aggregate_id=wo.id, aggregate_version=wo.version, payload=_payload(wo))
     set_block_state(uow, wo, reserve_materials(uow, wo))
 
