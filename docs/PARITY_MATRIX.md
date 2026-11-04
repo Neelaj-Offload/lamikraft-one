@@ -41,6 +41,18 @@ stock-movement part waits for Slice 4, so the row is `3→4`). SCN-J2 stays in p
 voice done; ambiguous number/line/field not yet). Net: +5 implemented, −5 planned (SCN-J3 planned → in progress, SCN-C4
 in progress → implemented).
 
+Checkpoint 5 (2026-11-05, Slice-4 merge `lane/s4-merge`: orders/inventory, production, procurement/quality/logistics):
+rows moved only where the named tests passed on the merged branch — pytest from the full `npm run test:api` (1688
+passed, 7 live-only skips). **Implemented**: SCN-I1, SCN-I2, SCN-I3, SCN-I4, LP-10.5, LP-10.6, REUSE-06, GAP-10
+(repointed to `test_ledger_machine`, the `LedgerMachine` runner), GAP-11 (repointed to the lane's procure-to-pay
+test; `test_receiving.py` was not written), GAP-14, and the `2→4` rows whose Slice-4 part landed: LM-78 (cut plans
+link to work orders), LM-94 (movement policy and postings; e-way bill future scope), FG-REL-04 (challan → order
+links), REUSE-05 (repointed to the production cut-plan link tests). **In progress**: GAP-12 (BOM, routing, work orders,
+issue/consumption, scrap, costing done; job work through challans not built). UI-44 (product Operations tab) and
+SCN-J3 (offline stock-movement card) stay as they were. Net: +14 implemented, −12 planned, −2 in progress
+(LM-78, LM-94, FG-REL-04 in progress → implemented; GAP-12 planned → in progress). Totals: 459 implemented, 18 in
+progress, 223 planned.
+
 **Legend**
 - *New home*: backend path under `backend/app/` (`platform/<name>` kernel, `modules/<name>` domain) and web route under
   `apps/web/src/app/(app)` (detail routes use UUIDs; `/go/[type]/[key]` resolves business keys).
@@ -209,7 +221,7 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 | LM-75 | Outputs per group (boards, placed vs required, efficiency, scrap, used/sheet area, per-SKU produced, unfit, placements, leftovers) | `cutting_calculation` + groups, boards, placements, item results, offcuts | 2 | implemented | `tests/unit/cutting/test_packer_properties.py::test_counts_reconcile` |
 | LM-76 | Per-board SVG + placement table | true-scale SVG canvas + accessible placement table; per-board SVG/PDF export | 2 | implemented | `e2e/scenarios/h-cutting-canvas.spec.ts::plan_calculate_save_reopen_svg` |
 | LM-77 | `allow_overproduction` accepted but unused | bounded explicit overproduction into open boards only | 2 | implemented | `tests/unit/cutting/test_packer_examples.py::test_overproduction_bounded` |
-| LM-78 | No save, export, print or links | save/reopen/duplicate/export (CSV, PDF, SVG); WO links in S4 | 2→4 | in progress | `tests/integration/cutting/test_plan_persistence.py::test_duplicate_copies_inputs_and_exports_escape_formulas` |
+| LM-78 | No save, export, print or links | save/reopen/duplicate/export (CSV, PDF, SVG); WO links in S4 | 2→4 | implemented | `tests/integration/cutting/test_plan_persistence.py::test_duplicate_copies_inputs_and_exports_escape_formulas`; WO link `tests/integration/production/test_cut_plans_capacity.py::test_cut_plan_link_sets_board_requirement_and_release_releases_the_plan` |
 | LM-79 | Catalogue product search for autocomplete | `GET /api/v1/cutting/products?search=` (scoped catalogue search) | 2 | implemented | `tests/integration/cutting/test_calculate_endpoint.py::test_product_autocomplete_fills_decor_thickness_dimensions` |
 
 ### 2.8 Delivery challans (§5.8)
@@ -230,7 +242,7 @@ Sections: [1 Roles and permissions (§3)](#1-roles-and-permissions-spec-3) · [2
 | LM-91 | Branded PDF (FROM/TO, line table, total qty, T&C, signature boxes) | `core/documents` challan PDF with configured identity and terms | 2 | implemented | `tests/integration/challans/test_challan_documents.py::test_pdf_unicode_pagination_terms_signatures_no_internal_notes` |
 | LM-92 | Browser print view | `/print/challans/[id]` | 2 | implemented | `e2e/challans.spec.ts::challan_print_preview` |
 | LM-93 | Delete: admin only, draft only | `challans.challan.delete` (admin), soft delete, number never reused | 2 | implemented | `tests/integration/challans/test_challan_permissions.py::test_admin_only_draft_delete_number_not_reused` |
-| LM-94 | No stock effect, no return reconciliation, no e-way bill / GST value | document links for returns (S2); movement policy and postings (S4); e-way bill future scope | 2→4 | in progress | `tests/integration/challans/test_issue_return_cancel.py::test_partial_return_linked_to_original_line` |
+| LM-94 | No stock effect, no return reconciliation, no e-way bill / GST value | document links for returns (S2); movement policy and postings (S4); e-way bill future scope | 2→4 | implemented | `tests/integration/challans/test_issue_return_cancel.py::test_partial_return_linked_to_original_line` |
 | LM-95 | Internal notes on challans | collab note on `challans.challan` (never printed) | 2 | planned | `tests/integration/collab/test_internal_notes.py::test_notes_never_printed` |
 
 ### 2.9 Cross-module utilities (§5.9)
@@ -500,7 +512,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-REL-01 | taxonomy 1–* products (by text) | FK category/subcategory, composite FK | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
 | FG-REL-02 | product 1–* pricing, 1–1 packaging, 1–1 specs, 1–* media | FKs with RESTRICT; price items by list | 1→2 | implemented | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
 | FG-REL-03 | quote lines snapshot-reference products or custom products | snapshot + FK RESTRICT (blocks unsafe rollback) | 1→2 | planned | `tests/integration/imports/test_rollback.py::test_rollback_blocked_when_referenced_or_later_edited` |
-| FG-REL-04 | challans have no FK to products or quotes | optional product/custom/SO links; document-only for legacy | 2→4 | in progress | `tests/integration/challans/test_challan_crud.py::test_lines_with_product_lookup_and_uom_rules` |
+| FG-REL-04 | challans have no FK to products or quotes | optional product/custom/SO links; document-only for legacy | 2→4 | implemented | `tests/integration/challans/test_challan_crud.py::test_lines_with_product_lookup_and_uom_rules`; SO links `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
 
 ## 4. API capabilities (spec §7)
 
@@ -785,8 +797,8 @@ Each gap has an IDOR or permission test (PLAN legacy-parity rule 5).
 | REUSE-02 | Import discipline: taxonomy first, category validation, orphan detection, preview → import → validate, row-numbered errors, column aliases | `modules/imports` workbench | 2 | implemented | `tests/integration/imports/test_products_import.py::test_requires_taxonomy_and_applies_defaults` |
 | REUSE-03 | Quotation behaviour: search-first configurator, snapshot lines, override with reason, advisory MOQ, EUR 5,000 / EUR 400, revisions with status history, duplicate, PDF, three line types, customer type, incoterm | `modules/sales` quotes + `modules/commercial` engine | 1→2 | implemented | `e2e/challans.spec.ts::quote_full_legacy_journey` |
 | REUSE-04 | Custom-product lifecycle and promotion idea | `modules/sales` custom products with promotion | 2 | implemented | `tests/integration/sales/test_custom_product_promotion.py::test_request_approve_execute_idempotent` |
-| REUSE-05 | Optimiser inputs/outputs (groups, grain locks, margin/gap/oversize, efficiency and scrap, per-board layout); proper packer; persisted against production orders | `modules/cutting` (S2) + WO links (S4) | 2→4 | planned | `tests/integration/cutting/test_plan_release.py::test_release_blocked_until_oversize_verified_and_links_work_order` |
-| REUSE-06 | Challan semantics (types, returnable, destinations, GSTIN/HSN, DC numbering, terms, signatures) modelled as inventory movements with reconciled returns | `modules/challans` (S2) + `modules/inventory` (S4) | 2→4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
+| REUSE-05 | Optimiser inputs/outputs (groups, grain locks, margin/gap/oversize, efficiency and scrap, per-board layout); proper packer; persisted against production orders | `modules/cutting` (S2) + WO links (S4) | 2→4 | implemented | `tests/integration/production/test_cut_plans_capacity.py::test_cut_plan_link_sets_board_requirement_and_release_releases_the_plan` (repointed at the Slice-4 merge; `test_plan_release.py` was not written), `::test_stale_cut_plan_refuses_the_release` |
+| REUSE-06 | Challan semantics (types, returnable, destinations, GSTIN/HSN, DC numbering, terms, signatures) modelled as inventory movements with reconciled returns | `modules/challans` (S2) + `modules/inventory` (S4) | 2→4 | implemented | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
 | REUSE-07 | Role intent (4 roles, 14 permissions) made real, server-enforced, extensible | role templates + legacy alias table | 1 | planned | `tests/contract/test_legacy_permission_parity.py::test_legacy_templates_reproduce_spec_3_2` |
 | REUSE-08 | Validated UX patterns: global `/` search, completeness dashboard, activity feed, autosaving notes, duplicates, CSV exports, print-friendly documents | platform search, catalogue completeness, collab, documents | 2 | implemented | `e2e/challans.spec.ts::shared_utilities_journey` |
 
@@ -843,11 +855,11 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | GAP-07 | Quote → order → delivery → invoice chain | orders (S4), challans/inventory (S4), finance (S5) | 4→5 | planned | `tests/integration/flows/test_scenario_i_quote_to_return.py::test_end_to_end` |
 | GAP-08 | Discounts, taxes, freight, payment schedule | line discounts (S1 engine), freight manual line (S1), payment due days (S5) | 1→5 | planned | `tests/unit/commercial/test_engine.py::test_discount_applicable_subtotal` |
 | GAP-09 | CRM, leads, follow-ups, customer-wise quote history | enquiries + customer messages (S1), follow-up drafts (S3), party quote tab (S2) | 1→3 | planned | `tests/integration/sales/test_enquiries.py::test_enquiry_lifecycle_and_events` |
-| GAP-10 | Stock ledger, lots, stock by location, reorder levels, stock take | `modules/inventory` | 4 | planned | `tests/integration/inventory/test_ledger_stateful.py::LedgerMachine` |
-| GAP-11 | Purchasing (requisitions, POs, GRN, vendor bills, vendor price lists) | `modules/procurement` | 4 | planned | `tests/integration/procurement/test_receiving.py::test_partial_grn_qc_accept_reject_quantities_and_over_receipt_rejected` |
-| GAP-12 | Manufacturing (BOM, routing, work orders, job work, issue/consumption, planning, scrap, costing) | `modules/production` | 4 | planned | `tests/unit/production/test_cost_rollup.py::test_deterministic_and_missing_inputs_listed_partial_total` |
+| GAP-10 | Stock ledger, lots, stock by location, reorder levels, stock take | `modules/inventory` | 4 | implemented | `tests/integration/inventory/test_ledger_stateful.py::test_ledger_machine` (`LedgerMachine`) |
+| GAP-11 | Purchasing (requisitions, POs, GRN, vendor bills, vendor price lists) | `modules/procurement` | 4 | implemented | `tests/integration/procurement/test_procure_to_pay.py::test_requisition_to_bill_handoff` |
+| GAP-12 | Manufacturing (BOM, routing, work orders, job work, issue/consumption, planning, scrap, costing) | `modules/production` | 4 | in progress | `tests/integration/production/test_costing_feasibility.py::test_rollup_is_deterministic_and_lists_missing_inputs`; job-work operations through challans not built (production report) |
 | GAP-13 | Finance (invoicing, receipts, ledgers, GST returns, e-invoice, bank reconciliation, budgets, P&L) | invoices, receipts, allocations, ageing, accounting adapter (S5); native GL, GST returns, budgets, P&L are future scope | 5 | planned | `tests/integration/finance/test_allocations.py::test_allocations_bounded_and_ageing_per_currency` |
-| GAP-14 | Logistics (packing lists, shipping docs, CBM planning, LCs, tracking) | `modules/logistics` (LCs future scope) | 4 | planned | `tests/unit/logistics/test_packing_math.py::test_cartons_cbm_weights_and_incomplete_flags` |
+| GAP-14 | Logistics (packing lists, shipping docs, CBM planning, LCs, tracking) | `modules/logistics` (LCs future scope) | 4 | implemented | `tests/unit/logistics/test_packing_math.py::test_cartons_cbm_weights_and_incomplete_flags` |
 | GAP-15 | HR, payroll, attendance | future scope (leave/delegation context only) | — | deferred (out of scope unless owner adds) | — |
 | GAP-16 | Platform: configurable roles, field-level permissions, approval engine, audit log, notifications/email, document templates/settings, multi-branch, localisation, reporting, webhooks, backups, migration tooling, automated tests | identity/authz (S1–S2), field guards (S1), approvals (S1), audit (S1), email adapter (S2–S3), settings (S1), branches (S1), backups (S5), migration (S5), tests (S0+) | 1→5 | planned | `tests/integration/system/test_backup_restore_rehearsal.py::test_restore_rehearsal_roundtrip` |
 
@@ -925,8 +937,8 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | LP-10.2 | Header and line fields incl. HSN/SAC, UOM, product link | challans | 2 | implemented | `tests/integration/challans/test_challan_crud.py::test_lines_with_product_lookup_and_uom_rules` |
 | LP-10.3 | draft/issued/closed/cancelled with valid transitions; duplicate; filters; summaries; CSV, PDF, print, terms, signatures | challans | 2 | implemented | `tests/unit/challans/test_status_machine.py::test_valid_and_invalid_transitions_table` |
 | LP-10.4 | Draft deletion admin-only; debounced edits, validated quantities, surfaced failed saves | challans | 2 | implemented | `tests/integration/challans/test_challan_permissions.py::test_admin_only_draft_delete_number_not_reused` |
-| LP-10.5 | Movement policy per type; dispatch and challan reference one posting | movement policy + ledger | 4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
-| LP-10.6 | Job-work material company-owned at external location; partial returns reconcile; excess/duplicate receipts rejected; cancellation by reversal | inventory + returns | 4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_cancel_issued_creates_reversal` |
+| LP-10.5 | Movement policy per type; dispatch and challan reference one posting | movement policy + ledger | 4 | implemented | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
+| LP-10.6 | Job-work material company-owned at external location; partial returns reconcile; excess/duplicate receipts rejected; cancellation by reversal | inventory + returns | 4 | implemented | `tests/integration/challans/test_issue_return_cancel.py::test_cancel_issued_creates_reversal` |
 | LP-11.1 | Grouped global search with deep links and slash shortcut; recent searches; all old and new entities under permissions | platform search | 2 | implemented | `tests/integration/search/test_global_search.py::test_grouped_scoped_results_with_deep_links` |
 | LP-11.2 | Accurate per-product completeness for products and custom products | completeness | 2 | planned | `tests/integration/catalogue/test_completeness.py::test_metrics_count_distinct_products_real_fields` |
 | LP-11.3 | Recent activity; conflict-aware autosaved internal notes | collab | 2 | implemented | `tests/integration/collab/test_internal_notes.py::test_autosave_conflict_409_and_parent_update_required` |
@@ -977,10 +989,10 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-H1 | Never overlaps, violates usable boundary or rotates grain-locked material | packer | 2 | implemented | `tests/unit/cutting/test_packer_properties.py::test_grain_locked_never_rotated` |
 | SCN-H2 | Unfit pieces explicit; required/produced and area metrics reconcile | packer | 2 | implemented | `tests/unit/cutting/test_packer_properties.py::test_counts_reconcile` |
 | SCN-H3 | Saved/reopened plans preserve inputs and results; oversize and overproduction have tested effects | plans | 2 | implemented | `tests/integration/cutting/test_plan_persistence.py::test_save_reopen_preserves_inputs_and_results` |
-| SCN-I1 | Accept a quote once (idempotent conversion) | orders | 4 | planned | `tests/integration/orders/test_quote_conversion.py::test_concurrent_and_retried_conversion_creates_one_order` |
-| SCN-I2 | Reserve without overselling under concurrency | inventory | 4 | planned | `tests/integration/inventory/test_reservation_concurrency.py::test_no_oversell_under_concurrency` |
-| SCN-I3 | Fulfil partially; challan issue with exactly one movement | challans + inventory | 4 | planned | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
-| SCN-I4 | Partial return linked to its original line; duplicate events cannot post again; cancellation auditable | returns, replay | 4 | planned | `tests/integration/flows/test_duplicate_events.py::test_replayed_outbox_events_have_single_effect` |
+| SCN-I1 | Accept a quote once (idempotent conversion) | orders | 4 | implemented | `tests/integration/orders/test_quote_conversion.py::test_concurrent_and_retried_conversion_creates_one_order` |
+| SCN-I2 | Reserve without overselling under concurrency | inventory | 4 | implemented | `tests/integration/inventory/test_reservation_concurrency.py::test_no_oversell_under_concurrency` |
+| SCN-I3 | Fulfil partially; challan issue with exactly one movement | challans + inventory | 4 | implemented | `tests/integration/challans/test_issue_return_cancel.py::test_issue_posts_exactly_one_movement` |
+| SCN-I4 | Partial return linked to its original line; duplicate events cannot post again; cancellation auditable | returns, replay | 4 | implemented | `tests/integration/flows/test_duplicate_events.py::test_replayed_outbox_events_have_single_effect` |
 | SCN-J1 | Corrected voice transcript does not submit twice | voice | 3 | implemented | `tests/integration/voice/test_voice_api.py::test_same_utterance_id_one_turn`, `::test_correction_after_submission_is_a_new_turn_that_revises_the_draft` |
 | SCN-J2 | Ambiguous customer/number prompts clarification | agents | 3 | in progress | `tests/integration/agents/test_scenario_c.py::test_agent_c_ambiguous_customer_asks_one_question`, `tests/evals/test_golden.py::test_golden_demo` (ambiguous customer; ambiguous number/line/field not yet) |
 | SCN-J3 | Interrupt stops speech; mic denial and network loss keep text/draft paths; no offline stock commit shown as success | web voice | 3→4 | in progress | `e2e/scenarios/j-voice.spec.ts` (interrupt, mic denial, offline "Queued draft — not sent"); the offline stock-movement card waits for Slice 4 |

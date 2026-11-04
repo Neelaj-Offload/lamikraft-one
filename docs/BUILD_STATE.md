@@ -1,8 +1,8 @@
 # Build state
 
-**Checkpoint 4 — Slice 3 (agents runtime, WhatsApp, vision, voice, briefings) on `lane/s3-merge` 2026-11-04**
-(section 13; stage 1 = Checkpoint 4a, section 12), ready to fast-forward `main`. (Checkpoint 3 — Slice 2, legacy
-parity — 2026-11-04. Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
+**Checkpoint 5 — Slice 4 (orders, inventory, production, procurement, quality, logistics) on `lane/s4-merge`
+2026-11-05** (section 14), ready to fast-forward `main`. (Checkpoint 4 — Slice 3 — 2026-11-04. Checkpoint 3 — Slice 2,
+legacy parity — 2026-11-04. Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
 2026-10-30. Checkpoint 0 — Slice 0 — 2026-10-23.)
 
 Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
@@ -37,9 +37,9 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 
 ## 2. In progress
 
-Slice 4, wave 4a: `lane/s4-orders-inventory` (from the stage-1 tip `74c8cd5`, `identity`/1, migration placeholders
-0040+) is building; it reparents after `0021_briefings_slice3` at the Slice-4 merge. The other wave-4a lanes start
-from Checkpoint 4.
+Slice 5, wave 5a: `lane/s5-finance` (from `lane/s4-orders-inventory` d2942ac, `identity`/1, placeholder 0080+) and
+`lane/s5-migration` (from 74c8cd5, `sales`/6, placeholder 0050+; its "new capabilities" follow-up waits for this
+checkpoint). The Slice-5 integrator reparents them after `0025_slice4_cross_lane_links`.
 
 ## 3. Blocked
 
@@ -140,14 +140,23 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-04 | CP4 | targeted e2e on 46cf18e (after the lint fix) | `npm run test:e2e -- --workers=1 e2e/scenarios/b-briefing-stability.spec.ts e2e/scenarios/j-voice.spec.ts e2e/scenario-c.spec.ts` (fresh build) | 16 passed, 0 failed | scratchpad `e2e4.log` |
 | 2026-11-04 | CP4 | evidence screenshots | `LK_E2E_EVIDENCE=cp4 npm run test:e2e -- --no-build e2e/evidence-cp4.spec.ts --project=desktop` | 24 PNGs, 6 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-4/` |
 | 2026-11-04 | CP4 | migrations | `lk db migrate --revision 0018` → `migrate`; `lk db heads`; `alembic check` on `lk_wt8` | chain 0018 → 0019 → 0020 → 0021, heads 1; `alembic check` reports only the migration-only expression index `uq_vision_capture_conversation_sha` (ADR-061) | console |
+| 2026-11-05 | CP5 | API suite after each lane on `lane/s4-merge` | `npm run test:api` on 76bc019 / 6505e56 / c4210a3 | 1612 / 1654 / 1688 passed, 7 skipped (live-only), 0 failed (54.6 / 56.4 / 53.9 min) | scratchpad `s4-oi-testapi.log`, `s4-prod-testapi.log`, `s4-pql-testapi.log` (+ junit) |
+| 2026-11-05 | CP5 | API suite on the final tree d3eb52b | `npm run test:api` | 1688 passed, 7 skipped (live-only `test_golden_live`), 0 failed, 51.5 min | scratchpad `s4-final-testapi.log` / `s4-final-junit.xml` |
+| 2026-11-05 | CP5 | check on d3eb52b | `npm run check -- --keep-going` | 7/7 PASS (ruff; pytest unit+contract 706; alembic heads 1; api:check 399 paths; web lint; typecheck; vitest 63 files / 685 tests) | scratchpad `s4-check2.log` (also 7/7 on 81b2d14, `s4-check1.log`) |
+| 2026-11-05 | CP5 | e2e on 2a4d0ad | `LK_E2E_EVIDENCE=cp5 LK_NEXT_BUILD_CPUS=2 NODE_OPTIONS=--max-old-space-size=2048 npm run test:e2e -- --workers=1` (own database, production build, `--slice 4`) | 283 passed, 0 failed, 650 skipped (project-scoped / opt-in), 16.9 min; scenario I, `p-procure-to-pay` 4/4, `production/work-order-journey` 4/4, axe sweep light and dark incl. the Slice-4 routes with fixture records | scratchpad `s4-e2e5.log`; runs 1–3 (266/6, 268/3, 272/2) found the defects in `docs/lanes/merge-s4.md` |
+| 2026-11-05 | CP5 | targeted e2e on d3eb52b (after the cause-label fix) | evidence-cp5, axe sweep, production journey, scenario I, procure-to-pay (fresh build) | 210 passed, 0 failed, 534 skipped, 11.8 min | scratchpad `s4-e2e6.log` |
+| 2026-11-05 | CP5 | evidence screenshots | `e2e/evidence-cp5.spec.ts` in the run above | 52 PNGs, 13 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-5/` |
+| 2026-11-05 | CP5 | migrations | `lk db migrate --revision 0021` → `migrate`; `lk db heads`; `alembic check` on `lk_wt8` | chain 0021 → 0022 → 0023 → 0024 → 0025, heads 1; `alembic check` reports only `uq_vision_capture_conversation_sha` (ADR-061) | console |
 
 ## 8. Next executable step
 
-Fast-forward `main` to `lane/s3-merge` (Checkpoint 4, section 13). Then wave 4a continues: `lane/s4-orders-inventory`
-is building; start `s4-procurement-quality-logistics.md` and `s4-production.md` from Checkpoint 4 (at most three
-building lanes); the Slice-4 integrator reparents their migrations after `0021_briefings_slice3`. Carry the
-Checkpoint-3, 4a and 4 open items (sections 11–13) into the Slice-4 briefs. Worktrees created before the Next.js
-16.4.4 upgrade need `npm ci`.
+Fast-forward `main` to `lane/s4-merge` (Checkpoint 5, section 14). Then wave 5a continues: `lane/s5-finance` and
+`lane/s5-migration` (its "new capabilities" part — offcut reuse from the measured offcut lots, sample lineage, what-if
+views — can start now that production is merged; the offcut-lot contract is in `docs/lanes/production-s4.md`). The
+Slice-5 integrator reparents their migrations after `0025_slice4_cross_lane_links`, keeps the e2e world at
+`--slice 4` (or raises it to 5) and carries the Checkpoint-3 to 5 open items (sections 11–14). Finance consumes
+`procurement.vendor_bill.handed_off` and `challans.challan.issued`. Worktrees created before the Next.js 16.4.4
+upgrade need `npm ci`.
 
 Open items carried from Slice 1 (owners in brackets):
 - Rendered quote PDFs are rendered on demand from the immutable snapshot; storing them through
@@ -395,3 +404,65 @@ webhook). Hindi and Hinglish are labelled **Untested**.
 - The axe sweep skips `/today/items/[itemId]` (issue ids are computed, not fixture records); the page is in the
   evidence screenshots only. [web]
 - Carried from Checkpoint 4a (section 12) and Checkpoint 3 (section 11) unchanged.
+
+## 14. Checkpoint 5 — Slice 4 (orders, inventory, production, procurement, quality, logistics) on `lane/s4-merge` (2026-11-05)
+
+The Slice-4 integrator merges the three wave-4a lanes onto Checkpoint 4 (`main` 1ed0027) in dependency order:
+orders/inventory (`docs/lanes/orders-inventory-s4.md`), production (`production-s4.md`) and procurement/quality/
+logistics (`procurement-logistics-s4.md`); the merge, its decisions and the defects it fixed are in
+`docs/lanes/merge-s4.md`. Migration chain `0021_briefings_slice3` → `0022_orders_inventory_slice4` (lane placeholder
+0040) → `0023_production_slice4` (0070) → `0024_procurement_quality_logistics_slice4` (0060) →
+`0025_slice4_cross_lane_links` (integrator: `quality_inspection.work_order_id` FK); `alembic heads` = 1.
+`openapi.json` / `schema.d.ts` regenerated (399 paths). Decisions ADR-062 to ADR-065. The e2e world is seeded at
+`--slice 4` (ADR-065).
+
+Slice-4 exit (PLAN.md): scenario I incl. the no-oversell barrier test, a single posting per challan, replay safety and
+ledger property tests — see the verification table (section 7) and the PARITY moves below.
+
+### Implemented (verified) — new at this checkpoint
+- **Sales orders:** one order per won quote (idempotent under concurrency and retry), confirm / hold / release /
+  cancel, line cancellation, reserve and release, challan from the order, deliveries and returns recorded from the
+  challan issue; feasibility per open line ("Can we deliver this?").
+- **Inventory:** warehouses, bins, lots (measured dimensions), the append-only ledger with one posting per source
+  event, projections that cannot go negative or oversell (database CHECKs), reservations under the same row lock as
+  posting, persisted shortages with causes (order lines, work-order materials, late PO lines), reversal postings, pick
+  lists, stock counts, adjustments and opening batches with separation of duties, transfers through in-transit, the
+  nightly projection check; the challan movement policy behind the go-live switch.
+- **Production:** versioned BOMs and routings approved by a second person, work orders (release reserves materials,
+  blocked by a shortage and unblocked by the worker when stock arrives), issue / consume / return / output through WIP,
+  QC inspection requested for QC-required output, cut-plan links that release the plan, measured offcut lots, capacity
+  per work centre and day with overload state, deterministic cost rollups with missing inputs listed, read-only
+  feasibility and what-if with procurement's open PO lines as supply.
+- **Procurement, quality, logistics:** requisitions and purchase orders with separation of duties, partial goods
+  receipts into QC hold, inspections (accepted + rejected add up; one posting per decision), three-way vendor bill
+  match and the finance hand-off event, the overdue sweep; packing lists (Decimal CBM and weights, stale on packaging or
+  order changes), shipments with cutoffs and dispatch through the challan, tracking, load suggestions.
+- **Briefing families:** `ops.shortages`, `ops.picking`, `admin.stock_integrity`, `ops.production_dependencies`,
+  `ops.receipts`, `ops.qc`, `ops.dispatch_cutoffs`.
+- PARITY_MATRIX: SCN-I1…I4, LP-10.5, LP-10.6, REUSE-06, GAP-10, GAP-11, GAP-14, LM-78, LM-94, FG-REL-04, REUSE-05
+  implemented; GAP-12 in progress (job work through challans not built).
+
+### Simulated (Demo)
+Unchanged from Checkpoint 4 (Claude, Gemini, STT/TTS, WhatsApp). Slice 4 adds no external provider: carrier APIs,
+e-way bills and valuation stay backlog.
+
+### Open items carried (owners in brackets)
+- Approvals of adjustments, counts and opening batches are direct document actions, not proposals (ADR-014
+  ApprovalTargets); the `mgmt.decisions` reservation-conflict item (fixtures §10) is not built. [inventory, briefings]
+- Sales: a won → sent correction while an active order exists is not blocked yet (`orders.service.order_for_quote`). [sales]
+- The ledger browser has no link for `work_order` sources (a transaction id). [inventory, production]
+- Job-work operations through challans, QC rejects into rework work orders, a production subject handler for
+  inspections, and authoring forms for BOM lines, routing operations and work centres are not built. [production, quality]
+- Web: no create forms for adjustments, opening batches and transfers; count lines cannot be added from the UI;
+  delivery evidence upload, container-profile management and requisition pagination are missing. [inventory web,
+  logistics web, procurement web]
+- Agent tools for stock, reservations, feasibility, what-if, purchasing and dispatch are not built. [agents + lanes]
+- Valuation and costs on movements; vendor bills as AP documents (Slice 5 finance). [finance]
+- `.gitignore` `backups/` also matches `apps/web/src/app/(app)/settings/backups/` (the migration lane's page is
+  tracked, so it is safe, but new files there would be ignored); anchor the pattern at the Slice-5 merge. [migration]
+- Some Slice-4 read models print quantities at the column scale ("short by 8.000000 sheets" on the shortages panel,
+  "174.0000" planned minutes); trim them in the views. [inventory web, production web]
+- The axe sweep skips Slice-4 records that are not fixtures (orders, requisitions, receipts, inspections, shipments,
+  packing lists, pick lists, counts, adjustments, transfers) and `/today/items/[itemId]`; the scenario specs cover
+  those screens. [web]
+- Carried from Checkpoint 4 (section 13), 4a (section 12) and 3 (section 11) unchanged.

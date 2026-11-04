@@ -584,3 +584,72 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
   on screen) — the guard is the server seam a spoken approve must use. Vision usage has no price row (no Gemini
   price recorded), so Settings → AI shows it unpriced. The lane's expression index `uq_vision_capture_conversation_sha`
   lives in the migration only, so `alembic check` reports it as a model drift (known, harmless). **Accepted.**
+
+## ADR-062 Slice-4 orders and inventory: go-live switch, one posting per source, provider registries
+- **Context**: the orders/inventory lane (`docs/lanes/orders-inventory-s4.md`, decisions 1–8) built sales orders, the
+  stock ledger and the challan movement policy that the procurement, production and finance lanes call.
+- **Decision**: tables follow conventions.md (`inventory_stock_summary`, not the brief's `inv_stock_level`). Challan
+  postings switch on with `inventory_policy.challan_postings_enabled` (default false; the demo seed turns it on after
+  the approved opening batch); before go-live and for `migration`/`import`-origin challans the effect is `none`.
+  The challans module gains only the issue/cancel hooks, the issue blocker and `sales_order_id`,
+  `sales_order_line_id`, `lot_id`. A transfer challan posts W(A) → W(B) in one movement (the two-step in-transit
+  transfer is the inventory transfer document); returns go to QC hold for QC-required products, else stock. Order
+  returns are `qty_returned` with a credit disposition and never reopen the remaining quantity; `qty_reserved` is
+  derived from active reservations. Approvals of adjustments, counts and opening batches are direct document actions
+  with separation of duties in the service and a CHECK (not the proposals engine). Approved loss and count postings
+  may consume reservations; holders get `shortfall_detected` / `conflict_detected`. Shortage demand comes from a
+  provider registry (`register_demand_provider`; orders' unreserved stock lines, production's work-order materials),
+  causes from `register_cause_provider` (procurement's late PO lines) and touched pairs from
+  `register_pair_resolver`, so the other modules extend inventory without editing it.
+- **Consequences**: integrating document approvals with the proposals engine (ADR-014 ApprovalTargets) and the
+  `mgmt.decisions` reservation-conflict item are follow-ups; valuation stays future scope. **Accepted.**
+
+## ADR-063 Slice-4 production: transaction-sourced postings, WIP location, blocked flag, deterministic costs
+- **Context**: the production lane (`docs/lanes/production-s4.md`, decisions 1–8).
+- **Decision**: every work-order stock event is one posting whose source is a `production_wo_transaction` row
+  (`source_type="work_order"`, `source_id` = the transaction id; purposes issue/consume/return/output), because
+  UNIQUE(company, source_type, source_id, purpose) allows one posting per source. WIP is a per-warehouse `wip`
+  location (stock-bearing, never available) created on first use. *Blocked* is a flag on released / in-progress work
+  orders with `caused_by` = the inventory shortage ids, not a status. Returned material is reserved again until
+  completion; completion releases what was never issued; cancel is refused after output or consumption. Cost
+  rollups use costs of record and the work centre's (guarded) hourly rate, with an input hash for determinism;
+  separate cost versions are not used. Overload is persisted per (work centre, day) and emits once per transition.
+  Feasibility supply comes from `production.service.register_supply_provider`; with no provider a short purchased
+  component gives `estimate` with `lead_time:<product>` missing, never a guess. One approved BOM / routing version
+  per product; approving a new one retires the previous; work orders keep their pinned versions.
+- **Consequences**: the ledger browser has no link for `work_order` sources yet (a transaction id is not a page).
+  Job-work operations through challans, QC rejects into rework work orders and authoring forms for BOM lines,
+  routing operations and work centres are not built. **Accepted.**
+
+## ADR-064 Slice-4 procurement, quality and logistics: one posting per receipt and decision, dispatch through the challan
+- **Context**: the procurement/quality/logistics lane (`docs/lanes/procurement-logistics-s4.md`).
+- **Decision**: a goods receipt posts once through `inventory.post_movement` (QC-required products into the
+  warehouse's QC hold, which requests one inspection); an inspection decision posts once (accepted QC → stock,
+  rejected QC → rejected), and accepted + rejected = the inspected quantity (CHECK). Requisition and PO decisions
+  are separated from their submitters in the service and a CHECK; a PO with a receipt cannot be cancelled. Vendor
+  bills are matched three ways (PO × accepted GRN × bill, with price tolerance) and `procurement.vendor_bill.handed_off`
+  is the hand-off to finance (no AP document in Slice 4). Shipment dispatch issues the linked draft challan through
+  the challan transition — the one stock movement — and issuing the challan directly marks the shipment dispatched.
+  Packing figures are Decimal HALF_UP from the catalogue packaging snapshot; missing data is flagged, never guessed;
+  load plans are labelled suggestions.
+- **Consequences**: delivery evidence files, container-profile management and agent tools for purchasing/dispatch
+  are not built; finance (Slice 5) consumes the hand-off event. **Accepted.**
+
+## ADR-065 Slice-4 merge: one chain, cross-lane links, e2e world at Slice 4
+- **Context**: three lanes built in parallel from two bases (orders/inventory from CP4a; production and procurement
+  from the orders/inventory tip) with placeholder migrations 0040, 0070 (down 0040) and 0060 (down 0040), and each
+  left cross-lane seams for the integrator.
+- **Decision**: the chain continues `main`: `0021_briefings_slice3` → `0022_orders_inventory_slice4` →
+  `0023_production_slice4` → `0024_procurement_quality_logistics_slice4` → `0025_slice4_cross_lane_links`
+  (`quality_inspection.work_order_id` → `production_work_order.id`, RESTRICT). Production output of a QC-required
+  product requests one inspection per output transaction (subject `production.work_order`, `subject_id` = the
+  transaction, `work_order_id` = the work order). Procurement registers its open PO lines (outstanding quantity,
+  expected date, stock-unit lines only) as production feasibility supply. The `ops.shortages` issue lists every
+  cause as evidence: order lines (their order), work-order materials (their work order) and late PO lines (their
+  purchase order). `npm run test:e2e` seeds the demo world at `--slice 4` (inventory live, PO-2026-0001,
+  WO-2026-0001, Deepa); `/_test/fixtures` publishes `purchase_orders` and `work_orders` numbers and their ids. The
+  design-lint "no float conversion" check scans every file (its predicate was inverted); decimal quantities in the
+  web use `compareDecimalStr`-based helpers and the new `subtractDecimalStr`.
+- **Consequences**: e2e specs that issue challans now move stock (go-live is on in the seed); specs read numbers
+  from the fixture facts. A subject handler for production inspections is not registered: production keeps no
+  accepted/rejected figures and rework orders are not built (owners: production, quality). **Accepted.**
