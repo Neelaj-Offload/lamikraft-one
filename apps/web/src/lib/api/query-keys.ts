@@ -221,6 +221,31 @@ export const queryKeys = {
     pickList: (pickListId: string) => ["inventory", "pick-list", { pick_list_id: pickListId }] as const,
     document: (kind: string, id: string) => ["inventory", "document", { kind, id }] as const,
   },
+  // procurement, quality and logistics (Slice 4)
+  procurement: {
+    all: () => ["procurement"] as const,
+    requisitions: (params: Record<string, string | number | boolean | null | undefined>) => ["procurement", "requisitions", compact(params)] as const,
+    requisition: (id: string) => ["procurement", "requisition", { requisition_id: id }] as const,
+    orders: (params: Record<string, string | number | boolean | null | undefined>) => ["procurement", "orders", compact(params)] as const,
+    order: (id: string) => ["procurement", "order", { po_id: id }] as const,
+    bills: (poId: string) => ["procurement", "bills", { po_id: poId }] as const,
+    receipts: (params: Record<string, string | number | boolean | null | undefined>) => ["procurement", "receipts", compact(params)] as const,
+    receipt: (id: string) => ["procurement", "receipt", { grn_id: id }] as const,
+    vendorItems: (vendorId: string, history: boolean) => ["procurement", "vendor-items", { vendor_party_id: vendorId, history }] as const,
+  },
+  quality: {
+    all: () => ["quality"] as const,
+    inspections: (params: Record<string, string | number | boolean | null | undefined>) => ["quality", "inspections", compact(params)] as const,
+    inspection: (id: string) => ["quality", "inspection", { inspection_id: id }] as const,
+  },
+  logistics: {
+    all: () => ["logistics"] as const,
+    packingLists: (params: Record<string, string | number | boolean | null | undefined>) => ["logistics", "packing-lists", compact(params)] as const,
+    packingList: (id: string) => ["logistics", "packing-list", { packing_list_id: id }] as const,
+    shipments: (params: Record<string, string | number | boolean | null | undefined>) => ["logistics", "shipments", compact(params)] as const,
+    shipment: (id: string) => ["logistics", "shipment", { shipment_id: id }] as const,
+    containers: () => ["logistics", "containers"] as const,
+  },
   channels: {
     all: () => ["channels"] as const,
     account: () => ["channels", "account"] as const,
@@ -257,7 +282,16 @@ export const invalidationMap = {
   "parties.changed": [queryKeys.parties.all(), queryKeys.sales.all()],
   "channels.changed": [queryKeys.channels.all()],
   // orders and inventory (Slice 4): a stock command can change orders, challans, stock, shortages and briefings
-  "inventory.changed": [queryKeys.inventory.all(), queryKeys.orders.all(), queryKeys.challans.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
+  "inventory.changed": [
+    queryKeys.inventory.all(),
+    queryKeys.orders.all(),
+    queryKeys.challans.all(),
+    queryKeys.procurement.all(),
+    queryKeys.quality.all(),
+    queryKeys.logistics.all(),
+    queryKeys.tasks.all(),
+    queryKeys.briefings.today(),
+  ],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;
