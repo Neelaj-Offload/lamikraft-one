@@ -348,6 +348,8 @@ export function TodayView() {
             onResume={listen.resume}
             onStop={listen.stop}
             onClose={listen.reset}
+            onReadBack={() => void listen.readBack()}
+            readback={listen.readback}
           />
         ) : null}
         {listening ? <p className="text-sm text-ink-muted">{m.listen.pinned}</p> : null}

@@ -175,6 +175,7 @@ export const briefingMessages = {
     again: "Listen again",
     close: "Close",
     openCurrent: "Open this item",
+    readBack: "Read back the details",
     pinned: "Listening: the list stays in this order until you stop.",
   },
   links: {

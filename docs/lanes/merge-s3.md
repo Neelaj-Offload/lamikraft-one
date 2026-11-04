@@ -62,4 +62,7 @@ the migration only (ADR-061, consequences). The briefings lane's placeholders re
 ## Gates
 
 - Stage 2a: check 7/7 on the tree of `6cdf822` (ruff; pytest unit + contract 676 passed; heads 1; api:check; lint;
-  typecheck; vitest 58 files / 645 tests). Full `test:api`: see below.
+  typecheck; vitest 58 files / 645 tests). Full `test:api` started on `6cdf822` (report commit `ab07d4e` adds no
+  code): **1556 passed, 7 skipped (`test_golden_live`), 0 failed**, 2 known warnings (google-genai
+  DeprecationWarning, the PIL decompression-bomb test), 58 min 55 s. The briefings merge was started in the worktree
+  after collection (at about 60 %); the final-tree run under "Gates (Checkpoint 4)" is the authoritative one.

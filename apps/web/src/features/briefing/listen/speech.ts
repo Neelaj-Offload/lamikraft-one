@@ -2,9 +2,9 @@
  * The narrow speech interface "Listen to my day" needs (voice lane contract: `POST /api/v1/voice/speech`
  * `{text} -> {url}`, and the web `useSpeech()` hook under `src/lib/voice/` with `speak(text)` / `stop()`).
  *
- * This lane does not own text-to-speech. `demoSpeech()` stands in until the integrator wires the voice lane's
- * hook through `SpeechProvider`: it produces a labelled, silent clip whose length follows the text, so the whole
- * Listen flow (play, pause, resume, stop, the waveform only while speaking, completion) runs without a provider.
+ * Today speaks through the voice module (`voice-speech.tsx`, `POST /api/v1/voice/speech`, Demo TTS by default;
+ * Slice-3 stage-2 merge). `demoSpeech()` is the fallback when the person may not use spoken replies: a labelled,
+ * silent clip whose length follows the text, so the whole Listen flow still runs.
  * Nothing here pretends to be a voice: the player labels the clip "Demo voice" and shows the words being read.
  */
 
@@ -108,6 +108,13 @@ export function createClipPlayer(now: () => number = () => performance.now()): C
           fail?.(new Error("The clip could not be played."));
         }, { once: true });
         void audio.play().catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === "NotAllowedError" && finish) {
+            // the browser blocked playback without a fresh gesture: keep the session's timing (the words are on screen)
+            audio = null;
+            remaining = clip.durationMs;
+            arm();
+            return;
+          }
           const fail = abort;
           finish = abort = null;
           audio = null;

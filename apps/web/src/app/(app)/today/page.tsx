@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import type { Metadata } from "next";
+import { VoiceSpeechProvider } from "@/features/briefing/listen/voice-speech";
 import { parseBriefingView } from "@/features/briefing/parse";
 import { TodayView } from "@/features/briefing/today-view";
 import { queryKeys } from "@/lib/api/query-keys";
@@ -29,7 +30,9 @@ export default async function TodayPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <TodayView />
+      <VoiceSpeechProvider>
+        <TodayView />
+      </VoiceSpeechProvider>
     </HydrationBoundary>
   );
 }

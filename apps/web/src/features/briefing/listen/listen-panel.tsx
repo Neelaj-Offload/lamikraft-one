@@ -54,13 +54,17 @@ export interface ListenPanelProps {
   onResume: () => void;
   onStop: () => void;
   onClose: () => void;
+  /** Paused on an item: speak its values back (the voice confirmation step). */
+  onReadBack?: () => void;
+  /** The read-back sentence last spoken, shown as text. */
+  readback?: string | null;
 }
 
 /**
  * "Listen to my day": play, pause, resume and stop, with the words being read shown as text. Escape stops
  * listening. While it is open the briefing list below is pinned (no re-sorting, no "N updates" pill).
  */
-export function ListenPanel({ state, speechLabel, disabledReason, onStart, onPause, onResume, onStop, onClose }: ListenPanelProps) {
+export function ListenPanel({ state, speechLabel, disabledReason, onStart, onPause, onResume, onStop, onClose, onReadBack, readback = null }: ListenPanelProps) {
   const items = state.segments.filter((segment) => segment.kind === "item");
   const current = state.segments[state.index] ?? null;
   const active = state.phase === "starting" || state.phase === "speaking" || state.phase === "paused";
@@ -121,6 +125,11 @@ export function ListenPanel({ state, speechLabel, disabledReason, onStart, onPau
         </p>
       ) : null}
       {state.phase === "error" && state.error ? <p className="text-sm text-danger-text">{state.error}</p> : null}
+      {readback ? (
+        <p className="max-w-3xl text-sm text-ink-muted" data-testid="listen-readback">
+          {readback}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         {active ? (
@@ -148,6 +157,11 @@ export function ListenPanel({ state, speechLabel, disabledReason, onStart, onPau
               {m.listen.close}
             </Button>
           </>
+        ) : null}
+        {onReadBack && state.phase === "paused" && current?.kind === "item" && (current.readback ?? []).length > 0 ? (
+          <Button variant="secondary" className={TARGET} onPress={onReadBack}>
+            {m.listen.readBack}
+          </Button>
         ) : null}
         {href && active ? (
           <LinkButton variant="quiet" className={TARGET} href={href}>

@@ -50,6 +50,12 @@ export interface ListenSession {
   pause(): void;
   resume(): void;
   stop(): void;
+  /**
+   * The voice confirmation step (voice lane read-back contract): while paused on an item, speak its
+   * consequential values (`segment.readback`) back before the person confirms anything about it. Uses its
+   * own player, so the paused segment stays where it was. Resolves to the sentence spoken, or null.
+   */
+  readBack(): Promise<string | null>;
   reset(): void;
   /** Leaving the page: stop without notifying. */
   dispose(): void;
@@ -64,6 +70,8 @@ export function createListenSession(deps: {
   api: ListenApi;
   speech: SpeechPort;
   player: ClipPlayer;
+  /** Plays read-backs (defaults to a fresh clip player). */
+  readbackPlayer?: ClipPlayer;
   onChange: (state: ListenState) => void;
   onEnded?: (how: "completed" | "stopped") => void;
 }): ListenSession {
@@ -71,6 +79,7 @@ export function createListenSession(deps: {
   let onEnded = deps.onEnded;
   let run = 0;
   let live: { pinId: string; aborter: AbortController } | null = null;
+  const readbackPlayer = deps.readbackPlayer ?? createClipPlayer();
   const set = (next: Partial<ListenState> | ListenState) => {
     state = { ...state, ...next };
     deps.onChange(state);
@@ -152,6 +161,7 @@ export function createListenSession(deps: {
       run += 1;
       live = null;
       deps.player.stop();
+      readbackPlayer.stop();
       deps.speech.stop();
       if (current) {
         current.aborter.abort();
@@ -165,6 +175,19 @@ export function createListenSession(deps: {
       } else {
         set(IDLE_LISTEN);
       }
+    },
+    async readBack() {
+      const segment = state.segments[state.index];
+      const values = segment?.readback ?? [];
+      if (!live || state.phase !== "paused" || segment?.kind !== "item" || values.length === 0) return null;
+      const sentence = deps.speech.readback(values);
+      try {
+        const clip = await deps.speech.speak(sentence, live.aborter.signal);
+        await readbackPlayer.play(clip);
+      } catch {
+        // the sentence is shown as text as well; a failed clip never confirms anything
+      }
+      return sentence;
     },
     reset() {
       if (!live) set(IDLE_LISTEN);
@@ -194,6 +217,7 @@ export interface UseListenOptions {
 
 export function useListen({ briefingId, speech, onEnded }: UseListenOptions) {
   const [state, setState] = useState<ListenState>(IDLE_LISTEN);
+  const [readback, setReadback] = useState<string | null>(null);
   const session = useMemo(() => createListenSession({ api: listenApi, speech, player: createClipPlayer(), onChange: setState }), [speech]);
   useEffect(() => session.setOnEnded(onEnded), [session, onEnded]);
   // Leaving Today ends the session: the pin is stopped so the list is free to update again.
@@ -205,8 +229,17 @@ export function useListen({ briefingId, speech, onEnded }: UseListenOptions) {
     active,
     start: () => (briefingId ? session.start(briefingId) : Promise.resolve()),
     pause: () => session.pause(),
-    resume: () => session.resume(),
-    stop: () => session.stop(),
+    resume: () => {
+      setReadback(null);
+      session.resume();
+    },
+    stop: () => {
+      setReadback(null);
+      session.stop();
+    },
     reset: () => session.reset(),
+    /** The read-back sentence last spoken for the paused item (cleared on resume and stop). */
+    readback: state.phase === "paused" ? readback : null,
+    readBack: async () => setReadback(await session.readBack()),
   };
 }

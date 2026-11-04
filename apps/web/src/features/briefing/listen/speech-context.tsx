@@ -4,8 +4,8 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { demoSpeech, type SpeechPort } from "./speech";
 
 /**
- * Which voice "Listen to my day" speaks with. Until the voice lane's `useSpeech()` (src/lib/voice/) is wired here
- * by the integrator, every Listen session uses the labelled Demo voice.
+ * Which voice "Listen to my day" speaks with. Today mounts `VoiceSpeechProvider` (voice module TTS); without a
+ * provider, Listen uses the labelled silent Demo voice.
  */
 const SpeechContext = createContext<SpeechPort | null>(null);
 
