@@ -57,6 +57,13 @@ def test_rollup_is_deterministic_and_lists_missing_inputs(prod_world: ProdWorld)
         again = service.run_cost_rollup(uow, req)
     assert again.reused and again.id == first.id and again.input_hash == first.input_hash
     assert w.count(CostRollup) == 1
+    w.drain()  # the incomplete rollup becomes an informational issue for production (never a figure)
+    from app.modules.tasks.models import Issue
+
+    with w.system() as uow:
+        info = uow.session.scalars(select(Issue).where(Issue.company_id == w.company_id,
+                                                       Issue.issue_key == f"cost_rollup:{w.panel_set}:incomplete")).one()
+        assert info.family == "ops.production_dependencies" and info.state == "info"
     # a new input (the assembly rate) is a new hash, a new rollup, now complete
     with w.uow(DEEPA) as uow:
         wc = service.work_center(uow, w.ref(keys.WORK_CENTER_REFS.ASSEMBLY))

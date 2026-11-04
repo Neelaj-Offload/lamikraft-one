@@ -126,6 +126,14 @@ def test_capacity_load_overload_once_and_exceptions(prod_world: ProdWorld) -> No
     with w.system() as uow:
         refresh_overloads(uow, [(w.ref(keys.WORK_CENTER_REFS.ASSEMBLY), day)])
     assert len(_events(w, "production.capacity.overloaded")) == 3  # unchanged state: nothing new
+    w.drain()
+    from app.modules.tasks.models import Issue
+
+    with w.system() as uow:
+        issue = uow.session.scalars(select(Issue).where(
+            Issue.company_id == w.company_id,
+            Issue.issue_key == f"capacity:{w.ref(keys.WORK_CENTER_REFS.ASSEMBLY)}:{day.isoformat()}")).one()
+        assert issue.family == "ops.production_dependencies" and issue.state == "open"
     # overtime on assembly that day: no longer overloaded; moving the saw operation to the next day clears the saw
     with w.uow(DEEPA) as uow:
         service.set_capacity_exception(uow, w.ref(keys.WORK_CENTER_REFS.ASSEMBLY),
