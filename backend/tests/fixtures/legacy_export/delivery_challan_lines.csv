@@ -1,0 +1,5 @@
+id,challan_id,line_type,item_code,item_name,hsn_code,quantity,unit,sort_order
+dl-1,d-1,catalog,LKX-1001,Oak serving tray,4419,100,pcs,1
+dl-2,d-1,manual,,Packing material,,2.5,kg,2
+dl-3,d-2,catalog,OLD-CODE-7,Sample tray,,1,pcs,1
+dl-4,d-99,manual,,Lost line,,1,pcs,1

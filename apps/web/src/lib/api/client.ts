@@ -261,7 +261,7 @@ export function unauthorizedMiddleware(
       }
       const problem = ProblemError.fromResponse(response, body);
       // Step-up authentication is handled in place by a re-auth dialog, not by leaving the page.
-      if (problem.code === "reauth_required") return undefined;
+      if (problem.code === "reauth_required" || problem.code === "mfa_required") return undefined;
       // A failed sign-in or demo link is answered on the sign-in page itself.
       if (problem.code === "invalid_credentials" || problem.code === "link_invalid_or_used") return undefined;
       onUnauthorized({ request, problem });

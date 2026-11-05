@@ -1,0 +1,48 @@
+{
+  "custom_products": [
+    {
+      "id": "c-1",
+      "custom_code": "CP-0001",
+      "custom_type": "modified_catalogue",
+      "base_product_key": "LKX-1001",
+      "customer_specific_flag": true,
+      "is_promoted_to_master": false,
+      "category": "Serveware",
+      "customer_name": "Nordhaus GmbH",
+      "product_name": "Oak tray with logo",
+      "quoted_price": {
+        "$numberDecimal": "12.00"
+      },
+      "status": "quoted",
+      "created_by": "u-meera"
+    },
+    {
+      "id": "c-2",
+      "custom_code": "CP-0002",
+      "custom_type": "fully_new",
+      "base_product_key": "LKX-0000",
+      "customer_name": "Maison Lumière",
+      "product_name": "Round cheese board",
+      "quoted_price": {
+        "$numberDecimal": "18.00"
+      },
+      "status": "inquiry"
+    },
+    {
+      "id": "c-3",
+      "custom_code": "CP-0003",
+      "custom_type": "fully_new",
+      "customer_name": "Berg & Co. AB",
+      "product_name": "Bread board",
+      "status": "inquiry"
+    },
+    {
+      "id": "c-4",
+      "custom_code": "CP-0003",
+      "custom_type": "fully_new",
+      "customer_name": "Berg & Co. AB",
+      "product_name": "Bread board (copy)",
+      "status": "inquiry"
+    }
+  ]
+}

@@ -249,4 +249,9 @@ EVENTS: tuple[dict, ...] = (
     {'name': 'finance.accounting_export.reconciled', 'version': 1, 'slice': 5, 'fields': ['export_id', 'adapter', 'reconciliation_status']},
     {'name': 'finance.tax_profile.verified', 'version': 1, 'slice': 5, 'fields': ['tax_profile_id', 'version']},
     {'name': 'sales.quote.margin_below_threshold', 'version': 1, 'slice': 5, 'fields': ['quote_id', 'exception_id', 'revision_no']},
+    {'name': 'migration.run.completed', 'version': 1, 'slice': 5, 'fields': ['run_id', 'kind', 'source_digest', 'quarantined', 'errors']},
+    {'name': 'migration.run.failed', 'version': 1, 'slice': 5, 'fields': ['run_id', 'kind', 'error_code']},
+    {'name': 'system.backup.completed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'database', 'dump_sha256', 'dump_bytes']},
+    {'name': 'system.backup.failed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'database', 'error_code']},
+    {'name': 'system.restore_rehearsal.completed', 'version': 1, 'slice': 5, 'fields': ['backup_id', 'outcome', 'checks_passed', 'checks_failed']},
 )

@@ -1,0 +1,7 @@
+{
+  "brand_prefix": "LK",
+  "quote_prefix": "QT",
+  "year_format": "YYYY",
+  "next_sequence": 9,
+  "format_template": "{brand}-{prefix}-{year}-{seq}"
+}

@@ -1,0 +1,7 @@
+{
+  "authorised_by": "Synthetic test fixture (no real legacy export exists on disk)",
+  "exported_at": "2026-11-04T06:00:00Z",
+  "source_system": "SKU Intelligence Portal (synthetic, derived from CURRENT_STATE_SPEC.md section 4)",
+  "export_reference": "fixture-legacy-export-v1",
+  "notes": "Every quarantine and report path of the dry run is exercised on purpose."
+}

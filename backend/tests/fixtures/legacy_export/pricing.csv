@@ -1,0 +1,9 @@
+product_key,price_type,currency,price,final_price,unit_of_sale,moq,valid_from,price_notes
+LKX-1001,export,EUR,12.50,12.50,pcs,400,01/01/2025,
+LKX-1001,domestic,INR,950,,pcs,,01/01/2025,
+LKX-1002,export,EUR,15.00,16.00,pcs,,,price and final_price disagree
+LKX-1003,export,EUR,14.00,,pcs,,,
+LKX-1003,export,EUR,14.50,,pcs,,,second EUR export price
+LKX-1003,sample,GBP,9.00,,pcs,,,
+LKX-1008,export,,6.00,,pcs,,,currency left blank
+LKX-9999,export,EUR,3.00,,pcs,,,product not in the export

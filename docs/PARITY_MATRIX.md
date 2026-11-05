@@ -268,7 +268,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 |---|---|---|---|---|---|
 | FG-USR-01 | `id`, `email` (unique), `name` | `app_user` (`email_normalized` unique, `display_name`, `full_name`) | 1 | implemented | `tests/integration/identity/test_user_admin.py::test_email_normalised_unique` |
 | FG-USR-02 | `role` (unvalidated string) | `membership_role` → `role` (validated) | 1 | implemented | `tests/integration/authz/test_role_validation.py::test_unknown_key_scope_cycle_and_escalation_rejected` |
-| FG-USR-03 | `password_hash` (bcrypt) | argon2id `password_hash`; legacy hashes never migrated | 1→5 | planned | `tests/integration/migration/test_users.py::test_no_password_hash_persisted_users_pending_invitation` |
+| FG-USR-03 | `password_hash` (bcrypt) | argon2id `password_hash`; legacy hashes never migrated | 1→5 | in progress | `tests/integration/migration/test_apply.py::test_apply_writes_through_the_workbench_and_reruns_without_duplication` |
 | FG-USR-04 | `is_active` | `membership.status` (invited, active, suspended, deactivated) + `app_user.status` incl. historical | 1→2 | implemented | `tests/integration/identity/test_deactivation.py::test_deactivation_keeps_attribution_and_revokes_sessions` |
 | FG-USR-05 | `created_at`, `last_login` | `created_at`, `last_login_at` + `auth_attempt` history | 1 | implemented | `tests/integration/identity/test_login_security.py::test_attempts_and_last_login_recorded` |
 | FG-USR-06 | `permission_overrides{grant[], revoke[]}` | `user_permission_override` rows (reason, expiry, revoke wins); legacy names expanded via alias table | 1→5 | planned | `tests/integration/authz/test_overrides.py::test_legacy_overrides_expand_through_alias_table` |
@@ -413,7 +413,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-QUO-14 | `internal_notes` | collab note (never printed) | 2 | planned | `tests/integration/collab/test_internal_notes.py::test_notes_never_printed` |
 | FG-QUO-15 | `total_amount`, `total_lines` | persisted `line_count`, gross/discount/net/applicable subtotals, surcharge, tax status, `grand_total`, engine version, input hash | 1 | implemented | `tests/integration/documents/test_output_channels_agree.py::test_api_pdf_csv_print_totals_identical` |
 | FG-QUO-16 | `created_at`, `updated_at` | Clock timestamps; legacy preserved on migration | 1→5 | planned | `tests/integration/migration/test_dry_run.py::test_legacy_timestamps_preserved` |
-| FG-QUO-17 | No customer id (free text) | party link required to issue; legacy rows `legacy_unlinked` with candidate review | 1→5 | planned | `tests/integration/migration/test_party_candidates.py::test_never_auto_merge_decision_reused` |
+| FG-QUO-17 | No customer id (free text) | party link required to issue; legacy rows `legacy_unlinked` with candidate review | 1→5 | in progress | `tests/integration/migration/test_dry_run.py::test_party_candidates_are_suggested_never_merged` |
 
 ### 3.11 `quote_lines` (§4.11)
 
@@ -443,7 +443,7 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | FG-QRV-01 | `id`, `quote_id`, `version` | `sales_quote_revision` (`revision_no`, `kind` issued/review/checkpoint/legacy) | 1 | implemented | `tests/integration/sales/test_quote_status.py::test_issued_revision_immutable_by_trigger` |
 | FG-QRV-02 | `status_from`, `status_to` | `sales_quote_status_history` (append-only) | 1 | implemented | `tests/integration/sales/test_quote_status.py::test_status_history_append_only` |
 | FG-QRV-03 | `changes_summary` | compare output + history reason text | 2 | implemented | `tests/integration/sales/test_quote_revisions.py::test_compare_and_restore_keep_history` |
-| FG-QRV-04 | `snapshot` (full quote + lines) | canonical content JSON + `content_hash`; legacy snapshots kept verbatim | 1→5 | planned | `tests/integration/migration/test_quotes.py::test_legacy_revisions_stored_verbatim` |
+| FG-QRV-04 | `snapshot` (full quote + lines) | canonical content JSON + `content_hash`; legacy snapshots kept verbatim | 1→5 | in progress | `tests/integration/migration/test_apply.py::test_apply_writes_through_the_workbench_and_reruns_without_duplication` |
 | FG-QRV-05 | `created_by(_name)`, `created_at` | actor + Clock | 1 | implemented | `tests/integration/sales/test_quote_status.py::test_issued_revision_immutable_by_trigger` |
 
 ### 3.13 `custom_products` (§4.13)
@@ -507,8 +507,8 @@ as provenance), is editable where legacy allowed it, round-trips through API, CS
 | ID | Legacy item | New home | Slice | Status | Verifying test |
 |---|---|---|---|---|---|
 | FG-SRH-01 | `search_history` (user_id, query, results_count, searched_at; last 10) | `search_recent` (last 10 per user, clear control) | 2 | planned | `tests/integration/search/test_recent_searches.py::test_last_ten_kept_per_user` |
-| FG-MSC-01 | `revision_history` (cleared, never written) | not migrated; reported as skipped | 5 | planned | `tests/integration/migration/test_dry_run.py::test_skipped_collections_reported` |
-| FG-MSC-02 | Legacy `products` collection (cleared only) | not migrated; reported as skipped | 5 | planned | `tests/integration/migration/test_dry_run.py::test_skipped_collections_reported` |
+| FG-MSC-01 | `revision_history` (cleared, never written) | not migrated; reported as skipped | 5 | in progress | `tests/unit/migration/test_sources.py::test_cleared_legacy_collections_are_reported_as_skipped` |
+| FG-MSC-02 | Legacy `products` collection (cleared only) | not migrated; reported as skipped | 5 | in progress | `tests/unit/migration/test_sources.py::test_cleared_legacy_collections_are_reported_as_skipped` |
 | FG-REL-01 | taxonomy 1–* products (by text) | FK category/subcategory, composite FK | 1 | implemented | `tests/integration/catalogue/test_taxonomy.py::test_composite_fk_rejects_foreign_subcategory` |
 | FG-REL-02 | product 1–* pricing, 1–1 packaging, 1–1 specs, 1–* media | FKs with RESTRICT; price items by list | 1→2 | implemented | `tests/integration/catalogue/test_product_detail.py::test_detail_returns_all_field_groups_with_section_guards` |
 | FG-REL-03 | quote lines snapshot-reference products or custom products | snapshot + FK RESTRICT (blocks unsafe rollback) | 1→2 | planned | `tests/integration/imports/test_rollback.py::test_rollback_blocked_when_referenced_or_later_edited` |
@@ -823,7 +823,7 @@ Each gap has an IDOR or permission test (PLAN legacy-parity rule 5).
 | OQ-01 | Single company or multi-entity; GST/e-way-bill and export documentation both required? | BUILD_STATE §5 #4, #8 | 5 | planned (owner input) | — (business decision; company/branch boundaries built from Slice 1) |
 | OQ-02 | Domestic vs export price-list rules per customer type | BUILD_STATE §5 #15; tier resolution | 2 | planned (owner input) | `tests/integration/pricing/test_price_resolution.py::test_tier_order_agreement_type_standard` |
 | OQ-03 | Optimiser feeding purchasing and production vs calculator | answered by plan: links to WOs and board lots (S4), offcut reuse (S5) | 4→5 | planned | `tests/integration/cutting/test_plan_release.py::test_release_blocked_until_oversize_verified_and_links_work_order` |
-| OQ-04 | Historical data migration form | migration dry-run tooling for every legacy entity | 5 | planned | `tests/integration/migration/test_dry_run.py::test_counts_reconcile_and_hashes_verified` |
+| OQ-04 | Historical data migration form | migration dry-run tooling for every legacy entity | 5 | in progress | `tests/integration/migration/test_dry_run.py::test_dry_run_reconciles_every_row_and_the_totals_by_currency` |
 | OQ-05 | Approval rules for price overrides, below-MOQ and below-minimum orders | BUILD_STATE §5 #2; approvals policy | 1→3 | planned (owner input) | `tests/integration/approvals/test_quote_review_policy.py::test_demo_rule_requires_review_for_overrides` |
 
 ## 11. PRD vs code discrepancies (spec §12)
@@ -1001,9 +1001,9 @@ New scope beyond parity, tracked so nothing in §9 is silently dropped.
 | SCN-K3 | Duplicate delivery → one business effect; simulated delivery labelled; real status from provider evidence | channels | 3 | implemented | `tests/integration/channels/test_webhook.py::test_k_replay_of_a_delivery_has_one_business_effect`, `tests/integration/channels/test_scenario_k.py::test_k_simulated_statuses_are_labelled_and_reach_read_through_the_webhook`, `tests/integration/channels/test_live_mode.py::test_live_outbound_needs_the_flag_and_the_allowlist_and_statuses_are_real` |
 | SCN-L1 | Quote/custom/challan duplication, notes, filters, histories, PDF/CSV/print, all field groups | legacy parity | 2 | implemented | `e2e/challans.spec.ts::quote_full_legacy_journey` |
 | SCN-L2 | Unicode names and € ₹ export correctly; long documents paginate; PDFs omit internal notes and costs | documents | 1→2 | planned | `tests/integration/documents/test_pdf_unicode_pagination.py::test_long_document_paginates_with_glyphs` |
-| SCN-M1 | Migration dry-run reconciles source counts and historical totals | migration | 5 | planned | `tests/integration/migration/test_dry_run.py::test_counts_reconcile_and_hashes_verified` |
-| SCN-M2 | Rerun without duplication; no stock from legacy challans | migration | 5 | planned | `tests/integration/migration/test_rerun.py::test_verify_rerun_zero_inserts_zero_updates` |
-| SCN-M3 | Restore rehearsal proves the backup path locally | backup | 5 | planned | `tests/integration/system/test_backup_restore_rehearsal.py::test_restore_rehearsal_roundtrip` |
+| SCN-M1 | Migration dry-run reconciles source counts and historical totals | migration | 5 | in progress | `tests/integration/migration/test_dry_run.py::test_dry_run_reconciles_every_row_and_the_totals_by_currency` |
+| SCN-M2 | Rerun without duplication; no stock from legacy challans | migration | 5 | in progress | `tests/integration/migration/test_dry_run.py::test_rerun_reuses_the_id_map_and_candidates_without_duplication` |
+| SCN-M3 | Restore rehearsal proves the backup path locally | backup | 5 | in progress | `tests/integration/migration/test_backup_restore.py::test_backup_then_restore_rehearsal_round_trip` |
 | SCN-N1 | Desktop/tablet/mobile workflows support keyboard and touch | web | 1→6 | planned | `e2e/responsive/n-keyboard.spec.ts::today_search_quote_review_approve` |
 | SCN-N2 | Understandable loading/empty/error states | web | 1→6 | planned | `e2e/responsive/n-states.spec.ts::states_render_real_copy_and_actions` |
 | SCN-N3 | No dead buttons or fabricated operational metrics | web | 1→6 | planned | `e2e/responsive/n-no-dead-controls.spec.ts::every_control_named_and_effective` |

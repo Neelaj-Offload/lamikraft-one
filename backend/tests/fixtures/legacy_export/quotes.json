@@ -1,0 +1,126 @@
+[
+  {
+    "_id": {
+      "$oid": "65f100000000000000000001"
+    },
+    "id": "q-1",
+    "quote_number": "LK-QT-2025-0001",
+    "version": 1,
+    "status": "sent",
+    "customer_name": "Nordhaus GmbH",
+    "customer_country": "Germany",
+    "customer_type": "dealer",
+    "currency": "EUR",
+    "incoterm": "FOB",
+    "validity_days": 30,
+    "brand": "LK",
+    "surcharge_applied": false,
+    "created_by": "u-meera",
+    "created_by_name": "Meera",
+    "total_amount": {
+      "$numberDecimal": "1850.00"
+    },
+    "total_lines": 2,
+    "created_at": {
+      "$date": "2025-02-01T10:00:00Z"
+    }
+  },
+  {
+    "id": "q-2",
+    "quote_number": "LK-QT-2025-0002",
+    "version": 2,
+    "status": "won",
+    "customer_name": "NORDHAUS GMBH.",
+    "customer_country": "germany",
+    "currency": "EUR",
+    "incoterm": "FOB",
+    "surcharge_applied": true,
+    "created_by": "u-meera",
+    "created_by_name": "Meera",
+    "assigned_to": "u-old",
+    "assigned_to_name": "Rohit (left 2025)",
+    "total_amount": {
+      "$numberDecimal": "2400.00"
+    },
+    "total_lines": 3,
+    "created_at": {
+      "$date": "2025-03-01T10:00:00Z"
+    }
+  },
+  {
+    "id": "q-3",
+    "quote_number": "LK-QT-2025-0003",
+    "version": 1,
+    "status": "draft",
+    "customer_name": "Thornbury Kitchens Ltd.",
+    "customer_country": "United Kingdom",
+    "currency": "GBP",
+    "created_by": "u-admin",
+    "created_by_name": "Priya (legacy admin)",
+    "total_amount": 280.0,
+    "total_lines": 1
+  },
+  {
+    "id": "q-4",
+    "quote_number": "LK-QT-2025-0004",
+    "version": 1,
+    "status": "sent",
+    "customer_name": "Berg & Co. AB",
+    "customer_country": "Sweden",
+    "currency": "EUR",
+    "total_amount": {
+      "$numberDecimal": "500.00"
+    }
+  },
+  {
+    "id": "q-5",
+    "quote_number": "LK-QT-2025-0004",
+    "version": 1,
+    "status": "sent",
+    "customer_name": "Berg & Co. AB",
+    "customer_country": "Sweden",
+    "currency": "EUR",
+    "total_amount": {
+      "$numberDecimal": "700.00"
+    }
+  },
+  {
+    "id": "q-6",
+    "quote_number": "LK-QT-2025-0006",
+    "version": 1,
+    "status": "pending",
+    "customer_name": "Maison Lumière",
+    "customer_country": "France",
+    "currency": "EUR",
+    "total_amount": {
+      "$numberDecimal": "300.00"
+    }
+  },
+  {
+    "id": "q-7",
+    "quote_number": "LK-QT-2025-0007",
+    "version": 1,
+    "status": "sent",
+    "customer_name": "Maison Lumière",
+    "customer_country": "France",
+    "currency": "",
+    "total_amount": {
+      "$numberDecimal": "100.00"
+    }
+  },
+  {
+    "id": "q-8",
+    "quote_number": "LK-QT-2026-0001",
+    "version": 1,
+    "status": "sent",
+    "customer_name": "Kaveri Exports",
+    "customer_country": "India",
+    "currency": "INR",
+    "created_by": "u-gone",
+    "created_by_name": "Former Employee",
+    "total_amount": {
+      "$numberDecimal": "10500.00"
+    },
+    "total_lines": 2
+  }
+]

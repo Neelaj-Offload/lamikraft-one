@@ -150,6 +150,17 @@ export const queryKeys = {
     issues: (jobId: string, params: Record<string, string | number | boolean | null | undefined>) => ["imports", "issues", { job_id: jobId, ...compact(params) }] as const,
     demoReset: () => ["imports", "demo-reset"] as const,
   },
+  // s5-migration lane (Slice 5): migration runs, quarantine, candidate customers, opening batches, backup facts
+  migration: {
+    all: () => ["migration"] as const,
+    runs: (offset: number) => ["migration", "runs", { offset }] as const,
+    run: (runId: string) => ["migration", "run", { run_id: runId }] as const,
+    issues: (runId: string, params: Record<string, string | number | boolean | null | undefined>) => ["migration", "issues", { run_id: runId, ...compact(params) }] as const,
+    facets: (runId: string) => ["migration", "facets", { run_id: runId }] as const,
+    candidates: (params: Record<string, string | number | boolean | null | undefined>) => ["migration", "candidates", compact(params)] as const,
+    opening: () => ["migration", "opening"] as const,
+    backups: () => ["migration", "backups"] as const,
+  },
   search: {
     all: () => ["search"] as const,
     query: (q: string) => ["search", "results", compact({ q: q.trim() })] as const,

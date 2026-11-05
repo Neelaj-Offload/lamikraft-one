@@ -4800,6 +4800,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/migration/opening-balance-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Opening Balance Batches */
+        get: operations["migration_list_opening_balance_batches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/party-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Party Candidates
+         * @description Legacy customer names with a suggested party, for review (never merged automatically).
+         */
+        get: operations["migration_list_party_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/party-candidates/{candidate_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Party Candidate
+         * @description Link the legacy name to a party of this company, mark it as a new party, reject it, or reopen it.
+         */
+        post: operations["migration_decide_party_candidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Migration Runs
+         * @description Dry runs and applies, newest first.
+         */
+        get: operations["migration_list_migration_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Migration Run
+         * @description One run with its reconciliation report (counts, totals by currency, links, file hashes, ID maps).
+         */
+        get: operations["migration_get_migration_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/runs/{run_id}/issue-facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Migration Issue Facets */
+        get: operations["migration_get_migration_issue_facets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/runs/{run_id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Migration Issues
+         * @description The quarantine browser: every issue with its row reference (file, row, source key) and original values.
+         */
+        get: operations["migration_list_migration_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migration/runs/{run_id}/issues.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Migration Issues Csv */
+        get: operations["migration_get_migration_issues_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/sales-orders": {
         parameters: {
             query?: never;
@@ -7694,6 +7845,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Backup Facts
+         * @description The last backup, the last restore rehearsal and recent history (backups themselves are CLI-only).
+         */
+        get: operations["system_get_backup_facts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/integrations": {
         parameters: {
             query?: never;
@@ -9218,6 +9389,62 @@ export interface components {
              */
             warehouse_id: string;
         };
+        /**
+         * BackupFacts
+         * @description Settings › Backups: the latest backup, the latest rehearsal and recent history (read-only; CLI-only actions).
+         */
+        BackupFacts: {
+            /** History */
+            history: components["schemas"]["BackupRead"][];
+            last_backup: components["schemas"]["BackupRead"] | null;
+            last_rehearsal: components["schemas"]["BackupRead"] | null;
+            /** Max Age Hours For Apply */
+            max_age_hours_for_apply: number;
+        };
+        /** BackupRead */
+        BackupRead: {
+            /** Alembic Revision */
+            alembic_revision: string | null;
+            /** Backup Id */
+            backup_id: string;
+            /** Database */
+            database: string;
+            /** Dump Bytes */
+            dump_bytes: number | null;
+            /** Dump Sha256 */
+            dump_sha256: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Manifest Sha256 */
+            manifest_sha256: string | null;
+            /** Rehearsal Checks */
+            rehearsal_checks: components["schemas"]["RehearsalCheck"][];
+            /** Rehearsal Outcome */
+            rehearsal_outcome: string | null;
+            /** Rehearsal Seconds */
+            rehearsal_seconds: number | string | null;
+            /** Rehearsed At */
+            rehearsed_at: string | null;
+            /** Row Total */
+            row_total: number | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Status */
+            status: string;
+            /** Storage Bytes */
+            storage_bytes: number | null;
+            /** Storage Files */
+            storage_files: number | null;
+            /** Storage Sha256 */
+            storage_sha256: string | null;
+            /** Table Count */
+            table_count: number | null;
+        };
         /** BalanceRead */
         BalanceRead: {
             /** Last Movement At */
@@ -10071,6 +10298,88 @@ export interface components {
          * @enum {string}
          */
         CancelReason: "customer_cancelled" | "duplicate" | "price" | "stock_unavailable" | "other";
+        /** CandidateDecide */
+        CandidateDecide: {
+            decision: components["schemas"]["CandidateDecision"];
+            /** Expected Version */
+            expected_version: number;
+            /** Note */
+            note?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+        };
+        /**
+         * CandidateDecision
+         * @enum {string}
+         */
+        CandidateDecision: "link" | "new_party" | "reject" | "reopen";
+        /** CandidatePartyRef */
+        CandidatePartyRef: {
+            /** Country Code */
+            country_code: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Party Number */
+            party_number: string;
+            /** Path */
+            path: string;
+        };
+        /** CandidateRead */
+        CandidateRead: {
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Country Key */
+            country_key: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Legacy Country */
+            legacy_country: string | null;
+            /** Legacy Name */
+            legacy_name: string;
+            linked_party: components["schemas"]["CandidatePartyRef"] | null;
+            /** Match Kind */
+            match_kind: string;
+            /** Name Key */
+            name_key: string;
+            /** Occurrences */
+            occurrences: number;
+            /** Score */
+            score: number | string;
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
+            /** Status */
+            status: string;
+            suggested_party: components["schemas"]["CandidatePartyRef"] | null;
+            /** Variants */
+            variants: {
+                [key: string]: unknown;
+            }[];
+            /** Version */
+            version: number;
+        };
+        /**
+         * CandidateStatus
+         * @enum {string}
+         */
+        CandidateStatus: "proposed" | "linked" | "new_party" | "rejected";
         /** Capability */
         Capability: {
             /** Allowed */
@@ -15123,6 +15432,22 @@ export interface components {
             /** Tax Profile Id */
             tax_profile_id?: string | null;
         };
+        /** IssueFacet */
+        IssueFacet: {
+            /** Count */
+            count: number;
+            /** Value */
+            value: string;
+        };
+        /** IssueFacets */
+        IssueFacets: {
+            /** Code */
+            code: components["schemas"]["IssueFacet"][];
+            /** Entity */
+            entity: components["schemas"]["IssueFacet"][];
+            /** Severity */
+            severity: components["schemas"]["IssueFacet"][];
+        };
         /**
          * IssueGate
          * @description The issue gate, evaluated now (``finance.issuance_gate.check``).
@@ -15185,6 +15510,11 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /**
+         * IssueSeverity
+         * @enum {string}
+         */
+        IssueSeverity: "error" | "quarantine" | "warning" | "info";
         /** ItemActionRequest */
         ItemActionRequest: {
             /**
@@ -16416,6 +16746,134 @@ export interface components {
             /** Session Verified */
             session_verified: boolean;
         };
+        /** MigrationIssueRead */
+        MigrationIssueRead: {
+            /** Code */
+            code: string;
+            /** Entity */
+            entity: string;
+            /** Field */
+            field: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            } | null;
+            /** Raw Value */
+            raw_value: string | null;
+            /** Row Number */
+            row_number: number | null;
+            /** Severity */
+            severity: string;
+            /** Source File */
+            source_file: string | null;
+            /** Source Key */
+            source_key: string | null;
+        };
+        /** MigrationRunDetail */
+        MigrationRunDetail: {
+            /** Backup Id */
+            backup_id: string | null;
+            /** Counts */
+            counts: {
+                [key: string]: unknown;
+            };
+            /** Error Code */
+            error_code: string | null;
+            /** Error Count */
+            error_count: number;
+            /** Error Detail */
+            error_detail: string | null;
+            /** Export Manifest */
+            export_manifest: {
+                [key: string]: unknown;
+            };
+            /** Files */
+            files: {
+                [key: string]: unknown;
+            }[];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issue Count */
+            issue_count: number;
+            /** Issues Csv Path */
+            issues_csv_path: string;
+            /** Kind */
+            kind: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+            /** Path */
+            path: string;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            };
+            /** Source Digest */
+            source_digest: string;
+            /** Source Label */
+            source_label: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By Name */
+            started_by_name: string;
+            /** Status */
+            status: string;
+        };
+        /** MigrationRunSummary */
+        MigrationRunSummary: {
+            /** Backup Id */
+            backup_id: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Count */
+            error_count: number;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issue Count */
+            issue_count: number;
+            /** Kind */
+            kind: string;
+            /** Path */
+            path: string;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /** Source Digest */
+            source_digest: string;
+            /** Source Label */
+            source_label: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By Name */
+            started_by_name: string;
+            /** Status */
+            status: string;
+        };
         /** MinimumOut */
         MinimumOut: {
             minimum_order_value: components["schemas"]["Money"] | null;
@@ -16783,6 +17241,46 @@ export interface components {
              * Format: uuid
              */
             warehouse_id: string;
+        };
+        /** OpeningBatchRead */
+        OpeningBatchRead: {
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By Name */
+            approved_by_name: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Count */
+            line_count: number;
+            /** Posted At */
+            posted_at: string | null;
+            /** Poster Available */
+            poster_available: boolean;
+            /** Posting Ref */
+            posting_ref: string | null;
+            /** Quarantined Count */
+            quarantined_count: number;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Source Digest */
+            source_digest: string;
+            /** Status */
+            status: string;
+            /** Totals */
+            totals: {
+                [key: string]: unknown;
+            };
         };
         /** OpeningLineIn */
         OpeningLineIn: {
@@ -17584,6 +18082,17 @@ export interface components {
              */
             sales_order_line_id: string;
         };
+        /** Page[CandidateRead] */
+        Page_CandidateRead_: {
+            /** Items */
+            items: components["schemas"]["CandidateRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[ChallanSummaryRow] */
         Page_ChallanSummaryRow_: {
             /** Items */
@@ -17753,6 +18262,39 @@ export interface components {
         Page_MasterSummary_: {
             /** Items */
             items: components["schemas"]["MasterSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MigrationIssueRead] */
+        Page_MigrationIssueRead_: {
+            /** Items */
+            items: components["schemas"]["MigrationIssueRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MigrationRunSummary] */
+        Page_MigrationRunSummary_: {
+            /** Items */
+            items: components["schemas"]["MigrationRunSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[OpeningBatchRead] */
+        Page_OpeningBatchRead_: {
+            /** Items */
+            items: components["schemas"]["OpeningBatchRead"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -21937,6 +22479,15 @@ export interface components {
             /** Expected Version */
             expected_version: number;
         };
+        /** RehearsalCheck */
+        RehearsalCheck: {
+            /** Check */
+            check: string;
+            /** Detail */
+            detail?: string | null;
+            /** Passed */
+            passed: boolean;
+        };
         /** ReleaseRequest */
         ReleaseRequest: {
             /** Line Ids */
@@ -22966,6 +23517,11 @@ export interface components {
             /** Text */
             text: string | null;
         };
+        /**
+         * RunKind
+         * @enum {string}
+         */
+        RunKind: "dry_run" | "apply";
         /**
          * RunStatus
          * @enum {string}
@@ -36327,6 +36883,270 @@ export interface operations {
             };
         };
     };
+    migration_list_opening_balance_batches: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OpeningBatchRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_list_party_candidates: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CandidateStatus"] | null;
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CandidateRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_decide_party_candidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateDecide"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_list_migration_runs: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["RunKind"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MigrationRunSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_get_migration_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_get_migration_issue_facets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueFacets"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_list_migration_issues: {
+        parameters: {
+            query?: {
+                severity?: components["schemas"]["IssueSeverity"] | null;
+                entity?: string | null;
+                code?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MigrationIssueRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_get_migration_issues_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv; charset=utf-8": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     orders_list_sales_orders: {
         parameters: {
             query?: {
@@ -42819,6 +43639,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    system_get_backup_facts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupFacts"];
+                };
             };
         };
     };

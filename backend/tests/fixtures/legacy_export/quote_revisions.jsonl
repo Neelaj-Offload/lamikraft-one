@@ -1,0 +1,4 @@
+{"id": "r-1", "quote_id": "q-1", "version": 1, "status_from": "draft", "status_to": "sent", "changes_summary": "Sent to customer", "snapshot": {"quote_number": "LK-QT-2025-0001", "lines": 2}, "created_by": "u-meera", "created_at": {"$date": "2025-02-02T10:00:00Z"}}
+{"id": "r-2", "quote_id": "q-2", "version": 2, "status_from": "sent", "status_to": "won", "snapshot": "{\"quote_number\": \"LK-QT-2025-0002\", \"total_amount\": \"2400.00\"}"}
+{"id": "r-3", "quote_id": "q-77", "version": 1, "snapshot": {"quote_number": "LK-QT-2024-0077"}}
+{"id": "r-4", "quote_id": "q-3", "version": "1", "snapshot": "not json at all"}
