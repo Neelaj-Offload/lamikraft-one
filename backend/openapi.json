@@ -766,6 +766,111 @@
         "title": "AccountStatus",
         "type": "string"
       },
+      "AccountingAdapterKind": {
+        "enum": [
+          "csv",
+          "demo"
+        ],
+        "title": "AccountingAdapterKind",
+        "type": "string"
+      },
+      "AccountingStatus": {
+        "properties": {
+          "adapters": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Adapters",
+            "type": "array"
+          },
+          "integration_key": {
+            "title": "Integration Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_export": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mapping_complete": {
+            "title": "Mapping Complete",
+            "type": "boolean"
+          },
+          "missing_mapping": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Mapping",
+            "type": "array"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "pending_documents": {
+            "title": "Pending Documents",
+            "type": "integer"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "integration_key",
+          "mode",
+          "state",
+          "label",
+          "adapters",
+          "mapping_complete",
+          "missing_mapping",
+          "last_export",
+          "pending_documents"
+        ],
+        "title": "AccountingStatus",
+        "type": "object"
+      },
+      "AckLine": {
+        "additionalProperties": false,
+        "properties": {
+          "document_number": {
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Document Number",
+            "type": "string"
+          },
+          "external_ref": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "External Ref",
+            "type": "string"
+          },
+          "total": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_number",
+          "external_ref",
+          "total"
+        ],
+        "title": "AckLine",
+        "type": "object"
+      },
       "AckView": {
         "properties": {
           "accepted": {
@@ -1429,6 +1534,122 @@
         "title": "AdjustmentReason",
         "type": "string"
       },
+      "AgeingBuckets": {
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "days_1_30": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "days_31_60": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "days_61_90": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "days_over_90": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "current",
+          "days_1_30",
+          "days_31_60",
+          "days_61_90",
+          "days_over_90",
+          "total"
+        ],
+        "title": "AgeingBuckets",
+        "type": "object"
+      },
+      "AgeingReport": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "no_due_date_invoices": {
+            "items": {
+              "$ref": "#/components/schemas/OpenInvoiceRef"
+            },
+            "title": "No Due Date Invoices",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AgeingRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "time_zone": {
+            "title": "Time Zone",
+            "type": "string"
+          },
+          "totals": {
+            "items": {
+              "$ref": "#/components/schemas/AgeingBuckets"
+            },
+            "title": "Totals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "time_zone",
+          "rows",
+          "totals",
+          "no_due_date_invoices"
+        ],
+        "title": "AgeingReport",
+        "type": "object"
+      },
+      "AgeingRow": {
+        "properties": {
+          "buckets": {
+            "$ref": "#/components/schemas/AgeingBuckets"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "invoice_count": {
+            "title": "Invoice Count",
+            "type": "integer"
+          },
+          "no_due_date_count": {
+            "title": "No Due Date Count",
+            "type": "integer"
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "unallocated_receipts": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "party",
+          "currency",
+          "buckets",
+          "invoice_count",
+          "no_due_date_count",
+          "unallocated_receipts"
+        ],
+        "title": "AgeingRow",
+        "type": "object"
+      },
       "AiFailure": {
         "properties": {
           "at": {
@@ -1963,6 +2184,179 @@
           "estimated_cost"
         ],
         "title": "AiWorkflowUsage",
+        "type": "object"
+      },
+      "AllocationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "amount"
+        ],
+        "title": "AllocationCreate",
+        "type": "object"
+      },
+      "AllocationRead": {
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allocated_on": {
+            "format": "date",
+            "title": "Allocated On",
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "credit_note_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Note Id"
+          },
+          "credit_note_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Note Number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "invoice_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Number"
+          },
+          "receipt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Id"
+          },
+          "receipt_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Number"
+          },
+          "reversed": {
+            "title": "Reversed",
+            "type": "boolean"
+          },
+          "reverses_allocation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverses Allocation Id"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_type",
+          "receipt_id",
+          "receipt_number",
+          "credit_note_id",
+          "credit_note_number",
+          "invoice_id",
+          "invoice_number",
+          "amount",
+          "allocated_on",
+          "reverses_allocation_id",
+          "reversed",
+          "actor",
+          "created_at"
+        ],
+        "title": "AllocationRead",
+        "type": "object"
+      },
+      "AllocationReverse": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code"
+        ],
+        "title": "AllocationReverse",
         "type": "object"
       },
       "AllowedTransition": {
@@ -10179,6 +10573,99 @@
         "title": "CountStatus",
         "type": "string"
       },
+      "CreditAllocationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "amount"
+        ],
+        "title": "CreditAllocationCreate",
+        "type": "object"
+      },
+      "CreditNoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/CreditNoteLineIn"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "original_invoice_id": {
+            "format": "uuid",
+            "title": "Original Invoice Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original_invoice_id",
+          "reason_code",
+          "lines"
+        ],
+        "title": "CreditNoteCreate",
+        "type": "object"
+      },
+      "CreditNoteLineIn": {
+        "additionalProperties": false,
+        "properties": {
+          "invoice_line_id": {
+            "format": "uuid",
+            "title": "Invoice Line Id",
+            "type": "string"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_line_id",
+          "quantity"
+        ],
+        "title": "CreditNoteLineIn",
+        "type": "object"
+      },
       "CurrencyChange": {
         "additionalProperties": false,
         "properties": {
@@ -10244,6 +10731,37 @@
           "lines"
         ],
         "title": "CurrencyChangePreview",
+        "type": "object"
+      },
+      "CurrencyFigure": {
+        "properties": {
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "overdue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "receivable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "unallocated": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "currency",
+          "receivable",
+          "overdue",
+          "unallocated"
+        ],
+        "title": "CurrencyFigure",
         "type": "object"
       },
       "CurrencyLinePreview": {
@@ -14538,6 +15056,14 @@
         "title": "DocRef",
         "type": "object"
       },
+      "DocType": {
+        "enum": [
+          "invoice",
+          "credit_note"
+        ],
+        "title": "DocType",
+        "type": "string"
+      },
       "DocumentRead": {
         "description": "An adjustment, opening batch or transfer: header, lines, decision trail and what the caller may do.",
         "properties": {
@@ -15564,6 +16090,30 @@
         "title": "ExceptionCode",
         "type": "string"
       },
+      "ExceptionsRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceException"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "margin": {
+            "items": {
+              "$ref": "#/components/schemas/MarginExceptionRead"
+            },
+            "title": "Margin",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "margin"
+        ],
+        "title": "ExceptionsRead",
+        "type": "object"
+      },
       "ExpectedDateChange": {
         "additionalProperties": false,
         "properties": {
@@ -15659,6 +16209,240 @@
         ],
         "title": "ExplainView",
         "type": "object"
+      },
+      "ExportBlocked": {
+        "properties": {
+          "document_number": {
+            "title": "Document Number",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "document_number",
+          "reason"
+        ],
+        "title": "ExportBlocked",
+        "type": "object"
+      },
+      "ExportRead": {
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledgement_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledgement Ref"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "adapter": {
+            "$ref": "#/components/schemas/AccountingAdapterKind"
+          },
+          "blocked": {
+            "items": {
+              "$ref": "#/components/schemas/ExportBlocked"
+            },
+            "title": "Blocked",
+            "type": "array"
+          },
+          "blocked_count": {
+            "title": "Blocked Count",
+            "type": "integer"
+          },
+          "content_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Sha256"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "document_count": {
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "export_number": {
+            "title": "Export Number",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SyncItemRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "period_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period From"
+          },
+          "period_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period To"
+          },
+          "reconciled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconciled At"
+          },
+          "reconciliation_status": {
+            "$ref": "#/components/schemas/ReconciliationStatus"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ExportStatus"
+          }
+        },
+        "required": [
+          "id",
+          "export_number",
+          "adapter",
+          "status",
+          "error_code",
+          "period_from",
+          "period_to",
+          "document_count",
+          "blocked_count",
+          "content_sha256",
+          "acknowledgement_ref",
+          "acknowledged_at",
+          "reconciliation_status",
+          "reconciled_at",
+          "simulated",
+          "actor",
+          "created_at"
+        ],
+        "title": "ExportRead",
+        "type": "object"
+      },
+      "ExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "$ref": "#/components/schemas/AccountingAdapterKind"
+          },
+          "period_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period From"
+          },
+          "period_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period To"
+          }
+        },
+        "required": [
+          "adapter"
+        ],
+        "title": "ExportRequest",
+        "type": "object"
+      },
+      "ExportStatus": {
+        "enum": [
+          "completed",
+          "failed"
+        ],
+        "title": "ExportStatus",
+        "type": "string"
       },
       "ExtractionCard": {
         "description": "The structured confirmation card (ai-routing.md section 3, ``visual_extraction``).",
@@ -16259,6 +17043,248 @@
         "title": "FileRead",
         "type": "object"
       },
+      "FinanceDocRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "number",
+          "path"
+        ],
+        "title": "FinanceDocRef",
+        "type": "object"
+      },
+      "FinanceException": {
+        "properties": {
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Codes",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "issue_blocked",
+              "overdue",
+              "unallocated_receipt",
+              "sync_mismatch",
+              "sync_failed",
+              "margin"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "party_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Name"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/FinanceDocRef"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "kind",
+          "ref",
+          "party_name",
+          "codes",
+          "since"
+        ],
+        "title": "FinanceException",
+        "type": "object"
+      },
+      "FinancePartyRef": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "party_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Number"
+          }
+        },
+        "required": [
+          "id",
+          "party_number",
+          "display_name"
+        ],
+        "title": "FinancePartyRef",
+        "type": "object"
+      },
+      "FinanceSummary": {
+        "properties": {
+          "accounting_mode": {
+            "title": "Accounting Mode",
+            "type": "string"
+          },
+          "accounting_state": {
+            "title": "Accounting State",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "by_currency": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyFigure"
+            },
+            "title": "By Currency",
+            "type": "array"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "drafts": {
+            "title": "Drafts",
+            "type": "integer"
+          },
+          "e_invoice_state": {
+            "title": "E Invoice State",
+            "type": "string"
+          },
+          "issue_blocked": {
+            "title": "Issue Blocked",
+            "type": "integer"
+          },
+          "issued_open": {
+            "title": "Issued Open",
+            "type": "integer"
+          },
+          "margin_exceptions": {
+            "title": "Margin Exceptions",
+            "type": "integer"
+          },
+          "open_suggestions": {
+            "title": "Open Suggestions",
+            "type": "integer"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "integer"
+          },
+          "pending_approval": {
+            "title": "Pending Approval",
+            "type": "integer"
+          },
+          "sync_attention": {
+            "title": "Sync Attention",
+            "type": "integer"
+          },
+          "tax_profiles_verified": {
+            "title": "Tax Profiles Verified",
+            "type": "integer"
+          },
+          "unallocated_receipts": {
+            "title": "Unallocated Receipts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "drafts",
+          "pending_approval",
+          "issue_blocked",
+          "issued_open",
+          "overdue",
+          "open_suggestions",
+          "unallocated_receipts",
+          "margin_exceptions",
+          "sync_attention",
+          "by_currency",
+          "accounting_mode",
+          "accounting_state",
+          "e_invoice_state",
+          "tax_profiles_verified"
+        ],
+        "title": "FinanceSummary",
+        "type": "object"
+      },
+      "FinanceUserRef": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "FinanceUserRef",
+        "type": "object"
+      },
       "FulfilmentMode": {
         "enum": [
           "stock",
@@ -16689,6 +17715,37 @@
         ],
         "title": "FxSourceKind",
         "type": "string"
+      },
+      "GateBlocker": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Detail",
+            "type": "object"
+          },
+          "fix_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fix Path"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "GateBlocker",
+        "type": "object"
       },
       "GoodsReceiptStatus": {
         "enum": [
@@ -19226,6 +20283,1207 @@
         "title": "InvitationView",
         "type": "object"
       },
+      "InvoiceCreate": {
+        "additionalProperties": false,
+        "description": "A manual draft (lines entered), or a draft from an issued delivery challan / an order's delivered quantity.",
+        "properties": {
+          "challan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Id"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "INR",
+                  "EUR",
+                  "USD",
+                  "GBP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineIn"
+            },
+            "maxItems": 200,
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          },
+          "payment_due_days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Due Days"
+          },
+          "sales_order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Order Id"
+          },
+          "suggestion_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestion Id"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
+          }
+        },
+        "title": "InvoiceCreate",
+        "type": "object"
+      },
+      "InvoiceDetail": {
+        "properties": {
+          "allocated": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationRead"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/app__core__http__capabilities__TransitionRead"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approved_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Version"
+          },
+          "billing": {
+            "additionalProperties": true,
+            "title": "Billing",
+            "type": "object"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "credited": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "doc_type": {
+            "$ref": "#/components/schemas/DocType"
+          },
+          "document_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Date"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "draft_ref": {
+            "title": "Draft Ref",
+            "type": "string"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "gate": {
+            "$ref": "#/components/schemas/IssueGate"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_overdue": {
+            "title": "Is Overdue",
+            "type": "boolean"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "last_blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Last Blockers",
+            "type": "array"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineRead"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "original_invoice_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Invoice Id"
+          },
+          "outstanding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "payment_due_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Due Days"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "related": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceDocRef"
+            },
+            "title": "Related",
+            "type": "array"
+          },
+          "sales_order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Order Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvoiceStatus"
+          },
+          "subtotal": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "tax": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaxProfileRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_status": {
+            "$ref": "#/components/schemas/TaxStatus"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "doc_type",
+          "draft_ref",
+          "document_number",
+          "status",
+          "party",
+          "currency",
+          "document_date",
+          "due_date",
+          "total",
+          "outstanding",
+          "is_overdue",
+          "tax_status",
+          "label",
+          "owner",
+          "sales_order_id",
+          "original_invoice_id",
+          "created_at",
+          "billing",
+          "payment_due_days",
+          "tax_profile",
+          "subtotal",
+          "tax",
+          "allocated",
+          "credited",
+          "customer_reference",
+          "notes",
+          "reason_code",
+          "lines",
+          "history",
+          "allocations",
+          "related",
+          "approved_by",
+          "approved_at",
+          "approved_version",
+          "issued_by",
+          "issued_at",
+          "last_blockers",
+          "gate",
+          "version",
+          "capabilities",
+          "allowed_transitions"
+        ],
+        "title": "InvoiceDetail",
+        "type": "object"
+      },
+      "InvoiceHistoryRead": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blocker_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocker Codes",
+            "type": "array"
+          },
+          "from_status": {
+            "title": "From Status",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "to_status": {
+            "title": "To Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "from_status",
+          "to_status",
+          "actor",
+          "reason_code",
+          "reason",
+          "blocker_codes",
+          "occurred_at"
+        ],
+        "title": "InvoiceHistoryRead",
+        "type": "object"
+      },
+      "InvoiceLineIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "so_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "So Line Id"
+          },
+          "unit_price": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Unit Price",
+            "type": "string"
+          },
+          "uom_code": {
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "quantity",
+          "uom_code",
+          "unit_price"
+        ],
+        "title": "InvoiceLineIn",
+        "type": "object"
+      },
+      "InvoiceLineRead": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "challan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Id"
+          },
+          "challan_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Line Id"
+          },
+          "creditable_quantity": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creditable Quantity"
+          },
+          "credited_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credited Line Id"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "hsn_sac": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn Sac"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Code"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "so_line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "So Line Id"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_rate_percent": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Rate Percent"
+          },
+          "unit_price": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "line_no",
+          "description",
+          "item_code",
+          "hsn_sac",
+          "quantity",
+          "uom_code",
+          "unit_price",
+          "amount",
+          "tax_rate_percent",
+          "tax_amount",
+          "so_line_id",
+          "challan_id",
+          "challan_line_id",
+          "credited_line_id",
+          "product_id"
+        ],
+        "title": "InvoiceLineRead",
+        "type": "object"
+      },
+      "InvoiceStatus": {
+        "enum": [
+          "draft",
+          "pending_approval",
+          "approved",
+          "issued",
+          "cancelled"
+        ],
+        "title": "InvoiceStatus",
+        "type": "string"
+      },
+      "InvoiceSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "doc_type": {
+            "$ref": "#/components/schemas/DocType"
+          },
+          "document_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Date"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "draft_ref": {
+            "title": "Draft Ref",
+            "type": "string"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_overdue": {
+            "title": "Is Overdue",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "original_invoice_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Invoice Id"
+          },
+          "outstanding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "sales_order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Order Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvoiceStatus"
+          },
+          "tax_status": {
+            "$ref": "#/components/schemas/TaxStatus"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "id",
+          "doc_type",
+          "draft_ref",
+          "document_number",
+          "status",
+          "party",
+          "currency",
+          "document_date",
+          "due_date",
+          "total",
+          "outstanding",
+          "is_overdue",
+          "tax_status",
+          "label",
+          "owner",
+          "sales_order_id",
+          "original_invoice_id",
+          "created_at"
+        ],
+        "title": "InvoiceSummary",
+        "type": "object"
+      },
+      "InvoiceTransition": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "submit",
+              "approve",
+              "reject",
+              "issue",
+              "cancel"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          }
+        },
+        "required": [
+          "expected_version",
+          "action"
+        ],
+        "title": "InvoiceTransition",
+        "type": "object"
+      },
+      "InvoiceTransitionResult": {
+        "description": "The answer to a transition. ``issue`` that the gate refuses is recorded (history, ``finance.invoice.issue_blocked``)\nand answered with ``issued: false`` and the blockers; nothing else changes.",
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/GateBlocker"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/InvoiceDetail"
+          },
+          "issued": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "InvoiceTransitionResult",
+        "type": "object"
+      },
+      "InvoiceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "clear_tax_profile": {
+            "default": false,
+            "title": "Clear Tax Profile",
+            "type": "boolean"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InvoiceLineIn"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_due_days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Due Days"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "InvoiceUpdate",
+        "type": "object"
+      },
+      "IssueGate": {
+        "description": "The issue gate, evaluated now (``finance.issuance_gate.check``).",
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/GateBlocker"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "can_issue": {
+            "title": "Can Issue",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "required": [
+          "can_issue",
+          "blockers",
+          "label"
+        ],
+        "title": "IssueGate",
+        "type": "object"
+      },
       "IssueLine": {
         "properties": {
           "from_location_id": {
@@ -21631,6 +23889,190 @@
         "title": "MappingUpdate",
         "type": "object"
       },
+      "MarginExceptionRead": {
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detected_at": {
+            "format": "date-time",
+            "title": "Detected At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lines_without_cost": {
+            "title": "Lines Without Cost",
+            "type": "integer"
+          },
+          "margin_percent": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Percent"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "quote_id": {
+            "format": "uuid",
+            "title": "Quote Id",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MarginExceptionStatus"
+          },
+          "threshold_percent": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Threshold Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "quote_id",
+          "quote_number",
+          "revision_no",
+          "party_name",
+          "owner",
+          "status",
+          "detected_at",
+          "lines_without_cost",
+          "threshold_percent"
+        ],
+        "title": "MarginExceptionRead",
+        "type": "object"
+      },
+      "MarginExceptionStatus": {
+        "enum": [
+          "open",
+          "cleared"
+        ],
+        "title": "MarginExceptionStatus",
+        "type": "string"
+      },
+      "MarginLine": {
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cost_status": {
+            "enum": [
+              "ok",
+              "missing",
+              "unit_mismatch",
+              "currency_mismatch",
+              "no_product"
+            ],
+            "title": "Cost Status",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "quantity": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_no",
+          "description",
+          "quantity",
+          "uom_code",
+          "cost_status"
+        ],
+        "title": "MarginLine",
+        "type": "object"
+      },
       "MarkReplied": {
         "additionalProperties": false,
         "properties": {
@@ -23879,6 +26321,42 @@
           "width_mm"
         ],
         "title": "OffcutRecord",
+        "type": "object"
+      },
+      "OpenInvoiceRef": {
+        "properties": {
+          "document_number": {
+            "title": "Document Number",
+            "type": "string"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "id",
+          "document_number",
+          "due_date",
+          "outstanding"
+        ],
+        "title": "OpenInvoiceRef",
         "type": "object"
       },
       "OpeningBatchCreate": {
@@ -26751,6 +29229,37 @@
         "title": "Page[EnquiryRead]",
         "type": "object"
       },
+      "Page_ExportRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExportRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ExportRead]",
+        "type": "object"
+      },
       "Page_FxRateRead_": {
         "properties": {
           "items": {
@@ -26873,6 +29382,37 @@
           "offset"
         ],
         "title": "Page[InspectionSummary]",
+        "type": "object"
+      },
+      "Page_InvoiceSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[InvoiceSummary]",
         "type": "object"
       },
       "Page_IssueRead_": {
@@ -27276,6 +29816,37 @@
           "offset"
         ],
         "title": "Page[QuoteSummary]",
+        "type": "object"
+      },
+      "Page_ReceiptSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ReceiptSummary]",
         "type": "object"
       },
       "Page_RequisitionSummary_": {
@@ -38674,6 +41245,112 @@
         "title": "QuoteLineUpdate",
         "type": "object"
       },
+      "QuoteMargin": {
+        "description": "Margin of a quote from the costs of record (restricted: redacted without ``pricing.cost.read``).",
+        "properties": {
+          "below_threshold": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Below Threshold"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/MarginLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "lines_without_cost": {
+            "title": "Lines Without Cost",
+            "type": "integer"
+          },
+          "margin_percent": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Percent"
+          },
+          "quote_id": {
+            "format": "uuid",
+            "title": "Quote Id",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redacted Fields",
+            "type": "array"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threshold_percent": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Threshold Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quote_id",
+          "quote_number",
+          "currency",
+          "threshold_percent",
+          "lines_without_cost",
+          "lines"
+        ],
+        "title": "QuoteMargin",
+        "type": "object"
+      },
       "QuoteOrigin": {
         "enum": [
           "user",
@@ -39857,6 +42534,248 @@
         "title": "ReceiptCard",
         "type": "object"
       },
+      "ReceiptCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "bank_account_label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account Label"
+          },
+          "currency": {
+            "enum": [
+              "INR",
+              "EUR",
+              "USD",
+              "GBP"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/ReceiptMethod",
+            "default": "bank_transfer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "received_on": {
+            "format": "date",
+            "title": "Received On",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "required": [
+          "party_id",
+          "amount",
+          "currency",
+          "received_on"
+        ],
+        "title": "ReceiptCreate",
+        "type": "object"
+      },
+      "ReceiptDetail": {
+        "properties": {
+          "allocated": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationRead"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "bank_account_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account Label"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/ReceiptMethod"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "open_invoices": {
+            "items": {
+              "$ref": "#/components/schemas/OpenInvoiceRef"
+            },
+            "title": "Open Invoices",
+            "type": "array"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "receipt_number": {
+            "title": "Receipt Number",
+            "type": "string"
+          },
+          "received_on": {
+            "format": "date",
+            "title": "Received On",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "reverse_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverse Reason Code"
+          },
+          "reversed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reversed At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "unallocated": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "receipt_number",
+          "party",
+          "amount",
+          "allocated",
+          "unallocated",
+          "received_on",
+          "method",
+          "reference",
+          "status",
+          "owner",
+          "bank_account_label",
+          "notes",
+          "allocations",
+          "open_invoices",
+          "reversed_at",
+          "reverse_reason_code",
+          "version",
+          "capabilities"
+        ],
+        "title": "ReceiptDetail",
+        "type": "object"
+      },
+      "ReceiptMethod": {
+        "enum": [
+          "bank_transfer",
+          "cheque",
+          "cash",
+          "card",
+          "other"
+        ],
+        "title": "ReceiptMethod",
+        "type": "string"
+      },
       "ReceiptOut": {
         "properties": {
           "action": {
@@ -39972,6 +42891,122 @@
           "can_undo"
         ],
         "title": "ReceiptOut",
+        "type": "object"
+      },
+      "ReceiptReverse": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reason_code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason_code"
+        ],
+        "title": "ReceiptReverse",
+        "type": "object"
+      },
+      "ReceiptStatus": {
+        "enum": [
+          "recorded",
+          "reversed"
+        ],
+        "title": "ReceiptStatus",
+        "type": "string"
+      },
+      "ReceiptSummary": {
+        "properties": {
+          "allocated": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/ReceiptMethod"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "receipt_number": {
+            "title": "Receipt Number",
+            "type": "string"
+          },
+          "received_on": {
+            "format": "date",
+            "title": "Received On",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "unallocated": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "id",
+          "receipt_number",
+          "party",
+          "amount",
+          "allocated",
+          "unallocated",
+          "received_on",
+          "method",
+          "reference",
+          "status",
+          "owner"
+        ],
+        "title": "ReceiptSummary",
         "type": "object"
       },
       "RecentProduct": {
@@ -40385,6 +43420,38 @@
         ],
         "title": "RecommendationView",
         "type": "object"
+      },
+      "ReconcileRequest": {
+        "additionalProperties": false,
+        "description": "Accounting-side references and totals (CSV adapter: typed in or imported; Demo: taken from the simulated\nacknowledgement when omitted).",
+        "properties": {
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AckLine"
+                },
+                "maxItems": 1000,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          }
+        },
+        "title": "ReconcileRequest",
+        "type": "object"
+      },
+      "ReconciliationStatus": {
+        "enum": [
+          "not_reconciled",
+          "matched",
+          "mismatch"
+        ],
+        "title": "ReconciliationStatus",
+        "type": "string"
       },
       "RecordLink": {
         "properties": {
@@ -48753,6 +51820,108 @@
         "title": "SuggestedLoad",
         "type": "object"
       },
+      "SuggestionDismiss": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason_code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason_code"
+        ],
+        "title": "SuggestionDismiss",
+        "type": "object"
+      },
+      "SuggestionRead": {
+        "properties": {
+          "challan_id": {
+            "format": "uuid",
+            "title": "Challan Id",
+            "type": "string"
+          },
+          "challan_number": {
+            "title": "Challan Number",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
+          },
+          "party": {
+            "$ref": "#/components/schemas/FinancePartyRef"
+          },
+          "sales_order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Order Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SuggestionStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "challan_id",
+          "challan_number",
+          "sales_order_id",
+          "party",
+          "status",
+          "invoice_id",
+          "created_at",
+          "version"
+        ],
+        "title": "SuggestionRead",
+        "type": "object"
+      },
+      "SuggestionStatus": {
+        "enum": [
+          "open",
+          "drafted",
+          "dismissed"
+        ],
+        "title": "SuggestionStatus",
+        "type": "string"
+      },
       "SummaryStateView": {
         "description": "Today's WhatsApp summary for the member: queued (through the outbox) or skipped with the reason.",
         "properties": {
@@ -48911,6 +52080,89 @@
         ],
         "title": "SurchargeOut",
         "type": "object"
+      },
+      "SyncItemRead": {
+        "properties": {
+          "acknowledged_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "doc_type": {
+            "$ref": "#/components/schemas/DocType"
+          },
+          "document_number": {
+            "title": "Document Number",
+            "type": "string"
+          },
+          "external_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Ref"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "mismatch_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mismatch Reason"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SyncStatus"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "id",
+          "invoice_id",
+          "doc_type",
+          "document_number",
+          "total",
+          "status",
+          "external_ref",
+          "acknowledged_total",
+          "mismatch_reason"
+        ],
+        "title": "SyncItemRead",
+        "type": "object"
+      },
+      "SyncStatus": {
+        "enum": [
+          "pending",
+          "exported",
+          "acknowledged",
+          "rejected",
+          "mismatch"
+        ],
+        "title": "SyncStatus",
+        "type": "string"
       },
       "TargetOut": {
         "properties": {
@@ -49415,6 +52667,165 @@
         "title": "TaxIdentifierRead",
         "type": "object"
       },
+      "TaxProfileCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "rate_percent": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Rate Percent",
+            "type": "string"
+          },
+          "requires_e_invoice": {
+            "default": true,
+            "title": "Requires E Invoice",
+            "type": "boolean"
+          },
+          "scenario": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Scenario",
+            "type": "string"
+          },
+          "source_reference": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Source Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "scenario",
+          "rate_percent",
+          "source_reference"
+        ],
+        "title": "TaxProfileCreate",
+        "type": "object"
+      },
+      "TaxProfileRead": {
+        "properties": {
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rate_percent": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Rate Percent",
+            "type": "string"
+          },
+          "requires_e_invoice": {
+            "title": "Requires E Invoice",
+            "type": "boolean"
+          },
+          "scenario": {
+            "title": "Scenario",
+            "type": "string"
+          },
+          "source_reference": {
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaxProfileStatus"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "scenario",
+          "rate_percent",
+          "requires_e_invoice",
+          "source_reference",
+          "status",
+          "author",
+          "verified_by",
+          "verified_at",
+          "version"
+        ],
+        "title": "TaxProfileRead",
+        "type": "object"
+      },
+      "TaxProfileStatus": {
+        "enum": [
+          "draft",
+          "verified"
+        ],
+        "title": "TaxProfileStatus",
+        "type": "string"
+      },
       "TaxScheme": {
         "enum": [
           "gstin",
@@ -49425,6 +52836,15 @@
           "other"
         ],
         "title": "TaxScheme",
+        "type": "string"
+      },
+      "TaxStatus": {
+        "enum": [
+          "not_configured",
+          "unverified",
+          "verified"
+        ],
+        "title": "TaxStatus",
         "type": "string"
       },
       "TaxonomyDelete": {
@@ -53894,6 +57314,21 @@
           "display_name"
         ],
         "title": "UserRef",
+        "type": "object"
+      },
+      "app__modules__finance__schemas__Versioned": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "Versioned",
         "type": "object"
       },
       "app__modules__inventory__schemas__Versioned": {
@@ -62680,6 +66115,2476 @@
         ],
         "x-authz": {
           "kind": "authenticated"
+        }
+      }
+    },
+    "/api/v1/finance/accounting/exports": {
+      "get": {
+        "operationId": "finance_list_accounting_exports",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ExportRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Accounting Exports",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Export issued documents not yet exported through the ``csv`` adapter (journal file) or the ``demo`` adapter\n(labelled simulated acknowledgement; nothing is posted anywhere). A missing account code blocks documents.",
+        "operationId": "finance_run_accounting_export",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Accounting Export",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.accounting_export.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/accounting/exports/{export_id}": {
+      "get": {
+        "operationId": "finance_get_accounting_export",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "export_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Export Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Accounting Export",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/accounting/exports/{export_id}/journal.csv": {
+      "get": {
+        "description": "The journal exactly as exported (formula-inert); its SHA-256 is on the export.",
+        "operationId": "finance_download_accounting_journal",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "export_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Export Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Accounting Journal",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.accounting_export.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/accounting/exports/{export_id}/reconcile": {
+      "post": {
+        "description": "Compare the export with the accounting side's references and totals and list every mismatch (Demo exports\nreconcile against their simulated acknowledgement when no lines are given).",
+        "operationId": "finance_reconcile_accounting_export",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "export_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Export Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconcileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reconcile Accounting Export",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.accounting_export.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/accounting/status": {
+      "get": {
+        "description": "Integration ``accounting`` (Demo / not connected until a live adapter exists), the account mapping, the last\nexport and how many issued documents wait to be exported.",
+        "operationId": "finance_get_accounting_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Accounting Status",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/ageing": {
+      "get": {
+        "description": "Per (party, currency) outstanding in buckets current / 1–30 / 31–60 / 61–90 / over 90 days past due, as of a\ncompany-local date (default today); invoices without a due date are flagged.",
+        "operationId": "finance_get_receivables_ageing",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgeingReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Receivables Ageing",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.ageing.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/allocations/{allocation_id}/reverse": {
+      "post": {
+        "description": "Reverse an allocation once (a new row with the negated amount; the original is kept).",
+        "operationId": "finance_reverse_allocation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "allocation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Allocation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocationReverse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllocationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reverse Allocation",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.allocation.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes": {
+      "get": {
+        "operationId": "finance_list_credit_notes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tokens matched against numbers, party, reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against numbers, party, reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdue_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "open_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Open Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_InvoiceSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Credit Notes",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "A draft credit note against an issued invoice's lines (never more than is still creditable); on issue it\nsettles the original invoice first.",
+        "operationId": "finance_create_credit_note",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Credit Note",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes/export.csv": {
+      "get": {
+        "operationId": "finance_export_credit_notes_csv",
+        "parameters": [
+          {
+            "description": "Tokens matched against numbers, party, reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against numbers, party, reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdue_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "open_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Open Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Credit Notes Csv",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes/{credit_note_id}": {
+      "get": {
+        "operationId": "finance_get_credit_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Credit Note",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "finance_update_credit_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Credit Note",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes/{credit_note_id}/allocations": {
+      "post": {
+        "description": "Settle another issued invoice of the same party and currency from an issued credit note's remaining amount.",
+        "operationId": "finance_allocate_credit_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditAllocationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Allocate Credit Note",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.allocation.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes/{credit_note_id}/document.pdf": {
+      "get": {
+        "operationId": "finance_download_credit_note_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Credit Note Pdf",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/credit-notes/{credit_note_id}/transitions": {
+      "post": {
+        "operationId": "finance_transition_credit_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceTransitionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Credit Note",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.update",
+            "finance.invoice.approve",
+            "finance.invoice.issue"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/exceptions": {
+      "get": {
+        "description": "Blocked issues, overdue invoices, unallocated receipts, failed exports, reconciliation mismatches and margin\nexceptions (margin figures only for ``pricing.cost.read``).",
+        "operationId": "finance_get_finance_exceptions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Finance Exceptions",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoice-suggestions": {
+      "get": {
+        "description": "One suggestion per issued Outward challan to a customer; draft from it (``POST /invoices`` with\n``suggestion_id``) or dismiss it with a reason.",
+        "operationId": "finance_list_invoice_suggestions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SuggestionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "open",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SuggestionRead"
+                  },
+                  "title": "Response Finance List Invoice Suggestions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Invoice Suggestions",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoice-suggestions/{suggestion_id}/dismiss": {
+      "post": {
+        "operationId": "finance_dismiss_invoice_suggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionDismiss"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Invoice Suggestion",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoices": {
+      "get": {
+        "description": "Invoices within the actor's read scope; ``open_only`` / ``overdue_only`` narrow to issued invoices with an\noutstanding amount. Drafts carry ``label`` \"Draft — not valid for trade\".",
+        "operationId": "finance_list_invoices",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tokens matched against numbers, party, reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against numbers, party, reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdue_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "open_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Open Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_InvoiceSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Invoices",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "A draft from an issued Outward challan (``challan_id`` / ``suggestion_id``: its not-yet-invoiced quantities at the\norder's prices), from an order's delivered-but-not-invoiced quantities (``sales_order_id``), or manual lines.\nTotals are server-computed; no number is consumed until issue.",
+        "operationId": "finance_create_invoice",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Invoice",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoices/export.csv": {
+      "get": {
+        "description": "The filtered invoice list as spreadsheet-inert CSV (UTF-8 with BOM); drafts carry their label.",
+        "operationId": "finance_export_invoices_csv",
+        "parameters": [
+          {
+            "description": "Tokens matched against numbers, party, reference",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tokens matched against numbers, party, reference",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdue_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overdue Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "open_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Open Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Invoices Csv",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoices/{invoice_id}": {
+      "get": {
+        "description": "Detail with lines, totals, the live issue gate (blockers with fix paths), allocations, related documents,\nhistory, ``capabilities`` and ``allowed_transitions``.",
+        "operationId": "finance_get_invoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Invoice",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "patch": {
+        "description": "Edit a draft (lines, tax profile, payment days, reference, notes); totals are recomputed.",
+        "operationId": "finance_update_invoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Invoice",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoices/{invoice_id}/document.pdf": {
+      "get": {
+        "description": "The invoice PDF: company identity, bank details and terms from the settings (labelled placeholders when not\nconfigured); a draft is watermarked and labelled \"Draft — not valid for trade\".",
+        "operationId": "finance_download_invoice_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Invoice Pdf",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/invoices/{invoice_id}/transitions": {
+      "post": {
+        "description": "``submit``, ``approve`` (never by the creator), ``reject`` (reason), ``issue`` (recent sign-in; the issue gate\nruns again in the transaction and the number is assigned only here), ``cancel`` (reason; not once issued).",
+        "operationId": "finance_transition_invoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceTransitionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transition Invoice",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.update",
+            "finance.invoice.approve",
+            "finance.invoice.issue"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/quotes/{quote_id}/margin": {
+      "get": {
+        "description": "A visible quote's margin from the costs of record; revenue, cost and margin are null (``redacted_fields``)\nwithout ``pricing.cost.read``. Never exposed to a model.",
+        "operationId": "finance_get_quote_margin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteMargin"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quote Margin",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.quote.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/receipts": {
+      "get": {
+        "operationId": "finance_list_receipts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ReceiptStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unallocated_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Unallocated Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReceiptSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Receipts",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.receipt.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Record money received (``RCPT-{fy}-NNNN``); allocate it to the party's open invoices afterwards.",
+        "operationId": "finance_record_receipt",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Receipt",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.receipt.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/receipts/{receipt_id}": {
+      "get": {
+        "description": "Detail with allocations, the party's open invoices in the same currency and ``capabilities``.",
+        "operationId": "finance_get_receipt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Receipt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Receipt",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.receipt.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/receipts/{receipt_id}/allocations": {
+      "post": {
+        "description": "Allocate (part of) a receipt to an issued invoice of the same party and currency. Over-allocation of either side\nis refused (409 ``over_allocation`` with what is still available).",
+        "operationId": "finance_allocate_receipt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Receipt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Allocate Receipt",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.allocation.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/receipts/{receipt_id}/reverse": {
+      "post": {
+        "description": "Void a receipt (recent sign-in, reason): it is kept as reversed and its allocations are reversed with it.",
+        "operationId": "finance_reverse_receipt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Receipt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptReverse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reverse Receipt",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.receipt.reverse"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/summary": {
+      "get": {
+        "description": "Server-computed hub figures per currency (receivable, overdue, unallocated; never summed across currencies),\ncounts that need attention, the accounting and e-invoice integration state and the actor's list capabilities.",
+        "operationId": "finance_get_finance_summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Finance Summary",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/tax-profiles": {
+      "get": {
+        "description": "Business-entered tax scenarios (rate + source reference); usable for issue only once verified by a second\nperson. No rate is ever invented by the system.",
+        "operationId": "finance_list_tax_profiles",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaxProfileRead"
+                  },
+                  "title": "Response Finance List Tax Profiles",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tax Profiles",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.invoice.read"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "finance_create_tax_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxProfileCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxProfileRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Tax Profile",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.configuration.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/finance/tax-profiles/{profile_id}/verify": {
+      "post": {
+        "description": "A second person confirms the rate and its source (MFA; never the author).",
+        "operationId": "finance_verify_tax_profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__finance__schemas__Versioned"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxProfileRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Tax Profile",
+        "tags": [
+          "finance"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "finance.tax_profile.approve"
+          ]
         }
       }
     },
@@ -72111,6 +78016,7 @@
           "kind": "permission",
           "permissions": [
             "agents.ai_routing.manage",
+            "finance.configuration.manage",
             "identity.mfa.manage",
             "org.bank_account.update",
             "org.company.update",

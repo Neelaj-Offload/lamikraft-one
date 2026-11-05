@@ -232,6 +232,11 @@ WALNUT_BOARD_COST = "2450.0000"
 PURCHASE_ORDERS = SimpleNamespace(KAVERI_WALNUT="PO-2026-0001")
 PURCHASE_ORDER_REFS = SimpleNamespace(KAVERI_WALNUT="PO_KAVERI")
 
+# ---- finance (Slice 5) -------------------------------------------------------------------------
+#: the Maison receipt (fixtures.md §8; FY numbering, finance Decision 5)
+RECEIPTS = SimpleNamespace(MAISON="RCPT-2026-27-0001")
+FINANCE_REFS = SimpleNamespace(RECEIPT_MAISON="RCPT_MAISON")
+
 # ---- tasks and reminders ---------------------------------------------------------------------
 TASKS = SimpleNamespace(KABIR_COUNT="TASK_KABIR_COUNT", ARJUN_WALKTHROUGH="TASK_ARJUN_WALKTHROUGH")
 REMINDERS = SimpleNamespace(MEERA="REMINDER_MEERA")

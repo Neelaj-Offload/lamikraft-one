@@ -211,6 +211,20 @@ export const queryKeys = {
     order: (orderId: string) => ["orders", "order", { order_id: orderId }] as const,
     forQuote: (quoteId: string) => ["orders", "for-quote", { quote_id: quoteId }] as const,
   },
+  finance: {
+    all: () => ["finance"] as const,
+    summary: () => ["finance", "summary"] as const,
+    documents: (kind: string, params: Record<string, string | number | boolean | null | undefined>) => ["finance", "documents", kind, compact(params)] as const,
+    document: (kind: string, id: string) => ["finance", "document", { kind, id }] as const,
+    suggestions: () => ["finance", "suggestions"] as const,
+    receipts: (params: Record<string, string | number | boolean | null | undefined>) => ["finance", "receipts", compact(params)] as const,
+    receipt: (receiptId: string) => ["finance", "receipt", { receipt_id: receiptId }] as const,
+    ageing: (asOf: string | null) => ["finance", "ageing", { as_of: asOf }] as const,
+    exceptions: () => ["finance", "exceptions"] as const,
+    accounting: () => ["finance", "accounting"] as const,
+    exports: () => ["finance", "exports"] as const,
+    taxProfiles: () => ["finance", "tax-profiles"] as const,
+  },
   inventory: {
     all: () => ["inventory"] as const,
     warehouses: () => ["inventory", "warehouses"] as const,
@@ -311,6 +325,8 @@ export const invalidationMap = {
   ],
   // production (Slice 4): a work-order command moves stock and reservations, and can block or unblock work
   "production.changed": [queryKeys.production.all(), queryKeys.inventory.all(), queryKeys.cutting.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
+  // finance (Slice 5): a finance command can change every finance read and the briefing
+  "finance.changed": [queryKeys.finance.all(), queryKeys.tasks.all(), queryKeys.briefings.today()],
 } as const;
 
 export type InvalidationEvent = keyof typeof invalidationMap;

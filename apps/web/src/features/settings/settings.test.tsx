@@ -93,10 +93,5 @@ describe("area overviews", () => {
     expect(html).toContain('href="/today"');
     expect(html).toContain('href="/inbox"');
     expect(text).not.toMatch(/\b\d+ (open|items|invoices|orders)\b/);
-
-    const finance = textOf(renderInSession(<AreaOverview area="finance" />));
-    expect(finance).toContain("Finance is planned for Slice 5");
-    expect(finance).toContain("Receipts and allocations");
-    expect(finance).toContain("Planned · Slice 5");
   });
 });

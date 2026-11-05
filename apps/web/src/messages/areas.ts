@@ -1,6 +1,7 @@
 /**
- * Copy for the Operations and Finance overview pages: honest "planned" states with the slice that
- * delivers each part (docs/BUILD_STATE.md §4, docs/PLAN.md Slices 2, 4 and 5). No figures.
+ * Copy for the Operations overview page: honest "planned" states with the slice that delivers each
+ * part (docs/BUILD_STATE.md §4, docs/PLAN.md Slices 2 and 4). No figures. Finance has its own hub
+ * since Slice 5 (`features/finance`).
  */
 
 export interface PlannedPart {
@@ -47,20 +48,4 @@ export const areaMessages = {
       { label: "Dispatch and logistics: packing lists, shipments and cutoffs", slice: 4, routeId: "operations-dispatch" },
     ],
   },
-  finance: {
-    title: "Finance",
-    intro: "Invoices, credit notes, receipts and the handoff to accounting.",
-    stateTitle: "Finance is planned for Slice 5",
-    stateBody:
-      "Slice 5 brings invoice and credit-note drafts with an issue gate, receipts, allocations, ageing, the accounting handoff and margin exceptions. Nothing here is switched on yet.",
-    partsHeading: "What this area will hold",
-    parts: [
-      { label: "Invoice drafts with an issue gate on tax and provider configuration", slice: 5 },
-      { label: "Credit notes", slice: 5 },
-      { label: "Receipts and allocations", slice: 5 },
-      { label: "Ageing", slice: 5 },
-      { label: "Accounting handoff: CSV adapter and a Demo adapter, with reconciliation", slice: 5 },
-      { label: "Margin policy and exceptions", slice: 5 },
-    ],
-  },
-} as const satisfies { planned: (slice: number) => string; available: string; today: string; inbox: string; nothingOn: string; operations: AreaCopy; finance: AreaCopy };
+} as const satisfies { planned: (slice: number) => string; available: string; today: string; inbox: string; nothingOn: string; operations: AreaCopy };

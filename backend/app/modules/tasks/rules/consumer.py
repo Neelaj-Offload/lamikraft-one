@@ -224,8 +224,21 @@ SLICE4_TRIGGERS: dict[str, tuple[str, str]] = {
         "logistics.shipment.exception_recorded")},
 }
 
+#: Slice-5 families (events.md §4): fin.invoice_suggestions, fin.invoice_approvals, fin.overdue_invoices,
+#: fin.unallocated_receipts, mgmt.margin_exceptions — one dispatcher in the finance module per event
+def _slice5_families() -> dict[str, tuple[str, ...]]:
+    from app.modules.finance.rules import EVENT_FAMILIES as FINANCE_FAMILIES
+
+    return FINANCE_FAMILIES
+
+
+SLICE5_TRIGGERS: dict[str, tuple[str, tuple[str, ...]]] = {
+    name: ("app.modules.finance.rules.on_event", families) for name, families in _slice5_families().items()
+}
+
 TRIGGERS: dict[str, Trigger] = {
     **{name: _module_trigger(path) for name, (path, _family) in SLICE4_TRIGGERS.items()},
+    **{name: _module_trigger(path) for name, (path, _families) in SLICE5_TRIGGERS.items()},
     **{name: _on_quote for name in QUOTE_EVENTS},
     **{name: _on_proposal for name in PROPOSAL_EVENTS},
     "sales.customer_message.received": _on_message,
@@ -254,6 +267,7 @@ EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
     "identity.membership.activated": ("common.onboarding",),
     "identity.membership.deactivated": ("common.offboarding",),
     **{name: (family,) for name, (_path, family) in SLICE4_TRIGGERS.items()},
+    **{name: families for name, (_path, families) in SLICE5_TRIGGERS.items()},
 }
 
 #: event aggregate type -> issue-member ref type compared for staleness

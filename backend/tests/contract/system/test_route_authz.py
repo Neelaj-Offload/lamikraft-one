@@ -35,8 +35,8 @@ PLATFORM_MATRIX: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     ("GET", f"{API}/org/settings/{{key}}"): ("permission", ("org.settings.read",)),
     ("PUT", f"{API}/org/settings/{{key}}"): (
         "permission",
-        ("agents.ai_routing.manage", "identity.mfa.manage", "org.bank_account.update", "org.company.update",
-         "org.settings.manage", "sales.quote_settings.manage"),
+        ("agents.ai_routing.manage", "finance.configuration.manage", "identity.mfa.manage", "org.bank_account.update",
+         "org.company.update", "org.settings.manage", "sales.quote_settings.manage"),
     ),
     ("GET", f"{API}/org/settings/{{key}}/revisions"): ("permission", ("org.settings.read",)),
     ("GET", f"{API}/org/currencies"): ("authenticated", ()),

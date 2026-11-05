@@ -24,7 +24,9 @@ from app.platform.identity.models import AppUser, Membership
 from app.platform.org.workcal import CalendarView, resolve_view
 from app.platform.uow import UnitOfWork
 
-QUEUE_BY_FAMILY_PREFIX = {"sales": "sales", "common": "admin", "ops": "operations", "admin": "admin"}
+QUEUE_BY_FAMILY_PREFIX = {
+    "sales": "sales", "common": "admin", "ops": "operations", "admin": "admin", "fin": "finance", "mgmt": "management",
+}
 
 
 @dataclass(frozen=True)

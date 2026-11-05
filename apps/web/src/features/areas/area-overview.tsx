@@ -8,7 +8,7 @@ import type { RouteId } from "@/lib/routes";
 import { areaMessages, type AreaCopy } from "@/messages/areas";
 import { DeliveredPart } from "./area-part";
 
-export type PlannedArea = "operations" | "finance";
+export type PlannedArea = "operations";
 
 /**
  * An honest overview for an area no slice has delivered yet: what it will hold and when, with no

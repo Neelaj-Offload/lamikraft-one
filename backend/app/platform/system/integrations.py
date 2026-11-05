@@ -92,7 +92,15 @@ BUILTIN_INTEGRATIONS: tuple[IntegrationDef, ...] = (
     IntegrationDef(
         key="accounting",
         label="Accounting system",
-        configured_mode=lambda _s: IntegrationMode.DEMO,  # no live adapter before Slice 5
+        # Slice 5: the CSV journal export and the labelled Demo adapter; no live adapter until the owner chooses the
+        # accounting system (BUILD_STATE decision 3), so the state stays not_connected
+        configured_mode=lambda _s: IntegrationMode.DEMO,
+    ),
+    IntegrationDef(
+        key="e_invoice",
+        label="E-invoice / e-way bill provider",
+        # no provider chosen (BUILD_STATE decision 4): tax invoices that need e-invoicing stay blocked at issue
+        configured_mode=lambda _s: IntegrationMode.DEMO,
     ),
 )
 
