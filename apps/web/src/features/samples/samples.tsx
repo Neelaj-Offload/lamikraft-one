@@ -26,6 +26,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { useSession } from "@/lib/session/context";
 import { commercialMessages as c } from "@/messages/commercial";
 import { createSample, fetchSample, fetchSamples, SAMPLE_STATUSES, SAMPLES_PAGE_SIZE, transitionSample, type Sample, type SampleTransitionRequest } from "./api";
+import { SampleLineageSection } from "./lineage";
 import { sampleListHref, type SampleListState } from "./list-state";
 
 const m = c.samples;
@@ -249,6 +250,7 @@ function SampleDetail({ sample }: { sample: Sample }) {
           { term: m.fields.notes!, description: d(sample.notes ?? sample.close_reason) },
         ]}
       />
+      <SampleLineageSection sample={sample} />
       <section aria-label={c.customProducts.sections.actions} className="flex flex-col gap-3">
         <h2 className="text-lg font-[650] text-ink">{c.customProducts.sections.actions}</h2>
         {sample.allowed_transitions.length === 0 ? (

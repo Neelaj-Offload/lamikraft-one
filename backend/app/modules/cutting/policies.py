@@ -2,7 +2,8 @@
 
 - ``cutting.plan``: own/team/branch/company on ``owner_user_id`` and ``branch_id`` (sales own, operations branch,
   management and production company). Items and calculations are children authorised only through their plan, and
-  every calculation result row only through its calculation (an invisible plan is a 404 for every child path,
+  every calculation result row only through its calculation; chosen offcut lots (``cutting.plan_offcut``) are
+  children of the plan too, and the lots themselves are read through the inventory warehouse scope (an invisible plan is a 404 for every child path,
   including the CSV, PDF and SVG exports).
 - Object rules feed ``capabilities``: drafts and calculated plans are editable and calculable; archived plans are
   read-only; exports need a stored calculation; verification only applies to plans that assumed the oversize board.
@@ -26,6 +27,7 @@ from app.modules.cutting.models import (
     Calculation,
     Plan,
     PlanItem,
+    PlanOffcut,
 )
 from app.platform.authz.context import ActorContext
 from app.platform.authz.policy import Decision, ParentRef, ResourcePolicy
@@ -63,6 +65,13 @@ PLAN_ITEM_POLICY = ResourcePolicy(
     parent=ParentRef("cutting.plan", "plan_id"),
     archived_column=None,
 )
+PLAN_OFFCUT_POLICY = ResourcePolicy(
+    resource_type="cutting.plan_offcut",
+    model=PlanOffcut,
+    permission_prefix="cutting.plan",
+    parent=ParentRef("cutting.plan", "plan_id"),
+    archived_column=None,
+)
 CALCULATION_POLICY = ResourcePolicy(
     resource_type="cutting.calculation",
     model=Calculation,
@@ -91,4 +100,4 @@ RESULT_POLICIES = [
     _result_policy("cutting.calc_cut", CalcCut),
 ]
 
-POLICIES = [PLAN_POLICY, PLAN_ITEM_POLICY, CALCULATION_POLICY, *RESULT_POLICIES]
+POLICIES = [PLAN_POLICY, PLAN_ITEM_POLICY, PLAN_OFFCUT_POLICY, CALCULATION_POLICY, *RESULT_POLICIES]

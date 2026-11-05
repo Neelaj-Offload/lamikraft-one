@@ -13,6 +13,7 @@ import { createIdempotencyKey } from "@/lib/api/client";
 import { conflictFromError, ProblemError } from "@/lib/api/errors";
 import { invalidationMap } from "@/lib/api/query-keys";
 import { useOnline } from "@/lib/hooks";
+import { useSession } from "@/lib/session/context";
 import { productionMessages as m } from "@/messages/production";
 
 export const OPERATIONS_LEADING = [{ id: "operations", label: "Overview", href: "/operations" }] as const;
@@ -53,16 +54,19 @@ export function MasterStatus({ status }: { status: string }) {
   return <StatusPill tone={tone}>{m.masterStatuses[status] ?? status}</StatusPill>;
 }
 
-type Tab = "workOrders" | "boms" | "routings" | "workCentres" | "capacity";
+type Tab = "workOrders" | "boms" | "routings" | "workCentres" | "capacity" | "whatIf";
 
-/** The production sub-navigation (work orders is the Operations context route; the rest are its pages). */
+/** The production sub-navigation (work orders is the Operations context route; the rest are its pages). What-if is
+ * listed only for people who may run simulations. */
 export function ProductionTabs({ current }: { current: Tab }) {
+  const { permissionKeys } = useSession();
   const tabs: readonly { id: Tab; href: string; label: string }[] = [
     { id: "workOrders", href: "/operations/production/work-orders", label: m.nav.workOrders },
     { id: "boms", href: "/operations/production/boms", label: m.nav.boms },
     { id: "routings", href: "/operations/production/routings", label: m.nav.routings },
     { id: "workCentres", href: "/operations/production/work-centres", label: m.nav.workCentres },
     { id: "capacity", href: "/operations/production/capacity", label: m.nav.capacity },
+    ...(permissionKeys.has("production.simulation.run") ? [{ id: "whatIf" as const, href: "/operations/production/what-if", label: m.nav.whatIf }] : []),
   ];
   return (
     <nav aria-label={m.nav.workOrders} className="flex flex-wrap gap-4 text-sm">

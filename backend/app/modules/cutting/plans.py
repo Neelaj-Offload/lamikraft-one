@@ -27,6 +27,7 @@ from app.modules.catalogue.normalise import normalise_thickness
 from app.modules.catalogue.schemas import ProductFilters
 from app.modules.cutting import config
 from app.modules.cutting import events as ev
+from app.modules.cutting import offcuts as offcut_reuse
 from app.modules.cutting.canonical import canonical_decor, thickness_key
 from app.modules.cutting.config import MAX_PIECES, SYNC_PIECE_LIMIT, plain
 from app.modules.cutting.models import (
@@ -45,6 +46,7 @@ from app.modules.cutting.packer.engine import (
     PackBudgetExceeded,
     PackResult,
     PackSettings,
+    StockBoard,
     input_hash,
     pack,
 )
@@ -71,6 +73,7 @@ from app.modules.cutting.schemas import (
     PlanFilters,
     PlanItemIn,
     PlanItemRead,
+    PlanOffcutsUpdate,
     PlanSettingsIn,
     PlanSettingsRead,
     PlanSummary,
@@ -363,7 +366,8 @@ def _rows_from_result(result: PackResult) -> dict[str, list[dict[str, Any]]]:
         for b in g.boards:
             out["boards"].append(
                 {
-                    "group_no": g.group_no, "board_no": b.board_no, "source": b.source, "lot_id": None,
+                    "group_no": g.group_no, "board_no": b.board_no, "source": b.source,
+                    "lot_id": uuid.UUID(b.stock_ref) if b.stock_ref else None,
                     "raw_length_mm": _mm(b.raw_length), "raw_width_mm": _mm(b.raw_width), "margin_mm": _mm(b.margin),
                     "usable_length_mm": _mm(b.usable_length), "usable_width_mm": _mm(b.usable_width),
                     "placed_area_mm2": area_mm2(b.placed_area),
@@ -437,8 +441,12 @@ def _p(v: Any) -> Decimal:
     return plain(Decimal(v))  # type: ignore[return-value]
 
 
-def compose_groups(rows: Mapping[str, Sequence[Mapping[str, Any]]], svg_base: str | None) -> list[GroupRead]:
-    """Reads from result rows (fresh from the packer or loaded from the database)."""
+def compose_groups(
+    rows: Mapping[str, Sequence[Mapping[str, Any]]], svg_base: str | None, lot_codes: Mapping[str, str] | None = None
+) -> list[GroupRead]:
+    """Reads from result rows (fresh from the packer or loaded from the database); ``lot_codes`` names offcut lots
+    (by lot id text, from the calculation's input snapshot)."""
+    codes = lot_codes or {}
 
     def by_board(kind: str) -> dict[tuple[int, int], list[Mapping[str, Any]]]:
         out: dict[tuple[int, int], list[Mapping[str, Any]]] = {}
@@ -492,6 +500,8 @@ def compose_groups(rows: Mapping[str, Sequence[Mapping[str, Any]]], svg_base: st
                         for c in sorted(cuts.get(key, []), key=lambda r: r["seq"])
                     ],
                     svg_path=f"{svg_base}/boards/{index}.svg" if svg_base else None,
+                    lot_id=b.get("lot_id"),
+                    lot_code=codes.get(str(b["lot_id"])) if b.get("lot_id") else None,
                 )
             )
         groups.append(
@@ -513,16 +523,18 @@ def compose_groups(rows: Mapping[str, Sequence[Mapping[str, Any]]], svg_base: st
                     for i in sorted(items.get(g["group_no"], []), key=lambda r: r["line_no"])
                 ],
                 boards=board_reads,
+                offcut_boards=sum(1 for b in board_reads if b.source == "offcut"),
                 **_area_fields(g),
             )
         )
     return groups
 
 
-def _totals_read(t: Mapping[str, Any]) -> CalculationTotals:
+def _totals_read(t: Mapping[str, Any], offcut_boards: int = 0) -> CalculationTotals:
     return CalculationTotals(
         boards=t["boards"], required=t["required"], placed_required=t["placed_required"], extra=t["extra"],
-        produced=t["produced"], unfit=t["unfit"], lower_bound_boards=t["lower_bound_boards"], **_area_fields(t),
+        produced=t["produced"], unfit=t["unfit"], lower_bound_boards=t["lower_bound_boards"],
+        offcut_boards=offcut_boards, **_area_fields(t),
     )
 
 
@@ -552,6 +564,8 @@ def calculation_read(uow: UnitOfWork, calc: Calculation, *, with_svg: bool = Tru
     rows = _load_rows(uow, calc)
     svg_base = f"{_api_plan(calc.plan_id)}/calculations/{calc.calc_no}" if with_svg else None
     snapshot = calc.settings_snapshot
+    codes = {str(o["lot_id"]): str(o["lot_code"]) for o in (calc.input_snapshot or {}).get("offcuts") or []}
+    groups = compose_groups(rows, svg_base, codes)
     return CalculationRead(
         id=calc.id,
         plan_id=calc.plan_id,
@@ -565,8 +579,8 @@ def calculation_read(uow: UnitOfWork, calc: Calculation, *, with_svg: bool = Tru
         result_hash=calc.result_hash,
         requires_physical_verification=calc.requires_physical_verification,
         note=HEURISTIC_NOTE,
-        totals=_totals_read(_calc_totals(calc)),
-        groups=compose_groups(rows, svg_base),
+        totals=_totals_read(_calc_totals(calc), sum(g.offcut_boards for g in groups)),
+        groups=groups,
         settings=PlanSettingsRead.model_validate(snapshot["settings"]),
         grain_locked_decors=list(snapshot.get("grain_locked_decors") or []),
     )
@@ -575,9 +589,9 @@ def calculation_read(uow: UnitOfWork, calc: Calculation, *, with_svg: bool = Tru
 # =====================================================================================================
 # calculation
 # =====================================================================================================
-def _run_pack(specs: Sequence[ItemSpec], ps: PackSettings) -> PackResult:
+def _run_pack(specs: Sequence[ItemSpec], ps: PackSettings, stock: Sequence[StockBoard] = ()) -> PackResult:
     try:
-        return pack(specs, ps)
+        return pack(specs, ps, stock)
     except PackBudgetExceeded as exc:
         raise ValidationFailed(
             "This cut list needs more work than one calculation may spend; split it into smaller plans",
@@ -592,6 +606,7 @@ def _run_pack(specs: Sequence[ItemSpec], ps: PackSettings) -> PackResult:
 def _persist(
     uow: UnitOfWork, plan: Plan, values: Mapping[str, Any], specs: Sequence[ItemSpec], ps: PackSettings,
     result: PackResult, origin: str, requested_by: uuid.UUID | None,
+    stock: Sequence[StockBoard] = (), offcut_snapshot: Sequence[Mapping[str, Any]] = (),
 ) -> Calculation:
     totals = _totals_from_result(result)
     decors = {s.decor_key for s in specs}
@@ -604,8 +619,9 @@ def _persist(
         mode=ps.mode,
         origin=origin,
         settings_snapshot={"settings": settings_json, "grain_locked_decors": sorted(ps.grain_locked_decors & decors)},
-        input_snapshot={"items": [_jsonable(_spec_dict(s)) for s in specs]},
-        input_hash=input_hash(specs, ps),
+        input_snapshot={"items": [_jsonable(_spec_dict(s)) for s in specs],
+                        **({"offcuts": list(offcut_snapshot)} if offcut_snapshot else {})},
+        input_hash=input_hash(specs, ps, stock),
         result_hash=result.result_hash,
         requires_physical_verification=result.requires_physical_verification,
         evaluations=result.evaluations,
@@ -642,8 +658,10 @@ def _calculate(uow: UnitOfWork, plan: Plan, origin: str, requested_by: uuid.UUID
     locks = config.locked_decor_keys(uow)
     specs = _specs([_item_dict(i) for i in items])
     ps = _pack_settings(values, locks)
-    result = _run_pack(specs, ps)
-    calc = _persist(uow, plan, values, specs, ps, result, origin, requested_by)
+    chosen = offcut_reuse.plan_offcuts(uow, plan)
+    stock = offcut_reuse.stock_boards(chosen)
+    result = _run_pack(specs, ps, stock)
+    calc = _persist(uow, plan, values, specs, ps, result, origin, requested_by, stock, offcut_reuse.snapshot(chosen))
     was_verified = plan.verified_at is not None and _verification_matches(plan, values)
     plan.calc_count = calc.calc_no
     plan.latest_calculation_id = calc.id
@@ -675,7 +693,9 @@ def _calculate(uow: UnitOfWork, plan: Plan, origin: str, requested_by: uuid.UUID
         uow.emit(ev.PLAN_VERIFICATION_REQUIRED, aggregate_id=plan.id, aggregate_version=plan.version,
                  payload=ev.payload(ev.PlanRefPayload(plan_id=plan.id)))
     uow.audit("cutting.plan.calculated", resource_type="cutting.plan", resource_id=plan.id,
-              resource_label=plan.plan_number, details={"calc_no": calc.calc_no, "origin": origin, "boards": calc.boards})
+              resource_label=plan.plan_number, details={"calc_no": calc.calc_no, "origin": origin, "boards": calc.boards,
+                                                        "offcut_boards": sum(1 for g in result.groups for b in g.boards
+                                                                             if b.source == "offcut")})
     return calc
 
 
@@ -839,6 +859,7 @@ def detail(uow: UnitOfWork, plan: Plan) -> PlanDetail:
         exports=exports,
         path=plan_path(plan.id),
         warnings=warnings,
+        offcuts=offcut_reuse.reads(uow, plan),
     )
 
 
@@ -1027,6 +1048,7 @@ def duplicate_plan(uow: UnitOfWork, plan_id: uuid.UUID) -> Plan:
     uow.flush()
     for r in items:
         uow.add(PlanItem(plan_id=copy.id, **r))
+    offcut_reuse.copy_selection(uow, source, copy)
     uow.flush()
     _emit_saved(uow, copy)
     uow.audit("cutting.plan.duplicated", resource_type="cutting.plan", resource_id=copy.id,
@@ -1169,6 +1191,16 @@ def transition_plan_command(uow: UnitOfWork, plan_id: uuid.UUID, data: PlanTrans
     uow.repo(Plan).get(plan_id, "transition")
     return idempotent(uow, f"cutting.transition_plan:{plan_id}", data,
                       lambda: detail(uow, transition_plan(uow, plan_id, data)), PlanDetail)
+
+
+def replace_offcuts_command(uow: UnitOfWork, plan_id: uuid.UUID, data: PlanOffcutsUpdate) -> tuple[PlanDetail, bool]:
+    def run() -> PlanDetail:
+        plan, changed = offcut_reuse.replace_selection(uow, plan_id, data)
+        if changed:
+            _emit_saved(uow, plan)
+        return detail(uow, plan)
+
+    return idempotent(uow, f"cutting.replace_offcuts:{plan_id}", data, run, PlanDetail)
 
 
 def verify_boards_command(uow: UnitOfWork, plan_id: uuid.UUID, data: VerifyBoards) -> tuple[PlanDetail, bool]:

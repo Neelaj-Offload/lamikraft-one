@@ -76,11 +76,16 @@ def _on_issued_custom(uow: Any, event: Any) -> None:
 def _on_challan_issued(uow: Any, event: Any) -> None:
     import uuid
 
+    from app.modules.sales.sample_lineage import dispatch_linked_samples
     from app.modules.sales.samples import dispatch_by_challan
 
-    sample_id = (event.payload or {}).get("sample_id")
+    payload = event.payload or {}
+    challan_id = uuid.UUID(str(payload["challan_id"]))
+    sample_id = payload.get("sample_id")
     if sample_id:
-        dispatch_by_challan(uow, uuid.UUID(str(sample_id)), uuid.UUID(str(event.payload["challan_id"])))
+        dispatch_by_challan(uow, uuid.UUID(str(sample_id)), challan_id)
+    # the issued event carries sample_id = null (a challan has no sample column): samples linked to it are dispatched
+    dispatch_linked_samples(uow, challan_id)
 
 
 def _search_providers() -> list[Any]:

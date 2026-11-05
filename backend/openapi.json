@@ -3730,6 +3730,29 @@
             "title": "Index",
             "type": "integer"
           },
+          "lot_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Code"
+          },
+          "lot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lot Id"
+          },
           "margin_mm": {
             "examples": [
               "5760.00"
@@ -5330,6 +5353,11 @@
           },
           "lower_bound_boards": {
             "title": "Lower Bound Boards",
+            "type": "integer"
+          },
+          "offcut_boards": {
+            "default": 0,
+            "title": "Offcut Boards",
             "type": "integer"
           },
           "placed_area_m2": {
@@ -18945,6 +18973,11 @@
             "title": "Mode",
             "type": "string"
           },
+          "offcut_boards": {
+            "default": 0,
+            "title": "Offcut Boards",
+            "type": "integer"
+          },
           "placed_area_m2": {
             "examples": [
               "5760.00"
@@ -23579,6 +23612,168 @@
         "title": "LineType",
         "type": "string"
       },
+      "LineageEvent": {
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "kind": {
+            "enum": [
+              "custom_product_created",
+              "spec_revision_recorded",
+              "quote_issued",
+              "sample_requested",
+              "challan_issued",
+              "sample_dispatched",
+              "sample_delivered",
+              "feedback_recorded",
+              "sample_closed",
+              "product_promoted"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "on": {
+            "format": "date",
+            "title": "On",
+            "type": "string"
+          },
+          "ref_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "custom_product",
+                  "spec_revision",
+                  "quote",
+                  "challan",
+                  "product",
+                  "sample"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Kind"
+          }
+        },
+        "required": [
+          "at",
+          "on",
+          "kind",
+          "label"
+        ],
+        "title": "LineageEvent",
+        "type": "object"
+      },
+      "LineageNode": {
+        "description": "One record a sample is linked to. ``not_visible``: the link exists but the record is outside the actor's scope\n(its identity is not shown).",
+        "properties": {
+          "facts": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "custom_product",
+              "spec_revision",
+              "quote",
+              "challan",
+              "product",
+              "sample"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "state": {
+            "enum": [
+              "linked",
+              "not_visible"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "kind",
+          "state"
+        ],
+        "title": "LineageNode",
+        "type": "object"
+      },
       "LoadAllocation": {
         "properties": {
           "cartons": {
@@ -27084,6 +27279,175 @@
           "expected_version"
         ],
         "title": "NoteUpdate",
+        "type": "object"
+      },
+      "OffcutCandidate": {
+        "properties": {
+          "decor_key": {
+            "title": "Decor Key",
+            "type": "string"
+          },
+          "grain_axis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "length",
+                  "width",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grain Axis"
+          },
+          "length_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Length Mm",
+            "type": "string"
+          },
+          "location_code": {
+            "title": "Location Code",
+            "type": "string"
+          },
+          "lot_code": {
+            "title": "Lot Code",
+            "type": "string"
+          },
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "matches_group": {
+            "title": "Matches Group",
+            "type": "boolean"
+          },
+          "other_plans": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Other Plans",
+            "type": "array"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Key"
+          },
+          "product_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Name"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "boolean"
+          },
+          "thickness_key": {
+            "title": "Thickness Key",
+            "type": "string"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "examples": [
+                  "5760.00"
+                ],
+                "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thickness Mm"
+          },
+          "warehouse_code": {
+            "title": "Warehouse Code",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "title": "Warehouse Id",
+            "type": "string"
+          },
+          "width_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Width Mm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lot_id",
+          "lot_code",
+          "product_id",
+          "product_key",
+          "product_name",
+          "warehouse_id",
+          "warehouse_code",
+          "location_code",
+          "length_mm",
+          "width_mm",
+          "thickness_mm",
+          "grain_axis",
+          "decor_key",
+          "thickness_key",
+          "matches_group",
+          "selected"
+        ],
+        "title": "OffcutCandidate",
+        "type": "object"
+      },
+      "OffcutCandidates": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OffcutCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "default": "Offcut lots on hand with a measured size; a lot is checked again when the plan is released",
+            "title": "Note",
+            "type": "string"
+          },
+          "stock_visible": {
+            "title": "Stock Visible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "stock_visible"
+        ],
+        "title": "OffcutCandidates",
         "type": "object"
       },
       "OffcutRead": {
@@ -33135,6 +33499,13 @@
             ],
             "title": "Notes"
           },
+          "offcuts": {
+            "items": {
+              "$ref": "#/components/schemas/PlanOffcutRead"
+            },
+            "title": "Offcuts",
+            "type": "array"
+          },
           "owner": {
             "$ref": "#/components/schemas/app__modules__cutting__schemas__UserRef"
           },
@@ -33412,6 +33783,129 @@
           "label"
         ],
         "title": "PlanItemRead",
+        "type": "object"
+      },
+      "PlanOffcutRead": {
+        "description": "An offcut lot chosen for the plan, with the size pinned when it was chosen (grain along the length).",
+        "properties": {
+          "decor_key": {
+            "title": "Decor Key",
+            "type": "string"
+          },
+          "grain_axis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "length",
+                  "width",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grain Axis"
+          },
+          "length_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Length Mm",
+            "type": "string"
+          },
+          "lot_code": {
+            "title": "Lot Code",
+            "type": "string"
+          },
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "matches_group": {
+            "title": "Matches Group",
+            "type": "boolean"
+          },
+          "on_hand": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Hand"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "thickness_mm": {
+            "title": "Thickness Mm",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "boolean"
+          },
+          "width_mm": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Width Mm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "lot_id",
+          "lot_code",
+          "product_id",
+          "decor_key",
+          "thickness_mm",
+          "length_mm",
+          "width_mm",
+          "grain_axis",
+          "on_hand",
+          "used",
+          "matches_group"
+        ],
+        "title": "PlanOffcutRead",
+        "type": "object"
+      },
+      "PlanOffcutsUpdate": {
+        "additionalProperties": false,
+        "description": "Replace the plan's offcut selection (order = the order the optimiser fills them).",
+        "properties": {
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lot_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Lot Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expected_version",
+          "lot_ids"
+        ],
+        "title": "PlanOffcutsUpdate",
         "type": "object"
       },
       "PlanSettingsIn": {
@@ -48428,6 +48922,34 @@
         "title": "SalesOrderSummary",
         "type": "object"
       },
+      "SampleChallanLink": {
+        "additionalProperties": false,
+        "description": "Link (or, with ``challan_id: null``, unlink) the delivery challan that will carry a requested sample. Issuing\nthat challan dispatches the sample (``sales.sample_dispatch``); linking an already issued challan dispatches it now.",
+        "properties": {
+          "challan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challan Id"
+          },
+          "expected_version": {
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version",
+          "challan_id"
+        ],
+        "title": "SampleChallanLink",
+        "type": "object"
+      },
       "SampleCreate": {
         "additionalProperties": false,
         "properties": {
@@ -48569,6 +49091,114 @@
           "quantity"
         ],
         "title": "SampleCreate",
+        "type": "object"
+      },
+      "SampleLineage": {
+        "description": "Where a sample comes from and where it went: custom product (and spec revision), quote, delivery challan, the\ncatalogue product (direct or promoted), other samples of the same custom product, and a dated timeline.",
+        "properties": {
+          "challan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_product": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "items": {
+              "enum": [
+                "custom_product",
+                "quote",
+                "challan"
+              ],
+              "type": "string"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "related_samples": {
+            "items": {
+              "$ref": "#/components/schemas/LineageNode"
+            },
+            "title": "Related Samples",
+            "type": "array"
+          },
+          "sample_id": {
+            "format": "uuid",
+            "title": "Sample Id",
+            "type": "string"
+          },
+          "sample_number": {
+            "title": "Sample Number",
+            "type": "string"
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/SampleStatus"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/LineageEvent"
+            },
+            "title": "Timeline",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sample_id",
+          "sample_number",
+          "status",
+          "custom_product",
+          "spec_revision",
+          "quote",
+          "challan",
+          "product",
+          "related_samples",
+          "timeline",
+          "missing"
+        ],
+        "title": "SampleLineage",
         "type": "object"
       },
       "SampleRead": {
@@ -66873,6 +67503,135 @@
           "kind": "permission",
           "permissions": [
             "cutting.plan.export"
+          ]
+        }
+      }
+    },
+    "/api/v1/cutting/plans/{plan_id}/offcut-candidates": {
+      "get": {
+        "description": "Measured offcut lots on hand (visible warehouses) the plan could cut from, with whether a group matches and\nwhich other plans chose them. Without ``inventory.stock.read`` the list is empty (``stock_visible: false``).",
+        "operationId": "cutting_list_cut_plan_offcut_candidates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OffcutCandidates"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cut Plan Offcut Candidates",
+        "tags": [
+          "cutting"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "cutting.plan.read",
+            "inventory.stock.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/cutting/plans/{plan_id}/offcuts": {
+      "put": {
+        "description": "Replace the offcut lots the plan may cut from (filled in this order before standard sheets); every lot must\nbe on hand with a measured size (422 ``offcut_not_available``). A changed selection marks a calculated plan stale.",
+        "operationId": "cutting_replace_cut_plan_offcuts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanOffcutsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Cut Plan Offcuts",
+        "tags": [
+          "cutting"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "cutting.plan.update",
+            "inventory.stock.read"
           ]
         }
       }
@@ -92115,6 +92874,134 @@
           "kind": "permission",
           "permissions": [
             "sales.sample.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/samples/{sample_id}/challan": {
+      "post": {
+        "description": "Link (or unlink with ``challan_id: null``) the delivery challan that will carry a requested sample: issuing that\nchallan dispatches the sample; an already issued challan dispatches it now. The challan must be visible, for the\nsample's customer, outbound and not cancelled.",
+        "operationId": "sales_link_sample_challan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sample_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sample Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SampleChallanLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Sample Challan",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.sample.update",
+            "challans.challan.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/samples/{sample_id}/lineage": {
+      "get": {
+        "description": "The custom product and spec revision, quote, delivery challan, catalogue product and sibling samples of a sample,\neach through its own read scope (a link outside the actor's scope is ``not_visible``), with a dated timeline.",
+        "operationId": "sales_get_sample_lineage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sample_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sample Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleLineage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sample Lineage",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.sample.read"
           ]
         }
       }

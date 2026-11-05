@@ -5,7 +5,8 @@ Legacy challans never create stock (they are documents only); stock starts from 
 builds the staging and reconciliation side: ``stage_batch`` stores the dry run's accepted lines (and the quarantined
 ones, marked) with totals by unit; ``approve_batch`` records the approval (``migration.apply.execute``, never the
 person who staged it); ``post_batch`` hands the approved lines to the poster the inventory module registers with
-``register_opening_poster`` (Slice 4). Until then posting is refused with ``inventory_module_unavailable``.
+``register_opening_poster`` (not registered yet: a Slice-5 merge open item). Until then posting is refused with
+``inventory_module_unavailable``.
 """
 
 from __future__ import annotations
@@ -122,7 +123,7 @@ def post_batch(uow: UnitOfWork, batch_id: uuid.UUID, expected_version: int) -> d
     if batch.status != OpeningStatus.APPROVED.value:
         raise Conflict(f"The batch is {batch.status}; approve it first", code="opening_batch_not_approved")
     if _poster is None:
-        raise ServiceUnavailable("Opening stock is posted by the inventory module, which is not installed yet",
+        raise ServiceUnavailable("Posting a migration opening batch to stock is not connected to the inventory module yet",
                                  code="inventory_module_unavailable")
     lines = list(uow.session.scalars(select(OpeningLine).where(
         OpeningLine.batch_id == batch.id, OpeningLine.status == OpeningLineStatus.VALID.value)))

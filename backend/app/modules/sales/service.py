@@ -92,6 +92,8 @@ from app.modules.sales.quotes import (
 )
 from app.modules.sales.readers import read_enquiry_facts, read_message_facts, read_quote_facts
 from app.modules.sales.revisions import compare_revisions, restore_revision, restore_revision_command
+from app.modules.sales.sample_lineage import lineage as sample_lineage
+from app.modules.sales.sample_lineage import link_command as sample_link_challan_command
 from app.modules.sales.samples import create_command as create_sample_command
 from app.modules.sales.samples import (
     create_sample,
@@ -152,6 +154,8 @@ __all__ = [
     "request_promotion",
     "restore_revision",
     "restore_revision_command",
+    "sample_lineage",
+    "sample_link_challan_command",
     "sample_read",
     "sample_status_counts",
     "sample_transition_command",

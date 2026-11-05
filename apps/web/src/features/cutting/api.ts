@@ -13,7 +13,8 @@
  * Exports are plain links (cookie-authenticated downloads): export.csv, export.pdf and per-board SVG.
  */
 
-import { api, idempotencyHeaders, requestUntyped, type ApiClient } from "@/lib/api/client";
+import { api, idempotencyHeaders, requestUntyped, unwrap, type ApiClient } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema";
 import { parseGrainLocks, parsePage, parsePlanDetail, parsePlanSummary, parseProducts } from "./parse";
 import type { CuttingProduct, GrainLockList, Page, PlanDetail, PlanItemRequest, PlanSettingsRequest, PlanSummary } from "./types";
 
@@ -107,6 +108,24 @@ export async function verifyBoards(
       measured_width_mm: measured.width_mm,
       ...(measured.note?.trim() ? { note: measured.note.trim() } : {}),
     },
+    headers: idempotencyHeaders(idempotencyKey),
+  });
+  return parsePlanDetail(raw);
+}
+
+// ---- offcut reuse (Slice 5; typed from the generated schema) ------------------------------------------------------
+export type OffcutCandidates = components["schemas"]["OffcutCandidates"];
+export type OffcutCandidate = OffcutCandidates["items"][number];
+
+/** Measured offcut lots on hand in warehouses the viewer can read, with whether a group of the plan matches. */
+export function fetchOffcutCandidates(planId: string, signal?: AbortSignal, client: ApiClient = api): Promise<OffcutCandidates> {
+  return unwrap(client.GET("/api/v1/cutting/plans/{plan_id}/offcut-candidates", { params: { path: { plan_id: planId } }, signal }));
+}
+
+/** Replace the plan's offcut choice (filled in this order before standard sheets); a calculated plan becomes stale. */
+export async function saveOffcuts(plan: Pick<PlanDetail, "id" | "version">, lotIds: string[], idempotencyKey: string, client: ApiClient = api): Promise<PlanDetail> {
+  const raw = await requestUntyped<unknown>(client, "put", `${planPath(plan.id)}/offcuts`, {
+    body: { expected_version: plan.version, lot_ids: lotIds },
     headers: idempotencyHeaders(idempotencyKey),
   });
   return parsePlanDetail(raw);

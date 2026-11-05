@@ -73,6 +73,7 @@ function BoardView({ board, lines }: { board: Board; lines: readonly number[] })
   const tableId = useId();
   return (
     <div className="flex flex-col gap-4">
+      {board.source === "offcut" ? <p className="text-sm text-ink">{m.results.cutFromOffcut(board.lot_code)}</p> : null}
       <BoardCanvas board={board} lines={lines} />
       <details className="rounded-md border bg-surface px-3 py-2">
         <summary className="cursor-pointer rounded-xs py-1 font-semibold text-ink focus-visible:focus-ring" id={tableId}>
@@ -154,7 +155,7 @@ function GroupView({ group, locked }: { group: Group; locked: boolean }) {
                   b.index === board?.index ? "border-forest bg-forest-tint font-semibold text-ink" : "bg-surface text-ink-muted hover:text-ink",
                 )}
               >
-                {m.results.boardsOf(b.index)}
+                {b.source === "offcut" ? m.results.offcutBoardOf(b.index, b.lot_code) : m.results.boardsOf(b.index)}
               </button>
             ))}
           </div>
@@ -183,6 +184,9 @@ export function Results({ calc }: { calc: Calculation }) {
       </header>
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Metric label={m.results.boards} value={formatCount(t.boards, locale)} hint={m.results.lowerBound(t.lower_bound_boards)} />
+        {t.offcut_boards > 0 ? (
+          <Metric label={m.results.fromOffcuts} value={formatCount(t.offcut_boards, locale)} hint={m.results.fromOffcutsHint(t.boards - t.offcut_boards)} />
+        ) : null}
         <Metric label={m.results.placed} value={`${formatCount(t.placed_required, locale)} / ${formatCount(t.required, locale)}`} />
         <Metric label={m.results.extra} value={formatCount(t.extra, locale)} />
         <Metric label={m.results.unfit} value={formatCount(t.unfit, locale)} />

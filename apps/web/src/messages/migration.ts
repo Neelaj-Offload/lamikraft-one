@@ -140,7 +140,7 @@ export const migrationMessages = {
     empty: "No opening-balance batch staged",
     columns: { staged: "Staged", status: "Status", lines: "Lines", quarantined: "Quarantined", totals: "Quantity by unit", approved: "Approved by" },
     statuses: { staged: "Staged", approved: "Approved", posted: "Posted", rejected: "Rejected" } as Record<string, string>,
-    posterMissing: "Posting waits for the inventory module (Slice 4).",
+    posterMissing: "Posting these lines to stock is not connected yet; record opening stock as an inventory opening batch (Operations › Inventory).",
   },
   backups: {
     area: "backups",

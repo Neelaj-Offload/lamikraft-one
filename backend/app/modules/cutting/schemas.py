@@ -377,6 +377,9 @@ class BoardRead(BaseModel):
     offcuts: list[OffcutRead]
     cuts: list[CutRead]
     svg_path: str | None = None
+    #: the offcut lot this board is (``source = "offcut"``); the code is shown only while the lot is visible
+    lot_id: uuid.UUID | None = None
+    lot_code: str | None = None
 
 
 class ItemResultRead(BaseModel):
@@ -403,10 +406,14 @@ class GroupRead(Areas):
     warnings: list[str]
     items: list[ItemResultRead]
     boards: list[BoardRead]
+    #: boards of this group cut from offcut lots (the rest are standard sheets)
+    offcut_boards: int = 0
 
 
 class CalculationTotals(Areas):
     boards: int
+    #: of ``boards``, how many are offcut lots (standard sheets = boards - offcut_boards)
+    offcut_boards: int = 0
     required: int
     placed_required: int
     extra: int
@@ -516,6 +523,8 @@ class PlanDetail(BaseModel):
     exports: dict[str, str]
     path: str
     warnings: list[str] = Field(default_factory=list)
+    #: measured offcut lots the plan may cut from (Slice 5 offcut reuse)
+    offcuts: list[PlanOffcutRead] = Field(default_factory=list)
 
 
 class PlanFilters(BaseModel):
@@ -539,3 +548,71 @@ class CuttingProduct(BaseModel):
     length_mm: DecimalStr | None
     width_mm: DecimalStr | None
     grain_locked: bool
+
+
+# =====================================================================================================
+# offcut reuse (Slice 5)
+# =====================================================================================================
+GrainAxis = Literal["length", "width", "none"]
+
+
+class PlanOffcutRead(BaseModel):
+    """An offcut lot chosen for the plan, with the size pinned when it was chosen (grain along the length)."""
+
+    seq: int
+    lot_id: uuid.UUID
+    lot_code: str
+    product_id: uuid.UUID
+    decor_key: str
+    thickness_mm: str
+    length_mm: DecimalStr
+    width_mm: DecimalStr
+    grain_axis: GrainAxis | None
+    #: whether the lot is still on hand in a visible warehouse (``None`` when the actor cannot read stock)
+    on_hand: bool | None
+    #: the latest calculation cut from it
+    used: bool
+    #: whether a group of the plan has its decor and thickness (otherwise the optimiser cannot use it)
+    matches_group: bool
+
+
+class OffcutCandidate(BaseModel):
+    lot_id: uuid.UUID
+    lot_code: str
+    product_id: uuid.UUID
+    product_key: str | None
+    product_name: str | None
+    warehouse_id: uuid.UUID
+    warehouse_code: str
+    location_code: str
+    #: measured size as recorded on the lot
+    length_mm: DecimalStr
+    width_mm: DecimalStr
+    thickness_mm: DecimalStr | None
+    grain_axis: GrainAxis | None
+    decor_key: str
+    #: normalised thickness the optimiser groups on (``""`` when neither the lot nor the product records one)
+    thickness_key: str
+    matches_group: bool
+    selected: bool
+    #: other plans (visible to the actor) that also chose this lot
+    other_plans: list[str] = Field(default_factory=list)
+
+
+class OffcutCandidates(BaseModel):
+    items: list[OffcutCandidate]
+    #: false when the actor cannot read stock (no lots are listed then)
+    stock_visible: bool
+    note: str = "Offcut lots on hand with a measured size; a lot is checked again when the plan is released"
+
+
+class PlanOffcutsUpdate(BaseModel):
+    """Replace the plan's offcut selection (order = the order the optimiser fills them)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int
+    lot_ids: Annotated[list[uuid.UUID], Field(max_length=50)]
+
+
+PlanDetail.model_rebuild()

@@ -10,6 +10,13 @@ apart and inside the usable area. With oversize enabled a standard board is assu
 each axis and the result is flagged ``requires_physical_verification`` (business decision #12).
 
 Results say "Heuristic layout, not guaranteed optimal": the area lower bound is reported beside the board count.
+
+Offcut reuse (Slice 5): ``pack(items, settings, stock)`` may receive measured offcut boards (``StockBoard``, one per
+offcut lot, grain along its length) for a (decor, thickness) group. They are filled first, in the order given, before
+any standard board is opened; an offcut board has no edge margin (its edges are measured saw cuts), never assumes the
++oversize board, and only offcuts that receive a piece appear in the result (``source="offcut"``, ``stock_ref``).
+The selection key counts standard boards only, and the lower bound subtracts the offcuts' capacity. Without stock
+boards the result (and its hashes) is identical to the Slice-2 engine.
 """
 
 from __future__ import annotations
@@ -79,6 +86,22 @@ class ItemSpec:
             raise ValueError(f"line {self.line_no}: quantity must be positive")
         if self.grain_rule not in GRAIN_RULES:
             raise ValueError(f"line {self.line_no}: unknown grain rule {self.grain_rule!r}")
+
+
+@dataclass(frozen=True)
+class StockBoard:
+    """A measured offcut usable as a board of its group (dimensions with the grain along ``length_dmm``)."""
+
+    #: the caller's reference (the offcut lot id)
+    ref: str
+    decor_key: str
+    thickness_key: str
+    length_dmm: int
+    width_dmm: int
+
+    def __post_init__(self) -> None:
+        if self.length_dmm <= 0 or self.width_dmm <= 0:
+            raise ValueError(f"stock board {self.ref}: length and width must be positive")
 
 
 @dataclass(frozen=True)
@@ -177,6 +200,8 @@ class BoardOut:
     cuts: tuple[CutOut, ...]
     offcuts: tuple[OffcutOut, ...]
     placed_area: int
+    #: the stock board's reference for ``source="offcut"`` boards (``None`` for standard boards)
+    stock_ref: str | None = None
 
     @property
     def raw_area(self) -> int:
@@ -307,6 +332,8 @@ class _Run:
     contents: list[list[tuple[_Piece, Rect, bool, bool]]]
     unfit: dict[int, list[tuple[_Piece, str]]]
     index: int
+    #: the first ``stock`` bins are the group's offcut boards (filled first; empty ones are not reported)
+    stock: int = 0
 
 
 def _orientations(p: _Piece, g: int) -> list[tuple[int, int, bool]]:
@@ -345,14 +372,26 @@ def _run(
     score: Callable[[int, int, int, int], tuple[int, int]],
     run_index: int,
     budget: _Budget,
+    stock: Sequence[StockBoard] = (),
 ) -> _Run:
     g = settings.gap_dmm
     bw, bh = settings.usable_length + g, settings.usable_width + g
-    run = _Run(bins=[], contents=[], unfit={}, index=run_index)
+    k = len(stock)
+    run = _Run(
+        bins=[_new_bin(settings.mode, s.length_dmm + g, s.width_dmm + g) for s in stock],
+        contents=[[] for _ in stock],
+        unfit={},
+        index=run_index,
+        stock=k,
+    )
     for p in sorted(pieces, key=_ORDERS[order_index]):
-        slot = _best_slot(run.bins, p, g, score, budget)
+        slot = _best_slot(run.bins[:k], p, g, score, budget) if k else None
         if slot is None:
-            if len(run.bins) >= settings.max_boards_per_group:
+            slot = _best_slot(run.bins[k:], p, g, score, budget)
+            if slot is not None:
+                slot = (slot[0] + k, *slot[1:])
+        if slot is None:
+            if len(run.bins) - k >= settings.max_boards_per_group:
                 run.unfit.setdefault(p.line_no, []).append((p, MAX_BOARDS_LIMIT))
                 continue
             run.bins.append(_new_bin(settings.mode, bw, bh))
@@ -369,22 +408,26 @@ def _run(
 
 def _selection_key(run: _Run, usable_area: int, g: int) -> tuple[Any, ...]:
     unfit = sum(len(v) for v in run.unfit.values())
-    if run.contents:
-        last = run.contents[-1]
+    standard = run.contents[run.stock:]
+    if standard:
+        last = standard[-1]
         used = sum((r[2] - g) * (r[3] - g) for _p, r, _rot, _x in last)
         last_util = Fraction(used, usable_area)
     else:
         last_util = Fraction(0)
-    return (unfit, len(run.bins), last_util, run.index)
+    return (unfit, len(standard), last_util, run.index)
 
 
 def _overproduce(
     run: _Run, items: Sequence[ItemSpec], rotation: dict[int, bool], settings: PackSettings, budget: _Budget
 ) -> dict[int, int]:
-    """Round-robin by line_no, one extra piece at a time, into already-open boards only (never opens a board)."""
+    """Round-robin by line_no, one extra piece at a time, into already-open boards only (never opens a board; an
+    offcut board that received no piece is not open)."""
     extras = {item.line_no: 0 for item in items}
-    if not settings.overproduction_enabled or not run.bins:
+    open_index = [i for i, c in enumerate(run.contents) if c]
+    if not settings.overproduction_enabled or not open_index:
         return extras
+    open_bins = [run.bins[i] for i in open_index]
     g = settings.gap_dmm
     score = _SCORES[settings.mode][0]
     caps: dict[int, int] = {}
@@ -397,10 +440,11 @@ def _overproduce(
         for item in active:
             n = extras[item.line_no]
             piece = _Piece(item.line_no, item.quantity + n + 1, item.sku, item.length_dmm, item.width_dmm, rotation[item.line_no])
-            slot = _best_slot(run.bins, piece, g, score, budget)
+            slot = _best_slot(open_bins, piece, g, score, budget)
             if slot is None:
                 continue
-            b_index, f_index, w, h, rotated = slot
+            o_index, f_index, w, h, rotated = slot
+            b_index = open_index[o_index]
             rect = run.bins[b_index].place(f_index, w, h)
             run.contents[b_index].append((piece, rect, rotated, True))
             extras[item.line_no] = n + 1
@@ -411,9 +455,14 @@ def _overproduce(
 
 
 def _board_out(
-    board_no: int, b: _Bin, contents: Sequence[tuple[_Piece, Rect, bool, bool]], settings: PackSettings
+    board_no: int,
+    b: _Bin,
+    contents: Sequence[tuple[_Piece, Rect, bool, bool]],
+    settings: PackSettings,
+    stock: StockBoard | None = None,
 ) -> BoardOut:
-    g, m = settings.gap_dmm, settings.margin_dmm
+    g = settings.gap_dmm
+    m = 0 if stock is not None else settings.margin_dmm
     placements = []
     placed_area = 0
     for p, (x, y, w, h), rotated, is_extra in sorted(contents, key=lambda c: (c[1][1], c[1][0])):
@@ -427,18 +476,24 @@ def _board_out(
     offcuts = tuple(
         OffcutOut(x + m, y + m, w, h) for x, y, w, h in predicted_offcuts(b.free_rects(), g, settings.min_offcut_dmm)
     )
+    if stock is not None:
+        raw_l, raw_w, use_l, use_w = stock.length_dmm, stock.width_dmm, stock.length_dmm, stock.width_dmm
+    else:
+        raw_l, raw_w = settings.raw_length, settings.raw_width
+        use_l, use_w = settings.usable_length, settings.usable_width
     return BoardOut(
         board_no=board_no,
-        source="standard",
-        raw_length=settings.raw_length,
-        raw_width=settings.raw_width,
+        source="offcut" if stock is not None else "standard",
+        raw_length=raw_l,
+        raw_width=raw_w,
         margin=m,
-        usable_length=settings.usable_length,
-        usable_width=settings.usable_width,
+        usable_length=use_l,
+        usable_width=use_w,
         placements=tuple(placements),
         cuts=tuple(cuts),
         offcuts=offcuts,
         placed_area=placed_area,
+        stock_ref=stock.ref if stock is not None else None,
     )
 
 
@@ -459,6 +514,7 @@ def _pack_group(
     settings: PackSettings,
     budget: _Budget,
     reduced: bool,
+    stock: Sequence[StockBoard] = (),
 ) -> GroupOut:
     g = settings.gap_dmm
     warnings: list[str] = []
@@ -480,7 +536,7 @@ def _pack_group(
     best: _Run | None = None
     best_key: tuple[Any, ...] | None = None
     for run_index, (o, s) in enumerate(plans):
-        run = _run(pieces, settings, o, _SCORES[settings.mode][s], run_index, budget)
+        run = _run(pieces, settings, o, _SCORES[settings.mode][s], run_index, budget, stock)
         key = _selection_key(run, usable_area, g)
         if best_key is None or key < best_key:
             best, best_key = run, key
@@ -489,7 +545,12 @@ def _pack_group(
     assert best is not None
     extras = _overproduce(best, items, rotation, settings, budget)
 
-    boards = tuple(_board_out(n, b, c, settings) for n, (b, c) in enumerate(zip(best.bins, best.contents, strict=True), start=1))
+    used = [
+        (b, c, stock[i] if i < best.stock else None)
+        for i, (b, c) in enumerate(zip(best.bins, best.contents, strict=True))
+        if c or i >= best.stock
+    ]
+    boards = tuple(_board_out(n, b, c, settings, sb) for n, (b, c, sb) in enumerate(used, start=1))
     placed_count: dict[int, int] = {}
     for c in best.contents:
         for p, _r, _rot, is_extra in c:
@@ -523,8 +584,9 @@ def _pack_group(
     placed_area = sum(b.placed_area for b in boards)
     inflated_bin = (settings.usable_length + g) * (settings.usable_width + g)
     inflated_pieces = sum((p.length + g) * (p.width + g) for p in pieces)
+    stock_capacity = sum((sb.length_dmm + g) * (sb.width_dmm + g) for sb in stock)
     eff_usable = percent(placed_area, usable)
-    if settings.oversize_enabled and boards:
+    if settings.oversize_enabled and any(b.source == "standard" for b in boards):
         warnings.append(WARN_OVERSIZE)
     return GroupOut(
         group_no=group_no,
@@ -541,7 +603,7 @@ def _pack_group(
         efficiency_usable_pct=eff_usable,
         efficiency_raw_pct=percent(placed_area, raw),
         scrap_pct=(Decimal("100.00") - eff_usable) if usable else Decimal("0.00"),
-        lower_bound_boards=math.ceil(inflated_pieces / inflated_bin) if inflated_pieces else 0,
+        lower_bound_boards=math.ceil(max(0, inflated_pieces - stock_capacity) / inflated_bin) if inflated_pieces else 0,
         run_index=best.index,
         warnings=tuple(warnings),
     )
@@ -554,40 +616,56 @@ def _thickness_sort(key: str) -> tuple[int, Decimal | str]:
         return (1, key)
 
 
-def pack(items: Sequence[ItemSpec], settings: PackSettings) -> PackResult:
-    """Pack every item, grouped by (canonical decor, normalised thickness); groups in (decor, thickness) order."""
+def pack(items: Sequence[ItemSpec], settings: PackSettings, stock: Sequence[StockBoard] = ()) -> PackResult:
+    """Pack every item, grouped by (canonical decor, normalised thickness); groups in (decor, thickness) order.
+    ``stock`` boards are used by the group with their decor and thickness (others are ignored)."""
     line_nos = [i.line_no for i in items]
     if len(set(line_nos)) != len(line_nos):
         raise ValueError("line numbers must be unique")
+    refs = [sb.ref for sb in stock]
+    if len(set(refs)) != len(refs):
+        raise ValueError("stock board references must be unique")
     groups: dict[tuple[str, str], list[ItemSpec]] = {}
     for item in items:
         groups.setdefault((item.decor_key, item.thickness_key), []).append(item)
+    stock_by_group: dict[tuple[str, str], list[StockBoard]] = {}
+    for sb in stock:
+        stock_by_group.setdefault((sb.decor_key, sb.thickness_key), []).append(sb)
     budget = _Budget(settings.work_budget)
     reduced = sum(i.quantity for i in items) > REDUCED_MULTISTART_ABOVE
     outs = tuple(
-        _pack_group(n, decor, thickness, groups[(decor, thickness)], settings, budget, reduced)
+        _pack_group(n, decor, thickness, groups[(decor, thickness)], settings, budget, reduced,
+                    stock_by_group.get((decor, thickness), ()))
         for n, (decor, thickness) in enumerate(sorted(groups, key=lambda k: (k[0], _thickness_sort(k[1]))), start=1)
     )
-    requires_verification = settings.oversize_enabled and any(g.boards for g in outs)
+    requires_verification = settings.oversize_enabled and any(b.source == "standard" for g in outs for b in g.boards)
+    group_bodies = [_jsonable(asdict(g)) for g in outs]
+    for body_group in group_bodies:  # standard boards hash exactly as they did before offcut reuse
+        for board in body_group["boards"]:
+            if board.get("stock_ref") is None:
+                board.pop("stock_ref", None)
     body = {
         "algorithm_version": ALGORITHM_VERSION,
-        "groups": [_jsonable(asdict(g)) for g in outs],
+        "groups": group_bodies,
         "requires_physical_verification": requires_verification,
     }
     digest = hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return PackResult(ALGORITHM_VERSION, outs, requires_verification, budget.used, digest)
 
 
-def input_hash(items: Sequence[ItemSpec], settings: PackSettings) -> str:
-    """sha256 of the canonical input (items in line order, settings, the relevant grain locks, algorithm version)."""
+def input_hash(items: Sequence[ItemSpec], settings: PackSettings, stock: Sequence[StockBoard] = ()) -> str:
+    """sha256 of the canonical input (items in line order, settings, the relevant grain locks, algorithm version and,
+    when any, the stock boards in the order given)."""
     decors = {i.decor_key for i in items}
-    body = {
+    body: dict[str, Any] = {
         "algorithm_version": ALGORITHM_VERSION,
         "items": [_jsonable(asdict(i)) for i in sorted(items, key=lambda i: i.line_no)],
         "settings": _jsonable(
             {**asdict(settings), "grain_locked_decors": sorted(settings.grain_locked_decors & decors)}
         ),
     }
+    if stock:
+        body["stock"] = [_jsonable(asdict(sb)) for sb in stock]
     return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -623,6 +701,7 @@ __all__ = [
     "PackResult",
     "PackSettings",
     "PlacementOut",
+    "StockBoard",
     "area_mm2",
     "dmm_to_mm",
     "input_hash",

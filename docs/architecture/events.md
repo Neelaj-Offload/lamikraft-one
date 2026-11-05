@@ -48,7 +48,7 @@ contract 5. Code anchors: `backend/app/platform/events/{defs,models,service}.py`
 | `collab.activity_projector` | collab | activity rows for events that declare an ActivitySpec | 2 |
 | `sales.document_render` | sales | renders and stores the issued quote PDF | 1 |
 | `sales.custom_product_autoadvance` | sales | moves linked custom products forward to `quoted` on issue | 2 |
-| `sales.sample_dispatch` | sales | marks a sample dispatched when its challan is issued | 2 |
+| `sales.sample_dispatch` | sales | marks a sample dispatched when its challan is issued: the payload's `sample_id` when set, and (Slice 5) every requested sample linked to the issued challan through `sales_sample.challan_id` (the challans payload's `sample_id` stays null) | 2→5 |
 | `sales.quote_delivery_status` | sales | maps channel delivery statuses to quote dispatch records | 3 |
 | `catalogue.completeness_refresh` | catalogue | debounced completeness recount; emits `catalogue.completeness.changed` | 2 |
 | `channels.revoke_on_deactivation` | channels | revokes channel sessions and voids armed action refs | 3 |

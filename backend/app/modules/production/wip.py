@@ -9,6 +9,7 @@ one event = one posting (the ledger's UNIQUE(company, source_type, source_id, pu
 | return | WIP -> internal (the warehouse's stock location) | return |
 | output | production -> internal, or QC hold when the product requires QC | output |
 | offcut | production -> internal, a new ``offcut`` lot with its measured dimensions (``inventory.lot.measured``) | output |
+| offcut reuse | internal -> WIP: the offcut lots a released cut plan cuts from (Slice 5), when the plan is released | issue |
 
 Quantities are in the component's (or product's) stock unit. Lots: issue names the lot of a lot-tracked component;
 consume/return default to the lots issued to that material, oldest first, from this work order's own transactions.
@@ -403,12 +404,72 @@ def link_cut_plan(uow: UnitOfWork, work_order_id: uuid.UUID, operation_id: uuid.
     _ = Plan
     if wo.status == "released":
         release_for_work_order(uow, plan.id, wo.id)
+        issue_planned_offcuts(uow, wo, plan.id)
         set_block_state(uow, wo, reserve_materials(uow, wo))
     wo.updated_at = uow.now()
     uow.flush()
     uow.audit("production.work_order.cut_plan_linked", resource_type="production.work_order", resource_id=wo.id,
               resource_label=wo.wo_number, details={"cut_plan_id": str(plan.id), "operation_seq": op.seq})
     return wo
+
+
+def issue_planned_offcuts(uow: UnitOfWork, wo: WorkOrder, plan_id: uuid.UUID) -> None:
+    """Offcut reuse (Slice 5): the offcut lots the released plan's calculation cuts from move from their bin in the
+    work order's warehouse to its WIP in one issue transaction, counted as issued against the sheet material the plan
+    backs (whose requirement is all of the plan's boards), so only the standard sheets are reserved afterwards.
+
+    Idempotent (lots already issued to this work order are skipped). A lot of another product than that material is a
+    409 ``offcut_not_of_material``; a lot no longer on hand there (consumed by another work order, moved, another
+    warehouse) is a 409 ``offcut_unavailable`` naming the lots: recalculate the plan without them."""
+    from app.modules.cutting import service as cutting
+    from app.modules.cutting.models import Plan
+
+    plan = uow.session.get(Plan, plan_id)
+    planned = cutting.planned_offcuts(uow, plan) if plan is not None else []
+    if not planned:
+        return
+    material = next((m for m in materials_of(uow, wo.id, lock=True) if m.cut_plan_id == plan_id), None)
+    if material is None:
+        raise Conflict("The cut plan backs no sheet material of this work order", code="offcut_not_of_material",
+                       lots=[p.lot_code for p in planned])
+    issued: set[str] = set()
+    for txn in uow.session.scalars(select(WoTransaction).where(
+            WoTransaction.company_id == uow.actor.company_id, WoTransaction.work_order_id == wo.id,
+            WoTransaction.kind == TransactionKind.ISSUE.value)):
+        issued |= {str(ln.get("lot_id")) for ln in (txn.lines or []) if ln.get("offcut_reuse")}
+    todo = [p for p in planned if str(p.lot_id) not in issued]
+    if not todo:
+        return
+    wrong = sorted(p.lot_code for p in todo if p.product_id != material.component_product_id)
+    if wrong:
+        raise Conflict(f"Offcut lots of another product than line {material.line_no}: {', '.join(wrong)}",
+                       code="offcut_not_of_material", lots=wrong)
+    on_hand = {lt.lot_id: lt for lt in inventory.offcut_lots(uow, lot_ids=[p.lot_id for p in todo],
+                                                             warehouse_id=wo.warehouse_id)}
+    missing = sorted(p.lot_code for p in todo if p.lot_id not in on_hand)
+    if missing:
+        raise Conflict(f"Offcut lots no longer on hand in the work order's warehouse: {', '.join(missing)}; "
+                       "recalculate the cut plan without them", code="offcut_unavailable", lots=missing)
+    wip = inventory.wip_location(uow, wo.warehouse_id)
+    one = Decimal(1)
+    lines: list[inventory.PostingLine] = []
+    snapshot: list[dict[str, Any]] = []
+    for p in todo:
+        src = on_hand[p.lot_id].location_id
+        lines.append(inventory.PostingLine(product_id=material.component_product_id, quantity=one, uom_code=material.uom_code,
+                                           from_location_id=src, to_location_id=wip.id, lot_id=p.lot_id,
+                                           source_line_type="production.wo_material", source_line_id=material.id))
+        snap = _snap(material.id, material.component_product_id, one, material.uom_code, p.lot_id, src, wip.id)
+        snap["offcut_reuse"] = {"lot_code": p.lot_code, "cut_plan_id": str(plan_id), "group_no": p.group_no,
+                                "board_no": p.board_no}
+        snapshot.append(snap)
+    try:
+        _post(uow, wo, TransactionKind.ISSUE, lines, snapshot, reason="offcut lots of the cut plan")
+    except inventory.NegativeStockError as exc:  # taken by another posting since the check above
+        raise Conflict("An offcut lot was taken by another posting; recalculate the cut plan without it",
+                       code="offcut_unavailable", lots=[p.lot_code for p in todo]) from exc
+    material.qty_issued = dec(material.qty_issued) + Decimal(len(todo))
+    uow.flush()
 
 
 def record_offcut(uow: UnitOfWork, work_order_id: uuid.UUID, data: OffcutRecord) -> WorkOrder:

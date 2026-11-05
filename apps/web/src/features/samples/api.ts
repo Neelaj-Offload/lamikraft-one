@@ -3,7 +3,8 @@
  * update, transitions (dispatch, deliver, record_feedback, close, cancel).
  */
 
-import { api, idempotencyHeaders, requestUntyped, type ApiClient } from "@/lib/api/client";
+import { api, idempotencyHeaders, requestUntyped, unwrap, type ApiClient } from "@/lib/api/client";
+import type { components } from "@/lib/api/schema";
 import { pageFrom, recordFrom } from "@/features/sales/resource-command";
 import type { Capability, PartyWire, TransitionWire, UserWire } from "@/features/custom-products/api";
 
@@ -86,6 +87,34 @@ export function sampleTransitionBody(sample: Pick<Sample, "version">, request: S
     if (value) body[key] = value;
   }
   return body;
+}
+
+// ---- lineage and the delivery challan (Slice 5; typed from the generated schema) -------------------------------------
+export type SampleLineage = components["schemas"]["SampleLineage"];
+export type LineageNode = components["schemas"]["LineageNode"];
+export type ChallanOption = components["schemas"]["ChallanSummaryRow"];
+
+export function fetchSampleLineage(id: string, signal?: AbortSignal, client: ApiClient = api): Promise<SampleLineage> {
+  return unwrap(client.GET("/api/v1/sales/samples/{sample_id}/lineage", { params: { path: { sample_id: id } }, signal }));
+}
+
+/** Link (or unlink with `null`) the challan that will carry a requested sample; the answer is the sample. */
+export async function linkSampleChallan(sample: Pick<Sample, "id" | "version">, challanId: string | null, key: string, client: ApiClient = api): Promise<Sample> {
+  return recordFrom<Sample>(
+    await requestUntyped<unknown>(client, "post", `${one(sample.id)}/challan`, { body: { expected_version: sample.version, challan_id: challanId }, headers: idempotencyHeaders(key) }),
+    "sample",
+  );
+}
+
+/** Draft or issued sample/outward challans of the sample's customer that the viewer can see. */
+export async function fetchChallansForSample(partyId: string, signal?: AbortSignal, client: ApiClient = api): Promise<ChallanOption[]> {
+  const page = await unwrap(
+    client.GET("/api/v1/challans/challans", {
+      params: { query: { party_id: partyId, status: ["draft", "issued"], challan_type: ["sample", "outward"], limit: 50 } },
+      signal,
+    }),
+  );
+  return page.items;
 }
 
 export async function transitionSample(sample: Pick<Sample, "id" | "version">, request: SampleTransitionRequest, key: string, client: ApiClient = api): Promise<Sample> {

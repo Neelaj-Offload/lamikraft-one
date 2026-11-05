@@ -64,7 +64,7 @@ def test_enum_checks_match_the_model_values(db: None) -> None:
 @pytest.mark.db
 def test_cutting_tables_force_rls_and_append_only_matches_model_flags(db: None) -> None:
     tables = _tables()
-    assert len(tables) == 12
+    assert len(tables) == 13  # + cutting_plan_offcut (Slice 5 offcut reuse)
     with UnitOfWork(ActorContext.system(None)) as uow:
         policies = set(uow.session.execute(text("SELECT tablename FROM pg_policies WHERE policyname = 'tenant_isolation'")).scalars())
         forced = set(uow.session.execute(text("SELECT relname FROM pg_class WHERE relforcerowsecurity")).scalars())

@@ -1,8 +1,9 @@
 """Cutting services: the public entry point for routers, tools, jobs, seeds and other modules.
 
 Implementation lives in ``config`` (settings, machine profiles, grain locks), ``plans`` (plans, calculations, the
-stateless calculation, the calculation job, catalogue autocomplete) and ``exports`` (CSV, PDF, SVG); the pure
-packer is ``cutting.packer``.
+stateless calculation, the calculation job, catalogue autocomplete), ``offcuts`` (offcut reuse: candidates, the
+plan's selection, the lots a calculation cuts from), ``release`` (work-order release) and ``exports`` (CSV, PDF,
+SVG); the pure packer is ``cutting.packer``.
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ from app.modules.cutting.config import (
 )
 from app.modules.cutting.exports import board_svg, placements_csv, plan_pdf, summary_csv
 from app.modules.cutting.models import Calculation, Plan
+from app.modules.cutting.offcuts import PlannedOffcut, planned_offcuts
+from app.modules.cutting.offcuts import candidates as offcut_candidates
 from app.modules.cutting.plans import (
     calculate_plan_command,
     calculate_stateless,
@@ -39,6 +42,7 @@ from app.modules.cutting.plans import (
     get_calculation,
     get_plan,
     list_plans,
+    replace_offcuts_command,
     request_calculation,
     search_products,
     transition_plan,
@@ -112,6 +116,10 @@ __all__ = [
     "list_machine_profiles",
     "list_plans",
     "locked_decor_keys",
+    "offcut_candidates",
+    "planned_offcuts",
+    "PlannedOffcut",
+    "replace_offcuts_command",
     "remove_grain_lock",
     "replace_grain_locks",
     "request_calculation",
