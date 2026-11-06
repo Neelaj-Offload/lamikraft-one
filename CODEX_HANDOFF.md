@@ -19,7 +19,7 @@ This file supersedes the "In progress" section of `docs/BUILD_STATE.md` until Ch
 | Branch | Worktree / slot | Tip | Notes |
 |---|---|---|---|
 | `main` | `D:\Lamikraft ERP` / 0 (web 3200, API 8200) | CP5 + this handoff commit | The plan says each checkpoint lands on `main` by fast-forward |
-| `lane/s5-merge` | `D:\lk-wt\integ` / 8 (web 3080, API 8080) | `e9fdad3` (WIP) | 3 lanes merged: finance `0c11d77`, migration `00f83ae`, capabilities `7cda0a9`. Migrations renumbered `0026_finance_slice5` → `0027_migration_slice5` → `0028_capabilities_slice5`. `e9fdad3` = the integrator's uncommitted work, committed as WIP for safety: scenario-M migration/backup e2e (`m-migration.spec.ts`, `support/mfa.ts`), `o-offcut-lineage-what-if.spec.ts`, `evidence-cp6.spec.ts`, e2e seed at `--slice 5` + dry run + backup in `scripts/dev.mjs`, ADR-066…069 in `DECISIONS.md` |
+| `lane/s5-merge` | `D:\lk-wt\integ` / 8 (web 3080, API 8080) | `5574038` (see "Progress after the handoff") | 3 lanes merged: finance `0c11d77`, migration `00f83ae`, capabilities `7cda0a9`. Migrations renumbered `0026_finance_slice5` → `0027_migration_slice5` → `0028_capabilities_slice5`. `e9fdad3` = the integrator's uncommitted work, committed as WIP for safety: scenario-M migration/backup e2e (`m-migration.spec.ts`, `support/mfa.ts`), `o-offcut-lineage-what-if.spec.ts`, `evidence-cp6.spec.ts`, e2e seed at `--slice 5` + dry run + backup in `scripts/dev.mjs`, ADR-066…069 in `DECISIONS.md` |
 | `lane/s6-handover` | `D:\lk-wt\work` / 4 | `364b5d5` | `docs/handover/{index,setup,providers,remaining-work,security-audit}.md`, `README.md`, `uv.lock` patches (certifi, pyasn1, pypdf). Report: `docs/lanes/handover-s6.md` |
 | `lane/s6-handover-pillow13` | — | `ad73c7a` | Pillow 12.3 → 13.0 trial (fixes 39 advisories); partial tests passed, full gates not run |
 | `lane/s5-finance`, `-migration`, `-capabilities` | `identity`/1, —, `sales`/6 | merged | Lane reports in `docs/lanes/*-s5.md` (on `lane/s5-merge`) |
@@ -27,7 +27,17 @@ This file supersedes the "In progress" section of `docs/BUILD_STATE.md` until Ch
 
 **Gate evidence so far for Slice 5:** `test:api` after merge step 1 (finance) = 1734 passed (`D:\lk-wt\s5-fin-testapi.log`);
 after step 2 (migration) = 1757 passed (`s5-mig-testapi.log`); after step 3 (capabilities) the run was **interrupted
-at ~60 %** (`s5-cap-testapi.log`). e2e tsc/eslint on the new specs ran clean. Nothing else has run on the merged tree.
+at ~60 %** (`s5-cap-testapi.log`). e2e tsc/eslint on the new specs ran clean.
+
+**Progress after the handoff (Claude Code, 2026-11-06), on `lane/s5-merge`:**
+- `93cffdd` merged `main` (handoff docs) in. Task 1 step 1 ✔
+- `.gitignore` `/backups/` was already anchored by `bf8279e` (migration lane); backups go to `backend/var/backups`
+  (covered by `var/`). Task 1 step 2 ✔ — no change needed.
+- `5574038` fixed the flaky rollup test (`.order_by(DomainEvent.seq)`); the file passes 7/7. Task 1 step 3 ✔
+- `npm run api:generate` → no diff. Task 1 step 4 ✔
+- `npm run check -- --keep-going` on `5574038` → **7/7 PASS** (ruff; pytest unit+contract 743 passed; alembic heads 1;
+  api:check; eslint; tsc; vitest 68 files / 708 tests). Log `D:\lk-wt\s5-merge-check.log`. Task 1 step 5 ✔
+- **Resume at Task 1 step 6** (full `test:api`), then step 7 (e2e).
 
 ## What to do next, in order
 
