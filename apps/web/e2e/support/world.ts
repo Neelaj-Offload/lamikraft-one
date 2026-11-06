@@ -9,6 +9,8 @@
  * `refs` carries ids by fixture key and, for quotes and enquiries, by business key too.
  */
 
+import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 export interface World {
@@ -35,6 +37,26 @@ export async function signInAs(page: Page, person: PersonKey): Promise<void> {
   const origin = new URL(test.info().project.use.baseURL ?? "http://127.0.0.1").origin;
   const response = await page.request.post("/api/v1/_test/sign-in", { data: { user_key: person }, headers: { Origin: origin } });
   expect(response.status(), `test sign-in as ${person}`).toBe(200);
+}
+
+/** A real Demo-link session (lower strength than the MFA-authenticated test-support sign-in). */
+export async function signInWithDemoLink(page: Page, person: PersonKey): Promise<void> {
+  const issued = spawnSync("uv", ["run", "--locked", "python", "-m", "app.cli", "demo", "sign-in-link", person], {
+    cwd: path.resolve(__dirname, "../../../../backend"),
+    env: process.env,
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 30_000,
+  });
+  // Never print the output: the one-use token belongs only in the browser's URL fragment.
+  expect(issued.status, "create the Demo sign-in link").toBe(0);
+  const link = issued.stdout.split(/\r?\n/).find((line) => /^http:\/\/127\.0\.0\.1:\d+\/demo-sign-in#t=\S+$/.test(line));
+  expect(link, "CLI returned a Demo sign-in link").toBeDefined();
+  const target = new URL(link!);
+  expect(target.origin).toBe(new URL(test.info().project.use.baseURL!).origin);
+  await page.context().clearCookies();
+  await page.goto(target.toString());
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/today");
 }
 
 function section(world: World, name: string): Record<string, unknown> {
