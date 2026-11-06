@@ -113,7 +113,8 @@ test("sample lineage: the linked challan's issue dispatches the sample", async (
   await lineage.getByRole("button", { name: "Link a delivery challan" }).click();
   const dialog = page.getByRole("dialog", { name: "Delivery challan for this sample" });
   await dialog.getByRole("button", { name: /Challan/ }).first().click();
-  await page.getByRole("option").first().click();
+  expect(challan.challan_number, "the created challan has its business reference").toBeTruthy();
+  await page.getByRole("option", { name: challan.challan_number!, exact: false }).click();
   await dialog.getByRole("button", { name: "Link challan" }).click();
   await expect(page.getByText("Challan linked").first()).toBeVisible();
 
@@ -127,7 +128,9 @@ test("sample lineage: the linked challan's issue dispatches the sample", async (
     .toBe("dispatched");
   await page.goto(`/sales/samples/${sample.id}`);
   await expect(page.getByRole("region", { name: "Lineage" })).toContainText("Delivery challan");
-  await expect(page.getByRole("region", { name: "Lineage" })).not.toContainText("Not linked yet");
+  // A catalogue sample need not have custom-product or quote links; check the challan it actually ships on.
+  await expect(lineage.getByRole("link", { name: challan.challan_number! })).toHaveAttribute("href", `/operations/challans/${challan.id}`);
+  await expect(lineage).toContainText(`Dispatched on ${challan.challan_number}`);
   await shoot(page, "sample-lineage", `/sales/samples/${sample.id}`); // checkpoint-6 evidence (cp6 only)
 });
 
