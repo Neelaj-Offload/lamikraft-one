@@ -1,7 +1,7 @@
 # Build state
 
-**Checkpoint 6 — Slice 5 (finance, migration/backup and new capabilities) on `lane/s5-merge`,
-2026-11-06** (section 15), verified and ready to fast-forward `main`. Earlier checkpoints remain below.
+**Checkpoint 6 — Slice 5 (finance, migration/backup and new capabilities) on `main` via `lane/s5-merge`,
+2026-11-06** (section 15), verified and fast-forwarded at `7368da7`. Earlier checkpoints remain below.
 
 Resume rule: a new session reads `AGENTS.md` and `CODEX_HANDOFF.md`, then `docs/PLAN.md`, this file and
 `docs/architecture/*`, and continues from

@@ -1,16 +1,16 @@
 # Codex handoff — Lamikraft One (2026-11-06)
 
-Written by Claude Code at the hand-over to Codex. Read `AGENTS.md` first (rules and commands), then this file.
-This file supersedes the "In progress" section of `docs/BUILD_STATE.md` until Checkpoint 6 is written.
+Continued by Codex after the Claude Code handoff. Read `AGENTS.md` first (rules and commands), then this file.
+This file remains authoritative for the ordered continuation tasks; Checkpoint 6 is recorded in BUILD_STATE §15.
 
 ## TL;DR — is the app finished?
 
-**No. About 85 % is built; the remaining work is integration, verification and acceptance, plus a list of known gaps.**
+**No. Checkpoint 6 is verified and merged on `main`; handover integration and Slice 6 acceptance remain, together with the explicit product gaps below. No completion percentage is asserted.**
 
 | Slice | Content | Where it is | State |
 |---|---|---|---|
-| 0–4 | kernel, auth, briefings, quotes, full legacy parity, agents/voice/vision/WhatsApp (Demo), orders, inventory, production, procurement, QC, logistics | `main` @ Checkpoint 5 | **Done, verified** (BUILD_STATE §9–§14) |
-| 5 | finance, migration dry-run/apply, backup + restore rehearsal, offcut reuse, sample lineage, what-if | merged on `lane/s5-merge` (worktree `D:\lk-wt\integ`, slot 8) | **Merged, NOT verified** → finish **Checkpoint 6** |
+| 0–4 | kernel, auth, briefings, quotes, full legacy parity, agents/voice/vision/WhatsApp (Demo), orders, inventory, production, procurement, QC, logistics | `main` @ Checkpoint 6 | **Done, verified** (BUILD_STATE §9–§14) |
+| 5 | finance, migration dry-run/apply, backup + restore rehearsal, offcut reuse, sample lineage, what-if | `main` via `lane/s5-merge` @ `7368da7` | **Implemented (verified)** within BUILD_STATE §15 scope; open gaps carried |
 | 6 (part) | dependency audits + handover docs (`docs/handover/*`, root `README.md`) | `lane/s6-handover` (worktree `D:\lk-wt\work`, slot 4) | Done on its branch; merge after CP6 |
 | 6 (rest) | A–N acceptance matrix at 3 widths, isolation/red-team, axe on every route, dead-control crawl, final evidence, PARITY 100 %, final BUILD_STATE | not started (brief: `docs/superpowers/briefs/s6-acceptance.md`) | **To do** → **Checkpoint 7** |
 
@@ -18,8 +18,8 @@ This file supersedes the "In progress" section of `docs/BUILD_STATE.md` until Ch
 
 | Branch | Worktree / slot | Tip | Notes |
 |---|---|---|---|
-| `main` | `D:\Lamikraft ERP` / 0 (web 3200, API 8200) | CP5 + this handoff commit | The plan says each checkpoint lands on `main` by fast-forward |
-| `lane/s5-merge` | `D:\lk-wt\integ` / 8 (web 3080, API 8080) | `5574038` (see "Progress after the handoff") | 3 lanes merged: finance `0c11d77`, migration `00f83ae`, capabilities `7cda0a9`. Migrations renumbered `0026_finance_slice5` → `0027_migration_slice5` → `0028_capabilities_slice5`. `e9fdad3` = the integrator's uncommitted work, committed as WIP for safety: scenario-M migration/backup e2e (`m-migration.spec.ts`, `support/mfa.ts`), `o-offcut-lineage-what-if.spec.ts`, `evidence-cp6.spec.ts`, e2e seed at `--slice 5` + dry run + backup in `scripts/dev.mjs`, ADR-066…069 in `DECISIONS.md` |
+| `main` | `D:\Lamikraft ERP` / 0 (web 3200, API 8200) | CP6 `7368da7` plus continuation docs | The plan says each checkpoint lands on `main` by fast-forward |
+| `lane/s5-merge` | `D:\lk-wt\integ` / 8 (web 3080, API 8080) | CP6 `7368da7` plus continuation docs | 3 lanes merged: finance `0c11d77`, migration `00f83ae`, capabilities `7cda0a9`. Migrations renumbered `0026_finance_slice5` → `0027_migration_slice5` → `0028_capabilities_slice5`. `e9fdad3` = the integrator's uncommitted work, committed as WIP for safety: scenario-M migration/backup e2e (`m-migration.spec.ts`, `support/mfa.ts`), `o-offcut-lineage-what-if.spec.ts`, `evidence-cp6.spec.ts`, e2e seed at `--slice 5` + dry run + backup in `scripts/dev.mjs`, ADR-066…069 in `DECISIONS.md` |
 | `lane/s6-handover` | `D:\lk-wt\work` / 4 | `364b5d5` | `docs/handover/{index,setup,providers,remaining-work,security-audit}.md`, `README.md`, `uv.lock` patches (certifi, pyasn1, pypdf). Report: `docs/lanes/handover-s6.md` |
 | `lane/s6-handover-pillow13` | — | `ad73c7a` | Pillow 12.3 → 13.0 trial (fixes 39 advisories); partial tests passed, full gates not run |
 | `lane/s5-finance`, `-migration`, `-capabilities` | `identity`/1, —, `sales`/6 | merged | Lane reports in `docs/lanes/*-s5.md` (on `lane/s5-merge`) |
@@ -37,11 +37,14 @@ at ~60 %** (`s5-cap-testapi.log`). e2e tsc/eslint on the new specs ran clean.
 - `npm run api:generate` → no diff. Task 1 step 4 ✔
 - `npm run check -- --keep-going` on `5574038` → **7/7 PASS** (ruff; pytest unit+contract 743 passed; alembic heads 1;
   api:check; eslint; tsc; vitest 68 files / 708 tests). Log `D:\lk-wt\s5-merge-check.log`. Task 1 step 5 ✔
-- **Resume at Task 1 step 6** (full `test:api`), then step 7 (e2e).
+- Task 1 steps 6–11 completed by Codex: full API **1772 passed / 7 skipped**, fresh check **7/7**, final e2e **314 passed / 754 skipped / 0 failed**. Logs: `s5-merge-testapi.log`, `s5-merge-check-final.log`, `s5-merge-e2e-final.log` under `D:\lk-wt`.
+- Four separate scenario fixes: `698a38c` (M real MFA step-up), `27c8782` (O offcut keyboard toggle), `0d28798` (O actual sample challan), `1a81e99` (O product picker). Initial failed runs and their causes are retained in `docs/lanes/merge-s5.md`.
+- CP6 evidence/docs committed as `7368da7` and fast-forwarded to `main`: 64 screenshots, BUILD_STATE §15, parity counts **453 implemented / 38 in progress / 212 planned (including 3 owner-input) / 1 deferred**, total 704. Eighteen stale browser case references remain acceptance evidence debt; broader product gaps remain explicit.
+- **Resume at Task 2**, then Task 3. No test or dev servers left running at Task 1 completion.
 
 ## What to do next, in order
 
-### Task 1 — Finish Checkpoint 6 (Slice 5) on `lane/s5-merge`  ← start here
+### Task 1 — Finish Checkpoint 6 (Slice 5) on `lane/s5-merge` — COMPLETE
 Work in `D:\lk-wt\integ` (slot 8). Follow `docs/superpowers/briefs/integrator.md` steps 4–6; house style is
 `docs/lanes/merge-s4.md`.
 
@@ -65,7 +68,7 @@ Work in `D:\lk-wt\integ` (slot 8). Follow `docs/superpowers/briefs/integrator.md
 10. Commit, then fast-forward `main`: `git -C "D:\Lamikraft ERP" merge --ff-only lane/s5-merge`.
 11. Append a dated line to `docs/superpowers/specs/2026-11-03-completion-program.md` and update this file's TL;DR.
 
-### Task 2 — Merge the handover/audit branch onto CP6
+### Task 2 — Merge the handover/audit branch onto CP6 ← start here
 1. On `main` (or a short `lane/s6-acceptance` branch, see Task 3): `git merge lane/s6-handover`. Only `uv.lock`,
    `README.md`, `docs/handover/*`, `docs/lanes/handover-s6.md` change; no Slice-5 branch touches lockfiles, so no conflict is expected.
 2. Decide Pillow 13 (recommended — 39 runtime advisories, reachable through image uploads): `git cherry-pick ad73c7a`,

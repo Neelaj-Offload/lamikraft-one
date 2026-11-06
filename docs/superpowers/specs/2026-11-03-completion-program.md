@@ -129,3 +129,8 @@ e2e/evidence/ADR work was committed as WIP `e9fdad3`. Post-merge gates were inte
 step 3); `check`, `test:e2e`, CP6 evidence, `merge-s5.md`, BUILD_STATE §15 and the PARITY moves are not done.
 `lane/s6-handover` (`work`/4) is done and waits for CP6. The ordered task list for the next agent is in
 `CODEX_HANDOFF.md` at the repository root; rules for any coding agent are in `AGENTS.md`.
+
+
+## 2026-11-06: Checkpoint 6 verified and on main
+
+`main` fast-forwarded to `lane/s5-merge` `7368da7`. Full API: 1772 passed / 7 skipped; fresh check: 7/7; final e2e: 314 passed / 754 skipped / 0 failed. Four scenario-test fixes are separate commits; failed attempts and scope limitations remain in `docs/lanes/merge-s5.md`. BUILD_STATE §15 and 64 indexed screenshots record CP6. PARITY_MATRIX remains honest about unbuilt features and 18 stale browser references. Task 1 is complete; next merge the handover/audit branch and validate Pillow 13, then execute Slice 6 acceptance. All external integrations remain Demo.
