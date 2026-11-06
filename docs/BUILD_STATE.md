@@ -1,11 +1,10 @@
 # Build state
 
-**Checkpoint 5 — Slice 4 (orders, inventory, production, procurement, quality, logistics) on `lane/s4-merge`
-2026-11-05** (section 14), ready to fast-forward `main`. (Checkpoint 4 — Slice 3 — 2026-11-04. Checkpoint 3 — Slice 2,
-legacy parity — 2026-11-04. Checkpoint 2 — web surfaces and showcase motion — 2026-11-02. Checkpoint 1 — Slice 1 —
-2026-10-30. Checkpoint 0 — Slice 0 — 2026-10-23.)
+**Checkpoint 6 — Slice 5 (finance, migration/backup and new capabilities) on `lane/s5-merge`,
+2026-11-06** (section 15), verified and ready to fast-forward `main`. Earlier checkpoints remain below.
 
-Resume rule: a new session reads `docs/PLAN.md`, this file, then `docs/architecture/*`, and continues from
+Resume rule: a new session reads `AGENTS.md` and `CODEX_HANDOFF.md`, then `docs/PLAN.md`, this file and
+`docs/architecture/*`, and continues from
 "Next executable step". Nothing below is claimed as implemented unless it appears under **Implemented (verified)**
 with evidence in the verification table.
 
@@ -37,15 +36,18 @@ Status vocabulary used across `BUILD_STATE.md` and `PARITY_MATRIX.md`:
 
 ## 2. In progress
 
-Slice 5, wave 5a: `lane/s5-finance` (from `lane/s4-orders-inventory` d2942ac, `identity`/1, placeholder 0080+) and
-`lane/s5-migration` (from 74c8cd5, `sales`/6, placeholder 0050+; its "new capabilities" follow-up waits for this
-checkpoint). The Slice-5 integrator reparents them after `0025_slice4_cross_lane_links`.
+Slice 6: merge `lane/s6-handover` onto Checkpoint 6, decide and verify Pillow 13, then execute
+`docs/superpowers/briefs/s6-acceptance.md` on `lane/s6-acceptance`. The A–N matrix at 1440/834/390 px,
+loaded-page isolation/accessibility/control sweeps, final audits and evidence remain unverified.
 
 ## 3. Blocked
 
 None.
 
-## 4. Remaining (slices 1–6)
+## 4. Delivery slices and remaining work
+
+This is the delivery plan. Implemented scope through Slice 5 is recorded in Checkpoints 1–6 (§§9–15);
+Slice 6 acceptance is next. Carried product gaps remain explicit in those checkpoint sections.
 
 | Slice | Delivers | Exit |
 |---|---|---|
@@ -61,8 +63,8 @@ None.
 
 | Category | Items |
 |---|---|
-| Implemented (verified) | none yet at product level (checkpoint 0) |
-| Simulated (Demo) — planned | Claude-shaped orchestrator (Slice 1), vision and on-screen answers (Slice 3), STT/TTS (Slice 3), WhatsApp provider through the real webhook route (Slice 3), email as `.eml` files (Slice 2), accounting adapter (Slice 5). Every output labelled "Demo"; Settings shows "Demo — not connected" |
+| Implemented (verified) | implemented scope recorded in Checkpoints 1–6 (§§9–15); carried product gaps and final acceptance remain explicit |
+| Simulated (Demo) | AI and vision, STT/TTS, WhatsApp, local `.eml` email and finance accounting acknowledgement/reconciliation. Every simulated external effect remains labelled Demo; no live provider credential or business-policy choice has been invented. |
 | Backlog / future scope | full HR, attendance and payroll; native general ledger; GST/e-invoice/e-way-bill without a chosen provider; bank payment execution; SSO/passkeys; multi-company switch UI and blanket composite tenant FKs; push transport for briefings; OCR beyond vision confirmation; carrier APIs and 3D stowage; inventory valuation; MRP; upload malware scanning; vector memory |
 
 ## 5. Business-policy decisions needing owner confirmation
@@ -147,16 +149,17 @@ Filled at each checkpoint; one row per executed check.
 | 2026-11-05 | CP5 | targeted e2e on d3eb52b (after the cause-label fix) | evidence-cp5, axe sweep, production journey, scenario I, procure-to-pay (fresh build) | 210 passed, 0 failed, 534 skipped, 11.8 min | scratchpad `s4-e2e6.log` |
 | 2026-11-05 | CP5 | evidence screenshots | `e2e/evidence-cp5.spec.ts` in the run above | 52 PNGs, 13 screens × 1440/390 × light/dark | `docs/evidence/checkpoint-5/` |
 | 2026-11-05 | CP5 | migrations | `lk db migrate --revision 0021` → `migrate`; `lk db heads`; `alembic check` on `lk_wt8` | chain 0021 → 0022 → 0023 → 0024 → 0025, heads 1; `alembic check` reports only `uq_vision_capture_conversation_sha` (ADR-061) | console |
+| 2026-11-06 | CP6 | full API on `210684a` (backend unchanged through `1a81e99`) | `npm run test:api` | 1772 passed, 7 live-only skips, 2 known warnings, 0 failed; 84 min 28 s | `D:\lk-wt\s5-merge-testapi.log` |
+| 2026-11-06 | CP6 | fresh check on `1a81e99` | `npm run check -- --keep-going` | 7/7 PASS; 743 unit/contract; one head; API matches; lint; typecheck; 68 Vitest files / 708 tests | `D:\lk-wt\s5-merge-check-final.log` |
+| 2026-11-06 | CP6 | final full browser gate on `1a81e99` | `LK_E2E_EVIDENCE=cp6`, build CPUs 2, Node heap 2048 MB; `npm run test:e2e -- --workers=1` | 314 passed, 754 project-scoped/opt-in skips, 0 failed; 14.5 min | `D:\lk-wt\s5-merge-e2e-final.log`; failed initial run and targets in `docs/lanes/merge-s5.md` |
+| 2026-11-06 | CP6 | evidence and local restore | 16 screens × 1440/390 × light/dark; actual Docker backup/rehearsal during e2e setup | 64 PNGs with index; all nine restore checks pass; temporary DB dropped | `docs/evidence/checkpoint-6/README.md`; final e2e log |
 
 ## 8. Next executable step
 
-Fast-forward `main` to `lane/s4-merge` (Checkpoint 5, section 14). Then wave 5a continues: `lane/s5-finance` and
-`lane/s5-migration` (its "new capabilities" part — offcut reuse from the measured offcut lots, sample lineage, what-if
-views — can start now that production is merged; the offcut-lot contract is in `docs/lanes/production-s4.md`). The
-Slice-5 integrator reparents their migrations after `0025_slice4_cross_lane_links`, keeps the e2e world at
-`--slice 4` (or raises it to 5) and carries the Checkpoint-3 to 5 open items (sections 11–14). Finance consumes
-`procurement.vendor_bill.handed_off` and `challans.challan.issued`. Worktrees created before the Next.js 16.4.4
-upgrade need `npm ci`.
+After the Checkpoint-6 fast-forward, complete Task 2 in `CODEX_HANDOFF.md`: merge the handover/audit branch,
+verify the Pillow 13 trial with check and full API gates, and refresh SMTP/voice configuration docs. Then execute
+the Slice-6 acceptance brief (Task 3). Keep integrations Demo; owner decisions and credentials remain in §§5–6.
+The AP vendor-bill consumer and other carried gaps are not silently treated as delivered.
 
 Open items carried from Slice 1 (owners in brackets):
 - Rendered quote PDFs are rendered on demand from the immutable snapshot; storing them through
@@ -175,8 +178,7 @@ Open items carried from Slice 1 (owners in brackets):
 - Composer: Enter inserts a newline; decide whether Enter sends (Shift+Enter for newline). [web, design]
 
 Open items carried from Checkpoint 2 (owners in brackets):
-- `next build` stops once per build on the Next.js 16.4.0 security nudge (`SecurityFatalError`) and must be
-  retried; the e2e orchestration therefore needs two invocations until the upgrade decision is made. [owner]
+- Resolved: the Next.js 16.4.4 upgrade is on the merged tree; both CP6 production builds passed without a security-nudge retry.
 - `queryKeys.sales.quotes()` has no `party_id` slot; the customer record uses an inline key under the same prefix.
   Add the parameter to the factory. [web]
 - `UiPreferencePatch` in `lib/session/preferences.ts` names only theme/sidebar/rail; the profile page passes the
@@ -185,7 +187,6 @@ Open items carried from Checkpoint 2 (owners in brackets):
   `features/material-viewer/swatches.ts` when catalogue media land. [catalogue, web]
 - The sign-in headline uses Fraunces (OFL, `@fontsource-variable/fraunces`, loaded on `/login` only); the owner's
   design system may replace it through `--font-display` in `globals.css`. [design]
-- The Next.js 16.4.0 advisory and lockfile upgrade decision from Checkpoint 1 still stands. [owner]
 
 ---
 
@@ -466,3 +467,36 @@ e-way bills and valuation stay backlog.
   packing lists, pick lists, counts, adjustments, transfers) and `/today/items/[itemId]`; the scenario specs cover
   those screens. [web]
 - Carried from Checkpoint 4 (section 13), 4a (section 12) and 3 (section 11) unchanged.
+
+## 15. Checkpoint 6 — Slice 5 on `lane/s5-merge` (2026-11-06)
+
+The merged runtime source is verified on `lane/s5-merge` through test-fix tip `1a81e99`; its backend is unchanged
+from the full API gate at `210684a`. API: **1772 passed, 7 skipped, 0 failed**, 2 known warnings (84 min 28 s).
+Fresh check: **7/7 PASS**, 743 unit/contract tests, one Alembic head, generated schema matches, 68 Vitest files /
+708 tests. Full e2e: **314 passed, 754 project-scoped/opt-in skips, 0 failed** (14.5 min), fresh production build
+with the required memory limits and one worker. Evidence: **64 PNGs** and index. Verification logs are in §7;
+steps, every failed run and separate verified fixes are in `docs/lanes/merge-s5.md`.
+
+### Implemented (verified) — new at this checkpoint
+
+- Finance invoices/credit notes with draft labels, live issue blockers, second-person approval, numbering only at issue, delivered/creditable bounds and immutable issued documents. Receipts, bounded/reversible allocations, currency-separated ageing, balanced/inert CSV accounting handoff, Demo reconciliation and restricted margin exceptions.
+- Migration source readers, alias reconciliation and quarantine; repeatable dry run with counts and historical totals by currency; catalogue apply through the workbench behind a rehearsed-backup gate; exact immutable legacy archives and reviewed party-link candidates. No stock movement is created from legacy challans.
+- Snapshot-consistent database/storage backup, checksums and local restore rehearsal into a disposable database, including tenant isolation and cleanup checks. Settings reports require real MFA step-up.
+- Measured offcut selection and packing, transactional work-order claim at release with double-claim refusal, and sample lineage through linked issued challans. Read-only what-if compares verified feasibility without persisting simulated results.
+- Integration migrations form one chain: `0025` → `0026_finance_slice5` → `0027_migration_slice5` → `0028_capabilities_slice5`. ADR-066–069 describe the final integration decisions. The backups ignore pattern is anchored.
+
+### Simulated (Demo)
+
+AI, vision, STT/TTS and WhatsApp retain their labelled Demo adapters. Finance accounting acknowledgement/reconciliation is simulated; CSV generation is real. E-invoice verification has no live provider, so required issuance stays blocked. Email writes local `.eml` files. No owner credential or live business-policy choice has been invented.
+
+### Open items carried (owners in brackets)
+
+- Vendor bills as AP documents; manual invoice lines and CSV reconciliation input in the web; dedicated finance configuration screen; cross-currency allocations; `draft_invoice` / ageing agent tools; live accounting/e-invoice/GST rules. [finance, web, agents, owner]
+- Migration opening-balance posting remains an unregistered seam; live legacy quote/challan/custom-product import, invitations from candidates, grain-lock materialization, a non-suggested party picker and authorized remote-media proof remain open. Only the synthetic export is proven. [migration, inventory, sales, web, owner]
+- Saved what-if scenarios, offcuts in the stateless legacy calculator, a dedicated offcut-reuse label and capability agent tools remain open. [production, cutting, agents]
+- The sample/challan lineage gap from Checkpoints 3–4 is resolved from the sales consumer; the event's `sample_id=null` no longer prevents dispatch of linked samples. Other carried items in §§11–14 remain open unless explicitly closed here.
+- A static reference audit found 18 legacy browser case references absent from their current spec files; those rows are now in progress pending mapping. This is traceability debt, not proof that the behavior is absent. Slice 6 must map actual passing coverage or add checks; checked Python function references resolve. [acceptance]
+- Final A–N coverage at all three widths, authenticated route sweeps, dead controls, motion/performance evidence, final audits, handover merge and Pillow 13 decision remain for Slice 6. [acceptance, integrator]
+
+- The seed is anchored at D0, but the current e2e API/worker use system time after the seed process exits. Slice 6 must verify the canonical morning/date fixture and coordinate its MFA clock. [acceptance]
+- Visual review: the what-if Needed by field wraps in the narrow desktop grid; phone captures of long forms show the top viewport. Review responsive field sizing and capture relevant workflow sections in final evidence. [web, acceptance]
