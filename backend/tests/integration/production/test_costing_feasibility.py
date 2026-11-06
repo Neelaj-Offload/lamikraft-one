@@ -74,7 +74,8 @@ def test_rollup_is_deterministic_and_lists_missing_inputs(prod_world: ProdWorld)
     assert third.total == _money("16660.0000")  # + 40 / 60 x 600
     with w.system() as uow:
         computed = uow.session.scalars(select(DomainEvent).where(DomainEvent.event_type == "production.cost_rollup.computed",
-                                                                 DomainEvent.company_id == w.company_id)).all()
+                                                                 DomainEvent.company_id == w.company_id)
+                                       .order_by(DomainEvent.seq)).all()
     assert [e.payload["status"] for e in computed] == ["incomplete", "complete"]
     assert all(set(e.payload) == {"rollup_id", "product_id", "status", "origin"} for e in computed)  # never a figure
 
