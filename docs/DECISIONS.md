@@ -653,3 +653,75 @@ Index: 1 topology · 2 Python · 3 frontend stack · 4 backend dependencies · 5
 - **Consequences**: e2e specs that issue challans now move stock (go-live is on in the seed); specs read numbers
   from the fixture facts. A subject handler for production inspections is not registered: production keeps no
   accepted/rejected figures and rework orders are not built (owners: production, quality). **Accepted.**
+
+## ADR-066 Slice-5 finance: one document table, issue gate on every read, numbers only at issue
+- **Context**: the finance lane (`docs/lanes/finance-s5.md`, decisions 1–8) built invoices, credit notes, receipts,
+  allocations, ageing, the accounting hand-off and margin exceptions on top of orders and challans.
+- **Decision**: invoices and credit notes share `finance_invoice` (`doc_type`); credit-note lines point at the
+  credited invoice line, so creditable quantities are per line. The issue gate (`finance.gate.check`) runs on every
+  read and again inside the issue transaction; a refused issue is a 200 with `issued: false` and the blockers (the
+  attempt is recorded in the history and as `finance.invoice.issue_blocked`, so it must survive the transaction), not a
+  409. Approval is a document action with separation of duties in the service, the capability and a CHECK
+  (`approver_not_creator`), not the proposals engine (as ADR-062). Tax is never invented: without a profile nothing is
+  calculated and the draft says so; profiles are business-entered with a source and verified by a second person; a
+  profile that requires e-invoicing blocks the issue until a verified `e_invoice` integration exists (none in Demo,
+  BUILD_STATE §5 #4). Numbering `INV-{fy}-NNNN`, `CN-{fy}-NNNN`, `RCPT-{fy}-NNNN`, `AX-{fy}-NNNN` with the April
+  financial year (`2026-27`); drafts carry `FD-NNNNN`, which never resets and never consumes an invoice number.
+  Allocations lock source then invoice, same party and currency only; an issued credit note settles its original
+  first. Margin uses the latest cost version effective on the day in the quote's currency and unit (uncosted lines
+  are counted, never guessed), triggered by `sales.quote.issued`; figures are `COST_GUARD` with `model_exposure="deny"`.
+  The demo seed holds only the Maison receipt (`RCPT-2026-27-0001`, EUR 2,400.0000, received D-4, unallocated).
+- **Consequences**: the seeded receipt number differs from fixtures.md's `RCPT-2026-0001` (FY format). Vendor bills
+  as AP documents (`procurement.vendor_bill.handed_off` has no finance consumer yet), manual invoice lines in the UI,
+  CSV reconciliation entry in the UI, cross-currency allocation, live accounting and e-invoice adapters and agent tools
+  (`draft_invoice`, `get_receivable_ageing`) are not built. **Accepted.**
+
+## ADR-067 Slice-5 migration and backup: dry run writes nothing, apply only after a rehearsed backup
+- **Context**: the migration/backup lane (`docs/lanes/migration-s5.md` §4).
+- **Decision**: a dry run reads an authorised export and writes only the run, its quarantine, the rerunnable ID map
+  (`UNIQUE(company, source_entity, source_key)`), candidate party links and the reconciliation report; catalogue rows
+  are normalised by the import workbench's own definitions so the dry run predicts the apply. The apply refuses
+  without `--i-have-a-backup`, a named operator with `migration.apply.execute`, a backup of this database at most
+  24 hours old whose restore rehearsal passed and an authorised export; it writes the catalogue through the import
+  workbench, and archives legacy quotes, revisions, challans (no stock), custom products and users exactly in
+  `migration_legacy_record` (immutable payload and SHA-256) instead of creating live sales rows. Opening balances are
+  staged and approved by a second person; posting is a registry seam (`register_opening_poster`). `lk backup create`
+  takes a snapshot-consistent `pg_dump -Fc` plus a storage zip with per-file SHA-256 and a manifest of every table's row
+  count and RLS facts; the rehearsal restores into a fresh `lk_rehearsal_<hex>` database, runs nine checks (incl. RLS
+  fails closed for `lk_app`) and always drops it. `migration_backup` is a tenant table, one row per company per backup.
+  `mfa_required` no longer redirects the web client to sign-in; it is handled in place like `reauth_required`. Schema
+  names are prefixed (`MigrationRunSummary` …) to avoid OpenAPI clashes.
+- **Consequences**: the opening-balance poster is not registered (inventory already has its own opening batches, so
+  the two need one owner); legacy quotes, challans and custom products as live records, invitations from candidates,
+  grain locks into `cutting_grain_lock` and remote media download against a real host are follow-ups; everything is
+  proven on the synthetic export only. **Accepted.**
+
+## ADR-068 Slice-5 new capabilities: offcuts issued at release, sample lineage from the sales side, read-only what-if
+- **Context**: the capabilities lane (`docs/lanes/capabilities-s5.md`, concerns 1–5).
+- **Decision**: the packer fills a plan's chosen offcut boards first (no edge margin, no oversize; measured saw edges),
+  and without offcuts its result and hashes are byte-identical to the Slice-2 engine. Offcut lots never count as
+  available stock, so they are not reserved: releasing the plan for a work order issues them to the work order's WIP
+  in one transaction before the standard sheets are reserved; a second plan that chose the same lot is refused at
+  release (409 `offcut_unavailable`). Offcut lots must be of the sheet material the plan backs. A sample links the
+  delivery challan that will carry it; the `sales.sample_dispatch` consumer dispatches every requested sample linked
+  to an issued challan (the challans payload's `sample_id` stays null), which closes the Checkpoint-3 open item. A
+  manual dispatch naming a challan now validates it (scope, party, type, status). The what-if screen calls the
+  existing `POST /production/simulations` under its read-only guard and caches results per request body; nothing is
+  saved.
+- **Consequences**: production-module files (`wip.py`, `work_orders.py`) gained the release hook; offcut reuse in the
+  stateless `POST /cutting/calculate`, saved what-if scenarios, an "offcut reused" label on the work-order screen and
+  agent tools over these reads are follow-ups. **Accepted.**
+
+## ADR-069 Slice-5 merge: one chain, e2e world at Slice 5 with a dry run and a rehearsed backup
+- **Context**: three lanes from three bases (finance from the orders/inventory tip d2942ac with placeholder 0080 on
+  0040; migration from CP4a 74c8cd5 with 0050 on 0018; capabilities from the Slice-4 merge c4210a3 with 0090 on 0025).
+- **Decision**: the chain continues `main`: `0025_slice4_cross_lane_links` → `0026_finance_slice5` →
+  `0027_migration_slice5` → `0028_capabilities_slice5`; no cross-lane migration is needed (the lanes share no new
+  foreign key). `npm run test:e2e` seeds the demo world at `--slice 5` (the Maison receipt) and then runs
+  `lk migration dry-run` over `backend/tests/fixtures/legacy_export`, `lk backup create` and
+  `lk backup restore-rehearsal` on the e2e database, so scenario M's migration and backup parts run in the browser
+  (Settings › Migration and Backups behind a real TOTP step-up, `e2e/support/mfa.ts`). `keys.FINANCE_REFS` /
+  `keys.RECEIPTS` name the receipt. Checkpoint-6 evidence is opt-in with `LK_E2E_EVIDENCE=cp6` and writes only
+  `docs/evidence/checkpoint-6/`.
+- **Consequences**: every e2e run takes a database backup of the e2e database (seconds on the fixture world) and
+  needs the compose `lk-postgres` container, as the seed already does. **Accepted.**

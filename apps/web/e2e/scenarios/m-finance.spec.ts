@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { shoot } from "../support/evidence";
 import { addCatalogLine, chooseFromCombobox, newDraftQuote } from "../support/quotes";
 import { onlyOnProjects, signInAs } from "../support/world";
 
@@ -8,6 +9,7 @@ import { onlyOnProjects, signInAs } from "../support/world";
  * Ananya sees the challan suggested on the Finance overview, drafts the invoice (labelled "Draft — not valid for
  * trade", the issue check listing its blockers) and submits it; Sahil approves (the drafter cannot); Ananya's issue
  * is refused with the reasons listed and no number; she records a receipt; Accounting sync says Demo — not connected.
+ * On the --slice 5 world inventory is already live (the seam is idempotent) and the Maison receipt is seeded.
  * Desktop only.
  */
 
@@ -105,6 +107,7 @@ test("Sahil approves; Ananya's issue is refused with the reasons and no number",
   const pdf = await page.request.get(`/api/v1/finance/invoices/${invoicePath.split("/").at(-1)}/document.pdf`);
   expect(pdf.status()).toBe(200);
   expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  await shoot(page, "finance-invoice", invoicePath); // checkpoint-6 evidence (LK_E2E_EVIDENCE=cp6 only)
 });
 
 test("Ananya records a receipt; accounting sync is Demo — not connected", async ({ page }) => {

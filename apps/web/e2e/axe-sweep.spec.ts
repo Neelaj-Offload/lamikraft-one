@@ -43,6 +43,10 @@ function paramCandidates(world: World): Record<string, () => string | null> {
     bomId: () => ref(world, "BOM_PANEL_SET"),
     routingId: () => ref(world, "ROUTING_PANEL_SET"),
     workCenterId: () => ref(world, "WC_PANEL_SAW"),
+    // Slice-5 merge (e2e seeds at --slice 5): the Maison receipt (keys.FINANCE_REFS). Invoices, credit notes, samples
+    // and migration runs are not fixture records (`m-finance`, `o-offcut-lineage-what-if` and `m-migration` cover
+    // them); the what-if screen and the finance lists need no record.
+    receiptId: () => ref(world, "RCPT_MAISON"),
   };
 }
 

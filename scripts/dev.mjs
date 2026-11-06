@@ -623,7 +623,12 @@ async function testE2e(argv) {
     await lkOrThrow(['db', 'drop', '--yes'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'create'], { env: childEnv(overrides) });
     await lkOrThrow(['db', 'migrate'], { env: childEnv(overrides) });
-    await lkOrThrow(['seed', 'demo', '--anchor-date', '2026-10-12', '--slice', '4'], { env: childEnv(overrides) });
+    await lkOrThrow(['seed', 'demo', '--anchor-date', '2026-10-12', '--slice', '5'], { env: childEnv(overrides) });
+    // Scenario M (Slice 5, migration and backup parts): one dry run over the synthetic legacy export, one backup and
+    // its restore rehearsal into a temporary database, so Settings > Migration and Settings > Backups have records.
+    await lkOrThrow(['migration', 'dry-run', '--source', join(BACKEND, 'tests', 'fixtures', 'legacy_export')], { env: childEnv(overrides) });
+    await lkOrThrow(['backup', 'create'], { env: childEnv(overrides) });
+    await lkOrThrow(['backup', 'restore-rehearsal'], { env: childEnv(overrides) });
     await assertPortsFree([
       ['e2e api', base.e2eApiPort],
       ['e2e web', base.e2eWebPort],
