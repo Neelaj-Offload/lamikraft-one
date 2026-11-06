@@ -78,7 +78,9 @@ test("offcut reuse: a plan chooses Deepa's measured offcut and cuts a board from
   const offcuts = page.getByRole("region", { name: "Offcuts to use first" });
   await expect(offcuts).toContainText("No offcut chosen");
   await offcuts.getByRole("button", { name: "Choose offcuts" }).click();
-  await offcuts.getByRole("checkbox", { name: "Use OC-E2E-01" }).check();
+  const choice = offcuts.getByRole("checkbox", { name: "Use OC-E2E-01" });
+  await choice.press("Space");
+  await expect(choice).toBeChecked();
   await offcuts.getByRole("button", { name: "Save offcut choice" }).click();
   await expect(page.getByText("Offcut choice saved. Calculate again to use it.").first()).toBeVisible();
   await expect(offcuts.getByRole("list", { name: "Offcuts to use first" })).toContainText("OC-E2E-01");
