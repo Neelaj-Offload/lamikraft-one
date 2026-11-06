@@ -139,7 +139,7 @@ test("what-if: Deepa compares today with 8 more walnut sheets", async ({ page })
   await signInAs(page, "DEEPA");
   await page.goto("/operations/production/what-if");
   await expect(page.getByRole("heading", { name: "What-if", level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: /^Product/ }).first().click();
+  await page.getByRole("button", { name: /Product/ }).first().click();
   await page.getByRole("option", { name: /LK-WP-0001/ }).first().click();
   const quantity = page.getByRole("textbox", { name: /^Quantity/ }).first();
   await quantity.fill("8");
