@@ -121,3 +121,11 @@ Running: Slice-4 integrator `lane/s4-merge` (`integ`/8; three lanes merged at c4
 and the migration brief's "new capabilities" part as its own lane `lane/s5-capabilities` from c4210a3 (`sales`/6,
 placeholder 0090). The Slice-5 integrator merges finance, migration and capabilities onto CP5. Lanes now write
 test logs to lane-named files under `D:\lk-wt\`, not the shared scratchpad.
+
+## Paused 2026-11-06 for the Codex handoff
+
+`lane/s5-merge` (`integ`/8) has all three Slice-5 lanes merged (migrations 0026–0028); the integrator's uncommitted
+e2e/evidence/ADR work was committed as WIP `e9fdad3`. Post-merge gates were interrupted (`test:api` at ~60 % after
+step 3); `check`, `test:e2e`, CP6 evidence, `merge-s5.md`, BUILD_STATE §15 and the PARITY moves are not done.
+`lane/s6-handover` (`work`/4) is done and waits for CP6. The ordered task list for the next agent is in
+`CODEX_HANDOFF.md` at the repository root; rules for any coding agent are in `AGENTS.md`.
