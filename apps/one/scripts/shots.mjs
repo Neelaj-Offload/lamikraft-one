@@ -166,8 +166,17 @@ async function main() {
         try {
           const response = await page.goto(BASE + target.url, { waitUntil: "domcontentloaded" });
           await settle(page);
-          const height = Math.min(await page.evaluate(() => document.documentElement.scrollHeight), MAX_H);
-          await page.screenshot({ path: join(OUT, file), clip: { x: 0, y: 0, width, height }, fullPage: true, animations: "disabled" });
+          const full = await page.evaluate(() => document.documentElement.scrollHeight);
+          const height = Math.min(full, MAX_H);
+          if (flag("slice")) {
+            // Tall pages as consecutive 1500px slices (…--1440-p1.png, -p2.png) so details stay legible.
+            const step = 1500;
+            for (let y = 0, n = 1; y < Math.min(full, 15000); y += step, n += 1) {
+              await page.screenshot({ path: join(OUT, file.replace(/\.png$/, `-p${n}.png`)), clip: { x: 0, y, width, height: Math.min(step, full - y) }, fullPage: true, animations: "disabled" });
+            }
+          } else {
+            await page.screenshot({ path: join(OUT, file), clip: { x: 0, y: 0, width, height }, fullPage: true, animations: "disabled" });
+          }
           const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
           report.shots.push({ url: target.url, pattern: target.pattern, width, file, status: response?.status() ?? null, horizontalOverflowPx: Math.max(0, overflow) });
           if (noise.length > 0 || overflow > 1) report.problems.push({ url: target.url, width, overflowPx: Math.max(0, overflow), noise: [...new Set(noise)].slice(0, 8) });

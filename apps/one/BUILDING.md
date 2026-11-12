@@ -83,6 +83,26 @@ The look in one line: warm paper or warm black, frosted glass floating over it, 
 - Glass nests once at most; an inner surface is `variant="solid"` or `"outline"`. One `inverse` panel per screen at most.
 - Icons: `Icon` with a name from `src/ui/icon.tsx`. Line icons only.
 
+### Component notes (read before you fight them)
+
+- **Navigation is flat.** The left-side menu lists every screen as a top-level item under a plain group heading. Never build nested, tree or accordion navigation anywhere (owner's instruction). Inside a record, use `Tabs`; inside an area, the menu and the pill row already exist.
+- `DataTable`, `Pagination`, `Banner`, `KeyValue`, `FactStrip`, charts and `GlassPanel` have no `"use client"`: a server page may pass them functions (`cell`, `rowHref`, `hrefFor`). Sorting by `onSort` and `onRowAction` need a client parent; prefer `sortHref` and `rowHref`.
+- `Tabs` with `href` render links (`aria-current="page"`); you render the content for the selected view. Without `href` they are an in-page tablist with `TabPanel`.
+- `Tooltip` attaches to React Aria controls. For a `next/link`, `ButtonLink` or `TextLink` child pass `focusable`.
+- Fields use `validationBehavior="aria"`: `isRequired` only announces. Your screen (or the API's 422 response) must supply the error text through `error`.
+- `DecimalField` takes and emits decimal strings; `Qty` takes `{ value, uom }`; `Money` takes `{ amount, currency }`. Check the component file when unsure.
+- `SearchField` `shortcut` defaults to off; the top bar already owns "/".
+- `ConfirmDialog` / `ReasonDialog`: return a promise from `onConfirm` and the dialog shows a spinner, closes on success and stays open on failure (you show the error).
+- `FormActions` stacks its buttons on phones: give it at most two buttons there (move the rest into a `Menu`).
+- `toast` (from `~/ui`) is the same queue the old command hooks use; do not show a second toast for a mutation whose hook already raises one.
+- The demo world is a laminate exporter ("Crown Decor (Demo)": sheets, decors, EUR/GBP customers). Lamikraft's own products are kitchen and display pieces. Keep copy true for both: say "products", "items", "units" unless the data itself names the thing.
+
+### Demo people for screenshots (`--user`)
+
+`SAHIL` management, sees most things (default) · `MEERA` sales · `RAVI` operations · `DEEPA` production · `ANANYA` finance · `PRIYA` admin (users, roles, backups, migration). If a screen shows "not part of your role" in a screenshot, shoot it again as the right person.
+
+Screenshot tips: add `--slice` for tall screens (1500px slices that stay legible). In Git Bash, paths that begin with `/` are rewritten by the shell; the scripts undo this, so pass them normally.
+
 ## Motion
 
 Liquid and unhurried. The language lives in `src/styles/app.css` and `~/lib/motion`.

@@ -41,9 +41,6 @@ function AreaNav({ areas }: { areas: readonly NavArea[] }) {
   const current = currentItem(area, pathname, search);
   return (
     <nav className="area-nav" aria-label={`${area.label} screens`}>
-      <Link href={area.href} aria-current={pathname === String(area.href) ? "page" : undefined}>
-        Overview
-      </Link>
       {area.items.map((item) => (
         <Link key={item.label} href={item.href} aria-current={current === item ? "page" : undefined}>
           {item.label}

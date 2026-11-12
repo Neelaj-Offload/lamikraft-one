@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Button as RacButton } from "react-aria-components";
+import { useMediaQuery } from "@/lib/hooks";
 import { isSearchShortcut } from "@/lib/shortcuts";
 import { Avatar } from "~/ui/avatar";
 import { Badge } from "~/ui/badge";
@@ -35,6 +36,8 @@ const DEMO_NOTE =
 export function TopBar({ userName, userEmail, roleLine, isDemo, inboxCount, canSearch, shortcutsEnabled }: TopBarProps) {
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
+  // Server HTML assumes a wide screen; phones swap to the short placeholder after mount.
+  const wide = useMediaQuery("(min-width: 1100px)", true);
 
   // "/" (or Ctrl/Cmd K) jumps to search from anywhere outside a text field.
   useEffect(() => {
@@ -69,7 +72,7 @@ export function TopBar({ userName, userEmail, roleLine, isDemo, inboxCount, canS
         <div className="top-search" ref={searchRef} role="search">
           <SearchField
             label="Search customers, quotations, products and more"
-            placeholder="Search customers, quotations, products"
+            placeholder={wide ? "Search customers, quotations, products" : "Search"}
             shortcut={shortcutsEnabled ? "/" : false}
             onSubmit={(value) => {
               const q = value.trim();

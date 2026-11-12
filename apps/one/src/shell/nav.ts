@@ -1,6 +1,10 @@
 /**
  * The information architecture of Lamikraft One.
  *
+ * The left-side menu is FLAT: every screen is a top-level link, categorised under a plain group
+ * heading (Sales, Products, Operations, Finance). Groups are headings, not parents: nothing
+ * expands, collapses or nests (owner's instruction, 2026-11-12).
+ *
  * Areas come from the session bootstrap (only authorised, switched-on areas are offered) and each
  * link is checked against the shared route manifest, so navigation never shows a dead or forbidden
  * link. Labels use the team's own vocabulary (docs/meetings): leads, customers, quotations, stock.
@@ -13,6 +17,7 @@ import type { IconName } from "~/ui/icon";
 
 export interface NavItem {
   label: string;
+  icon: IconName;
   href: Route;
   /** Path used for the permission check and for "is this the current page". Defaults to href without its query. */
   path?: string;
@@ -20,6 +25,8 @@ export interface NavItem {
   query?: Readonly<Record<string, string>>;
   /** Extra path prefixes that also belong to this item (detail and child screens). */
   also?: readonly string[];
+  /** Current only on exactly this path (a group's overview), never on its child screens. */
+  exact?: boolean;
 }
 
 export interface NavArea {
@@ -29,6 +36,7 @@ export interface NavArea {
   href: Route;
   /** One line that says what the area is for; shown on hubs and the phone Work screen. */
   blurb: string;
+  /** The area's screens, all at one level. Where the area has a landing screen it is the first item. */
   items: readonly NavItem[];
 }
 
@@ -42,14 +50,15 @@ export const NAV_AREAS: readonly NavArea[] = [
     href: "/sales",
     blurb: "From first enquiry to confirmed order.",
     items: [
-      { label: "Leads", href: "/sales/parties?status=prospect" as Route, path: "/sales/parties", query: { status: "prospect" } },
-      { label: "Customers", href: "/sales/parties?status=active" as Route, path: "/sales/parties" },
-      { label: "Enquiries", href: "/sales/enquiries" },
-      { label: "Quotations", href: "/sales/quotes" },
-      { label: "Orders", href: "/sales/orders" },
-      { label: "Samples", href: "/sales/samples" },
-      { label: "Custom products", href: "/sales/custom-products" },
-      { label: "Messages", href: "/sales/customer-messages" },
+      { label: "Overview", icon: "handshake", href: "/sales", exact: true },
+      { label: "Leads", icon: "userPlus", href: "/sales/parties?status=prospect" as Route, path: "/sales/parties", query: { status: "prospect" } },
+      { label: "Customers", icon: "users", href: "/sales/parties?status=active" as Route, path: "/sales/parties" },
+      { label: "Enquiries", icon: "mail", href: "/sales/enquiries" },
+      { label: "Quotations", icon: "fileText", href: "/sales/quotes" },
+      { label: "Orders", icon: "cart", href: "/sales/orders" },
+      { label: "Samples", icon: "packageOpen", href: "/sales/samples" },
+      { label: "Custom products", icon: "shapes", href: "/sales/custom-products" },
+      { label: "Messages", icon: "message", href: "/sales/customer-messages" },
     ],
   },
   {
@@ -59,10 +68,10 @@ export const NAV_AREAS: readonly NavArea[] = [
     href: "/products",
     blurb: "The catalogue: designs, decors, sizes and prices.",
     items: [
-      { label: "Catalogue", href: "/products", also: ["/products/"] },
-      { label: "Price lists", href: "/products/price-lists" },
-      { label: "Completeness", href: "/products/completeness" },
-      { label: "Taxonomy", href: "/products/taxonomy" },
+      { label: "Catalogue", icon: "box", href: "/products", also: ["/products/"] },
+      { label: "Price lists", icon: "tag", href: "/products/price-lists" },
+      { label: "Completeness", icon: "clipboardCheck", href: "/products/completeness" },
+      { label: "Taxonomy", icon: "layers", href: "/products/taxonomy" },
     ],
   },
   {
@@ -72,14 +81,15 @@ export const NAV_AREAS: readonly NavArea[] = [
     href: "/operations",
     blurb: "Stock, production, purchasing and dispatch.",
     items: [
-      { label: "Stock", href: "/operations/inventory" },
-      { label: "Reservations", href: "/operations/reservations" },
-      { label: "Production", href: "/operations/production/work-orders", also: ["/operations/production"] },
-      { label: "Cut plans", href: "/operations/cutting" },
-      { label: "Purchasing", href: "/operations/purchasing/orders", also: ["/operations/purchasing"] },
-      { label: "Quality", href: "/operations/quality" },
-      { label: "Dispatch", href: "/operations/dispatch" },
-      { label: "Challans", href: "/operations/challans" },
+      { label: "Overview", icon: "factory", href: "/operations", exact: true },
+      { label: "Stock", icon: "warehouse", href: "/operations/inventory" },
+      { label: "Reservations", icon: "bookmark", href: "/operations/reservations" },
+      { label: "Production", icon: "hammer", href: "/operations/production/work-orders", also: ["/operations/production"] },
+      { label: "Cut plans", icon: "scissors", href: "/operations/cutting" },
+      { label: "Purchasing", icon: "clipboard", href: "/operations/purchasing/orders", also: ["/operations/purchasing"] },
+      { label: "Quality", icon: "flask", href: "/operations/quality" },
+      { label: "Dispatch", icon: "truck", href: "/operations/dispatch" },
+      { label: "Challans", icon: "fileCheck", href: "/operations/challans" },
     ],
   },
   {
@@ -89,12 +99,13 @@ export const NAV_AREAS: readonly NavArea[] = [
     href: "/finance",
     blurb: "Invoices, receipts and what is still owed.",
     items: [
-      { label: "Invoices", href: "/finance/invoices" },
-      { label: "Receipts", href: "/finance/receipts" },
-      { label: "Credit notes", href: "/finance/credit-notes" },
-      { label: "Ageing", href: "/finance/ageing" },
-      { label: "Exceptions", href: "/finance/exceptions" },
-      { label: "Accounting sync", href: "/finance/accounting-sync" },
+      { label: "Overview", icon: "wallet", href: "/finance", exact: true },
+      { label: "Invoices", icon: "receipt", href: "/finance/invoices" },
+      { label: "Receipts", icon: "banknote", href: "/finance/receipts" },
+      { label: "Credit notes", icon: "undo", href: "/finance/credit-notes" },
+      { label: "Ageing", icon: "clock", href: "/finance/ageing" },
+      { label: "Exceptions", icon: "alert", href: "/finance/exceptions" },
+      { label: "Accounting sync", icon: "refresh", href: "/finance/accounting-sync" },
     ],
   },
   { id: "settings", label: "Settings", icon: "settings", href: "/settings", blurb: "Your profile, your team and how the workspace behaves.", items: [] },
@@ -136,8 +147,12 @@ export function currentItem(area: NavArea, pathname: string, search: URLSearchPa
   let bestScore = -1;
   for (const item of area.items) {
     const path = pathOf(item);
-    const prefixes = [path, ...(item.also ?? [])];
-    const hit = prefixes.find((prefix) => pathname === prefix || pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`));
+    let hit: string | undefined;
+    if (item.exact) {
+      hit = pathname === path ? path : undefined;
+    } else {
+      hit = [path, ...(item.also ?? [])].find((prefix) => pathname === prefix || pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`));
+    }
     if (!hit) continue;
     const queryOk = !item.query || Object.entries(item.query).every(([key, value]) => search.get(key) === value);
     if (!queryOk) continue;

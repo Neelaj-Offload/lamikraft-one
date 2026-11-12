@@ -1,1 +1,291 @@
 /* Styles for core components this app adds on top of the design system (menus, popovers, drawers, toasts). */
+
+/*
+ * Rules here extend lamikraft.css, they never restyle it:
+ *   - the same lk-* classes on new elements (links, React Aria parts) get the resets they need;
+ *   - overlays the system only sketches (drawer, menu, popover, toast region) are built from its tokens;
+ *   - states the system leaves out (disabled icon buttons, touch targets, reduced motion by preference).
+ * Every colour, space, radius, shadow and duration is a token.
+ */
+
+/* ---------- helpers ---------- */
+.lk-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@keyframes lk-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lk-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lk-rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ---------- glass panel ---------- */
+.lk-glass-head > div:first-child { min-width: 0; }
+.lk-glass-inverse :focus-visible { outline-color: var(--on-inverse); }
+
+/* ---------- buttons ---------- */
+.lk-btn, .lk-iconbtn { flex: none; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lk-btn[data-pressed] { transform: scale(.97); }
+.lk-iconbtn[data-pressed] { transform: scale(.94); }
+/* A loading button is busy, not unavailable: it keeps its full colour and its width. */
+.lk-btn-loading[aria-disabled="true"] { opacity: 1; }
+.lk-btn-inverse.lk-btn-loading::after { color: var(--on-inverse); }
+.lk-btn-danger.lk-btn-loading::after { color: var(--on-ember); }
+.lk-iconbtn:disabled, .lk-iconbtn[aria-disabled="true"] { opacity: var(--opacity-disabled); pointer-events: none; }
+.lk-iconbtn svg { flex: none; }
+
+/* ---------- text links ---------- */
+.lk-link { color: var(--gold-strong); font-weight: 500; text-decoration: none; text-underline-offset: 3px; border-radius: var(--radius-xs); transition: color var(--duration-instant) var(--ease-standard); }
+.lk-link:hover { text-decoration: underline; }
+.lk-link-external svg { display: inline; width: 14px; height: 14px; margin-left: var(--space-1); vertical-align: -2px; }
+
+/* ---------- chips ---------- */
+.lk-chip { position: relative; flex: none; white-space: nowrap; text-decoration: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.lk-chip[data-pressed] { transform: scale(.96); }
+.lk-chip.lk-chip-selected, .lk-chip.lk-chip-selected:hover { background: var(--inverse); color: var(--on-inverse); border-color: var(--inverse); }
+.lk-chip:disabled, .lk-chip[aria-disabled="true"] { opacity: var(--opacity-disabled); pointer-events: none; }
+.lk-chip svg { flex: none; }
+.lk-chip-count { margin-right: calc(var(--space-1) * -1); padding: 0 6px; border-radius: var(--radius-pill); background: color-mix(in srgb, currentColor 14%, transparent); font-size: 11px; line-height: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lk-chip-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+@media (max-width: 639px) {
+  /* One scrolling row on phones. The padding keeps focus rings and touch targets inside the scroller. */
+  .lk-chip-group { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin: -6px calc(var(--space-1) * -1); padding: 6px var(--space-1); }
+  .lk-chip-group::-webkit-scrollbar { display: none; }
+}
+
+/* ---------- segmented control ---------- */
+.lk-seg { max-width: 100%; }
+.lk-seg-item { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; white-space: nowrap; text-decoration: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.lk-seg-item:hover { color: var(--ink); }
+.lk-seg-item[data-selected], .lk-seg-item[aria-current="page"], .lk-seg-item[data-selected]:hover, .lk-seg-item[aria-current="page"]:hover { color: var(--on-inverse); }
+.lk-seg-item[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.lk-seg-item[data-disabled] { opacity: var(--opacity-disabled); cursor: default; }
+.lk-seg-item svg { flex: none; width: 14px; height: 14px; }
+/* The thumb slides between segments; it is placed from the selected segment's measured box. */
+.lk-seg-thumb { left: var(--lk-thumb-left, 0); width: var(--lk-thumb-width, 0); pointer-events: none; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-spring); }
+.lk-seg-thumb:not([data-ready]) { display: none; }
+/* Before the first measurement (server HTML) the selected segment carries the pill itself. */
+.lk-seg-thumb:not([data-ready]) ~ .lk-seg-item[data-selected], .lk-seg-thumb:not([data-ready]) ~ .lk-seg-item[aria-current="page"] { background: var(--inverse); }
+
+/* ---------- tabs ---------- */
+.lk-tabs-root { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+/* The scroller is 4px larger than the tab list on every side so focus rings are never clipped. */
+.lk-tabs-scroll { position: relative; margin: calc(var(--space-1) * -1); padding: var(--space-1); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-behavior: smooth; }
+.lk-tabs-scroll::-webkit-scrollbar { display: none; }
+.lk-tabs-scroll > .lk-tabs { width: max-content; min-width: 100%; }
+.lk-tab { display: inline-flex; align-items: center; flex: none; white-space: nowrap; text-decoration: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.lk-tab[data-selected], .lk-tab[aria-current="page"] { color: var(--ink); }
+.lk-tab[data-disabled] { opacity: var(--opacity-disabled); cursor: default; }
+.lk-tab-count { font-variant-numeric: tabular-nums; }
+.lk-tabs-ink { left: var(--lk-thumb-left, 0); width: var(--lk-thumb-width, 0); pointer-events: none; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-spring); }
+.lk-tabs-scroll > .lk-tabs-ink { bottom: var(--space-1); }
+.lk-tabs-ink:not([data-ready]) { display: none; }
+/* Before the first measurement the selected tab draws the ink bar in the same place. */
+.lk-tabs-scroll:has(> .lk-tabs-ink:not([data-ready])) .lk-tab[data-selected]::after,
+.lk-tabs-scroll:has(> .lk-tabs-ink:not([data-ready])) .lk-tab[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--gold); }
+.lk-tabs-pills .lk-tab[data-selected], .lk-tabs-pills .lk-tab[aria-current="page"] { background: var(--inverse); color: var(--on-inverse); }
+.lk-tabs-pills .lk-tab[data-selected] .lk-tab-count, .lk-tabs-pills .lk-tab[aria-current="page"] .lk-tab-count { background: color-mix(in srgb, var(--on-inverse) 18%, transparent); color: var(--on-inverse); }
+.lk-tabpanel { animation: lk-rise-in var(--duration-base) var(--ease-out-expo); }
+
+/* ---------- breadcrumb ---------- */
+.lk-crumbs-nav { min-width: 0; }
+.lk-crumbs { margin: 0; padding: 0; list-style: none; }
+.lk-crumbs-item { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.lk-crumbs a, .lk-crumbs-back { border-radius: var(--radius-xs); }
+.lk-crumbs-sep { flex: none; }
+.lk-crumbs-back { display: none; align-items: center; gap: var(--space-1); max-width: 100%; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--ink-2); text-decoration: none; transition: color var(--duration-instant) var(--ease-standard); }
+.lk-crumbs-back:hover { color: var(--ink); }
+.lk-crumbs-back svg { flex: none; margin-left: -3px; }
+.lk-crumbs-back-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 639px) {
+  .lk-crumbs-collapsible > .lk-crumbs { display: none; }
+  .lk-crumbs-collapsible > .lk-crumbs-back { display: inline-flex; }
+}
+
+/* ---------- pagination ---------- */
+.lk-pager { max-width: 100%; }
+.lk-pager-btn { position: relative; flex: none; text-decoration: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.lk-pager-btn[aria-current="page"]:hover { background: var(--inverse); color: var(--on-inverse); }
+.lk-pager-btn[aria-disabled="true"] { opacity: var(--opacity-disabled); pointer-events: none; }
+.lk-pager-ellipsis { user-select: none; }
+.lk-page-summary { margin: 0; font-size: 12px; line-height: 16px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ---------- avatar ---------- */
+.lk-avatar { user-select: none; }
+
+/* ---------- banner ---------- */
+.lk-banner-body { min-width: 0; }
+.lk-banner-action { flex: none; display: flex; align-items: center; gap: var(--space-2); margin: -6px 0; align-self: center; }
+.lk-banner-close { flex: none; color: inherit; }
+.lk-banner-close:hover { color: inherit; }
+@media (max-width: 479px) {
+  .lk-banner { flex-wrap: wrap; }
+  .lk-banner-body { flex-basis: 0; }
+  .lk-banner-action { order: 1; flex-basis: 100%; margin: 0; padding-left: calc(18px + var(--space-3)); }
+}
+
+/* ---------- toasts ---------- */
+.lk-toast-region { position: fixed; right: var(--space-5); bottom: calc(var(--space-5) + env(safe-area-inset-bottom)); z-index: var(--z-toast); display: flex; flex-direction: column-reverse; align-items: flex-end; gap: var(--space-2); max-width: calc(100vw - var(--space-5) * 2); outline: none; pointer-events: none; }
+.lk-toast-region:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: var(--space-1); border-radius: var(--radius-lg); }
+.lk-toast-region .lk-toast { pointer-events: auto; }
+.lk-toast-body { min-width: 0; overflow-wrap: anywhere; }
+.lk-toast-body span { display: block; }
+.lk-toast-action { flex: none; display: inline-flex; align-items: center; align-self: center; white-space: nowrap; text-decoration: none; cursor: pointer; transition: background var(--duration-instant) var(--ease-standard); }
+.lk-toast-action:hover { background: color-mix(in srgb, var(--on-inverse) 12%, transparent); }
+.lk-toast-close { position: relative; flex: none; align-self: center; cursor: pointer; transition: opacity var(--duration-instant) var(--ease-standard); }
+.lk-toast-action:focus-visible, .lk-toast-close:focus-visible { outline-color: var(--on-inverse); }
+/* A toast that left the queue: a non-interactive copy plays the exit where the toast stood. */
+.lk-toast.lk-toast-ghost { position: fixed; z-index: var(--z-toast); margin: 0; pointer-events: none; animation: lk-toast-out var(--duration-fast) var(--ease-in-quart) forwards; }
+@keyframes lk-toast-out { to { opacity: 0; transform: translateY(8px) scale(.98); } }
+@media (max-width: 639px) {
+  /* Above the bottom navigation. */
+  .lk-toast-region { left: var(--space-3); right: var(--space-3); bottom: calc(88px + env(safe-area-inset-bottom)); align-items: stretch; max-width: none; }
+  .lk-toast-region .lk-toast { display: flex; min-width: 0; max-width: none; }
+}
+
+/* ---------- tooltip (floating, placed by React Aria) ---------- */
+.lk-tooltip.lk-tooltip-floating { bottom: auto; max-width: 280px; white-space: normal; opacity: 1; transform: none; transition: none; }
+.lk-tooltip.lk-tooltip-floating::after { content: none; }
+.lk-tooltip-floating[data-placement="top"] { --lk-tip-y: 4px; }
+.lk-tooltip-floating[data-placement="bottom"] { --lk-tip-y: -4px; }
+.lk-tooltip-floating[data-placement="left"] { --lk-tip-x: 4px; }
+.lk-tooltip-floating[data-placement="right"] { --lk-tip-x: -4px; }
+.lk-tooltip-floating[data-entering] { animation: lk-tip-in var(--duration-fast) var(--ease-out-expo); }
+.lk-tooltip-floating[data-exiting] { animation: lk-tip-out var(--duration-instant) var(--ease-in-quart) forwards; }
+@keyframes lk-tip-in { from { opacity: 0; transform: translate(var(--lk-tip-x, 0), var(--lk-tip-y, 0)); } to { opacity: 1; transform: none; } }
+@keyframes lk-tip-out { to { opacity: 0; } }
+.lk-tooltip-arrow > span { display: block; width: 8px; height: 8px; border-radius: 1px; background: var(--inverse); transform: rotate(45deg); }
+.lk-tooltip-arrow[data-placement="top"] > span { margin-top: -4px; }
+.lk-tooltip-arrow[data-placement="bottom"] > span { margin-bottom: -4px; }
+.lk-tooltip-arrow[data-placement="left"] > span { margin-left: -4px; }
+.lk-tooltip-arrow[data-placement="right"] > span { margin-right: -4px; }
+
+/* ---------- overlays: scrim, modal, drawer ---------- */
+/* The scrim is a pseudo-element, not the overlay's own background, so the glass panel above it
+   still samples the page (a parent with backdrop-filter or opacity would flatten it). */
+.lk-overlay { position: fixed; top: 0; left: 0; z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; width: 100%; height: var(--visual-viewport-height, 100dvh); }
+.lk-overlay::before { content: ""; position: absolute; inset: 0; background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: lk-fade-in var(--duration-slow) var(--ease-out-expo); }
+.lk-overlay[data-exiting]::before { animation: lk-fade-out var(--duration-fast) var(--ease-in-quart) forwards; }
+
+.lk-modal { display: flex; flex-direction: column; max-height: min(760px, calc(var(--visual-viewport-height, 100dvh) - var(--space-8))); outline: none; }
+.lk-modal-sm { width: min(400px, calc(100% - 32px)); }
+.lk-modal-lg { width: min(720px, calc(100% - 32px)); }
+.lk-modal[data-exiting] { animation: lk-modal-out var(--duration-fast) var(--ease-in-quart) forwards; }
+@keyframes lk-modal-out { to { opacity: 0; transform: translateY(8px) scale(.98); } }
+.lk-modal-dialog, .lk-modal-main { display: flex; flex-direction: column; flex: 1; min-height: 0; outline: none; }
+.lk-modal-title { flex: none; padding-right: var(--space-8); overflow-wrap: anywhere; }
+.lk-modal-desc { flex: none; margin: 0; color: var(--ink-2); font-size: 14px; line-height: 22px; }
+/* The body scrolls; it bleeds to the panel edge so the scrollbar sits there, not beside the text. */
+.lk-modal-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: var(--space-3) calc(var(--space-8) * -1) 0; padding: var(--space-1) var(--space-8); }
+.lk-modal-actions { flex: none; flex-wrap: wrap; }
+
+.lk-overlay-drawer { align-items: stretch; justify-content: flex-end; padding: var(--space-3); }
+.lk-drawer { position: relative; display: flex; flex-direction: column; width: min(480px, 100%); border-radius: var(--radius-xl); border: 1px solid var(--glass-edge); background: var(--glass-strong); -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(1.4); backdrop-filter: blur(var(--blur-lg)) saturate(1.4); box-shadow: var(--shadow-float); color: var(--ink); outline: none; animation: lk-drawer-in var(--duration-slow) var(--ease-out-expo); }
+.lk-drawer-lg { width: min(640px, 100%); }
+.lk-drawer[data-exiting] { animation: lk-drawer-out var(--duration-fast) var(--ease-in-quart) forwards; }
+@keyframes lk-drawer-in { from { opacity: 0; transform: translateX(calc(100% + var(--space-3))); } to { opacity: 1; transform: none; } }
+@keyframes lk-drawer-out { to { opacity: 0; transform: translateX(calc(100% + var(--space-3))); } }
+.lk-drawer-dialog { display: flex; flex-direction: column; flex: 1; min-height: 0; outline: none; }
+.lk-drawer-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-6) var(--space-5) var(--space-3) var(--space-6); }
+.lk-drawer-head > div { min-width: 0; }
+.lk-drawer-title { margin: 0; font-family: var(--font-serif); font-size: 26px; line-height: 30px; font-weight: 400; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.lk-drawer-desc { margin: var(--space-1) 0 0; color: var(--ink-2); font-size: 14px; line-height: 20px; }
+.lk-drawer-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-2) var(--space-6) var(--space-6); }
+.lk-drawer-foot { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--line); }
+
+@keyframes lk-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes lk-sheet-out { to { transform: translateY(100%); } }
+@media (max-width: 639px) {
+  /* Modals become bottom sheets; drawers become full-height sheets. */
+  .lk-overlay { align-items: flex-end; }
+  .lk-modal, .lk-modal-sm, .lk-modal-lg { width: 100%; max-height: calc(var(--visual-viewport-height, 100dvh) - var(--space-10)); padding: var(--space-6) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom)); border-bottom: 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; animation-name: lk-sheet-in; }
+  .lk-modal[data-exiting] { animation-name: lk-sheet-out; }
+  .lk-modal-title { font-size: 26px; line-height: 30px; }
+  .lk-modal-body { margin-inline: calc(var(--space-5) * -1); padding-inline: var(--space-5); }
+  .lk-modal-actions { flex-direction: column-reverse; align-items: stretch; }
+  .lk-overlay-drawer { padding: 0; }
+  .lk-drawer, .lk-drawer-lg { width: 100%; border: 0; border-radius: 0; animation-name: lk-sheet-in; }
+  .lk-drawer[data-exiting] { animation-name: lk-sheet-out; }
+  .lk-drawer-head { padding: calc(var(--space-5) + env(safe-area-inset-top)) var(--space-4) var(--space-3) var(--space-5); }
+  .lk-drawer-body { padding: var(--space-2) var(--space-5) var(--space-5); }
+  .lk-drawer-foot { flex-direction: column-reverse; align-items: stretch; padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- reason field (dialogs) ---------- */
+.lk-reason { margin-top: var(--space-1); }
+/* The note line is always there, so showing an error does not move the action row. */
+.lk-reason-note { min-height: 16px; }
+
+/* ---------- popover + menu ---------- */
+.lk-popover { min-width: 208px; max-width: min(360px, calc(100vw - var(--space-6))); border-radius: var(--radius-lg); border: 1px solid var(--glass-edge); background: var(--glass-strong); -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(1.4); backdrop-filter: blur(var(--blur-lg)) saturate(1.4); box-shadow: var(--shadow-float); color: var(--ink); outline: none; }
+.lk-popover[data-placement="top"] { --lk-pop-y: 8px; }
+.lk-popover[data-placement="left"] { --lk-pop-x: 8px; --lk-pop-y: 0px; }
+.lk-popover[data-placement="right"] { --lk-pop-x: -8px; --lk-pop-y: 0px; }
+.lk-popover[data-entering] { animation: lk-pop-in var(--duration-base) var(--ease-out-expo); }
+.lk-popover[data-exiting] { animation: lk-pop-out var(--duration-fast) var(--ease-in-quart) forwards; }
+@keyframes lk-pop-in { from { opacity: 0; transform: translate(var(--lk-pop-x, 0), var(--lk-pop-y, -8px)) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes lk-pop-out { to { opacity: 0; transform: scale(.98); } }
+.lk-popover-dialog { max-height: inherit; overflow: auto; overscroll-behavior: contain; padding: var(--space-4); border-radius: inherit; outline: none; }
+
+.lk-menu { max-height: inherit; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-2); border-radius: inherit; outline: none; }
+.lk-menu-item { display: flex; align-items: center; gap: var(--space-3); min-height: 40px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--ink); font-size: 14px; line-height: 20px; text-decoration: none; cursor: pointer; outline: none; user-select: none; -webkit-tap-highlight-color: transparent; transition: background var(--duration-instant) var(--ease-standard); }
+.lk-menu-item > svg { flex: none; color: var(--ink-3); }
+.lk-menu-item[data-hovered], .lk-menu-item[data-focused] { background: color-mix(in srgb, var(--ink) calc(var(--opacity-hover) * 100%), transparent); }
+.lk-menu-item[data-pressed] { background: color-mix(in srgb, var(--ink) calc(var(--opacity-pressed) * 100%), transparent); }
+.lk-menu-item[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.lk-menu-item[data-disabled] { opacity: var(--opacity-disabled); cursor: default; }
+.lk-menu-item-danger, .lk-menu-item-danger > svg { color: var(--ember-text); }
+.lk-menu-item-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.lk-menu-item-desc { font-size: 12px; line-height: 16px; color: var(--ink-3); }
+.lk-menu-header { padding: var(--space-2) var(--space-3) var(--space-1); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.lk-menu-sep { height: 1px; margin: var(--space-1) var(--space-2); border: 0; background: var(--line); }
+
+/* ---------- skeleton ---------- */
+.lk-skeleton-lines { display: flex; flex-direction: column; gap: var(--space-2); }
+.lk-skeleton-rows { display: flex; flex-direction: column; }
+/* Same box as a table row (20px line, 12px padding, 1px rule) so real rows do not shift the page. */
+.lk-skeleton-row { display: grid; grid-template-columns: repeat(var(--lk-skeleton-columns, 4), minmax(0, 1fr)); align-items: center; gap: var(--space-4); min-height: 45px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+.lk-skeleton-row:last-child { min-height: 44px; border-bottom: 0; }
+
+/* ---------- empty state ---------- */
+.lk-empty-title { overflow-wrap: anywhere; }
+.lk-empty-actions { flex-wrap: wrap; justify-content: center; }
+.lk-empty-compact { padding: var(--space-5) var(--space-4); }
+.lk-empty-compact .lk-empty-art { width: 44px; height: 44px; margin-bottom: var(--space-1); border-radius: var(--radius-md); }
+.lk-empty-compact .lk-empty-art svg { width: 20px; height: 20px; }
+.lk-empty-compact .lk-empty-title { font-size: 22px; line-height: 26px; }
+.lk-empty-compact .lk-empty-text { font-size: 13px; line-height: 18px; }
+
+/* ---------- composer ---------- */
+.lk-composer textarea { field-sizing: content; overflow-y: auto; font-family: inherit; }
+.lk-composer textarea:disabled { cursor: default; }
+.lk-composer-row .lk-orb-wrap { flex: none; }
+.lk-composer-chip { position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lk-composer-chip:disabled { opacity: var(--opacity-disabled); pointer-events: none; }
+.lk-composer-disabled { opacity: var(--opacity-disabled); }
+.lk-composer-hint { white-space: nowrap; }
+
+/* ---------- touch: every target is at least 44px ---------- */
+@media (pointer: coarse) {
+  /* Small controls keep their drawn size; an invisible pad extends the area that takes the tap. */
+  .lk-btn::before, .lk-iconbtn::before, .lk-chip::before, .lk-seg-item::before, .lk-pager-btn::before, .lk-toast-close::before, .lk-composer-chip::before { content: ""; position: absolute; top: 50%; left: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+  .lk-tab, .lk-tabs-pills .lk-tab { height: 44px; }
+  .lk-menu-item { min-height: 44px; }
+  .lk-crumbs a, .lk-crumbs-back { display: inline-flex; align-items: center; min-height: 44px; }
+  .lk-toast-action { height: 44px; }
+  .lk-composer-hint { display: none; }
+}
+
+/* ---------- reduced motion ----------
+   Ambient loops stop and entrances stop travelling; short fades and the sliding selection stay.
+   Written twice: for the system setting and for the in-app preference (<html data-motion="reduced">). */
+@media (prefers-reduced-motion: reduce) {
+  .lk-composer { animation: none; }
+  .lk-tabs-scroll { scroll-behavior: auto; }
+  .lk-tabpanel { animation: none; }
+  .lk-toast, .lk-modal, .lk-drawer, .lk-popover[data-entering], .lk-tooltip-floating[data-entering] { animation-name: lk-fade-in; animation-duration: var(--duration-fast); }
+  .lk-toast.lk-toast-ghost, .lk-modal[data-exiting], .lk-drawer[data-exiting], .lk-popover[data-exiting] { animation-name: lk-fade-out; }
+  .lk-glass-interactive:hover { transform: none; }
+}
+:root[data-motion="reduced"] .lk-aurora span, :root[data-motion="reduced"] .lk-orb, :root[data-motion="reduced"] .lk-orb::before, :root[data-motion="reduced"] .lk-orb-ring, :root[data-motion="reduced"] .lk-skeleton::after, :root[data-motion="reduced"] .lk-composer { animation: none !important; }
+:root[data-motion="reduced"] .lk-tabs-scroll { scroll-behavior: auto; }
+:root[data-motion="reduced"] .lk-tabpanel { animation: none; }
+:root[data-motion="reduced"] .lk-toast, :root[data-motion="reduced"] .lk-modal, :root[data-motion="reduced"] .lk-drawer, :root[data-motion="reduced"] .lk-popover[data-entering], :root[data-motion="reduced"] .lk-tooltip-floating[data-entering] { animation-name: lk-fade-in; animation-duration: var(--duration-fast); }
+:root[data-motion="reduced"] .lk-toast.lk-toast-ghost, :root[data-motion="reduced"] .lk-modal[data-exiting], :root[data-motion="reduced"] .lk-drawer[data-exiting], :root[data-motion="reduced"] .lk-popover[data-exiting] { animation-name: lk-fade-out; }
+:root[data-motion="reduced"] .lk-glass-interactive:hover { transform: none; }

@@ -3,31 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Icon } from "~/ui/icon";
 import { areaOf, currentItem, type NavArea } from "./nav";
-
-const OPEN_KEY = "lk-one:nav-open";
-/** Sales is open by default: phase one of the rollout is the sales modules (docs/meetings). */
-const DEFAULT_OPEN: readonly string[] = ["sales"];
-
-function readOpen(): string[] {
-  try {
-    const raw = window.localStorage.getItem(OPEN_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [...DEFAULT_OPEN];
-  } catch {
-    return [...DEFAULT_OPEN];
-  }
-}
-
-function writeOpen(open: readonly string[]): void {
-  try {
-    window.localStorage.setItem(OPEN_KEY, JSON.stringify(open));
-  } catch {
-    // Private windows and blocked storage: the menu still works, it just forgets on reload.
-  }
-}
 
 export interface SidebarProps {
   areas: readonly NavArea[];
@@ -40,32 +17,20 @@ export interface SidebarProps {
 }
 
 /**
- * The left-side menu: every area, with its screens listed underneath. The group you are in is
- * always open; others open and close with their chevron and remember the choice on this device.
- * Below 1280px (or when collapsed) it becomes an icon rail and the area's screens move to the
- * pill row above the page.
+ * The left-side menu. It is flat: every screen is a top-level link with its own icon, and the
+ * links are categorised under plain headings (Sales, Products, Operations, Finance). Nothing
+ * expands, collapses or nests.
+ *
+ * Below 1280px, or when collapsed, it becomes an icon rail showing one icon per group (its first
+ * screen); the group's other screens are then offered by the pill row above the page.
  */
 export function Sidebar({ areas, inboxCount, collapsed, onToggle, companyName, showActivity }: SidebarProps) {
   const pathname = usePathname();
   const search = useSearchParams();
   const activeArea = areaOf(pathname);
-  const [open, setOpen] = useState<string[]>([...DEFAULT_OPEN]);
 
-  // Stored choices are read after mount so server and client markup agree.
-  useEffect(() => {
-    const id = window.setTimeout(() => setOpen(readOpen()), 0);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  const toggleGroup = (id: string) => {
-    setOpen((current) => {
-      const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
-      writeOpen(next);
-      return next;
-    });
-  };
-
-  const main = areas.filter((area) => area.id !== "settings");
+  const single = areas.filter((area) => area.items.length === 0 && area.id !== "settings");
+  const groups = areas.filter((area) => area.items.length > 0);
   const settings = areas.find((area) => area.id === "settings");
 
   return (
@@ -79,70 +44,57 @@ export function Sidebar({ areas, inboxCount, collapsed, onToggle, companyName, s
               <span>{companyName}</span>
             </span>
           </Link>
-          <button
-            type="button"
-            className="side-expander side-toggle side-rail-hide max-xl:hidden"
-            onClick={onToggle}
-            aria-label="Collapse the menu"
-          >
+          <button type="button" className="side-iconbtn side-toggle side-rail-hide max-xl:hidden" onClick={onToggle} aria-label="Collapse the menu">
             <Icon name="panelLeft" size={18} />
           </button>
         </div>
 
         <nav className="side-scroll" aria-label="Primary">
           <ul className="side-list">
-            {main.map((area) => {
-              const isActive = activeArea === area.id;
-              const isOpen = isActive || open.includes(area.id);
-              const current = isActive ? currentItem(area, pathname, search) : null;
-              const onHub = isActive && pathname === String(area.href);
-              return (
-                <li key={area.id} className="side-group" data-open={isOpen}>
-                  <div className="side-group-head">
-                    <Link
-                      href={area.href}
-                      className="side-link"
-                      data-active={isActive && (area.items.length === 0 || current === null)}
-                      aria-current={onHub ? "page" : undefined}
-                      title={area.label}
-                    >
-                      <Icon name={area.icon} size={20} />
-                      <span className="side-link-text side-text">{area.label}</span>
-                      {area.id === "inbox" && inboxCount > 0 ? (
-                        <span className="side-count" aria-label={inboxCount === 1 ? "1 open item" : `${inboxCount} open items`}>
-                          {inboxCount > 99 ? "99+" : inboxCount}
-                        </span>
-                      ) : null}
-                    </Link>
-                    {area.items.length > 0 ? (
-                      <button
-                        type="button"
-                        className="side-expander side-rail-hide"
-                        aria-expanded={isOpen}
-                        aria-controls={`side-sub-${area.id}`}
-                        aria-label={`${isOpen ? "Hide" : "Show"} ${area.label} screens`}
-                        disabled={isActive}
-                        onClick={() => toggleGroup(area.id)}
-                      >
-                        <Icon name="chevronRight" size={16} />
-                      </button>
-                    ) : null}
-                  </div>
-                  {area.items.length > 0 && isOpen ? (
-                    <ul className="side-sub side-rail-hide" id={`side-sub-${area.id}`}>
-                      {area.items.map((item) => (
-                        <li key={item.label}>
-                          <Link href={item.href} className="side-sublink" aria-current={current === item ? "page" : undefined}>
-                            {item.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+            {single.map((area) => (
+              <li key={area.id}>
+                <Link href={area.href} className="side-link" data-active={activeArea === area.id} aria-current={pathname === String(area.href) ? "page" : undefined} title={area.label}>
+                  <Icon name={area.icon} size={20} />
+                  <span className="side-link-text side-text">{area.label}</span>
+                  {area.id === "inbox" && inboxCount > 0 ? (
+                    <span className="side-count" aria-label={inboxCount === 1 ? "1 open item" : `${inboxCount} open items`}>
+                      {inboxCount > 99 ? "99+" : inboxCount}
+                    </span>
                   ) : null}
-                </li>
-              );
-            })}
+                </Link>
+              </li>
+            ))}
           </ul>
+
+          {groups.map((area) => {
+            const isActive = activeArea === area.id;
+            const current = isActive ? currentItem(area, pathname, search) : null;
+            const headingId = `side-group-${area.id}`;
+            return (
+              <section key={area.id} className="side-section" aria-labelledby={headingId}>
+                <h2 id={headingId} className="t-overline side-label side-text">
+                  {area.label}
+                </h2>
+                <ul className="side-list">
+                  {area.items.map((item, index) => (
+                    <li key={item.label} className={index === 0 ? undefined : "side-rail-hide"}>
+                      <Link
+                        href={item.href}
+                        className="side-link"
+                        aria-current={current === item ? "page" : undefined}
+                        // In rail mode the first screen stands for its whole group.
+                        data-rail-active={index === 0 && isActive}
+                        title={index === 0 ? area.label : item.label}
+                      >
+                        <Icon name={item.icon} size={20} />
+                        <span className="side-link-text side-text">{item.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </nav>
 
         <div className="side-foot">
