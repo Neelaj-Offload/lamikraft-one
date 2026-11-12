@@ -8,7 +8,7 @@ import { testBootstrap } from "@/lib/test-support/session";
 import { shellGridClasses } from "./app-shell";
 import { phoneTabs } from "./bottom-nav";
 import { ComposerDock } from "./composer-dock";
-import { DemoNotice } from "./top-bar";
+import { DemoNotice, TopBar, type TopBarProps } from "./top-bar";
 import { deniedRoute } from "./route-gate";
 import { initials } from "./user-menu";
 import { PrimaryNav } from "./primary-nav";
@@ -138,5 +138,32 @@ describe("collapsible sidebar (PARITY UI-07)", () => {
     expect(controlsWithoutVisibleFocus(html)).toEqual([]);
     const wide = renderInSession(<PrimaryNav routes={routes} inboxCount={null} locale="en-IN" mode="auto" />);
     expect(wide).toMatch(/<span class="[^"]*md:max-xl:sr-only[^"]*">Today<\/span>/);
+  });
+});
+
+describe("context rail toggle", () => {
+  const noop = () => {};
+  const props: TopBarProps = {
+    companyName: "Crown Decor (Demo)",
+    isDemo: true,
+    userName: "Sahil Mehta",
+    roleLabel: "Management",
+    theme: "system",
+    onThemeChange: noop,
+    onSearch: noop,
+    hasRailContent: false,
+    railOpen: true,
+    onToggleRail: noop,
+    onSignOut: noop,
+  };
+
+  it("is not rendered on screens without rail content, even when the preference is open", () => {
+    const html = renderInSession(<TopBar {...props} />);
+    expect(html).not.toContain("context panel");
+  });
+
+  it("is rendered with its state when the screen has rail content", () => {
+    expect(renderInSession(<TopBar {...props} hasRailContent />)).toContain('aria-label="Hide context panel"');
+    expect(renderInSession(<TopBar {...props} hasRailContent railOpen={false} />)).toContain('aria-label="Show context panel"');
   });
 });

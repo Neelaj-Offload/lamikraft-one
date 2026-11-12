@@ -40,6 +40,8 @@ export interface TopBarProps {
   theme: ThemePreference;
   onThemeChange: (theme: ThemePreference) => void;
   onSearch: () => void;
+  /** Whether the current screen has context for the rail; without it the toggle is not rendered. */
+  hasRailContent: boolean;
   railOpen: boolean;
   onToggleRail: () => void;
   onSignOut: () => void;
@@ -70,15 +72,17 @@ export function TopBar(props: TopBarProps) {
         <IconButton label={m.search.trigger} onPress={props.onSearch} className="md:hidden">
           <SearchIcon />
         </IconButton>
-        <span className="hidden md:inline-flex">
-          <IconButton
-            label={props.railOpen ? m.rail.hide : m.rail.show}
-            onPress={props.onToggleRail}
-            aria-expanded={props.railOpen}
-          >
-            <PanelRightIcon />
-          </IconButton>
-        </span>
+        {props.hasRailContent ? (
+          <span className="hidden md:inline-flex">
+            <IconButton
+              label={props.railOpen ? m.rail.hide : m.rail.show}
+              onPress={props.onToggleRail}
+              aria-expanded={props.railOpen}
+            >
+              <PanelRightIcon />
+            </IconButton>
+          </span>
+        ) : null}
         <UserMenu
           name={props.userName}
           roleLabel={props.roleLabel}

@@ -159,7 +159,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   const roleLabel = bootstrap.membership.role_names.join(", ") || null;
-  const railInline = railOpen;
+  // The rail only exists on screens that put record context into it (<RailContent>); elsewhere
+  // there is nothing to show, so neither the column nor its toggle is rendered.
+  const hasRailContent = railItems > 0;
+  const railInline = railOpen && hasRailContent;
   const sidebarMode: SidebarMode = sidebarCollapsed ? "rail" : "auto";
   const sidebar = sidebarClasses[sidebarMode];
   const navId = "lk-primary-nav";
@@ -220,7 +223,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               theme={theme}
               onThemeChange={setTheme}
               onSearch={() => setSearchOpen(true)}
-              railOpen={isWide ? railOpen : railDrawerOpen}
+              hasRailContent={hasRailContent}
+              railOpen={isWide ? railInline : railDrawerOpen}
               onToggleRail={toggleRail}
               onSignOut={() => void requestSignOut()}
             />
@@ -255,7 +259,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <Drawer
             title={m.contextRail}
-            isOpen={railDrawerOpen && !isWide}
+            isOpen={railDrawerOpen && !isWide && hasRailContent}
             onOpenChange={setRailDrawerOpen}
           >
             <RailBody hasContent={railItems > 0} setTarget={setRailTarget} />
