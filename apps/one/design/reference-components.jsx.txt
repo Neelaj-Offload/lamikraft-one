@@ -1,0 +1,560 @@
+import { Icon, iconNames } from './icons.jsx';
+export { Icon, iconNames };
+const { useState, useRef, useEffect, useLayoutEffect, useId, Fragment } = React;
+const cx = (...a) => a.filter(Boolean).join(' ');
+
+/* ---------- Surfaces ---------- */
+export function GlassPanel({ variant = 'glass', padding = 'md', interactive, selected, eyebrow, title, action, as: Tag = 'div', className, children, ...rest }) {
+  return (
+    <Tag className={cx('lk-glass', variant !== 'glass' && 'lk-glass-' + variant, 'lk-glass-pad-' + padding, interactive && 'lk-glass-interactive', selected && 'lk-glass-selected', className)} {...rest}>
+      {(eyebrow || title || action) && (
+        <div className="lk-glass-head">
+          <div>
+            {eyebrow && <div className="lk-glass-eyebrow">{eyebrow}</div>}
+            {title && <h3 className="lk-glass-title">{title}</h3>}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </Tag>
+  );
+}
+
+export function Aurora({ quiet, className }) {
+  return <div className={cx('lk-aurora', quiet && 'lk-aurora-quiet', className)} aria-hidden="true"><span /><span /><span /><span /><span /></div>;
+}
+
+export function Orb({ size = 'md', state = 'idle', label = 'Lamikraft assistant', className }) {
+  return (
+    <span className={cx('lk-orb-wrap', className)} role="img" aria-label={label + (state !== 'idle' ? ', ' + state : '')}>
+      {state === 'listening' && <><span className="lk-orb-ring" /><span className="lk-orb-ring" /></>}
+      <span className={cx('lk-orb', 'lk-orb-' + size, state !== 'idle' && 'lk-orb-' + state)} />
+    </span>
+  );
+}
+
+/* ---------- Actions ---------- */
+export function Button({ variant = 'primary', size = 'md', iconLeft, iconRight, loading, className, children, ...rest }) {
+  return (
+    <button type="button" className={cx('lk-btn', 'lk-btn-' + variant, size !== 'md' && 'lk-btn-' + size, loading && 'lk-btn-loading', className)} aria-busy={loading || undefined} {...rest}>
+      {iconLeft && <Icon name={iconLeft} className="lk-btn-icon" />}
+      {children}
+      {iconRight && <Icon name={iconRight} className="lk-btn-icon" />}
+    </button>
+  );
+}
+
+export function IconButton({ icon, label, variant = 'glass', size = 'md', badge, className, ...rest }) {
+  return (
+    <button type="button" className={cx('lk-iconbtn', variant !== 'glass' && 'lk-iconbtn-' + variant, size !== 'md' && 'lk-iconbtn-' + size, className)} aria-label={label} title={label} {...rest}>
+      <Icon name={icon} />
+      {badge && <span className="lk-iconbtn-badge" />}
+    </button>
+  );
+}
+
+export function Chip({ selected, onChange, tone, icon, dot, className, children, ...rest }) {
+  return (
+    <button type="button" className={cx('lk-chip', tone === 'gold' && 'lk-chip-gold', className)} aria-pressed={!!selected} onClick={() => onChange && onChange(!selected)} {...rest}>
+      {dot && <span className="lk-chip-dot" />}
+      {icon && <Icon name={icon} size={14} />}
+      {children}
+    </button>
+  );
+}
+
+function useThumb(ref, dep, sel) {
+  const [box, setBox] = useState(null);
+  useLayoutEffect(() => {
+    const el = ref.current && ref.current.querySelector(sel);
+    if (el) setBox({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [dep]);
+  return box;
+}
+
+export function SegmentedControl({ options, value, defaultValue, onChange, size, glass, label, className }) {
+  const [internal, setInternal] = useState(defaultValue ?? (options[0] && options[0].value));
+  const current = value !== undefined ? value : internal;
+  const ref = useRef(null);
+  const box = useThumb(ref, current, '[aria-selected="true"]');
+  const pick = v => { setInternal(v); onChange && onChange(v); };
+  return (
+    <div ref={ref} role="tablist" aria-label={label} className={cx('lk-seg', size === 'sm' && 'lk-seg-sm', glass && 'lk-seg-glass', className)}>
+      {box && <span className="lk-seg-thumb" style={{ left: box.left, width: box.width }} />}
+      {options.map(o => (
+        <button key={o.value} role="tab" type="button" className="lk-seg-item" aria-selected={o.value === current} onClick={() => pick(o.value)}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Navigation ---------- */
+export function SidebarRail({ logo, items, value, onChange, footer, className }) {
+  return (
+    <nav className={cx('lk-rail', className)} aria-label="Primary">
+      <div className="lk-rail-logo">{logo}</div>
+      <div className="lk-rail-nav">
+        {items.map(it => (
+          <button key={it.id} type="button" className="lk-rail-item" aria-current={it.id === value ? 'page' : undefined} aria-label={it.label} title={it.label} onClick={() => onChange && onChange(it.id)}>
+            <Icon name={it.icon} size={20} />
+            {it.dot && <span className="lk-rail-dot" />}
+          </button>
+        ))}
+      </div>
+      <div className="lk-rail-spacer" />
+      {footer}
+    </nav>
+  );
+}
+
+export function TopBar({ title, subtitle, search, actions, className }) {
+  return (
+    <header className={cx('lk-topbar', className)}>
+      <div>
+        <h1 className="lk-topbar-title">{title}</h1>
+        {subtitle && <div className="lk-topbar-sub">{subtitle}</div>}
+      </div>
+      <div className="lk-topbar-spacer" />
+      {search}
+      <div className="lk-topbar-actions">{actions}</div>
+    </header>
+  );
+}
+
+export function Tabs({ tabs, value, defaultValue, onChange, variant = 'underline', className }) {
+  const [internal, setInternal] = useState(defaultValue ?? (tabs[0] && tabs[0].value));
+  const current = value !== undefined ? value : internal;
+  const ref = useRef(null);
+  const box = useThumb(ref, current, '[aria-selected="true"]');
+  return (
+    <div ref={ref} role="tablist" className={cx('lk-tabs', variant === 'pills' && 'lk-tabs-pills', className)}>
+      {tabs.map(t => (
+        <button key={t.value} role="tab" type="button" className="lk-tab" aria-selected={t.value === current} onClick={() => { setInternal(t.value); onChange && onChange(t.value); }}>
+          {t.label}{t.count !== undefined && <span className="lk-tab-count">{t.count}</span>}
+        </button>
+      ))}
+      {box && <span className="lk-tabs-ink" style={{ left: box.left, width: box.width }} />}
+    </div>
+  );
+}
+
+export function Breadcrumb({ items, className }) {
+  return (
+    <nav className={cx('lk-crumbs', className)} aria-label="Breadcrumb">
+      {items.map((it, i) => {
+        const last = i === items.length - 1;
+        return (
+          <Fragment key={i}>
+            {last ? <span className="lk-crumbs-current" aria-current="page">{it.label}</span> : <a href={it.href || '#'} onClick={it.onClick}>{it.label}</a>}
+            {!last && <Icon name="chevronRight" className="lk-crumbs-sep" size={14} />}
+          </Fragment>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function DockNav({ items, value, defaultValue, onChange, onAdd, className }) {
+  const [internal, setInternal] = useState(defaultValue ?? (items[0] && items[0].id));
+  const current = value !== undefined ? value : internal;
+  const ref = useRef(null);
+  const box = useThumb(ref, current, '[aria-current="page"]');
+  return (
+    <nav ref={ref} className={cx('lk-dock', className)} aria-label="Sections">
+      {box && <span className="lk-dock-bubble" style={{ left: box.left, width: box.width }} />}
+      {items.map(it => (
+        <button key={it.id} type="button" className="lk-dock-item" aria-current={it.id === current ? 'page' : undefined} onClick={() => { setInternal(it.id); onChange && onChange(it.id); }}>
+          {it.icon && <Icon name={it.icon} size={16} />}{it.label}
+        </button>
+      ))}
+      {onAdd && <><span className="lk-dock-sep" /><button type="button" className="lk-dock-add" aria-label="Add" onClick={onAdd}><Icon name="plus" size={16} /></button></>}
+    </nav>
+  );
+}
+
+export function Pagination({ page, pages, onChange, className }) {
+  const items = [];
+  const push = p => items.push(p);
+  if (pages <= 7) for (let p = 1; p <= pages; p++) push(p);
+  else {
+    push(1);
+    if (page > 3) push('…');
+    for (let p = Math.max(2, page - 1); p <= Math.min(pages - 1, page + 1); p++) push(p);
+    if (page < pages - 2) push('…');
+    push(pages);
+  }
+  return (
+    <nav className={cx('lk-pager', className)} aria-label="Pagination">
+      <button type="button" className="lk-pager-btn" aria-label="Previous page" disabled={page <= 1} onClick={() => onChange(page - 1)}><Icon name="chevronLeft" size={16} /></button>
+      {items.map((p, i) => p === '…' ? <span key={'e' + i} className="lk-pager-ellipsis">…</span> : <button key={p} type="button" className="lk-pager-btn" aria-current={p === page ? 'page' : undefined} onClick={() => onChange(p)}>{p}</button>)}
+      <button type="button" className="lk-pager-btn" aria-label="Next page" disabled={page >= pages} onClick={() => onChange(page + 1)}><Icon name="chevronRight" size={16} /></button>
+    </nav>
+  );
+}
+
+/* ---------- Inputs ---------- */
+function FieldFrame({ id, label, optional, help, error, children, className }) {
+  return (
+    <div className={cx('lk-field', className)}>
+      {label && <label className="lk-field-label" htmlFor={id}><span>{label}</span>{optional && <span className="lk-field-optional">Optional</span>}</label>}
+      {children}
+      {error ? <div className="lk-field-error" role="alert"><Icon name="alert" size={14} />{error}</div> : help ? <div className="lk-field-help">{help}</div> : null}
+    </div>
+  );
+}
+
+export function TextField({ label, optional, help, error, iconLeft, prefix, suffix, size = 'md', glass, disabled, className, id: idProp, ...rest }) {
+  const auto = useId(); const id = idProp || auto;
+  return (
+    <FieldFrame id={id} label={label} optional={optional} help={help} error={error} className={className}>
+      <div className={cx('lk-input', size !== 'md' && 'lk-input-' + size, glass && 'lk-input-glass', error && 'lk-input-invalid', disabled && 'lk-input-disabled')}>
+        {iconLeft && <Icon name={iconLeft} />}
+        {prefix && <span className="lk-input-affix">{prefix}</span>}
+        <input id={id} disabled={disabled} aria-invalid={!!error || undefined} {...rest} />
+        {suffix && <span className="lk-input-affix">{suffix}</span>}
+      </div>
+    </FieldFrame>
+  );
+}
+
+export function SearchField({ placeholder = 'Search', shortcut = '/', glass = true, size = 'md', className, ...rest }) {
+  return (
+    <div className={cx('lk-input', 'lk-search', size !== 'md' && 'lk-input-' + size, glass && 'lk-input-glass', className)} role="search">
+      <Icon name="search" />
+      <input type="search" placeholder={placeholder} aria-label={placeholder} {...rest} />
+      {shortcut && <kbd className="lk-search-kbd">{shortcut}</kbd>}
+    </div>
+  );
+}
+
+export function Select({ label, optional, help, error, options, size = 'md', glass, disabled, className, id: idProp, ...rest }) {
+  const auto = useId(); const id = idProp || auto;
+  return (
+    <FieldFrame id={id} label={label} optional={optional} help={help} error={error} className={className}>
+      <div className={cx('lk-input', 'lk-select', size !== 'md' && 'lk-input-' + size, glass && 'lk-input-glass', error && 'lk-input-invalid', disabled && 'lk-input-disabled')}>
+        <select id={id} disabled={disabled} {...rest}>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <Icon name="chevronDown" />
+      </div>
+    </FieldFrame>
+  );
+}
+
+export function Textarea({ label, optional, help, error, glass, disabled, className, id: idProp, ...rest }) {
+  const auto = useId(); const id = idProp || auto;
+  return (
+    <FieldFrame id={id} label={label} optional={optional} help={help} error={error} className={className}>
+      <div className={cx('lk-input', 'lk-textarea', glass && 'lk-input-glass', error && 'lk-input-invalid', disabled && 'lk-input-disabled')}>
+        <textarea id={id} disabled={disabled} {...rest} />
+      </div>
+    </FieldFrame>
+  );
+}
+
+export function Checkbox({ label, description, disabled, className, ...rest }) {
+  return (
+    <label className={cx('lk-check', disabled && 'lk-check-disabled', className)}>
+      <input type="checkbox" disabled={disabled} {...rest} />
+      <span className="lk-check-box"><Icon name="check" size={12} strokeWidth={2.5} /></span>
+      {(label || description) && <span className="lk-check-text"><span>{label}</span>{description && <span className="lk-check-desc">{description}</span>}</span>}
+    </label>
+  );
+}
+
+export function Radio({ label, description, disabled, className, ...rest }) {
+  return (
+    <label className={cx('lk-check', 'lk-check-radio', disabled && 'lk-check-disabled', className)}>
+      <input type="radio" disabled={disabled} {...rest} />
+      <span className="lk-check-box" />
+      {(label || description) && <span className="lk-check-text"><span>{label}</span>{description && <span className="lk-check-desc">{description}</span>}</span>}
+    </label>
+  );
+}
+
+export function Switch({ label, tone, className, ...rest }) {
+  return (
+    <label className={cx('lk-switch', tone === 'inverse' && 'lk-switch-inverse', className)}>
+      <input type="checkbox" role="switch" {...rest} />
+      <span className="lk-switch-track"><span className="lk-switch-thumb" /></span>
+      {label && <span>{label}</span>}
+    </label>
+  );
+}
+
+export function Slider({ min = 0, max = 100, step = 1, value, defaultValue = 50, onChange, format = v => v, label, showValue = true, className }) {
+  const [internal, setInternal] = useState(defaultValue);
+  const v = value !== undefined ? value : internal;
+  const pct = ((v - min) / (max - min)) * 100;
+  return (
+    <div className={cx('lk-slider', className)}>
+      <span className="lk-slider-track" />
+      <span className="lk-slider-fill" style={{ width: pct + '%' }} />
+      <input type="range" min={min} max={max} step={step} value={v} aria-label={label} onChange={e => { const n = Number(e.target.value); setInternal(n); onChange && onChange(n); }} />
+      <span className="lk-slider-thumb" style={{ left: pct + '%' }} />
+      {showValue && <span className="lk-slider-value" style={{ left: pct + '%' }}>{format(v)}</span>}
+    </div>
+  );
+}
+
+/* ---------- Data ---------- */
+function sparkPath(data, w, h, pad = 2) {
+  const min = Math.min(...data), max = Math.max(...data), r = max - min || 1;
+  const pts = data.map((d, i) => [pad + (i / (data.length - 1)) * (w - pad * 2), pad + (1 - (d - min) / r) * (h - pad * 2)]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], cx = (x0 + x1) / 2;
+    d += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`;
+  }
+  return { d, pts };
+}
+
+export function Sparkline({ data, width = 96, height = 32, color = 'var(--chart-1)', area = true, className }) {
+  const { d, pts } = sparkPath(data, width, height, 3);
+  const last = pts[pts.length - 1];
+  return (
+    <svg className={cx('lk-stat-spark', className)} viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
+      {area && <path d={`${d} L${last[0]},${height} L${pts[0][0]},${height} Z`} fill={color} className="lk-chart-area" />}
+      <path d={d} className="lk-chart-line" stroke={color} />
+      <circle cx={last[0]} cy={last[1]} r="3" fill={color} className="lk-chart-dot" />
+    </svg>
+  );
+}
+
+export function StatTile({ label, value, delta, deltaLabel, trend, data, foot, size, dot, bar, inverse, className }) {
+  const dir = trend || (typeof delta === 'number' ? (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat') : null);
+  const deltaText = typeof delta === 'number' ? `${delta > 0 ? '+' : ''}${delta}%` : delta;
+  return (
+    <div className={cx('lk-stat', size === 'xl' && 'lk-stat-xl', inverse && 'lk-stat-inverse', className)}>
+      <div className="lk-stat-label">{dot && <span className="lk-stat-label-dot" style={dot !== true ? { background: dot } : undefined} />}{label}</div>
+      <div className="lk-stat-row">
+        <div className="lk-stat-value">{value}</div>
+        {data ? <Sparkline data={data} color={dir === 'down' ? 'var(--ember)' : inverse ? 'var(--on-inverse)' : 'var(--chart-1)'} /> : null}
+      </div>
+      {(dir || foot) && (
+        <div className="lk-row" style={{ gap: 8 }}>
+          {dir && <span className={cx('lk-stat-delta', 'lk-stat-delta-' + dir)}>{dir !== 'flat' && <Icon name={dir === 'up' ? 'arrowUpRight' : 'arrowDownRight'} size={12} strokeWidth={2.2} />}{deltaText}</span>}
+          {foot && <span className="lk-stat-foot">{foot || deltaLabel}</span>}
+        </div>
+      )}
+      {bar !== undefined && <div className="lk-stat-bar" aria-hidden="true"><span style={{ width: bar + '%' }} /></div>}
+    </div>
+  );
+}
+
+export function LineChart({ series, labels, width = 480, height = 180, area = true, callout, legend, className }) {
+  const padL = 32, padR = 12, padT = 16, padB = 24;
+  const all = series.flatMap(s => s.data);
+  const min = 0, max = Math.max(...all) * 1.1 || 1;
+  const w = width - padL - padR, h = height - padT - padB;
+  const n = Math.max(...series.map(s => s.data.length));
+  const x = i => padL + (i / (n - 1)) * w, y = v => padT + (1 - (v - min) / (max - min)) * h;
+  const ticks = [0, 0.5, 1].map(t => min + t * (max - min));
+  const paths = series.map(s => {
+    const pts = s.data.map((v, i) => [x(i), y(v)]);
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], c = (x0 + x1) / 2; d += ` C${c},${y0} ${c},${y1} ${x1},${y1}`; }
+    return { d, pts };
+  });
+  const co = callout !== undefined ? callout : null;
+  return (
+    <div className={className}>
+      <svg className="lk-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={series.map(s => s.name).join(', ')}>
+        {ticks.map((t, i) => <g key={i}><line className="lk-chart-grid" x1={padL} x2={width - padR} y1={y(t)} y2={y(t)} /><text className="lk-chart-axis" x={padL - 8} y={y(t) + 4} textAnchor="end">{Math.round(t)}</text></g>)}
+        {labels && labels.map((l, i) => <text key={i} className="lk-chart-axis" x={x(i)} y={height - 6} textAnchor="middle">{l}</text>)}
+        {paths.map((p, si) => {
+          const color = series[si].color || `var(--chart-${si + 1})`;
+          const last = p.pts[p.pts.length - 1];
+          return <g key={si}>
+            {area && si === 0 && <path d={`${p.d} L${last[0]},${y(min)} L${p.pts[0][0]},${y(min)} Z`} fill={color} className="lk-chart-area" />}
+            <path d={p.d} className="lk-chart-line" stroke={color} strokeDasharray={series[si].dashed ? '4 6' : undefined} />
+          </g>;
+        })}
+        {co !== null && paths[0] && (() => { const i = co === true ? paths[0].pts.length - 1 : co; const [px, py] = paths[0].pts[i]; const v = series[0].data[i]; const tw = 8 + String(v).length * 7; return <g>
+          <line x1={px} x2={px} y1={padT} y2={y(min)} className="lk-chart-grid" strokeDasharray="3 4" />
+          <circle cx={px} cy={py} r="4.5" fill={series[0].color || 'var(--chart-1)'} className="lk-chart-dot" />
+          <rect className="lk-chart-callout-bg" x={px - tw / 2} y={py - 30} width={tw} height={20} rx="10" />
+          <text className="lk-chart-callout" x={px} y={py - 16} textAnchor="middle">{v}</text>
+        </g>; })()}
+      </svg>
+      {legend && <div className="lk-chart-legend">{series.map((s, i) => <span key={i}><i style={{ background: s.color || `var(--chart-${i + 1})` }} />{s.name}</span>)}</div>}
+    </div>
+  );
+}
+
+export function BarChart({ data, labels, width = 480, height = 160, highlight, color = 'var(--chart-2)', highlightColor = 'var(--chart-1)', className }) {
+  const padL = 8, padB = 22, padT = 8, h = height - padT - padB, w = width - padL * 2;
+  const max = Math.max(...data) || 1, n = data.length, gap = 6, bw = (w - gap * (n - 1)) / n;
+  return (
+    <svg className={cx('lk-chart', className)} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Bar chart">
+      {data.map((v, i) => { const bh = (v / max) * h; const hi = highlight === i; return <g key={i}>
+        <rect className="lk-chart-bar" x={padL + i * (bw + gap)} y={padT + h - bh} width={bw} height={bh} fill={hi ? highlightColor : color} opacity={highlight !== undefined && !hi ? 0.35 : 1} />
+        {labels && <text className="lk-chart-axis" x={padL + i * (bw + gap) + bw / 2} y={height - 6} textAnchor="middle">{labels[i]}</text>}
+      </g>; })}
+    </svg>
+  );
+}
+
+export function ProgressRing({ value, size = 96, stroke = 8, tone, caption, label, className }) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, off = c * (1 - Math.min(100, Math.max(0, value)) / 100);
+  return (
+    <div className={cx('lk-ring', tone && 'lk-ring-' + tone, className)} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={label || caption}>
+      <svg width={size} height={size}><circle className="lk-ring-track" cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} /><circle className="lk-ring-bar" cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} strokeDasharray={c} strokeDashoffset={off} /></svg>
+      <div className="lk-ring-label"><span className="lk-ring-value" style={{ fontSize: Math.round(size * 0.22) }}>{Math.round(value)}%</span>{caption && <span className="lk-ring-caption">{caption}</span>}</div>
+    </div>
+  );
+}
+
+export function ProgressBar({ value, label, detail, tone, thick, segments, className }) {
+  return (
+    <div className={cx('lk-progress', tone && 'lk-progress-' + tone, thick && 'lk-progress-thick', segments && 'lk-progress-segmented', className)} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+      {(label || detail) && <div className="lk-progress-head"><span>{label}</span><b>{detail !== undefined ? detail : Math.round(value) + '%'}</b></div>}
+      <div className="lk-progress-track">
+        {segments ? Array.from({ length: segments }, (_, i) => <span key={i} className={cx('lk-progress-seg', i < Math.round(value / 100 * segments) && 'lk-progress-seg-on')} />) : <div className="lk-progress-fill" style={{ width: value + '%' }} />}
+      </div>
+    </div>
+  );
+}
+
+export function DataTable({ columns, rows, sort, onSort, dense, selectedId, onRowClick, footer, className }) {
+  return (
+    <div className={cx('lk-table-wrap', className)}>
+      <table className={cx('lk-table', dense && 'lk-table-dense')}>
+        <thead><tr>
+          {columns.map(c => <th key={c.key} className={cx(c.numeric && 'lk-th-num')} aria-sort={sort && sort.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} style={c.width ? { width: c.width } : undefined}>
+            {c.sortable ? <button type="button" onClick={() => onSort && onSort(c.key)}>{c.label}<Icon name="sort" size={12} /></button> : c.label}
+          </th>)}
+        </tr></thead>
+        <tbody>
+          {rows.map(r => <tr key={r.id} aria-selected={selectedId === r.id || undefined} onClick={onRowClick ? () => onRowClick(r) : undefined} style={onRowClick ? { cursor: 'pointer' } : undefined}>
+            {columns.map(c => <td key={c.key} className={cx(c.primary && 'lk-td-primary', c.numeric && 'lk-td-num')}>{c.render ? c.render(r) : r[c.key]}</td>)}
+          </tr>)}
+        </tbody>
+      </table>
+      {footer && <div className="lk-table-foot">{footer}</div>}
+    </div>
+  );
+}
+
+export function Badge({ tone = 'neutral', dot, icon, size, outline, className, children }) {
+  return <span className={cx('lk-badge', tone !== 'neutral' && 'lk-badge-' + tone, size === 'sm' && 'lk-badge-sm', outline && 'lk-badge-outline', className)}>{dot && <span className="lk-badge-dot" />}{icon && <Icon name={icon} size={12} />}{children}</span>;
+}
+
+export function Avatar({ name = '', src, size, status, className }) {
+  const initials = name.split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  return <span className={cx('lk-avatar', size && 'lk-avatar-' + size, className)} aria-label={name} role="img">{src ? <img src={src} alt="" /> : initials}{status && <span className={cx('lk-avatar-status', status !== 'online' && 'lk-avatar-status-' + status)} />}</span>;
+}
+
+export function AvatarGroup({ people, max = 4, size, className }) {
+  const shown = people.slice(0, max), extra = people.length - shown.length;
+  return <span className={cx('lk-avatar-group', className)}>{shown.map((p, i) => <Avatar key={i} size={size} {...p} />)}{extra > 0 && <span className={cx('lk-avatar', 'lk-avatar-more', size && 'lk-avatar-' + size)}>+{extra}</span>}</span>;
+}
+
+export function Schedule({ lanes, start = 9, end = 18, hourLabel = h => `${h > 12 ? h - 12 : h} ${h >= 12 ? 'PM' : 'AM'}`, className }) {
+  const span = end - start;
+  const pos = t => ((t - start) / span) * 100;
+  const hours = []; for (let h = start; h <= end; h += Math.ceil(span / 6)) hours.push(h);
+  return (
+    <div className={cx('lk-schedule', className)}>
+      {lanes.map((lane, i) => <Fragment key={i}>
+        <div className="lk-schedule-label">{lane.label}</div>
+        <div className="lk-schedule-lane">
+          {lane.blocks.map((b, j) => b.note ? <span key={j} className="lk-schedule-note" style={{ left: pos(b.at) + '%' }}>{b.note}</span> : (
+            <span key={j} className={cx('lk-schedule-block', b.tone && 'lk-schedule-block-' + b.tone)} style={{ left: pos(b.start) + '%', width: Math.max(4, pos(b.end) - pos(b.start)) + '%' }} title={b.label}>
+              {b.label}{b.avatar && <Avatar size="sm" name={b.avatar} />}
+            </span>
+          ))}
+        </div>
+      </Fragment>)}
+      <div className="lk-schedule-axis">{hours.map(h => <span key={h}>{hourLabel(h)}</span>)}</div>
+    </div>
+  );
+}
+
+export function KeyValue({ items, rows, className }) {
+  if (rows) return <dl className={cx('lk-kv', 'lk-kv-rows', className)}>{items.map((it, i) => <div key={i} className={cx(it.total && 'lk-kv-total')}><dt>{it.label}</dt><dd>{it.value}</dd></div>)}</dl>;
+  return <dl className={cx('lk-kv', className)}>{items.map((it, i) => <Fragment key={i}><dt>{it.label}</dt><dd>{it.value}</dd></Fragment>)}</dl>;
+}
+
+export function EmptyState({ icon = 'box', title, text, actions, className }) {
+  return <div className={cx('lk-empty', className)}><div className="lk-empty-art"><Icon name={icon} size={24} /></div><h3 className="lk-empty-title">{title}</h3>{text && <p className="lk-empty-text">{text}</p>}{actions && <div className="lk-empty-actions">{actions}</div>}</div>;
+}
+
+/* ---------- Feedback ---------- */
+const toneIcon = { leaf: 'checkCircle', amber: 'alert', ember: 'alert', cobalt: 'info', gold: 'sparkles', neutral: 'info' };
+export function Banner({ tone = 'neutral', title, onClose, className, children }) {
+  return (
+    <div className={cx('lk-banner', tone !== 'neutral' && 'lk-banner-' + tone, className)} role={tone === 'ember' ? 'alert' : 'status'}>
+      <Icon name={toneIcon[tone]} size={18} />
+      <div className="lk-banner-body">{title && <b>{title} </b>}{children}</div>
+      {onClose && <IconButton icon="x" label="Dismiss" variant="ghost" size="sm" className="lk-banner-close" onClick={onClose} />}
+    </div>
+  );
+}
+
+export function Toast({ tone = 'gold', title, text, action, onAction, onClose, className }) {
+  return (
+    <div className={cx('lk-toast', 'lk-toast-' + tone, className)} role="status">
+      <Icon name={toneIcon[tone] || 'sparkles'} className="lk-toast-icon" size={20} />
+      <div className="lk-toast-body"><b>{title}</b>{text && <span>{text}</span>}</div>
+      {action && <button type="button" className="lk-toast-action" onClick={onAction}>{action}</button>}
+      {onClose && <button type="button" className="lk-toast-close" aria-label="Close" onClick={onClose}><Icon name="x" size={14} /></button>}
+    </div>
+  );
+}
+
+export function Tooltip({ text, shortcut, open, className, children }) {
+  return <span className={cx('lk-tooltip-wrap', className)}>{children}<span role="tooltip" className={cx('lk-tooltip', open && 'lk-tooltip-open')}>{text}{shortcut && <kbd>{shortcut}</kbd>}</span></span>;
+}
+
+export function Modal({ open = true, title, actions, onClose, inline, className, children }) {
+  if (!open) return null;
+  const body = (
+    <div className={cx('lk-modal', className)} role="dialog" aria-modal="true" aria-labelledby="lk-modal-title">
+      {onClose && <IconButton icon="x" label="Close" variant="ghost" size="sm" className="lk-modal-close" onClick={onClose} />}
+      {title && <h2 className="lk-modal-title" id="lk-modal-title">{title}</h2>}
+      <div className="lk-modal-text">{children}</div>
+      {actions && <div className="lk-modal-actions">{actions}</div>}
+    </div>
+  );
+  if (inline) return <div className="lk-modal-scene"><div className="lk-scrim" onClick={onClose} />{body}</div>;
+  return <div className="lk-modal-scene" style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-modal)' }}><div className="lk-scrim" onClick={onClose} />{body}</div>;
+}
+
+export function Skeleton({ width = '100%', height = 12, circle, className, style }) {
+  return <span className={cx('lk-skeleton', circle && 'lk-skeleton-circle', className)} style={{ width, height, display: 'block', ...style }} aria-hidden="true" />;
+}
+
+/* ---------- AI ---------- */
+export function Composer({ placeholder = 'Ask Lamikraft anything…', suggestions, state = 'idle', onSend, onChange, value, defaultValue = '', className }) {
+  const [text, setText] = useState(defaultValue);
+  const v = value !== undefined ? value : text;
+  const send = () => { if (v.trim()) { onSend && onSend(v); setText(''); } };
+  return (
+    <div className={cx('lk-composer', className)}>
+      <div className="lk-composer-inner">
+        <Aurora />
+        {suggestions && suggestions.length > 0 && <div className="lk-composer-chips">{suggestions.map((s, i) => <button key={i} type="button" className="lk-composer-chip" onClick={() => { setText(s); onChange && onChange(s); }}><Icon name="sparkles" size={13} />{s}</button>)}</div>}
+        <div className="lk-composer-row">
+          <Orb size="sm" state={state} />
+          <textarea value={v} placeholder={placeholder} rows={2} aria-label="Message" onChange={e => { setText(e.target.value); onChange && onChange(e.target.value); }} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }} />
+        </div>
+        <div className="lk-composer-foot">
+          <IconButton icon="paperclip" label="Attach" variant="ghost" size="sm" />
+          <IconButton icon="mic" label="Voice" variant="ghost" size="sm" />
+          <span className="lk-spacer" />
+          <span className="lk-composer-hint"><kbd>⌘</kbd> <kbd>↵</kbd> to send</span>
+          <IconButton icon="send" label="Send" variant="inverse" onClick={send} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Theme helper ---------- */
+export function setTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
+export function ThemeToggle({ className }) {
+  const [t, setT] = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
+  return <IconButton className={className} icon={t === 'dark' ? 'sun' : 'moon'} label={t === 'dark' ? 'Switch to light' : 'Switch to dark'} onClick={() => { const n = t === 'dark' ? 'light' : 'dark'; setT(n); setTheme(n); }} />;
+}

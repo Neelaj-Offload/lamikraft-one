@@ -1,0 +1,101 @@
+/*
+ * Lamikraft One — stylesheet entry.
+ *
+ * Layer order (lowest to highest): theme, base, components, utilities.
+ *   - tokens.css      design tokens (generated) and the t-* type styles
+ *   - lamikraft.css   the design system's lk-* component classes (copied from the system)
+ *   - ui-*.css        styles for components this app adds on top of the system
+ *   - app.css         shell, page frames and the motion language
+ * Everything above sits in the `components` layer so a Tailwind utility on the same element wins.
+ *
+ * Tailwind is here for layout only (flex, grid, gap, padding, responsive variants). Its default
+ * palette, font stacks and type scale are removed: colour comes from tokens, type from t-* classes.
+ */
+@import "tailwindcss";
+@plugin "tailwindcss-react-aria-components";
+
+@import "../styles/tokens.css" layer(components);
+@import "../styles/lamikraft.css" layer(components);
+@import "../styles/ui-core.css" layer(components);
+@import "../styles/ui-data.css" layer(components);
+@import "../styles/app.css" layer(components);
+
+@theme inline {
+  --color-*: initial;
+  --color-ground: var(--ground);
+  --color-ground-deep: var(--ground-deep);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-edge: var(--glass-edge);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-control: var(--line-control);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-gold-soft: var(--gold-soft);
+  --color-on-gold: var(--on-gold);
+  --color-sand: var(--sand);
+  --color-sand-soft: var(--sand-soft);
+  --color-leaf: var(--leaf);
+  --color-leaf-text: var(--leaf-text);
+  --color-leaf-soft: var(--leaf-soft);
+  --color-ember: var(--ember);
+  --color-ember-text: var(--ember-text);
+  --color-ember-soft: var(--ember-soft);
+  --color-amber: var(--amber);
+  --color-amber-text: var(--amber-text);
+  --color-amber-soft: var(--amber-soft);
+  --color-cobalt: var(--cobalt);
+  --color-cobalt-text: var(--cobalt-text);
+  --color-cobalt-soft: var(--cobalt-soft);
+  --color-scrim: var(--scrim);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Fonts: font-ui, font-display, font-code. (Default stacks are removed.) */
+  --font-*: initial;
+  --font-ui: var(--font-sans);
+  --font-display: var(--font-serif);
+  --font-code: var(--font-mono);
+
+  /* Type sizes come from the t-* classes only. */
+  --text-*: initial;
+
+  /* Shadows: shadow-panel, shadow-lift, shadow-overlay, shadow-gold, shadow-well. */
+  --shadow-*: initial;
+  --shadow-panel: var(--shadow-glass);
+  --shadow-lift: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-float);
+  --shadow-gold: var(--shadow-glow-gold);
+  --shadow-well: var(--shadow-inset-well);
+}
+
+@theme {
+  /* Same values as the tokens, so rounded-xl, backdrop-blur-md and ease-out-expo are on-system. */
+  --radius-*: initial;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-pill: 999px;
+  --blur-*: initial;
+  --blur-sm: 12px;
+  --blur-md: 24px;
+  --blur-lg: 40px;
+  --blur-xl: 80px;
+  --ease-*: initial;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
