@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { Backups } from "~/screens/settings-data/backups";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/backups" />;
+export const metadata: Metadata = { title: "Backups · Settings" };
+
+/** The last backup and restore rehearsal. Read only: both run from the server's command line. */
+export default function BackupsPage() {
+  return <Backups />;
 }

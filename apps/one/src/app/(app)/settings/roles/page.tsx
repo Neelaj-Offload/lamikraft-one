@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { RolesList } from "~/screens/settings-access/roles-list";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/roles" />;
+export const metadata: Metadata = { title: "Roles · Settings" };
+
+/** Every role: the built-in ones and the custom ones made from them. */
+export default function RolesPage() {
+  return <RolesList />;
 }

@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { IntegrationsScreen } from "~/screens/settings-ai/integrations-screen";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/integrations" />;
+export const metadata: Metadata = { title: "Integrations · Settings" };
+
+/** Which connections run live and which are simulated. Read-only. */
+export default function SettingsIntegrationsPage() {
+  return <IntegrationsScreen />;
 }

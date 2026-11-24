@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { Profile } from "~/screens/settings-access/profile";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/profile" />;
+export const metadata: Metadata = { title: "Profile · Settings" };
+
+/** Your account, how Lamikraft One behaves for you, and this sign-in. */
+export default function ProfilePage() {
+  return <Profile />;
 }

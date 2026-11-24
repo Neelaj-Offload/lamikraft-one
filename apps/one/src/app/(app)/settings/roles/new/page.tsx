@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { RoleEditor } from "~/screens/settings-access/role-editor";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/roles/new" />;
+export const metadata: Metadata = { title: "Create role · Settings" };
+
+/** A custom role: what it builds on, then its own grants and denies. */
+export default function NewRolePage() {
+  return <RoleEditor roleId={null} />;
 }

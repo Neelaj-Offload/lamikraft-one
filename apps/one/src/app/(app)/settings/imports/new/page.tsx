@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ImportNew } from "~/screens/settings-data/import-new";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/imports/new" />;
+export const metadata: Metadata = { title: "Start an import · Settings" };
+
+export default function NewImportPage() {
+  return <ImportNew />;
 }

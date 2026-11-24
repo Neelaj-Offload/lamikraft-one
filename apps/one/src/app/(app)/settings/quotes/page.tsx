@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { QuotationSettings } from "~/screens/settings-data/quotes";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/quotes" />;
+export const metadata: Metadata = { title: "Quotations · Settings" };
+
+export default function QuotationSettingsPage() {
+  return <QuotationSettings />;
 }

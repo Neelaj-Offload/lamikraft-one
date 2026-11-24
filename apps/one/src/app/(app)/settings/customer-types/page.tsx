@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { CustomerTypes } from "~/screens/settings-data/customer-types";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/customer-types" />;
+export const metadata: Metadata = { title: "Customer types · Settings" };
+
+export default function CustomerTypesPage() {
+  return <CustomerTypes />;
 }

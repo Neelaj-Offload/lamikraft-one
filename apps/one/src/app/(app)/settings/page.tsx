@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { SettingsHub } from "~/screens/settings-hub/settings-hub";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings" />;
+export const metadata: Metadata = { title: "Settings" };
+
+/** Every settings screen this person may open, grouped under plain headings. */
+export default function SettingsPage() {
+  return <SettingsHub />;
 }

@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { Delegation } from "~/screens/settings-access/delegation";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/settings/delegation" />;
+export const metadata: Metadata = { title: "Delegation · Settings" };
+
+/** Let a colleague reach your records while you are away. */
+export default function DelegationPage() {
+  return <Delegation />;
 }
