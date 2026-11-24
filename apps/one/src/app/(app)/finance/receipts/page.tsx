@@ -1,6 +1,11 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { receiptStateFrom } from "@/features/finance/list-state";
+import { ReceiptList } from "~/screens/finance/receipt-list";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/finance/receipts" />;
+export const metadata: Metadata = { title: "Receipts · Finance" };
+
+/** Receipts: search, the unallocated switch and the page offset live in the URL. */
+export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const state = receiptStateFrom(await searchParams);
+  return <ReceiptList key={`${state.q}|${state.unallocated}|${state.offset}`} state={state} />;
 }
