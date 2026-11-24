@@ -216,6 +216,60 @@
   }
 }
 
+/* Print: paper is always light, so a sheet printed from the dark theme does not come out black. */
+@media print {
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    color-scheme: light;
+    --ground: #f2efe9;
+    --ground-deep: #e8e3db;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --glass: #ffffffa6;
+    --glass-strong: #ffffffd9;
+    --glass-edge: #14110e14;
+    --glass-highlight: #ffffffe6;
+    --ink: #16130f;
+    --ink-2: #4a443c;
+    --ink-3: #6f6861;
+    --ink-4: #a39c93;
+    --inverse: #16130f;
+    --on-inverse: #f4efe7;
+    --line: #14110e14;
+    --line-strong: #14110e29;
+    --line-control: #8a8279;
+    --gold: #d99342;
+    --gold-strong: #8f5410;
+    --gold-soft: #f8ead6;
+    --sand-soft: #f5ecdf;
+    --leaf: #5a8c4d;
+    --leaf-text: #3b6a31;
+    --leaf-soft: #e4efdc;
+    --ember: #a53f30;
+    --ember-text: #9a3627;
+    --ember-soft: #f8e3de;
+    --amber-text: #7a5607;
+    --amber-soft: #fbf0cc;
+    --cobalt: #2f5fd8;
+    --cobalt-text: #2448b3;
+    --cobalt-soft: #e3eafc;
+    --chart-6: #a39c93;
+    --chart-grid: #14110e14;
+    --focus-ring: var(--gold-strong);
+    --scrim: #16130f66;
+    --shadow-glass: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(22,19,15,0.04), 0 24px 48px -24px rgba(22,19,15,0.18);
+    --shadow-raised: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(22,19,15,0.06), 0 32px 64px -24px rgba(22,19,15,0.28);
+    --shadow-float: 0 1px 2px rgba(22,19,15,0.06), 0 48px 96px -32px rgba(22,19,15,0.35);
+    --shadow-inset-well: inset 0 1px 3px rgba(22,19,15,0.10);
+    --shadow-glow-gold: 0 0 0 1px rgba(217,147,66,0.4), 0 12px 40px -8px rgba(217,147,66,0.5);
+    --shadow-glow-orb: 0 0 60px -10px rgba(90,216,255,0.55), 0 0 120px -20px rgba(31,90,232,0.5);
+    --on-ember: #ffffff;
+    --blob-sand-opacity: 0.55;
+    --blob-gold-opacity: 0.35;
+    --composer-aurora-opacity: 0.2;
+  }
+}
+
 /* Type styles (t-<name>), one per token style. */
 .t-display-xl { font-family: var(--font-serif); font-size: 96px; line-height: 0.95; font-weight: 400; letter-spacing: -0.02em; }
 .t-display-lg { font-family: var(--font-serif); font-size: 64px; line-height: 1; font-weight: 400; letter-spacing: -0.015em; }

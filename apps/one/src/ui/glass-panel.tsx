@@ -1,4 +1,4 @@
-import type { ElementType, HTMLAttributes, ReactNode, Ref } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { cx } from "@/lib/cx";
 
 export interface GlassPanelProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
@@ -35,13 +35,14 @@ export function GlassPanel({
   children,
   ...rest
 }: GlassPanelProps) {
-  // Widened on purpose: the six tags share these attributes, and `ref` is typed to their common base.
-  const Tag = as as ElementType;
-  const Title = titleAs as ElementType;
+  // Typed as one concrete tag on purpose: the six tags share these attributes (and `ref` is typed to
+  // their common base), while a bare `ElementType` resolves its props to `never` under these React types.
+  const Tag = as as "div";
+  const Title = titleAs as "h3";
   const hasHead = Boolean(eyebrow) || Boolean(title) || Boolean(action);
   return (
     <Tag
-      {...rest}
+      {...(rest as HTMLAttributes<HTMLDivElement>)}
       className={cx(
         "lk-glass",
         variant !== "glass" && `lk-glass-${variant}`,

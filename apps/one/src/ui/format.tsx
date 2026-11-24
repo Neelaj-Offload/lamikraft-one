@@ -44,12 +44,14 @@ export interface MoneyProps {
   value: MoneyValue | null | undefined;
   /** Abbreviates large amounts for tiles and chart labels; the exact amount stays in the tooltip. */
   compact?: boolean;
+  /** Shows more decimals than the currency's own, for unit costs and cost roll-ups ("₹12.3456"). */
+  maxFractionDigits?: number;
   className?: string;
 }
 
-export function Money({ value, compact = false, className }: MoneyProps) {
+export function Money({ value, compact = false, maxFractionDigits, className }: MoneyProps) {
   const { locale } = useZone();
-  const exact = formatMoney(value, { locale });
+  const exact = formatMoney(value, { locale, maxFractionDigits });
   if (!value || exact === null) return <Dash className={className} />;
   const short = compact ? compactMoney(value, locale) : null;
   return (

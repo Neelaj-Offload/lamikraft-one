@@ -13,11 +13,16 @@ const plain = (family) => (tokens[family]?.tokens ?? []).filter((t) => typeof t.
 
 const light = [];
 const dark = [];
+// The light value of every token the dark theme changes: paper is printed light whatever the screen shows.
+const paper = [];
 for (const family of ["color", "shadow"]) {
   for (const t of themed(family)) {
     light.push(`  --${t.name}: ${alias(t.value.light)};`);
     const d = t.value.dark ?? t.value.light;
-    if (d !== t.value.light) dark.push(`  --${t.name}: ${alias(d)};`);
+    if (d !== t.value.light) {
+      dark.push(`  --${t.name}: ${alias(d)};`);
+      paper.push(`  --${t.name}: ${alias(t.value.light)};`);
+    }
   }
   for (const t of plain(family)) light.push(`  --${t.name}: ${alias(t.value)};`);
 }
@@ -27,7 +32,9 @@ for (const family of ["spacing", "radius", "blur", "opacity", "zIndex", "duratio
 }
 
 // Theme scalars that the component stylesheet reads (replacing its [data-theme=dark] rules).
-light.push("  --on-ember: #ffffff;", "  --blob-sand-opacity: 0.55;", "  --blob-gold-opacity: 0.35;", "  --composer-aurora-opacity: 0.2;");
+const lightScalars = ["  --on-ember: #ffffff;", "  --blob-sand-opacity: 0.55;", "  --blob-gold-opacity: 0.35;", "  --composer-aurora-opacity: 0.2;"];
+light.push(...lightScalars);
+paper.push(...lightScalars);
 dark.push("  --on-ember: var(--on-gold);", "  --blob-sand-opacity: 0.22;", "  --blob-gold-opacity: 0.18;", "  --composer-aurora-opacity: 0.26;");
 
 // Families: next/font sets --lk-face-* on <html>; the token's own stack is the fallback.
@@ -69,6 +76,15 @@ ${dark.join("\n")}
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 ${dark.map((l) => "  " + l).join("\n")}
+  }
+}
+
+/* Print: paper is always light, so a sheet printed from the dark theme does not come out black. */
+@media print {
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    color-scheme: light;
+${paper.map((l) => "  " + l).join("\n")}
   }
 }
 
