@@ -1,6 +1,10 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { offsetFrom } from "~/screens/stock/labels";
+import { Movements } from "~/screens/stock/movements";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/inventory/movements" />;
+export const metadata: Metadata = { title: "Stock movements · Operations" };
+
+/** The stock ledger, newest first; the page offset lives in the URL. */
+export default async function StockMovementsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  return <Movements offset={offsetFrom((await searchParams).offset)} />;
 }

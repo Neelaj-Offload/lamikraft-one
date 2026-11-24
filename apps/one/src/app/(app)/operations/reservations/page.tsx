@@ -1,6 +1,11 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { firstParam, offsetFrom } from "~/screens/stock/labels";
+import { Reservations } from "~/screens/stock/reservations";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/reservations" />;
+export const metadata: Metadata = { title: "Reservations · Operations" };
+
+/** Stock held for orders and the open shortages; the status filter and the page offset live in the URL. */
+export default async function ReservationsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  return <Reservations status={firstParam(params.status)} offset={offsetFrom(params.offset)} />;
 }

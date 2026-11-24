@@ -1,6 +1,21 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { UUID_PATTERN } from "@/lib/app-links";
+import { StockDocument } from "~/screens/stock/document-record";
+import { stockRecordViewFrom } from "~/screens/stock/labels";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/inventory/adjustments/[adjustmentId]" />;
+export const metadata: Metadata = { title: "Stock adjustment · Operations" };
+
+/** A stock adjustment: overview and lines (`?view=`). */
+export default async function StockAdjustmentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ adjustmentId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { adjustmentId } = await params;
+  if (!UUID_PATTERN.test(adjustmentId)) notFound();
+  const view = stockRecordViewFrom((await searchParams).view);
+  return <StockDocument key={adjustmentId} kind="adjustment" id={adjustmentId} view={view} />;
 }

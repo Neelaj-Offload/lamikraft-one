@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { StockTakes } from "~/screens/stock/stock-takes";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/inventory/stock-takes" />;
+export const metadata: Metadata = { title: "Stock takes · Operations" };
+
+/** Stock takes: freeze, count, submit, approve. */
+export default function StockTakesPage() {
+  return <StockTakes />;
 }
