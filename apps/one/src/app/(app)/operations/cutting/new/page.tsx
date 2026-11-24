@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { PlanNew } from "~/screens/cutting/plan-new";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/cutting/new" />;
+export const metadata: Metadata = { title: "New cut plan · Operations" };
+
+/** Start a cut plan: the pieces, then the board. It opens as a draft, where the layout is calculated. */
+export default function NewCutPlanPage() {
+  return <PlanNew />;
 }
