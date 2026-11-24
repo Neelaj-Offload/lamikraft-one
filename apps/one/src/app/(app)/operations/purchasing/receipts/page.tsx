@@ -1,6 +1,11 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { receiptStateFrom } from "@/features/procurement/list-state";
+import { ReceiptList } from "~/screens/purchasing/receipt-list";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/purchasing/receipts" />;
+export const metadata: Metadata = { title: "Goods receipts · Operations" };
+
+/** Goods receipts: "waiting for QC" and the page offset live in the URL. */
+export default async function ReceiptsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const state = receiptStateFrom(await searchParams);
+  return <ReceiptList state={state} />;
 }
