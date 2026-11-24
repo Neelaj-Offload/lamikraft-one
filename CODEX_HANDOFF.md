@@ -117,6 +117,33 @@ STT/TTS vendor, DPDP approval for sending data to Anthropic/Google, legal entity
 credentials: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, WhatsApp WABA/phone/token/app secret/verify token, STT/TTS key, S3,
 SMTP). Until then every integration stays Demo and labelled.
 
+## Frontend rebuild — `apps/one` on `lane/web-rebuild` (state on 2026-11-24)
+
+The rebuilt web app (same URLs and API as `apps/web`, new flow, copy and look) lives in `apps/one`; the contract for
+anyone changing a screen is `apps/one/BUILDING.md`. It is **not merged to `main`** and `apps/web` is untouched.
+
+- **Screens:** all 132 routes are real screens; `node scripts/stubs.mjs --check` reports no stubs.
+- **Static gates:** `node scripts/check.mjs --all` → TypeScript 0 errors, ESLint clean.
+- **Sweep:** `node scripts/shots.mjs --all --user SAHIL` → 194 screenshots (1440 and 390 px, light), every page 200,
+  no horizontal overflow, no console errors or failed API calls. Each area was also shot by its builder as the right
+  demo person; most areas had one dark pass.
+- **Not verified (be honest about these):**
+  - Record screens the demo world has no data for: invoice, credit note, requisition, goods receipt, inspection,
+    shipment, packing list, stock take, pick list, adjustment, transfer, import job, migration run, AI trace.
+  - No mutation was exercised in the browser (issue, approve, receive, post, allocate, invite, step-up and so on).
+    They reuse the old command hooks and endpoints, but that is by reading, not by running.
+  - Content behind MFA step-up (migration, backups, audit) and anything that needs a custom role.
+  - No `next build`, no Playwright suite and no axe run exist for `apps/one` yet; `apps/web/e2e` still targets the old UI.
+- **Deliberate differences from the old app:** Profile no longer saves density / context-panel preferences (the new
+  shell does not read them); password change lives under Security; the audit log offers MFA step-up when the server
+  asks for it; actions the server disallows are hidden instead of shown disabled; lists that had no paging use the
+  endpoints' existing `offset`.
+- **Run it:** Docker up, then API + worker from `D:\Lamikraft ERP` (`node scripts/dev.mjs dev --no-web`, 8200) and
+  `next dev` for `apps/one` on 3200 with `LK_API_INTERNAL_URL=http://127.0.0.1:8200` and
+  `LK_PUBLIC_ORIGIN=http://127.0.0.1:3200`. The old web app cannot run at the same time (same port and origin).
+- **Next:** exercise the mutations and the data-less record screens; give `apps/one` its own e2e, axe and build gates;
+  then decide the cut-over from `apps/web`.
+
 ## Machine facts that will bite you
 - Windows 11, 12 CPUs, **15.7 GB RAM** → never more than one heavy job (test suite, e2e, `next build`) at a time.
 - `test:api` takes 70–80 min. Run it in the background with output to a log under `D:\lk-wt\`, and read the tail.
