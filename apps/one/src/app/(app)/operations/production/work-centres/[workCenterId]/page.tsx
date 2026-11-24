@@ -1,6 +1,13 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { UUID_PATTERN } from "@/lib/app-links";
+import { WorkCentreRecord } from "~/screens/production/work-centre-record";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/production/work-centres/[workCenterId]" />;
+export const metadata: Metadata = { title: "Work centre · Operations" };
+
+/** A work centre: its calendar, shifts and the days with their own capacity. */
+export default async function WorkCentrePage({ params }: { params: Promise<{ workCenterId: string }> }) {
+  const { workCenterId } = await params;
+  if (!UUID_PATTERN.test(workCenterId)) notFound();
+  return <WorkCentreRecord key={workCenterId} workCenterId={workCenterId} />;
 }

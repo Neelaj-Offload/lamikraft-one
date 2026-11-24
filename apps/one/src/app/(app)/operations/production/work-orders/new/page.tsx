@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { WorkOrderNew } from "~/screens/production/work-order-new";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/production/work-orders/new" />;
+export const metadata: Metadata = { title: "Plan a work order · Operations" };
+
+/** Plan a work order for a product with an approved bill of materials and routing. */
+export default function NewWorkOrderPage() {
+  return <WorkOrderNew />;
 }

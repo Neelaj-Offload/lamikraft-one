@@ -1,6 +1,11 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { VersionList } from "~/screens/production/version-list";
+import { versionSearchFrom } from "~/screens/production/views";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/production/boms" />;
+export const metadata: Metadata = { title: "Bills of materials · Operations" };
+
+/** Every bill of materials version; the product search lives in the URL (`?q=`). */
+export default async function BomsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const q = versionSearchFrom(await searchParams);
+  return <VersionList key={q} kind="boms" q={q} />;
 }
