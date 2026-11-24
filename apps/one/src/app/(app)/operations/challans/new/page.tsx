@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ChallanNew } from "~/screens/challans/challan-new";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations/challans/new" />;
+export const metadata: Metadata = { title: "New challan · Operations" };
+
+/** Start a draft challan. The server gives it its number; the lines go in on the record. */
+export default function NewChallanPage() {
+  return <ChallanNew />;
 }

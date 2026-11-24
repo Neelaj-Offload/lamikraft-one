@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { OperationsHub } from "~/screens/operations-hub/hub";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/operations" />;
+export const metadata: Metadata = { title: "Operations" };
+
+/** The operations overview: the numbers that matter, what needs attention, and the way into each screen. */
+export default function OperationsPage() {
+  return <OperationsHub />;
 }
