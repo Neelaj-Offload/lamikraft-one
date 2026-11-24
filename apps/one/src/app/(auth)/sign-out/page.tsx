@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { SignOutScreen } from "~/screens/auth/sign-out";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/sign-out" />;
+export const metadata: Metadata = { title: "Sign out" };
+
+export default function SignOutPage() {
+  return <SignOutScreen />;
 }

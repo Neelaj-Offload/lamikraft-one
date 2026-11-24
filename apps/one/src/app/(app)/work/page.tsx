@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { WorkScreen } from "~/screens/hubs/work";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/work" />;
+export const metadata: Metadata = { title: "Work" };
+
+export default function WorkPage() {
+  return <WorkScreen />;
 }

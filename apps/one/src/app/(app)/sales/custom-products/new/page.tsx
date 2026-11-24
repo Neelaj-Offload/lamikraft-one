@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { CustomProductNew } from "~/screens/sales/custom-products/custom-product-new";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/sales/custom-products/new" />;
+export const metadata: Metadata = { title: "New custom product · Sales" };
+
+/** Record a custom product in three steps. */
+export default function NewCustomProductPage() {
+  return <CustomProductNew />;
 }

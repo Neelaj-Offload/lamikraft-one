@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ForgotPasswordScreen } from "~/screens/auth/forgot-password";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/forgot-password" />;
+export const metadata: Metadata = { title: "Reset your password" };
+
+export default function ForgotPasswordPage() {
+  return <ForgotPasswordScreen />;
 }

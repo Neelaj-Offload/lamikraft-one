@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { SalesHub } from "~/screens/sales/hub/hub";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/sales" />;
+export const metadata: Metadata = { title: "Sales" };
+
+/** The sales overview: live numbers, what needs attention, and the way into each sales screen. */
+export default function SalesPage() {
+  return <SalesHub />;
 }

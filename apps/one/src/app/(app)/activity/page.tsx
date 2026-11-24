@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ActivityScreen } from "~/screens/activity/activity-screen";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/activity" />;
+export const metadata: Metadata = { title: "Activity" };
+
+/** Recent activity across the records the person can open (never anything they cannot). */
+export default function ActivityPage() {
+  return <ActivityScreen />;
 }

@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { Taxonomy } from "~/screens/products/taxonomy";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/products/taxonomy" />;
+export const metadata: Metadata = { title: "Taxonomy · Catalogue" };
+
+export default function TaxonomyPage() {
+  return <Taxonomy />;
 }

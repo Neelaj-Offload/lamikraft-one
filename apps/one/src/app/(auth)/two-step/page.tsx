@@ -1,6 +1,12 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { safeNextPath } from "@/lib/api/client";
+import { TwoStepScreen } from "~/screens/auth/two-step";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/two-step" />;
+export const metadata: Metadata = { title: "Two-step sign-in" };
+
+/** The second sign-in step: enter the authenticator code, or set one up first when the role requires it. */
+export default async function TwoStepPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const next = safeNextPath(typeof params.next === "string" ? params.next : null) ?? "/today";
+  return <TwoStepScreen next={next} />;
 }

@@ -1,6 +1,11 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { searchPageStateFrom } from "@/features/search/page-state";
+import { SearchScreen } from "~/screens/search/search-screen";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/search" />;
+export const metadata: Metadata = { title: "Search" };
+
+/** The query, one result type and the page offset live in the URL. */
+export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const state = searchPageStateFrom(await searchParams);
+  return <SearchScreen state={state} />;
 }

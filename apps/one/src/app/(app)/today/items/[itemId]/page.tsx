@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ItemScreen } from "~/screens/today/item-screen";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/today/items/[itemId]" />;
+export const metadata: Metadata = { title: "Briefing item · Today" };
+
+export default async function TodayItemPage({ params }: { params: Promise<{ itemId: string }> }) {
+  const { itemId } = await params;
+  return <ItemScreen key={itemId} issueId={itemId} />;
 }

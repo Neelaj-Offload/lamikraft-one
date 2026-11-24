@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { MoreScreen } from "~/screens/hubs/more";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/more" />;
+export const metadata: Metadata = { title: "More" };
+
+export default function MorePage() {
+  return <MoreScreen />;
 }

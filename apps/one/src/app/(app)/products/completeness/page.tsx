@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { Completeness } from "~/screens/products/completeness";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/products/completeness" />;
+export const metadata: Metadata = { title: "Completeness · Catalogue" };
+
+export default function CompletenessPage() {
+  return <Completeness />;
 }

@@ -1,6 +1,10 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ResetPasswordScreen } from "~/screens/auth/reset-password";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/reset-password" />;
+// The token lives in the URL fragment until the screen strips it; never leak the URL onwards.
+export const metadata: Metadata = { title: "Choose a new password", referrer: "no-referrer" };
+
+/** The token arrives in the URL fragment (`/reset-password#t=…`), never in the query string. */
+export default function ResetPasswordPage() {
+  return <ResetPasswordScreen />;
 }

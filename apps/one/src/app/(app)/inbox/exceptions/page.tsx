@@ -1,6 +1,8 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { InboxPage, type InboxSearchParams } from "~/screens/inbox/inbox-page";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/inbox/exceptions" />;
+export const metadata: Metadata = { title: "Exceptions · Inbox" };
+
+export default function Page({ searchParams }: { searchParams: InboxSearchParams }) {
+  return <InboxPage view="exceptions" searchParams={searchParams} />;
 }

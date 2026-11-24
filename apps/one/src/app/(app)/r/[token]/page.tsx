@@ -1,6 +1,10 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { ReviewLinkScreen } from "~/screens/inbox/review-link";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/r/[token]" />;
+export const metadata: Metadata = { title: "Review link", robots: { index: false, follow: false } };
+
+/** A review link from WhatsApp (`/r/{token}`): checked for the signed-in person, then sent to the right screen. */
+export default async function Page({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  return <ReviewLinkScreen token={token} />;
 }

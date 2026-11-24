@@ -1,6 +1,9 @@
-import { RouteStub } from "~/shell/route-stub";
+import type { Metadata } from "next";
+import { DemoSignInScreen } from "~/screens/auth/demo-sign-in";
 
-// LK-STUB: replace with the real screen.
-export default function Page() {
-  return <RouteStub path="/demo-sign-in" />;
+// The token lives in the URL fragment until the screen strips it; never leak the URL onwards.
+export const metadata: Metadata = { title: "Demo sign-in", referrer: "no-referrer" };
+
+export default function DemoSignInPage() {
+  return <DemoSignInScreen />;
 }
