@@ -8975,6 +8975,13 @@ export interface components {
          * @enum {string}
          */
         ActivityKind: "call" | "email" | "whatsapp" | "meeting" | "visit" | "note";
+        /** ActivityPage */
+        ActivityPage: {
+            /** Items */
+            items: components["schemas"]["ActivityItem"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** ActivityRead */
         ActivityRead: {
             /**
@@ -18973,6 +18980,13 @@ export interface components {
          * @enum {string}
          */
         ParseStatus: "parsed" | "ambiguous" | "unparsed";
+        /** PartyActivityPage */
+        PartyActivityPage: {
+            /** Items */
+            items: components["schemas"]["ActivityRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** PartyAddressSnapshot */
         PartyAddressSnapshot: {
             /** Kind */
@@ -27549,13 +27563,6 @@ export interface components {
             /** Expected Version */
             expected_version: number;
         };
-        /** ActivityPage */
-        app__modules__parties__schemas__ActivityPage: {
-            /** Items */
-            items: components["schemas"]["ActivityRead"][];
-            /** Next Cursor */
-            next_cursor: string | null;
-        };
         /** UserRef */
         app__modules__parties__schemas__UserRef: {
             /** Display Name */
@@ -27611,13 +27618,6 @@ export interface components {
              * Format: uuid
              */
             id: string;
-        };
-        /** ActivityPage */
-        app__platform__collab__schemas__ActivityPage: {
-            /** Items */
-            items: components["schemas"]["ActivityItem"][];
-            /** Next Cursor */
-            next_cursor: string | null;
         };
         /** UserRef */
         app__platform__identity__schemas__UserRef: {
@@ -30594,7 +30594,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__platform__collab__schemas__ActivityPage"];
+                    "application/json": components["schemas"]["ActivityPage"];
                 };
             };
             /** @description Validation Error */
@@ -38892,7 +38892,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__parties__schemas__ActivityPage"];
+                    "application/json": components["schemas"]["PartyActivityPage"];
                 };
             };
             /** @description Validation Error */
