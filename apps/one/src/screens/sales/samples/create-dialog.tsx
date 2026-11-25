@@ -6,7 +6,9 @@ import { useId, useState, type FormEvent } from "react";
 import { usePartySearch } from "@/features/sales/pickers";
 import { useResourceCommand } from "@/features/sales/resource-command";
 import { createSample } from "@/features/samples/api";
-import { Banner, Button, ComboBox, DecimalField, Modal, Select, TextField, toast } from "~/ui";
+import { useZone } from "@/lib/session/context";
+import { Banner, Button, ComboBox, DatePicker, DecimalField, Modal, Select, Switch, TextField, toast } from "~/ui";
+import { isoToday } from "../leads/labels";
 import { SAMPLE_UNITS } from "./labels";
 
 const SAMPLE_QUERIES = [["sales", "samples"], ["sales", "sample-status-counts"]] as const;
@@ -33,6 +35,11 @@ export function SampleCreateDialog({
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState<string>("pcs");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const zone = useZone();
+  const today = isoToday(zone.timeZone);
+  const [alreadySent, setAlreadySent] = useState(false);
+  const [sentOn, setSentOn] = useState<string | null>(null);
+  const [reference, setReference] = useState("");
   const search = usePartySearch(customer ? "" : partyText);
   const options = (search.data ?? []).map((party) => ({ id: party.id, label: party.display_name, description: party.party_number }));
 
@@ -42,8 +49,15 @@ export function SampleCreateDialog({
     const next: Record<string, string> = {};
     if (!partyId) next.party_id = "Choose the customer this sample is for.";
     if (!quantity) next.quantity = "Enter how many you are sending.";
+    if (alreadySent && !sentOn) next.sent_on = "Pick the date it was sent.";
     if (Object.keys(next).length > 0) return setErrors(next);
-    const body = { party_id: partyId, description: description.trim() || undefined, quantity, unit_code: unit };
+    const body = {
+      party_id: partyId,
+      description: description.trim() || undefined,
+      quantity,
+      unit_code: unit,
+      ...(alreadySent ? { sent_on: sentOn, dispatch_reference: reference.trim() || undefined } : {}),
+    };
     const outcome = await commands.run("create", [JSON.stringify(body)], (key) => createSample(body, key), { failed: "The sample was not added" });
     if (outcome.ok) {
       toast.success(`${outcome.value.sample_number} added`);
@@ -59,7 +73,11 @@ export function SampleCreateDialog({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Add a customer sample"
-      description="Samples come out of stock. Record the request now; you record the dispatch when it leaves."
+      description={
+        alreadySent
+          ? "Entering a sample sent before Lamikraft One: it is saved as dispatched on the date you give."
+          : "Samples come out of stock. Record the request now; you record the dispatch when it leaves."
+      }
       actions={
         <>
           <Button variant="ghost" onPress={() => onOpenChange(false)}>
@@ -122,6 +140,13 @@ export function SampleCreateDialog({
           />
           <Select label="Unit" options={SAMPLE_UNITS.map((code) => ({ value: code, label: code }))} value={unit} onChange={setUnit} error={errors.unit_code || undefined} />
         </div>
+        <Switch label="Already sent" description="For samples sent before Lamikraft One, with the real date." isSelected={alreadySent} onChange={setAlreadySent} />
+        {alreadySent ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DatePicker label="Sent on" value={sentOn} onChange={setSentOn} maxValue={today} isRequired error={errors.sent_on || undefined} />
+            <TextField label="Courier or reference" optional value={reference} onChange={setReference} maxLength={120} placeholder="DHL 1234 or hand carried" error={errors.dispatch_reference || undefined} />
+          </div>
+        ) : null}
       </form>
     </Modal>
   );

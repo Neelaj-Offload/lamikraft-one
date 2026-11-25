@@ -184,3 +184,14 @@ export function updateLeadSource(
 ): Promise<LeadSource> {
   return requestUntyped<LeadSource>(client, "patch", `${SOURCES}/${encodeURIComponent(id)}`, { body });
 }
+
+// ---- customer facts (module 2) ----------------------------------------------------------------------------------
+export type CustomerFacts = S["CustomerFacts"];
+
+export function useCustomerFacts(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ["parties", "customer-facts", { party_id: id }] as const,
+    queryFn: ({ signal }) => requestUntyped<CustomerFacts>(api, "get", `/api/v1/sales/customers/${encodeURIComponent(id)}/facts`, { signal }),
+    enabled,
+  });
+}

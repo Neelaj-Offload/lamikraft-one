@@ -91,3 +91,13 @@ def test_quantity_unchanged_by_backfill(world: SalesWorld) -> None:
     sample = _create(world, _lead(world, "Quantity Check Srl"), sent_on=_today(world).isoformat(), dispatch_reference="Hand carried")
     assert sample.quantity == Decimal("2.000000") or sample.quantity == Decimal("2")
     assert sample.dispatch_reference == "Hand carried"
+
+
+def test_customer_since_counts_from_the_real_sample_date(world: SalesWorld) -> None:
+    from app.modules.sales.customer_facts import customer_facts
+
+    lead = _lead(world, "Since Check Srl")
+    sent = _today(world) - timedelta(days=150)
+    _create(world, lead, sent_on=sent.isoformat())
+    world.drain()
+    assert customer_facts(world.actor(MEERA), lead).customer_since == sent

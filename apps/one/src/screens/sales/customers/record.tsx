@@ -19,6 +19,7 @@ import { Badge, Button, ButtonLink, ConfirmDialog, FactStrip, IconButton, Menu, 
 import { PRIORITY_LABEL, TEMPERATURE_LABEL } from "../leads/labels";
 import {
   ActivityLogView,
+  CustomerFactsPanel,
   FollowUpValue,
   LeadDetailsDrawer,
   LeadPipelinePanel,
@@ -252,6 +253,7 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
       {current === "overview" && isLead && lead ? (
         <LeadPipelinePanel lead={lead} onLog={canLog ? open(setLogging) : undefined} onEdit={canEditLead ? open(setLeadEditing) : undefined} />
       ) : null}
+      {current === "overview" && isCustomer && !isLead && party.status === "active" ? <CustomerFactsPanel partyId={party.id} /> : null}
       {current === "log" ? <ActivityLogView partyId={party.id} onLog={canLog ? open(setLogging) : undefined} /> : null}
       {current === "overview" ? (
         <OverviewView

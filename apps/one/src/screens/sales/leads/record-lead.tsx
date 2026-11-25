@@ -12,6 +12,7 @@ import {
   logActivity,
   updateLeadFields,
   useActivities,
+  useCustomerFacts,
   useLeadSources,
   type ActivityKind,
   type Interest,
@@ -34,6 +35,7 @@ import {
   GlassPanel,
   KeyValue,
   Modal,
+  Money,
   RadioGroup,
   ReasonDialog,
   Select,
@@ -537,6 +539,41 @@ export function ActivityLogView({ partyId, onLog }: { partyId: string; onLog?: (
           Show older activity
         </Button>
       ) : null}
+    </GlassPanel>
+  );
+}
+
+// ---- customer facts (module 2) ---------------------------------------------------------------------------------
+/** Customer since, last contact and what they have bought, at the top of a customer's overview. */
+export function CustomerFactsPanel({ partyId }: { partyId: string }) {
+  const facts = useCustomerFacts(partyId);
+  if (facts.isPending || facts.isError || !facts.data) return null;
+  const { customer_since, last_activity_at, won } = facts.data;
+  if (!customer_since && !last_activity_at && won.length === 0) return null;
+  return (
+    <GlassPanel padding="md" className="rise">
+      <KeyValue
+        columns={3}
+        items={[
+          { label: "Customer since", value: customer_since ? <DateText value={customer_since} /> : null },
+          { label: "Last contact", value: last_activity_at ? <DateText value={last_activity_at} style="relative" /> : null },
+          {
+            label: "Won business",
+            value: won.length ? (
+              <span className="inline-flex flex-wrap gap-x-3 gap-y-1">
+                {won.map((w) => (
+                  <span key={w.currency}>
+                    <Money value={{ amount: w.amount, currency: w.currency }} />{" "}
+                    <span className="t-caption text-ink-3">
+                      {w.quotations} {w.quotations === 1 ? "quotation" : "quotations"}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            ) : null,
+          },
+        ]}
+      />
     </GlassPanel>
   );
 }

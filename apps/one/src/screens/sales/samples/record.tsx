@@ -4,14 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import type { Route } from "next";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { useResourceCommand } from "@/features/sales/resource-command";
-import { fetchSample, transitionSample, type Sample, type SampleTransitionRequest } from "@/features/samples/api";
+import { fetchSample, type Sample } from "@/features/samples/api";
 import { isProblemError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { useSession } from "@/lib/session/context";
+import { useSession, useZone } from "@/lib/session/context";
+import { DATED_ACTIONS, transitionSampleDated, type DatedTransition } from "~/data/samples-history";
+import { isoToday } from "../leads/labels";
 import { Page, PageHeader, RecordHeader } from "~/shell/page";
 import { ErrorBlock, NotPermitted } from "~/shell/states";
 import {
   Badge,
+  DatePicker,
   Banner,
   Button,
   ButtonLink,
@@ -304,7 +307,7 @@ function Loaded({ sample, view }: { sample: Sample; view: SampleView }) {
           offline={Boolean(commands.offline)}
           onClose={() => setAction(null)}
           onRun={(request) =>
-            commands.run(request.action, [sample.version, JSON.stringify(request)], (key) => transitionSample(sample, request, key), {
+            commands.run(request.action, [sample.version, JSON.stringify(request)], (key) => transitionSampleDated(sample, request, key), {
               done: SAMPLE_ACTION_DONE[request.action] ?? "Saved",
               failed: `${SAMPLE_ACTION_LABEL[request.action] ?? "The change"} did not go through`,
               conflictMessage: "This sample changed since you opened it. The latest version is showing.",
@@ -337,10 +340,12 @@ function ActionModal({
   pending: boolean;
   offline: boolean;
   onClose: () => void;
-  onRun: (request: SampleTransitionRequest) => Promise<{ ok: true } | { ok: false; conflict: boolean; fieldErrors: Record<string, string> }>;
+  onRun: (request: DatedTransition) => Promise<{ ok: true } | { ok: false; conflict: boolean; fieldErrors: Record<string, string> }>;
 }) {
   const formId = useId();
-  const [form, setForm] = useState<SampleTransitionRequest>({
+  const zone = useZone();
+  const today = isoToday(zone.timeZone);
+  const [form, setForm] = useState<DatedTransition>({
     action,
     evidence_kind: action === "deliver" ? "courier_tracking" : null,
     feedback_outcome: action === "record_feedback" ? "positive" : null,
@@ -348,7 +353,7 @@ function ActionModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const copy = ACTION_COPY[action] ?? { title: humanise(action), description: sample.sample_number };
   const label = SAMPLE_ACTION_LABEL[action] ?? humanise(action);
-  const set = (changes: Partial<SampleTransitionRequest>) => {
+  const set = (changes: Partial<DatedTransition>) => {
     setForm((current) => ({ ...current, ...changes }));
     setErrors({});
   };
@@ -419,6 +424,17 @@ function ActionModal({
             />
             <Textarea label="What they said" value={form.feedback ?? ""} onChange={(value) => set({ feedback: value })} isRequired rows={4} error={errors.feedback || undefined} />
           </>
+        ) : null}
+        {DATED_ACTIONS.has(action) ? (
+          <DatePicker
+            label="When"
+            optional
+            value={form.occurred_on ?? null}
+            onChange={(value) => set({ occurred_on: value })}
+            maxValue={today}
+            help="Leave empty for today. Pick the real date when you enter a sample from the past."
+            error={errors.occurred_on || undefined}
+          />
         ) : null}
         {action === "cancel" || action === "close" ? (
           <Textarea
