@@ -99,6 +99,8 @@ class Party(TenantEntity, VersionMixin, ArchivableMixin, BranchMixin, Base):
     temperature: Mapped[str | None] = mapped_column(String(10), nullable=True)
     #: copied from the latest activity; drives the follow-up task and list sorting
     next_follow_up_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    #: when the stage last changed (won this month, time in stage)
+    stage_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("uq_parties_party_number", "company_id", "party_number", unique=True),

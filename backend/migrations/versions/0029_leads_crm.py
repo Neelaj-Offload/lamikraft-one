@@ -127,6 +127,7 @@ def upgrade() -> None:
     op.add_column("parties_party", sa.Column("priority", sa.CHAR(length=1), nullable=True))
     op.add_column("parties_party", sa.Column("temperature", sa.String(length=10), nullable=True))
     op.add_column("parties_party", sa.Column("next_follow_up_on", sa.Date(), nullable=True))
+    op.add_column("parties_party", sa.Column("stage_changed_at", sa.DateTime(timezone=True), nullable=True))
     op.create_check_constraint(
         "lead_stage_values", "parties_party", f"lead_stage IS NULL OR lead_stage IN ({_quoted(LEAD_STAGES)})"
     )
@@ -199,7 +200,7 @@ def downgrade() -> None:
     ):
         op.drop_constraint(op.f(f"ck_parties_party_{name}"), "parties_party", type_="check")
     for column in (
-        "next_follow_up_on", "temperature", "priority", "lost_reason", "lead_stage", "first_contact_on", "requirement",
+        "stage_changed_at", "next_follow_up_on", "temperature", "priority", "lost_reason", "lead_stage", "first_contact_on", "requirement",
         "interests", "lead_source_code", "website",
     ):
         op.drop_column("parties_party", column)

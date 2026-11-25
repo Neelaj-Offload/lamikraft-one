@@ -146,6 +146,8 @@ slice in which the consumer arrives when later than the emitter).
 | `parties.party.updated` | 1 | 1 | party_id, party_number, changed_fields[] | tasks.rules (sales.customer_changes: `info:party:{id}` for the owner) |
 | `parties.party.archived` | 1 | 2 | party_id | tasks.rules |
 | `parties.party.owner_changed` | 1 | 2 | party_id, from_user_id, to_user_id | tasks.rules (scope reassignment) |
+| `parties.lead.stage_changed` | 1 | 7 | party_id, from_stage, to_stage | tasks.rules (sales.lead_follow_up) |
+| `parties.activity.logged` | 1 | 7 | party_id, activity_id, kind, next_follow_up_on | tasks.rules (sales.lead_follow_up) |
 
 ### 3.6 sales
 
@@ -340,6 +342,7 @@ other event). Payloads carry ids, digests and counts only; never paths with pers
 | 3 | common.handled, channels, admin.failed_integrations | `agents.automation_run.*`, `channels.message.delivery_unknown`, `channels.conversation.escalated`, `system.integration.status_changed`, `sales.quote.delivery_status_changed` |
 | 4 | ops.shortages (live: one issue per short product × warehouse, causes — order lines, work-order materials — as evidence members), ops.picking, admin.stock_integrity (live), ops.production_dependencies (live: blocked work order with its shortage, overloaded day, incomplete rollup), ops.receipts, ops.qc, ops.dispatch_cutoffs, mgmt.decisions, mgmt.cross_team_blockers | §3.10 events; `inventory.pick_list.*`, `inventory.projection.mismatch_detected`, `production.capacity.overloaded`, `production.cost_rollup.computed` |
 | 5 | fin.invoice_suggestions, fin.invoice_approvals, fin.overdue_invoices, fin.unallocated_receipts, fin.accounting_sync, mgmt.margin_exceptions (mgmt.financial_visibility: not built) | §3.11 events |
+| 7 | sales.lead_follow_up (one open "Follow up with …" task per lead for its owner, due on the next follow-up date) | `parties.activity.logged`, `parties.lead.stage_changed`, `parties.party.archived` |
 
 Rules treat events as triggers and re-read authoritative state; a stale `aggregate_version` is ignored; replays and
 out-of-order deliveries create no new briefing version (tests B-02, B-03).

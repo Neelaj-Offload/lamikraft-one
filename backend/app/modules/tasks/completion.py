@@ -61,6 +61,7 @@ CHECK_SOURCES: dict[str, str] = {
     "quote_left_draft": "sales.quote",
     "quote_expiry_resolved": "sales.quote",
     "enquiry_answered": "sales.enquiry",
+    "lead_followed_up": "parties.party",
     "pref_briefing_saved": "identity.user_preference",
     "recent_record_exists": "ui.recent_record",
     "recent_search_exists": "search.recent",
@@ -171,6 +172,20 @@ def _enquiry_answered(uow: UnitOfWork, task: Task) -> CompletionResult:
     if enquiry.status in ENQUIRY_DONE_STATUSES or enquiry.is_closed:
         return CompletionResult(True, {"reason": f"enquiry_{enquiry.status}"})
     return CompletionResult(False, remaining=["quote_or_close_enquiry"])
+
+
+@register("lead_followed_up")
+def _lead_followed_up(uow: UnitOfWork, task: Task) -> CompletionResult:
+    """Done once the lead moved on: a newer activity changed or cleared the follow-up date, or it was won or lost."""
+    lead = sources.read(uow, "parties.party", task.primary_ref_id) if task.primary_ref_id else None
+    if lead is None:
+        return CompletionResult(False, remaining=["cannot_verify:parties.party"])
+    stage = lead.facts.get("lead_stage")
+    if stage in ("won", "lost") or lead.is_closed:
+        return CompletionResult(True, {"reason": f"lead_{stage or 'closed'}"})
+    if lead.facts.get("next_follow_up_on") != (task.facts or {}).get("due_on"):
+        return CompletionResult(True, {"reason": "activity_logged"})
+    return CompletionResult(False, remaining=["log_activity"])
 
 
 @register("approval_decided")

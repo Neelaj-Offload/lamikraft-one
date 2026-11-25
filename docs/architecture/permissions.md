@@ -197,6 +197,8 @@ Scope letters after a template: O own, T team, B branch, C company.
 | `parties.party.assign` | R | | | 2 | mgt C |
 | `parties.party.export` | R | | | 2 | sal O, mgt C |
 | `parties.customer_type.manage` | C | | | 2 | — |
+| `parties.lead_source.manage` | C | | | 7 | mgt |
+| `parties.activity.create` | R | D | | 7 | sal O, mgt C |
 
 ### 7.4 `sales`
 

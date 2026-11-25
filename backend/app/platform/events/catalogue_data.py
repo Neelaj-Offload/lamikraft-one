@@ -83,6 +83,8 @@ EVENTS: tuple[dict, ...] = (
     {'name': 'parties.party.updated', 'version': 1, 'slice': 1, 'fields': ['party_id', 'party_number', 'changed_fields']},
     {'name': 'parties.party.archived', 'version': 1, 'slice': 2, 'fields': ['party_id']},
     {'name': 'parties.party.owner_changed', 'version': 1, 'slice': 2, 'fields': ['party_id', 'from_user_id', 'to_user_id']},
+    {'name': 'parties.lead.stage_changed', 'version': 1, 'slice': 7, 'fields': ['party_id', 'from_stage', 'to_stage']},
+    {'name': 'parties.activity.logged', 'version': 1, 'slice': 7, 'fields': ['party_id', 'activity_id', 'kind', 'next_follow_up_on']},
     {'name': 'sales.enquiry.received', 'version': 1, 'slice': 1, 'fields': ['enquiry_id', 'enquiry_number', 'party_id', 'channel', 'owner_user_id']},
     {'name': 'sales.enquiry.assigned', 'version': 1, 'slice': 1, 'fields': ['enquiry_id', 'from_user_id', 'to_user_id']},
     {'name': 'sales.enquiry.quoted', 'version': 1, 'slice': 1, 'fields': ['enquiry_id', 'quote_id']},

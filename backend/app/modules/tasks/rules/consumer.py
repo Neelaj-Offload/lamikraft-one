@@ -236,7 +236,22 @@ SLICE5_TRIGGERS: dict[str, tuple[str, tuple[str, ...]]] = {
     name: ("app.modules.finance.rules.on_event", families) for name, families in _slice5_families().items()
 }
 
+#: CRM programme (events.md §4, slice 7): sales.lead_follow_up lives in the parties module
+CRM_TRIGGERS: dict[str, tuple[str, str]] = {
+    "parties.activity.logged": ("app.modules.parties.rules.on_lead_event", "sales.lead_follow_up"),
+    "parties.lead.stage_changed": ("app.modules.parties.rules.on_lead_event", "sales.lead_follow_up"),
+    "parties.party.archived": ("app.modules.parties.rules.on_lead_event", "sales.lead_follow_up"),
+}
+
+
+def _on_party_updated_with_follow_up(uow: UnitOfWork, event: DomainEvent, cache: SourceCache) -> Iterator[IssueOutcome | None]:
+    """Owner, status or restore changes also re-derive the lead's follow-up (assignee, scope, closure)."""
+    yield from _on_party_updated(uow, event, cache)
+    yield from _module_trigger("app.modules.parties.rules.on_lead_event")(uow, event, cache)
+
+
 TRIGGERS: dict[str, Trigger] = {
+    **{name: _module_trigger(path) for name, (path, _family) in CRM_TRIGGERS.items()},
     **{name: _module_trigger(path) for name, (path, _family) in SLICE4_TRIGGERS.items()},
     **{name: _module_trigger(path) for name, (path, _families) in SLICE5_TRIGGERS.items()},
     **{name: _on_quote for name in QUOTE_EVENTS},
@@ -247,7 +262,7 @@ TRIGGERS: dict[str, Trigger] = {
     "sales.enquiry.assigned": _on_enquiry,
     "sales.enquiry.quoted": _on_enquiry,
     "sales.enquiry.closed": _on_enquiry,
-    "parties.party.updated": _on_party_updated,
+    "parties.party.updated": _on_party_updated_with_follow_up,
     "identity.membership.activated": _on_activated,
     "identity.membership.deactivated": _on_deactivated,
     "system.job.dead_lettered": _on_dead_lettered,
@@ -263,7 +278,8 @@ EVENT_FAMILIES: dict[str, tuple[str, ...]] = {
     "sales.customer_message.replied": ("sales.customer_replies",),
     **dict.fromkeys(("sales.enquiry.received", "sales.enquiry.assigned", "sales.enquiry.quoted", "sales.enquiry.closed"),
                     ("sales.enquiries",)),
-    "parties.party.updated": ("sales.customer_changes",),
+    "parties.party.updated": ("sales.customer_changes", "sales.lead_follow_up"),
+    **{name: (family,) for name, (_path, family) in CRM_TRIGGERS.items()},
     "identity.membership.activated": ("common.onboarding",),
     "identity.membership.deactivated": ("common.offboarding",),
     **{name: (family,) for name, (_path, family) in SLICE4_TRIGGERS.items()},

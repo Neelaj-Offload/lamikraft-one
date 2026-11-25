@@ -11,6 +11,7 @@ import re
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any
 
 from pydantic import BaseModel
@@ -23,6 +24,7 @@ from app.core.http.pagination import MAX_LIMIT, Page
 from app.core.text import LIKE_ESCAPE, contains_pattern, normalize_search_text, tokens
 from app.modules.parties import events as ev
 from app.modules.parties.customer_types import ensure_customer_type
+from app.modules.parties.lead_sources import ensure_lead_source, labels_for
 from app.modules.parties.models import Party, PartyAddress, PartyContact, PartyTaxIdentifier
 from app.modules.parties.schemas import (
     AddressIn,
@@ -32,6 +34,7 @@ from app.modules.parties.schemas import (
     ContactIn,
     ContactRead,
     CustomerType,
+    LeadSourceRef,
     PartyCandidate,
     PartyCreate,
     PartyDetail,
@@ -258,6 +261,8 @@ def create_party(uow: UnitOfWork, data: PartyCreate, *, origin: str | None = Non
     _check_tax_unique(uow, data.tax_identifiers, None, errors)
     errors.raise_if_any()
     ctype = ensure_customer_type(uow, data.customer_type.value if data.customer_type else None)
+    is_lead = PartyRole.CUSTOMER in data.roles
+    source = ensure_lead_source(uow, data.lead_source) if is_lead else None
     party = Party(
         id=new_id(),
         company_id=actor.company_id,
@@ -272,7 +277,16 @@ def create_party(uow: UnitOfWork, data: PartyCreate, *, origin: str | None = Non
         owner_user_id=owner_id,
         branch_id=data.branch_id,
         search_text="",
+        website=data.website,
+        requirement=data.requirement,
     )
+    if is_lead:
+        party.lead_source_code = source
+        party.interests = sorted({i.value for i in data.interests}) or None
+        party.first_contact_on = data.first_contact_on or local_date(uow.now(), actor.time_zone)
+        party.lead_stage = "new" if data.status == PartyStatus.PROSPECT else "won"
+        party.priority = (data.priority.value if data.priority else "B")
+        party.temperature = (data.temperature.value if data.temperature else "cold")
     party.party_number = uow.allocate_number(
         ev.PARTY_SEQUENCE.key,
         document_date=local_date(uow.now(), actor.time_zone),
@@ -315,6 +329,15 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
     _check_tax_unique(uow, data.tax_identifiers, party.id, errors)
     if "customer_type" in fields and fields["customer_type"] is not None:
         ensure_customer_type(uow, str(fields["customer_type"]), current=party.customer_type)
+    if "lead_source" in fields:
+        code = fields.pop("lead_source")
+        fields["lead_source_code"] = ensure_lead_source(uow, code, current=party.lead_source_code) if code else None
+    if "interests" in fields:
+        values = fields["interests"]
+        fields["interests"] = sorted({getattr(i, "value", i) for i in values}) or None if values is not None else None
+    for cleared in ("priority", "temperature", "first_contact_on"):
+        if cleared in fields and fields[cleared] is None:
+            fields.pop(cleared)  # these always have a value on a lead; sending null keeps the current one
     for required in ("legal_name", "display_name", "country_code", "default_currency", "roles", "status"):
         if required in fields and fields[required] is None:
             errors.add([required], "required", f"{required} cannot be cleared")
@@ -342,6 +365,7 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
             changed.add(name)
     if "display_name" in changed:
         party.name_key = name_key(party.display_name)
+    _sync_lead_stage(uow, party, changed)
     if not changed:
         return _detail(uow, party)
     party.search_text = _search_text(party, [c.name for c in _live_contacts(uow, party.id)])
@@ -365,6 +389,27 @@ def update_party(uow: UnitOfWork, party_id: uuid.UUID, data: PartyUpdate, *, ori
         details={"changed_fields": sorted(changed)},
     )
     return _detail(uow, party)
+
+
+def _sync_lead_stage(uow: UnitOfWork, party: Party, changed: set[str]) -> None:
+    """Keep the pipeline consistent with role and status edits made through the general form: a party that gains
+    the customer role gets lead defaults; turning a prospect into an active customer marks the lead won; turning a
+    won customer back into a prospect reopens it as new."""
+    if PartyRole.CUSTOMER.value not in party.roles:
+        return
+    if party.lead_stage is None:
+        party.lead_stage = "new" if party.status == PartyStatus.PROSPECT.value else "won"
+        party.priority = party.priority or "B"
+        party.temperature = party.temperature or "cold"
+        party.first_contact_on = party.first_contact_on or local_date(uow.now(), uow.actor.time_zone)
+        changed.add("lead_stage")
+    elif "status" in changed:
+        if party.status == PartyStatus.ACTIVE.value and party.lead_stage not in ("won", "lost"):
+            party.lead_stage = "won"
+            changed.add("lead_stage")
+        elif party.status == PartyStatus.PROSPECT.value and party.lead_stage == "won":
+            party.lead_stage = "new"
+            changed.add("lead_stage")
 
 
 def _idempotent[T: BaseModel](
@@ -421,7 +466,14 @@ def _primary_contacts(uow: UnitOfWork, party_ids: Sequence[uuid.UUID]) -> dict[u
     return out
 
 
-def _summary(party: Party, owner_names: dict[uuid.UUID, str], contacts: dict[uuid.UUID, str]) -> dict[str, Any]:
+def _summary(
+    party: Party,
+    owner_names: dict[uuid.UUID, str],
+    contacts: dict[uuid.UUID, str],
+    sources: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    code = party.lead_source_code
+    source = LeadSourceRef(code=code, label=(sources or {}).get(code, code)) if code else None
     return {
         "id": party.id,
         "party_number": party.party_number,
@@ -437,6 +489,12 @@ def _summary(party: Party, owner_names: dict[uuid.UUID, str], contacts: dict[uui
         "primary_contact": contacts.get(party.id),
         "updated_at": party.updated_at,
         "path": party_path(party.id),
+        "lead_stage": party.lead_stage,
+        "lead_source": source,
+        "interests": list(party.interests or []),
+        "priority": party.priority,
+        "temperature": party.temperature,
+        "next_follow_up_on": party.next_follow_up_on,
     }
 
 
@@ -458,7 +516,12 @@ def _detail(uow: UnitOfWork, party: Party) -> PartyDetail:
     )
     repo = uow.repo(Party)
     can_update = repo.can(party, "update")
-    base = _summary(party, _owner_names(uow, [party.owner_user_id]), _primary_contacts(uow, [party.id]))
+    base = _summary(
+        party,
+        _owner_names(uow, [party.owner_user_id]),
+        _primary_contacts(uow, [party.id]),
+        labels_for(uow, [party.lead_source_code]),
+    )
     return PartyDetail(
         **base,
         contacts=[
@@ -486,8 +549,32 @@ def _detail(uow: UnitOfWork, party: Party) -> PartyDetail:
             "update": Capability(allowed=can_update, reason_code=None if can_update else "permission_denied"),
             "archive": _archive_capability(uow, party, archived=False),
             "restore": _archive_capability(uow, party, archived=True),
+            **lead_capabilities(uow, party, can_update=can_update),
         },
+        website=party.website,
+        requirement=party.requirement,
+        first_contact_on=party.first_contact_on,
+        lost_reason=party.lost_reason,
     )
+
+
+def lead_capabilities(uow: UnitOfWork, party: Party, *, can_update: bool) -> dict[str, Capability]:
+    """``change_stage`` (parties.party.update on an open or lost lead) and ``log_activity`` (parties.activity.create)."""
+    if party.lead_stage is None:
+        no = Capability(allowed=False, reason_code="not_a_lead")
+        return {"change_stage": no, "log_activity": no}
+    if party.archived_at is not None:
+        archived = Capability(allowed=False, reason_code="archived")
+        return {"change_stage": archived, "log_activity": archived}
+    if not can_update:
+        stage = Capability(allowed=False, reason_code="permission_denied")
+    elif party.lead_stage == "won":
+        stage = Capability(allowed=False, reason_code="lead_won")
+    else:
+        stage = Capability(allowed=True)
+    can_log = uow.repo(Party).can(party, "read") and uow.actor.can("parties.activity.create")
+    log = Capability(allowed=can_log, reason_code=None if can_log else "permission_denied")
+    return {"change_stage": stage, "log_activity": log}
 
 
 def _archive_capability(uow: UnitOfWork, party: Party, *, archived: bool) -> Capability:
@@ -544,7 +631,7 @@ def get_party_by_number(uow: UnitOfWork, party_number: str) -> PartyDetail:
     return _detail(uow, uow.repo(Party).get_by_key(party_number.strip().upper()))
 
 
-def _filter_conditions(f: PartyFilters) -> list[ColumnElement[bool]]:
+def _filter_conditions(f: PartyFilters, today: date | None = None) -> list[ColumnElement[bool]]:
     conds: list[ColumnElement[bool]] = []
     if f.q:
         for tok in tokens(f.q):
@@ -559,24 +646,51 @@ def _filter_conditions(f: PartyFilters) -> list[ColumnElement[bool]]:
         conds.append(Party.status.in_([s.value for s in f.status]))
     if f.owner_user_id:
         conds.append(Party.owner_user_id == f.owner_user_id)
+    if f.lead_stage:
+        conds.append(Party.lead_stage.in_([s.value for s in f.lead_stage]))
+    if f.lead_source:
+        conds.append(Party.lead_source_code == f.lead_source)
+    if f.interest:
+        conds.append(Party.interests.contains([f.interest.value]))
+    if f.priority:
+        conds.append(Party.priority == f.priority.value)
+    if f.temperature:
+        conds.append(Party.temperature == f.temperature.value)
+    if f.follow_up and today is not None:
+        if f.follow_up == "overdue":
+            conds.append(Party.next_follow_up_on < today)
+        elif f.follow_up == "today":
+            conds.append(Party.next_follow_up_on == today)
+        else:
+            conds.append(Party.next_follow_up_on.between(today, today + timedelta(days=7)))
     return conds
+
+
+def _order(sort: str) -> list[Any]:
+    if sort == "follow_up":
+        return [Party.next_follow_up_on.asc().nulls_last(), Party.name_key, Party.id]
+    if sort == "recent":
+        return [Party.first_contact_on.desc().nulls_last(), Party.created_at.desc(), Party.id]
+    return [Party.name_key, Party.party_number, Party.id]
 
 
 @query(READ)
 def list_parties(uow: UnitOfWork, filters: PartyFilters, *, limit: int = 50, offset: int = 0) -> Page[PartySummary]:
     """Scoped list: own-scope users see only the parties they own; filters apply before pagination."""
     repo = uow.repo(Party)
+    today = local_date(uow.now(), uow.actor.time_zone)
     page = repo.list(
-        *_filter_conditions(filters),
-        order_by=[Party.name_key, Party.party_number, Party.id],
+        *_filter_conditions(filters, today),
+        order_by=_order(filters.sort),
         limit=max(1, min(limit, MAX_LIMIT)),
         offset=max(0, offset),
         include_archived=filters.include_archived,
     )
     owners = _owner_names(uow, [p.owner_user_id for p in page.items])
     contacts = _primary_contacts(uow, [p.id for p in page.items])
+    sources = labels_for(uow, [p.lead_source_code for p in page.items])
     return Page[PartySummary](
-        items=[PartySummary(**_summary(p, owners, contacts)) for p in page.items],
+        items=[PartySummary(**_summary(p, owners, contacts, sources)) for p in page.items],
         total=page.total,
         limit=page.limit,
         offset=page.offset,
@@ -737,5 +851,7 @@ def read_party_facts(uow: UnitOfWork, party_id: uuid.UUID) -> SourceFacts | None
             "default_currency": party.default_currency,
             "customer_type": party.customer_type,
             "roles": ",".join(party.roles),
+            "lead_stage": party.lead_stage,
+            "next_follow_up_on": party.next_follow_up_on.isoformat() if party.next_follow_up_on else None,
         },
     )

@@ -44,3 +44,21 @@ class PartyArchivedPayload(BaseModel):
 
 def payload(model: BaseModel) -> dict[str, object]:
     return model.model_dump(mode="json", exclude_none=True)
+
+
+# ---- lead pipeline (CRM programme module 1) -------------------------------------------------------------------
+LEAD_STAGE_CHANGED = "parties.lead.stage_changed"
+ACTIVITY_LOGGED = "parties.activity.logged"
+
+
+class LeadStageChangedPayload(BaseModel):
+    party_id: uuid.UUID
+    from_stage: str | None
+    to_stage: str
+
+
+class ActivityLoggedPayload(BaseModel):
+    party_id: uuid.UUID
+    activity_id: uuid.UUID
+    kind: str
+    next_follow_up_on: str | None = None
