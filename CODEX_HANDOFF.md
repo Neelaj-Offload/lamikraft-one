@@ -3,6 +3,27 @@
 Continued by Codex after the Claude Code handoff. Read `AGENTS.md` first (rules and commands), then this file.
 This file remains authoritative for the ordered continuation tasks; Checkpoint 6 is recorded in BUILD_STATE §15.
 
+## CRM programme (2026-11-25, current work) — read this first
+
+The owner asked to finish the Sales CRM module by module with the old data, then host. Order and specs:
+`docs/superpowers/specs/2026-11-25-leads-module-design.md` (programme context), `...-customers-samples-design.md`,
+`...-proforma-invoices-design.md`; meeting notes in `docs/meetings/`. Work happens on `lane/crm-leads` in the main
+checkout and lands on `main` by fast-forward per checkpoint (BUILD_STATE §16).
+
+| # | Module | State |
+|---|---|---|
+| 0 | `apps/one` rebuild merged | done |
+| 1 | Leads (pipeline, activities, follow-ups, `lk import leads`) | done, verified |
+| 2 | Customers + samples (auto-promotion, past samples, customer facts) | done, verified |
+| 3 | Proforma invoices | done, verified |
+| 4 | Products (design × decor × size) + stock categories (sample / inventory / exhibition), NL/US warehouses, WIP | next |
+| 5 | E-commerce stock sync: Amazon first (Demo until developer approval), then Flipkart, website | to do |
+| 6 | Hosting: Vercel (web) + Railway Singapore (API, worker, Postgres), `*.vercel.app` first | to do (owner chose "finish everything, then host") |
+
+New `apps/one` screens register their routes in `apps/one/src/lib/routes.ts`, never in `apps/web`. Run pytest as
+`uv run --locked python -m pytest` (Smart App Control blocks the `pytest.exe` shim). Owner inputs still open: the
+four lead owners' emails for the real import; company identity and bank details for documents.
+
 ## TL;DR — is the app finished?
 
 **No. Checkpoint 6 is verified and merged on `main`; handover integration and Slice 6 acceptance remain, together with the explicit product gaps below. No completion percentage is asserted.**

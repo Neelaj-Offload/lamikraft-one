@@ -1,7 +1,7 @@
 # Build state
 
-**Checkpoint 6 — Slice 5 (finance, migration/backup and new capabilities) on `main` via `lane/s5-merge`,
-2026-11-06** (section 15), verified and fast-forwarded at `7368da7`. Earlier checkpoints remain below.
+**Checkpoint 7a — CRM programme modules 1–3 (leads, customers and samples, proforma invoices) on `main` via
+`lane/crm-leads`, 2026-11-25** (section 16). Checkpoint 6 (section 15) and earlier remain below.
 
 Resume rule: a new session reads `AGENTS.md` and `CODEX_HANDOFF.md`, then `docs/PLAN.md`, this file and
 `docs/architecture/*`, and continues from
@@ -500,3 +500,47 @@ AI, vision, STT/TTS and WhatsApp retain their labelled Demo adapters. Finance ac
 
 - The seed is anchored at D0, but the current e2e API/worker use system time after the seed process exits. Slice 6 must verify the canonical morning/date fixture and coordinate its MFA clock. [acceptance]
 - Visual review: the what-if Needed by field wraps in the narrow desktop grid; phone captures of long forms show the top viewport. Review responsive field sizing and capture relevant workflow sections in final evidence. [web, acceptance]
+
+## 16. Checkpoint 7a — CRM programme modules 1–3 on `lane/crm-leads` (2026-11-25)
+
+Owner request of 2026-11-25: complete the Sales CRM module by module with the old data, host last (specs under
+`docs/superpowers/specs/2026-11-25-*`, meetings under `docs/meetings/`). The rebuilt web app (`lane/web-rebuild`,
+`apps/one`) is merged in. Gates: full API after modules 1–2 **1807 passed, 7 skipped, 0 failed** (61 min 37 s,
+`D:\lk-wt\crm-m12-testapi.log`); after module 3 the sales, parties, orders, contract and unit suites **887 passed,
+0 failed** (`D:\lk-wt\crm-m3-subset.log`). `npm run check` **10/10 PASS** (now includes `apps/one` lint, typecheck and
+vitest; `D:\lk-wt\crm-leads-check.log`, ruff re-run clean after the PI commit). Browser checks against the slot-0 API
+in the Claude preview: lead log/stage/lost flow with the follow-up task opened and cancelled in the database; past
+sample promoting a lead; PI create → issue → PDF.
+
+### Implemented (verified) — new at this checkpoint
+
+- **Leads (module 1).** Pipeline stage (new → contacted → qualified → negotiating → won / lost with a required reason,
+  DB check), priority, temperature, managed lead sources, interests, website, requirement, first contact; append-only
+  activity log; one owner follow-up task per lead (`sales.lead_follow_up`, closed by the next activity, won, lost or
+  archive); lead summary; list filters. `lk import leads` (dry run by default, re-runnable, keeps app edits): the
+  owner's sheet loads **703 of 705** rows (2 rejected for a blank country). Migration `0029_leads_crm`.
+- **Customers and samples (module 2).** A lead becomes a customer when a sample is dispatched to it, a quotation is
+  won or an order is confirmed (outbox subscriptions in sales and orders). Samples can be entered as already sent
+  with their real date; later steps take their real date (never future, never before the previous step). Customer
+  facts: customer since (from the real first sample or win), last contact, won value per currency.
+- **Proforma invoices (module 3).** From a sent/revised/won quotation's issued revision; draft terms; issue as
+  `PI-YYYY-NNNN` with a PDF (identity frozen at issue, bank block per viewer under the restricted-number rule); cancel
+  with a reason (`sales.proforma.reverse`); PIs sent earlier entered with their original number and date
+  (`sales.proforma.import`, management). Migration `0030_proforma_invoices`.
+- `apps/one` screens for all of the above; `apps/one/src/lib/routes.ts` layers this app's own routes over the shared
+  manifest, so new screens never touch `apps/web`.
+
+### Simulated (Demo) / not configured
+
+Company identity and bank details are not configured in the demo company; PDFs print the labelled placeholder.
+
+### Open items carried
+
+- Module 4 (products design × decor × size, custom products in the menu, stock categories sample / inventory /
+  exhibition, NL/US warehouses, factory work in progress), module 5 (Amazon first, Demo until the developer profile
+  is approved, then Flipkart and the website), module 6 (hosting on Vercel + Railway Singapore). [CRM programme]
+- Real import needs the four lead owners' work emails (Priyanka Khanna, Akshay Khanna, Priyanka Chatterjee, Priyanka
+  Roy Rudra) as invited members. [owner]
+- The Sales sub-navigation highlights "Customers" on a lead's record (path match without the query). [web]
+- Windows Smart App Control is on: tests run as `python -m pytest`; turning it off is the owner's decision. [owner]
+- e2e scenarios for the new screens are not written yet; acceptance (Slice 6) items from §15 remain open. [acceptance]
