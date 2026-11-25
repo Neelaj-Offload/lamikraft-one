@@ -64,6 +64,11 @@ def _provision_system_sources(uow: UnitOfWork) -> None:
     )
 
 
+def ensure_system_sources(uow: UnitOfWork) -> None:
+    """Create the built-in sources for this company if they are missing (idempotent, same transaction)."""
+    _provision_system_sources(uow)
+
+
 def _find(uow: UnitOfWork, code: str) -> LeadSourceRecord | None:
     return uow.session.scalars(select(T).where(T.company_id == uow.actor.company_id, T.code == code)).first()
 
