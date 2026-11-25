@@ -173,3 +173,69 @@ def lead_summary(uow: UnitOfWork) -> LeadSummary:
             CountRow(key=str(uid), label=owner_names.get(uid) or "Unknown", count=int(n)) for uid, n in owners
         ],
     )
+
+
+# ---- promotion: a lead becomes a customer (module 2, spec 2026-11-25-customers-samples-design.md) ------------
+PROMOTION_REASONS = ("sample_sent", "quote_won", "order_confirmed")
+
+
+def promote_to_customer(uow: UnitOfWork, party_id: uuid.UUID, *, reason: str) -> bool:
+    """Make a lead a customer because it was sent a sample, won a quotation or confirmed an order.
+
+    Called by outbox subscriptions in the modules that own those events (parties never imports them). Idempotent:
+    an active customer, a vendor-only party and an inactive or blocked party are left alone. Returns True when
+    the party was promoted."""
+    from sqlalchemy import select as _select
+
+    assert reason in PROMOTION_REASONS, reason
+    party = uow.session.scalars(
+        _select(Party).where(Party.id == party_id, Party.company_id == uow.actor.company_id).with_for_update()
+    ).first()
+    if party is None or "customer" not in party.roles or party.archived_at is not None:
+        return False
+    if party.status != PartyStatus.PROSPECT.value and party.lead_stage == LeadStage.WON.value:
+        return False
+    if party.status not in (PartyStatus.PROSPECT.value, PartyStatus.ACTIVE.value):
+        return False  # inactive or blocked: a person decides
+    previous = party.lead_stage
+    changed: list[str] = []
+    if party.status != PartyStatus.ACTIVE.value:
+        party.status = PartyStatus.ACTIVE.value
+        changed.append("status")
+    if previous != LeadStage.WON.value:
+        party.lead_stage = LeadStage.WON.value
+        party.lost_reason = None
+        party.next_follow_up_on = None
+        party.stage_changed_at = uow.now()
+        changed.append("lead_stage")
+    if not changed:
+        return False
+    party.updated_at = uow.now()
+    uow.flush()
+    if "lead_stage" in changed:
+        uow.emit(
+            ev.LEAD_STAGE_CHANGED,
+            aggregate_id=party.id,
+            aggregate_version=party.version,
+            payload=ev.payload(
+                ev.LeadStageChangedPayload(party_id=party.id, from_stage=previous, to_stage="won", reason=reason)
+            ),
+        )
+    if "status" in changed:
+        uow.emit(
+            ev.PARTY_UPDATED,
+            aggregate_id=party.id,
+            aggregate_version=party.version,
+            payload=ev.payload(
+                ev.PartyUpdatedPayload(party_id=party.id, party_number=party.party_number, changed_fields=["status"],
+                                       origin=reason)
+            ),
+        )
+    uow.audit(
+        "parties.lead.promoted",
+        resource_type="parties.party",
+        resource_id=party.id,
+        resource_label=f"{party.party_number} · {party.display_name}",
+        details={"reason": reason, "from_stage": previous},
+    )
+    return True

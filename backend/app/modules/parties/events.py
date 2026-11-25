@@ -55,6 +55,8 @@ class LeadStageChangedPayload(BaseModel):
     party_id: uuid.UUID
     from_stage: str | None
     to_stage: str
+    #: set when the system moved the stage: sample_sent, quote_won, order_confirmed
+    reason: str | None = None
 
 
 class ActivityLoggedPayload(BaseModel):

@@ -146,7 +146,7 @@ slice in which the consumer arrives when later than the emitter).
 | `parties.party.updated` | 1 | 1 | party_id, party_number, changed_fields[] | tasks.rules (sales.customer_changes: `info:party:{id}` for the owner) |
 | `parties.party.archived` | 1 | 2 | party_id | tasks.rules |
 | `parties.party.owner_changed` | 1 | 2 | party_id, from_user_id, to_user_id | tasks.rules (scope reassignment) |
-| `parties.lead.stage_changed` | 1 | 7 | party_id, from_stage, to_stage | tasks.rules (sales.lead_follow_up) |
+| `parties.lead.stage_changed` | 1 | 7 | party_id, from_stage, to_stage, reason | tasks.rules (sales.lead_follow_up) |
 | `parties.activity.logged` | 1 | 7 | party_id, activity_id, kind, next_follow_up_on | tasks.rules (sales.lead_follow_up) |
 
 ### 3.6 sales

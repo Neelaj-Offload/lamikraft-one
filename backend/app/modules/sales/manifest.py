@@ -26,6 +26,10 @@ from app.seed.context import SeedContext, SeedDef
 DOCUMENT_RENDER_JOB = "sales.document_render"
 CUSTOM_AUTOADVANCE = "sales.custom_product_autoadvance"
 SAMPLE_DISPATCH = "sales.sample_dispatch"
+PROMOTE_ON_SAMPLE = "sales.promote_on_sample"
+PROMOTE_ON_QUOTE_WON = "sales.promote_on_quote_won"
+SAMPLE_DISPATCHED = "sales.sample.dispatched"
+QUOTE_WON = "sales.quote.won"
 CHALLAN_ISSUED = "challans.challan.issued"
 
 
@@ -88,6 +92,29 @@ def _on_challan_issued(uow: Any, event: Any) -> None:
     dispatch_linked_samples(uow, challan_id)
 
 
+def _promote(uow: Any, model: Any, record_id: Any, reason: str) -> None:
+    """A lead that was sent a sample or won a quotation becomes a customer (spec 2026-11-25-customers-samples)."""
+    import uuid
+
+    from app.modules.parties.leads import promote_to_customer
+
+    row = uow.session.get(model, uuid.UUID(str(record_id))) if record_id else None
+    if row is not None:
+        promote_to_customer(uow, row.party_id, reason=reason)
+
+
+def _on_sample_dispatched(uow: Any, event: Any) -> None:
+    from app.modules.sales.models import Sample
+
+    _promote(uow, Sample, (event.payload or {}).get("sample_id") or event.aggregate_id, "sample_sent")
+
+
+def _on_quote_won(uow: Any, event: Any) -> None:
+    from app.modules.sales.models import Quote
+
+    _promote(uow, Quote, (event.payload or {}).get("quote_id") or event.aggregate_id, "quote_won")
+
+
 def _search_providers() -> list[Any]:
     from app.modules.sales.search import SEARCH_PROVIDERS
 
@@ -119,6 +146,8 @@ MANIFEST = ModuleManifest(
         Subscription(event=QUOTE_ISSUED, handler_key=DOCUMENT_RENDER_JOB, handler=_on_issued, queue="documents"),
         Subscription(event=QUOTE_ISSUED, handler_key=CUSTOM_AUTOADVANCE, handler=_on_issued_custom),
         Subscription(event=CHALLAN_ISSUED, handler_key=SAMPLE_DISPATCH, handler=_on_challan_issued),
+        Subscription(event=SAMPLE_DISPATCHED, handler_key=PROMOTE_ON_SAMPLE, handler=_on_sample_dispatched),
+        Subscription(event=QUOTE_WON, handler_key=PROMOTE_ON_QUOTE_WON, handler=_on_quote_won),
     ],
     search_providers=_search_providers(),
     # three seeds so the fixture clock only moves forward (fixtures.md §1 rule 2): history to D-3 after pricing,
