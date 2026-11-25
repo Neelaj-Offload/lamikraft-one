@@ -112,7 +112,7 @@ export function humanise(value: string): string {
 }
 
 /** The views of a customer's record, chosen by `?view=`. */
-export const CUSTOMER_VIEWS = ["overview", "contacts", "quotations", "samples", "orders", "supplies", "notes", "activity"] as const;
+export const CUSTOMER_VIEWS = ["overview", "log", "contacts", "quotations", "samples", "orders", "supplies", "notes", "activity"] as const;
 export type CustomerView = (typeof CUSTOMER_VIEWS)[number];
 
 export function customerViewFrom(raw: string | string[] | undefined): CustomerView {

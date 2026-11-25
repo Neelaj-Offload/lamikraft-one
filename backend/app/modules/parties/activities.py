@@ -21,7 +21,7 @@ from app.modules.parties.models import Party, PartyActivity
 from app.modules.parties.schemas import (
     ActivityCreate,
     ActivityKind,
-    ActivityPage,
+    PartyActivityPage,
     ActivityRead,
     LeadStage,
     UserRef,
@@ -133,7 +133,7 @@ def _decode(cursor: str) -> tuple[datetime, uuid.UUID]:
 
 
 @query(READ)
-def list_activities(uow: UnitOfWork, party_id: uuid.UUID, *, cursor: str | None = None, limit: int = 30) -> ActivityPage:
+def list_activities(uow: UnitOfWork, party_id: uuid.UUID, *, cursor: str | None = None, limit: int = 30) -> PartyActivityPage:
     """Newest first; ``next_cursor`` continues after the last item."""
     party = uow.repo(Party).get(party_id)
     limit = max(1, min(limit, MAX_PAGE))
@@ -151,4 +151,4 @@ def list_activities(uow: UnitOfWork, party_id: uuid.UUID, *, cursor: str | None 
     more = len(rows) > limit
     rows = rows[:limit]
     names = _owner_names(uow, [r.created_by for r in rows if r.created_by])
-    return ActivityPage(items=[_read(r, names) for r in rows], next_cursor=_encode(rows[-1]) if more and rows else None)
+    return PartyActivityPage(items=[_read(r, names) for r in rows], next_cursor=_encode(rows[-1]) if more and rows else None)

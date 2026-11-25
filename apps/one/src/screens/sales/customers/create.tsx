@@ -13,7 +13,9 @@ import { CURRENCIES } from "@/lib/format/money";
 import { useSession } from "@/lib/session/context";
 import { Page, PageHeader } from "~/shell/page";
 import { NotPermitted } from "~/shell/states";
-import { Banner, Button, ButtonLink, CheckboxGroup, FormActions, FormSection, RadioCards, Select, TextField, toast } from "~/ui";
+import { useLeadSources, type Interest } from "~/data/leads";
+import { Banner, Button, ButtonLink, CheckboxGroup, FormActions, FormSection, RadioCards, Select, Textarea, TextField, toast } from "~/ui";
+import { INTEREST_LABEL, INTERESTS } from "../leads/labels";
 import { countryName, ROLE_LABEL, STAGE_HINT, TYPE_LABEL } from "./labels";
 
 const FIELD_NAMES: Record<string, string> = {
@@ -71,6 +73,12 @@ function CreateForm({ stage }: { stage: "prospect" | "active" }) {
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const bannerRef = useRef<HTMLDivElement>(null);
   const isLead = form.status === "prospect";
+  const sells = form.roles.includes("customer");
+  const sources = useLeadSources(sells);
+  const [source, setSource] = useState("none");
+  const [interests, setInterests] = useState<Interest[]>([]);
+  const [requirement, setRequirement] = useState("");
+  const [website, setWebsite] = useState("");
   const noun = isLead ? "lead" : "customer";
   const backHref = (isLead ? "/sales/parties?status=prospect" : "/sales/parties?status=active") as Route;
 
@@ -114,11 +122,23 @@ function CreateForm({ stage }: { stage: "prospect" | "active" }) {
     event.preventDefault();
     setSubmitted(true);
     if (commands.pending || commands.offline) return;
-    const body = createBodyOf(form);
-    if (!body) {
+    const base = createBodyOf(form);
+    if (!base) {
       focusBanner();
       return;
     }
+    // lead fields (spec 2026-11-25-leads-module-design.md); the API ignores them for vendors
+    const body = {
+      ...base,
+      ...(sells
+        ? {
+            lead_source: source === "none" ? null : source,
+            interests,
+            requirement: requirement.trim() || null,
+            website: website.trim() || null,
+          }
+        : {}),
+    } as typeof base;
     setServerErrors({});
     const outcome = await commands.run("create", [JSON.stringify(body)], (key) => createParty(body, key), {
       failed: `The ${noun} was not added`,
@@ -247,6 +267,29 @@ function CreateForm({ stage }: { stage: "prospect" | "active" }) {
             error={errorFor("roles")}
           />
         </FormSection>
+
+        {sells ? (
+          <FormSection title="How you met them" description="Optional. Where the lead came from and what they asked for, so the team can follow up well.">
+            <Select
+              label="Source"
+              optional
+              options={[{ value: "none", label: "Not known" }, ...(sources.data ?? []).filter((s) => s.is_active).map((s) => ({ value: s.code, label: s.label }))]}
+              value={source}
+              onChange={(value) => setSource(value ?? "none")}
+              error={serverErrors.lead_source}
+            />
+            <TextField label="Website" optional value={website} onChange={setWebsite} maxLength={200} placeholder="www.example.com" error={serverErrors.website} />
+            <CheckboxGroup
+              className="col-span-full"
+              label="Interested in"
+              orientation="horizontal"
+              options={INTERESTS.map((i) => ({ value: i, label: INTEREST_LABEL[i] }))}
+              value={interests}
+              onChange={(value) => setInterests(INTERESTS.filter((i) => value.includes(i)))}
+            />
+            <Textarea className="col-span-full" label="What they asked for" optional value={requirement} onChange={setRequirement} maxLength={2000} rows={3} placeholder="Chopping boards and risers for 40 outlets" error={serverErrors.requirement} />
+          </FormSection>
+        ) : null}
 
         <FormSection title="Main contact" description="Optional. The person you speak to first; add the rest from their profile.">
           <TextField

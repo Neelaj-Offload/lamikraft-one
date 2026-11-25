@@ -12,6 +12,7 @@
     "start": "next start --hostname 127.0.0.1",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
     "tokens": "node scripts/gen-tokens.mjs",
     "shots": "node scripts/shots.mjs"
   },

@@ -14,7 +14,7 @@ from app.core.http.pagination import MAX_LIMIT, Page
 from app.modules.parties import activities, customer_types, lead_sources, leads, service
 from app.modules.parties.schemas import (
     ActivityCreate,
-    ActivityPage,
+    PartyActivityPage,
     ActivityRead,
     CustomerType,
     CustomerTypeCreate,
@@ -185,7 +185,7 @@ def list_activities(
     party_id: uuid.UUID,
     cursor: Annotated[str | None, Query(max_length=200)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 30,
-) -> ActivityPage:
+) -> PartyActivityPage:
     """The activity log, newest first."""
     return activities.list_activities(actor, party_id, cursor=cursor, limit=limit)
 

@@ -12,7 +12,9 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { messageHref } from "@/lib/app-links";
 import { canAccessRoute, matchRoute } from "@/lib/routes";
 import { useSession } from "@/lib/session/context";
+import { useLeads, useLeadSummary } from "~/data/leads";
 import { useOrderCount } from "~/data/sales-crm";
+import { leadListHref } from "../leads/list-state";
 import { Page, PageHeader, PageSection } from "~/shell/page";
 import { Badge, Banner, Button, ButtonLink, CountUp, DateText, EmptyState, GlassPanel, Icon, Skeleton, StatTile, type IconName, type Tone } from "~/ui";
 import { stagger } from "../customers/labels";
@@ -77,8 +79,12 @@ export function SalesHub() {
   const requestedParams = { status: "requested", offset: 0 };
   const requested = useQuery({ queryKey: queryKeys.sales.samples(requestedParams), queryFn: ({ signal }) => fetchSamples(requestedParams, signal), enabled: canSamples });
   const ordersConfirmed = useOrderCount("confirmed", canOrders);
+  const canLeads = permissionKeys.has("parties.party.read");
+  const leadSummary = useLeadSummary(canLeads);
+  const overdueLeads = useLeads({ follow_up: "overdue", sort: "follow_up" });
 
   const sources = [
+    ...(canLeads ? [overdueLeads] : []),
     ...(canMessages ? [messages] : []),
     ...(canEnquiries ? [received, assigned] : []),
     ...(canQuotes ? [review] : []),
@@ -88,6 +94,17 @@ export function SalesHub() {
   const failed = sources.filter((source) => source.isError);
 
   const rows: AttentionRow[] = [
+    ...(canLeads ? (overdueLeads.data?.items ?? []) : []).slice(0, PER_SOURCE).map<AttentionRow>((lead) => ({
+      id: `lead-${lead.id}`,
+      kind: "Follow-up",
+      icon: "phone",
+      title: lead.display_name,
+      detail: `${lead.party_number}${lead.primary_contact ? ` · ${lead.primary_contact}` : ""}`,
+      ask: "Follow up",
+      tone: "amber",
+      at: lead.next_follow_up_on ?? lead.updated_at,
+      href: lead.path,
+    })),
     ...(messages.data?.items ?? []).slice(0, PER_SOURCE).map<AttentionRow>((message) => ({
       id: `message-${message.id}`,
       kind: "Message",
@@ -152,6 +169,19 @@ export function SalesHub() {
   const drafts = counts.data?.draft ?? 0;
 
   const tiles: ReactNode[] = [];
+  if (canLeads && leadSummary.data) {
+    const due = leadSummary.data.follow_ups_overdue + leadSummary.data.follow_ups_today;
+    tiles.push(
+      <StatTile
+        key="leads"
+        label="Lead follow-ups due"
+        value={<StatFigure value={due} />}
+        foot={`${leadSummary.data.open} open leads · ${leadSummary.data.conversion_rate}% won`}
+        dot={leadSummary.data.follow_ups_overdue > 0}
+        href={leadListHref({ follow_up: leadSummary.data.follow_ups_overdue > 0 ? "overdue" : "today" }) as Route}
+      />,
+    );
+  }
   if (canEnquiries) {
     tiles.push(
       <StatTile
@@ -227,7 +257,7 @@ export function SalesHub() {
 
       {tiles.length > 0 ? (
         <div className="tiles" aria-label="Sales at a glance" role="group">
-          {tiles.map((tile, index) => (
+          {tiles.slice(0, 4).map((tile, index) => (
             <GlassPanel key={index} interactive className="rise" style={stagger(index + 1)}>
               {tile}
             </GlassPanel>

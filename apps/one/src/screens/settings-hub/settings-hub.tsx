@@ -43,7 +43,7 @@ const TILES: Record<string, Tile> = {
   "settings-company": { group: "company", label: "Company", icon: "building", line: "The name, bank accounts, terms and brands printed on your documents." },
   "settings-quotes": { group: "company", label: "Quotation settings", icon: "fileText", line: "Defaults for new quotations: validity, revisions and who owns a duplicate." },
   "settings-fx-rates": { group: "company", label: "Exchange rates", icon: "banknote", line: "Dated rates, approved by a second person, and how amounts convert." },
-  "settings-customer-types": { group: "company", label: "Customer types", icon: "tag", line: "The kinds of customer that profiles and price lists use." },
+  "settings-customer-types": { group: "company", label: "Customer types and lead sources", icon: "tag", line: "The kinds of customer you sell to, and the trade shows and channels your leads come from." },
   "settings-reference": { group: "company", label: "Reference data", icon: "globe", line: "Currencies, units of measure and your work calendar." },
   "settings-lookups": { group: "company", label: "Lookup reference", icon: "list", line: "Reference lists carried over from the old portal, to browse and export." },
   "settings-imports": { group: "company", label: "Imports", icon: "upload", line: "Bring in products, prices, packaging and media from spreadsheets, reviewed before anything is saved." },

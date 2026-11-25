@@ -12,6 +12,7 @@ import { CUSTOMER_TYPE_MANAGE, CUSTOMERS_READ, useCustomerTypes } from "~/data/s
 import { Page, PageHeader } from "~/shell/page";
 import { ErrorBlock, NotPermitted } from "~/shell/states";
 import { Badge, Banner, Button, Code, DataTable, EmptyState, GlassPanel, Modal, TextField, toast, type Column } from "~/ui";
+import { LeadSourcesSection } from "./lead-sources";
 import { SETTINGS_CRUMBS } from "./shared";
 
 /** The kinds of customer you sell to. Customers carry one; price lists and reports group by it. */
@@ -130,8 +131,8 @@ export function CustomerTypes() {
   const header = (
     <PageHeader
       breadcrumb={SETTINGS_CRUMBS}
-      title="Customer types"
-      lead="The kinds of customer you sell to. Each customer carries one; price lists and reports group by it."
+      title="Customer types and lead sources"
+      lead="How you sort the people you sell to: the kind of customer they are, and where each lead came from."
       actions={
         readable && canManage ? (
           <Button iconLeft="plus" onPress={() => setAdding(true)}>
@@ -232,6 +233,7 @@ export function CustomerTypes() {
         </GlassPanel>
       )}
       {canManage ? <AddTypeDialog isOpen={adding} onOpenChange={setAdding} onCreated={refresh} /> : null}
+      <LeadSourcesSection />
     </Page>
   );
 }

@@ -461,7 +461,7 @@ class ActivityRead(BaseModel):
     created_at: datetime
 
 
-class ActivityPage(BaseModel):
+class PartyActivityPage(BaseModel):
     items: list[ActivityRead]
     next_cursor: str | None
 

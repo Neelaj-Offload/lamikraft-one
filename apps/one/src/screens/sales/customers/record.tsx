@@ -11,10 +11,22 @@ import { conflictFromError } from "@/lib/api/errors";
 import { invalidationMap, queryKeys } from "@/lib/api/query-keys";
 import { useRecentRecord } from "@/lib/recent/recent-records";
 import { useSession } from "@/lib/session/context";
+import { useLeadDetail } from "~/data/leads";
 import { useCustomerOrders, useCustomerQuoteCounts, useCustomerQuotes, useCustomerSamples, useSampleStatusCounts } from "~/data/sales-crm";
 import { Page, PageHeader, RecordHeader, type Crumb } from "~/shell/page";
 import { ErrorBlock } from "~/shell/states";
 import { Badge, Button, ButtonLink, ConfirmDialog, FactStrip, IconButton, Menu, Skeleton, SkeletonText, Tabs, toast, type MenuItem, type TabItem } from "~/ui";
+import { PRIORITY_LABEL, TEMPERATURE_LABEL } from "../leads/labels";
+import {
+  ActivityLogView,
+  FollowUpValue,
+  LeadDetailsDrawer,
+  LeadPipelinePanel,
+  LeadStageBadge,
+  LogActivityModal,
+  StageDialogs,
+  type StageDialog,
+} from "../leads/record-lead";
 import { SampleCreateDialog } from "../samples/create-dialog";
 import { countryName, customerHref, ROLE_LABEL, STAGE_LABEL, STAGE_TONE, TYPE_LABEL, type CustomerView } from "./labels";
 import { RecordActivity, RecordFiles, RecordNote } from "./record-collab";
@@ -78,12 +90,22 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
   const samples = useCustomerSamples(party.id, canSamples);
   const sampleCounts = useSampleStatusCounts(canSamples, party.id);
   const orders = useCustomerOrders(party.id, canOrders);
+  const leadQuery = useLeadDetail(party.id, isCustomer);
+  const lead = leadQuery.data?.lead_stage ? leadQuery.data : null;
+  const isLead = lead !== null && party.status === "prospect";
+  const canLog = lead?.capabilities.log_activity?.allowed === true;
+  const canStage = lead?.capabilities.change_stage?.allowed === true;
+  const canEditLead = lead !== null && canUpdate && !party.archived_at;
+  const [logging, setLogging] = useState({ open: false, round: 0 });
+  const [leadEditing, setLeadEditing] = useState({ open: false, round: 0 });
+  const [stageDialog, setStageDialog] = useState<StageDialog>(null);
 
   useScreenContribution({ focus: { type: "parties.party", id: party.id, version: party.version } });
 
   // A view this record does not have (a vendor's "samples", say) falls back to the overview.
   const available: Record<CustomerView, boolean> = {
     overview: true,
+    log: lead !== null,
     contacts: true,
     quotations: canQuotes,
     samples: canSamples,
@@ -96,6 +118,7 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
   const tab = (id: CustomerView, label: string, count?: number): TabItem => ({ id, label, count, href: customerHref(party.id, id) as Route });
   const tabs: TabItem[] = [
     tab("overview", "Overview"),
+    ...(lead ? [tab("log", "Calls and follow-ups")] : []),
     tab("contacts", "Contacts and addresses", party.contacts.length || undefined),
     ...(canQuotes ? [tab("quotations", "Quotations", quotes.data?.total || undefined)] : []),
     ...(canSamples ? [tab("samples", "Samples", samples.data?.total || undefined)] : []),
@@ -109,7 +132,7 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
   const close = (set: typeof setEditing) => (isOpen: boolean) => set((state) => ({ ...state, open: isOpen }));
 
   const createQuote = canCreateQuote ? (
-    <ButtonLink href={`/sales/quotes/new?party=${encodeURIComponent(party.id)}` as Route} iconLeft="plus">
+    <ButtonLink variant={isLead && canLog ? "secondary" : "primary"} href={`/sales/quotes/new?party=${encodeURIComponent(party.id)}` as Route} iconLeft="plus">
       Create quotation
     </ButtonLink>
   ) : null;
@@ -119,7 +142,18 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
     </Button>
   ) : undefined;
 
+  const stageMenu: MenuItem[] = canStage
+    ? [
+        { id: "stage-move", label: lead?.lead_stage === "lost" ? "Reopen lead" : "Move stage", icon: "route" as const, onAction: () => setStageDialog("move") },
+        ...(lead?.lead_stage !== "lost" ? [{ id: "stage-won", label: "Mark as won", icon: "badgeCheck" as const, onAction: () => setStageDialog("won") }] : []),
+        ...(lead?.lead_stage !== "lost" ? [{ id: "stage-lost", label: "Mark as lost", icon: "xCircle" as const, onAction: () => setStageDialog("lost") }] : []),
+        { id: "sep-stage", separator: true as const },
+      ]
+    : [];
   const menu: MenuItem[] = [
+    ...stageMenu,
+    ...(canLog && !isLead ? [{ id: "log", label: "Log activity", icon: "phone" as const, onAction: open(setLogging) }] : []),
+    ...(canEditLead ? [{ id: "lead-details", label: "Lead details", icon: "tag" as const, onAction: open(setLeadEditing) }] : []),
     ...(canUpdate ? [{ id: "contact", label: "Add contact", icon: "userPlus" as const, onAction: open(setAddingContact) }] : []),
     ...(canCreateSample ? [{ id: "sample", label: "Add sample", icon: "packageOpen" as const, onAction: open(setAddingSample) }] : []),
     ...(canArchive
@@ -159,6 +193,7 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
             <Badge tone={STAGE_TONE[party.status]} dot>
               {STAGE_LABEL[party.status]}
             </Badge>
+            {isLead && lead?.lead_stage ? <LeadStageBadge stage={lead.lead_stage} /> : null}
             {otherRoles.map((role) => (
               <Badge key={role} outline>
                 {ROLE_LABEL[role]}
@@ -170,7 +205,17 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
         lead={party.legal_name !== party.display_name ? party.legal_name : undefined}
         facts={
           <FactStrip
-            items={[
+            items={isLead && lead ? [
+              { label: "Country", value: countryName(party.country_code), icon: "globe" },
+              { label: "Source", value: lead.lead_source?.label ?? null, icon: "flag" },
+              { label: "Next follow-up", value: <FollowUpValue due={lead.next_follow_up_on} />, icon: "calendar" },
+              {
+                label: "Priority",
+                value: lead.priority ? `${PRIORITY_LABEL[lead.priority]}${lead.temperature ? ` · ${TEMPERATURE_LABEL[lead.temperature]}` : ""}` : null,
+                icon: "star",
+              },
+              { label: "Looked after by", value: party.owner.display_name, icon: "user" },
+            ] : [
               { label: "Country", value: countryName(party.country_code), icon: "globe" },
               { label: "Quoted in", value: party.default_currency, icon: "banknote" },
               { label: "Type", value: party.customer_type ? (TYPE_LABEL[party.customer_type] ?? party.customer_type) : null, icon: "tag" },
@@ -181,6 +226,11 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
         }
         actions={
           <>
+            {isLead && canLog ? (
+              <Button iconLeft="phone" onPress={open(setLogging)}>
+                Log activity
+              </Button>
+            ) : null}
             {createQuote}
             {canRestore ? (
               <Button variant="inverse" iconLeft="undo" onPress={() => setConfirmArchive("restore")}>
@@ -199,6 +249,10 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
         <Tabs label={`${party.display_name}: views`} tabs={tabs} selectedKey={current} />
       </RecordHeader>
 
+      {current === "overview" && isLead && lead ? (
+        <LeadPipelinePanel lead={lead} onLog={canLog ? open(setLogging) : undefined} onEdit={canEditLead ? open(setLeadEditing) : undefined} />
+      ) : null}
+      {current === "log" ? <ActivityLogView partyId={party.id} onLog={canLog ? open(setLogging) : undefined} /> : null}
       {current === "overview" ? (
         <OverviewView
           party={party}
@@ -252,6 +306,9 @@ function Loaded({ party, view }: { party: PartyDetail; view: CustomerView }) {
           customer={{ id: party.id, name: party.display_name }}
         />
       ) : null}
+      {lead && canLog ? <LogActivityModal key={`log-${logging.round}`} lead={lead} isOpen={logging.open} onOpenChange={close(setLogging)} /> : null}
+      {lead && canEditLead ? <LeadDetailsDrawer key={`lead-${leadEditing.round}-${lead.version}`} lead={lead} isOpen={leadEditing.open} onOpenChange={close(setLeadEditing)} /> : null}
+      {lead && canStage ? <StageDialogs key={`stage-${stageDialog ?? "none"}-${lead.version}`} lead={lead} open={stageDialog} onClose={() => setStageDialog(null)} /> : null}
       <ConfirmDialog
         isOpen={confirmArchive !== null}
         onOpenChange={(isOpen) => {

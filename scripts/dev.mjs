@@ -355,7 +355,8 @@ async function seedDemo(argv) {
 }
 
 async function testApi(argv) {
-  return uv(['pytest', ...argv], { env: childEnv({ LK_ENV: 'test' }) });
+  // `python -m pytest`, not the pytest.exe shim: Windows Smart App Control blocks unsigned venv launchers
+  return uv(['python', '-m', 'pytest', ...argv], { env: childEnv({ LK_ENV: 'test' }) });
 }
 
 async function exportOpenapi(out) {
@@ -407,6 +408,11 @@ async function apiCheck() {
   return pipeline('npm run api:check', [{ name: 'api:check', run: apiCheckStep }]);
 }
 
+/** A script of the rebuilt app (apps/one), run in its workspace. */
+function oneScriptStep(name, script) {
+  return { name, run: () => npm(['run', script, '-w', 'apps/one']) };
+}
+
 function webScriptStep(name, candidates) {
   return {
     name,
@@ -427,7 +433,7 @@ async function check(argv) {
     {
       name: 'backend: pytest unit + contract',
       run: async () => {
-        const code = await uv(['pytest', 'tests/unit', 'tests/contract'], { env: childEnv({ LK_ENV: 'test' }) });
+        const code = await uv(['python', '-m', 'pytest', 'tests/unit', 'tests/contract'], { env: childEnv({ LK_ENV: 'test' }) });
         return code === 5 ? { status: 'FAIL', note: 'no tests collected' } : code;
       },
     },
@@ -436,6 +442,9 @@ async function check(argv) {
     webScriptStep('web: lint', ['lint']),
     webScriptStep('web: typecheck', ['typecheck']),
     webScriptStep('web: vitest', ['test:unit', 'test']),
+    oneScriptStep('one: lint', 'lint'),
+    oneScriptStep('one: typecheck', 'typecheck'),
+    oneScriptStep('one: vitest', 'test'),
   ];
   return pipeline('npm run check', steps, { keepGoing: Boolean(flags['--keep-going']) });
 }
@@ -692,7 +701,7 @@ async function lkPassthrough(argv) {
 const COMMANDS = {
   setup: [setup, 'prerequisites, .env, postgres, roles, databases, dependencies, migrations [--slot N] [--with-browsers]'],
   dev: [dev, 'postgres + migrations, then API, worker and web with prefixed logs [--no-migrate] [--no-web] [--no-worker]'],
-  check: [check, 'ruff, pytest unit+contract, alembic heads, api:check, web lint/typecheck/vitest [--keep-going]'],
+  check: [check, 'ruff, pytest unit+contract, alembic heads, api:check, web + one lint/typecheck/vitest [--keep-going]'],
   'test-api': [testApi, 'full pytest suite with LK_ENV=test (extra args go to pytest)'],
   'test-e2e': [testE2e, 'API + web on the e2e ports against the test DB, then playwright [--no-build] (extra args go to playwright)'],
   'api-generate': [apiGenerate, 'export backend/openapi.json and regenerate the web client types'],

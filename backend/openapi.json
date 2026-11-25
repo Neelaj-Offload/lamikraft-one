@@ -1195,6 +1195,34 @@
         "title": "ActivityKind",
         "type": "string"
       },
+      "ActivityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ActivityPage",
+        "type": "object"
+      },
       "ActivityRead": {
         "properties": {
           "created_at": {
@@ -32065,6 +32093,34 @@
         "title": "ParseStatus",
         "type": "string"
       },
+      "PartyActivityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PartyActivityPage",
+        "type": "object"
+      },
       "PartyAddressSnapshot": {
         "properties": {
           "kind": {
@@ -60055,34 +60111,6 @@
         "title": "ArchiveRequest",
         "type": "object"
       },
-      "app__modules__parties__schemas__ActivityPage": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ActivityRead"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items",
-          "next_cursor"
-        ],
-        "title": "ActivityPage",
-        "type": "object"
-      },
       "app__modules__parties__schemas__UserRef": {
         "properties": {
           "display_name": {
@@ -60219,34 +60247,6 @@
           "display_name"
         ],
         "title": "UserRef",
-        "type": "object"
-      },
-      "app__platform__collab__schemas__ActivityPage": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ActivityItem"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items",
-          "next_cursor"
-        ],
-        "title": "ActivityPage",
         "type": "object"
       },
       "app__platform__identity__schemas__UserRef": {
@@ -66817,7 +66817,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__platform__collab__schemas__ActivityPage"
+                  "$ref": "#/components/schemas/ActivityPage"
                 }
               }
             },
@@ -82455,7 +82455,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__parties__schemas__ActivityPage"
+                  "$ref": "#/components/schemas/PartyActivityPage"
                 }
               }
             },
