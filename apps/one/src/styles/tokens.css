@@ -1,0 +1,292 @@
+/* Lamikraft — generated from design/tokens.json by scripts/gen-tokens.mjs. Do not edit. */
+:root {
+  color-scheme: light;
+  --ground: #f2efe9;
+  --ground-deep: #e8e3db;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --glass: #ffffffa6;
+  --glass-strong: #ffffffd9;
+  --glass-edge: #14110e14;
+  --glass-highlight: #ffffffe6;
+  --ink: #16130f;
+  --ink-2: #4a443c;
+  --ink-3: #6f6861;
+  --ink-4: #a39c93;
+  --inverse: #16130f;
+  --on-inverse: #f4efe7;
+  --line: #14110e14;
+  --line-strong: #14110e29;
+  --line-control: #8a8279;
+  --gold: #d99342;
+  --gold-strong: #8f5410;
+  --gold-soft: #f8ead6;
+  --on-gold: #1c1206;
+  --sand: #ddaf79;
+  --sand-soft: #f5ecdf;
+  --leaf: #5a8c4d;
+  --leaf-text: #3b6a31;
+  --leaf-soft: #e4efdc;
+  --ember: #a53f30;
+  --ember-text: #9a3627;
+  --ember-soft: #f8e3de;
+  --amber: #f2c14e;
+  --amber-text: #7a5607;
+  --amber-soft: #fbf0cc;
+  --cobalt: #2f5fd8;
+  --cobalt-text: #2448b3;
+  --cobalt-soft: #e3eafc;
+  --aurora-1: #f2b24d;
+  --aurora-2: #f0785a;
+  --aurora-3: #c960c8;
+  --aurora-4: #4f7dff;
+  --aurora-5: #58e0ff;
+  --orb-deep: #061a4d;
+  --orb-mid: #1f5ae8;
+  --orb-glow: #5ad8ff;
+  --chart-1: var(--gold);
+  --chart-2: var(--ink);
+  --chart-3: var(--cobalt);
+  --chart-4: var(--leaf);
+  --chart-5: #f0785a;
+  --chart-6: #a39c93;
+  --chart-grid: #14110e14;
+  --focus-ring: var(--gold-strong);
+  --scrim: #16130f66;
+  --shadow-glass: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(22,19,15,0.04), 0 24px 48px -24px rgba(22,19,15,0.18);
+  --shadow-raised: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(22,19,15,0.06), 0 32px 64px -24px rgba(22,19,15,0.28);
+  --shadow-float: 0 1px 2px rgba(22,19,15,0.06), 0 48px 96px -32px rgba(22,19,15,0.35);
+  --shadow-inset-well: inset 0 1px 3px rgba(22,19,15,0.10);
+  --shadow-glow-gold: 0 0 0 1px rgba(217,147,66,0.4), 0 12px 40px -8px rgba(217,147,66,0.5);
+  --shadow-glow-orb: 0 0 60px -10px rgba(90,216,255,0.55), 0 0 120px -20px rgba(31,90,232,0.5);
+  --on-ember: #ffffff;
+  --blob-sand-opacity: 0.55;
+  --blob-gold-opacity: 0.35;
+  --composer-aurora-opacity: 0.2;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --rail-width: 72px;
+  --sidebar-width: 264px;
+  --topbar-height: 64px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-pill: 999px;
+  --blur-sm: 12px;
+  --blur-md: 24px;
+  --blur-lg: 40px;
+  --blur-xl: 80px;
+  --opacity-disabled: 0.45;
+  --opacity-hover: 0.06;
+  --opacity-pressed: 0.12;
+  --opacity-aurora: 0.55;
+  --z-raised: 10;
+  --z-nav: 100;
+  --z-popover: 500;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --duration-instant: 90ms;
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 480ms;
+  --duration-ambient: 14s;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --font-sans: var(--lk-face-sans, "Instrument Sans"), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--lk-face-serif, "Instrument Serif"), "Times New Roman", Georgia, serif;
+  --font-mono: var(--lk-face-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Dark: explicit choice, or the system preference when no theme is chosen. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0c0a09;
+  --ground-deep: #050403;
+  --surface: #1a1613;
+  --surface-raised: #221d19;
+  --glass: #ffffff0f;
+  --glass-strong: #ffffff1f;
+  --glass-edge: #ffffff1f;
+  --glass-highlight: #ffffff33;
+  --ink: #f4efe7;
+  --ink-2: #cdc5b9;
+  --ink-3: #9a9287;
+  --ink-4: #645d54;
+  --inverse: #f4efe7;
+  --on-inverse: #16130f;
+  --line: #ffffff14;
+  --line-strong: #ffffff29;
+  --line-control: #7d756b;
+  --gold: #e8a955;
+  --gold-strong: #f0bb6d;
+  --gold-soft: #3a2810;
+  --sand-soft: #2a2016;
+  --leaf: #8cb46c;
+  --leaf-text: #9fc67f;
+  --leaf-soft: #1c2a16;
+  --ember: #e07666;
+  --ember-text: #ee8c7d;
+  --ember-soft: #3a1c17;
+  --amber-text: #f2c14e;
+  --amber-soft: #332a0f;
+  --cobalt: #6b93ff;
+  --cobalt-text: #8fadff;
+  --cobalt-soft: #15203f;
+  --chart-6: #7d756b;
+  --chart-grid: #ffffff14;
+  --focus-ring: var(--gold);
+  --scrim: #00000099;
+  --shadow-glass: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.4), 0 24px 48px -24px rgba(0,0,0,0.7);
+  --shadow-raised: inset 0 1px 0 rgba(255,255,255,0.16), 0 2px 6px rgba(0,0,0,0.5), 0 32px 64px -24px rgba(0,0,0,0.8);
+  --shadow-float: 0 1px 2px rgba(0,0,0,0.6), 0 48px 96px -32px rgba(0,0,0,0.9);
+  --shadow-inset-well: inset 0 1px 3px rgba(0,0,0,0.6);
+  --shadow-glow-gold: 0 0 0 1px rgba(232,169,85,0.45), 0 12px 40px -8px rgba(232,169,85,0.55);
+  --shadow-glow-orb: 0 0 80px -10px rgba(90,216,255,0.6), 0 0 160px -20px rgba(31,90,232,0.6);
+  --on-ember: var(--on-gold);
+  --blob-sand-opacity: 0.22;
+  --blob-gold-opacity: 0.18;
+  --composer-aurora-opacity: 0.26;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0c0a09;
+    --ground-deep: #050403;
+    --surface: #1a1613;
+    --surface-raised: #221d19;
+    --glass: #ffffff0f;
+    --glass-strong: #ffffff1f;
+    --glass-edge: #ffffff1f;
+    --glass-highlight: #ffffff33;
+    --ink: #f4efe7;
+    --ink-2: #cdc5b9;
+    --ink-3: #9a9287;
+    --ink-4: #645d54;
+    --inverse: #f4efe7;
+    --on-inverse: #16130f;
+    --line: #ffffff14;
+    --line-strong: #ffffff29;
+    --line-control: #7d756b;
+    --gold: #e8a955;
+    --gold-strong: #f0bb6d;
+    --gold-soft: #3a2810;
+    --sand-soft: #2a2016;
+    --leaf: #8cb46c;
+    --leaf-text: #9fc67f;
+    --leaf-soft: #1c2a16;
+    --ember: #e07666;
+    --ember-text: #ee8c7d;
+    --ember-soft: #3a1c17;
+    --amber-text: #f2c14e;
+    --amber-soft: #332a0f;
+    --cobalt: #6b93ff;
+    --cobalt-text: #8fadff;
+    --cobalt-soft: #15203f;
+    --chart-6: #7d756b;
+    --chart-grid: #ffffff14;
+    --focus-ring: var(--gold);
+    --scrim: #00000099;
+    --shadow-glass: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.4), 0 24px 48px -24px rgba(0,0,0,0.7);
+    --shadow-raised: inset 0 1px 0 rgba(255,255,255,0.16), 0 2px 6px rgba(0,0,0,0.5), 0 32px 64px -24px rgba(0,0,0,0.8);
+    --shadow-float: 0 1px 2px rgba(0,0,0,0.6), 0 48px 96px -32px rgba(0,0,0,0.9);
+    --shadow-inset-well: inset 0 1px 3px rgba(0,0,0,0.6);
+    --shadow-glow-gold: 0 0 0 1px rgba(232,169,85,0.45), 0 12px 40px -8px rgba(232,169,85,0.55);
+    --shadow-glow-orb: 0 0 80px -10px rgba(90,216,255,0.6), 0 0 160px -20px rgba(31,90,232,0.6);
+    --on-ember: var(--on-gold);
+    --blob-sand-opacity: 0.22;
+    --blob-gold-opacity: 0.18;
+    --composer-aurora-opacity: 0.26;
+  }
+}
+
+/* Print: paper is always light, so a sheet printed from the dark theme does not come out black. */
+@media print {
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    color-scheme: light;
+    --ground: #f2efe9;
+    --ground-deep: #e8e3db;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --glass: #ffffffa6;
+    --glass-strong: #ffffffd9;
+    --glass-edge: #14110e14;
+    --glass-highlight: #ffffffe6;
+    --ink: #16130f;
+    --ink-2: #4a443c;
+    --ink-3: #6f6861;
+    --ink-4: #a39c93;
+    --inverse: #16130f;
+    --on-inverse: #f4efe7;
+    --line: #14110e14;
+    --line-strong: #14110e29;
+    --line-control: #8a8279;
+    --gold: #d99342;
+    --gold-strong: #8f5410;
+    --gold-soft: #f8ead6;
+    --sand-soft: #f5ecdf;
+    --leaf: #5a8c4d;
+    --leaf-text: #3b6a31;
+    --leaf-soft: #e4efdc;
+    --ember: #a53f30;
+    --ember-text: #9a3627;
+    --ember-soft: #f8e3de;
+    --amber-text: #7a5607;
+    --amber-soft: #fbf0cc;
+    --cobalt: #2f5fd8;
+    --cobalt-text: #2448b3;
+    --cobalt-soft: #e3eafc;
+    --chart-6: #a39c93;
+    --chart-grid: #14110e14;
+    --focus-ring: var(--gold-strong);
+    --scrim: #16130f66;
+    --shadow-glass: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(22,19,15,0.04), 0 24px 48px -24px rgba(22,19,15,0.18);
+    --shadow-raised: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(22,19,15,0.06), 0 32px 64px -24px rgba(22,19,15,0.28);
+    --shadow-float: 0 1px 2px rgba(22,19,15,0.06), 0 48px 96px -32px rgba(22,19,15,0.35);
+    --shadow-inset-well: inset 0 1px 3px rgba(22,19,15,0.10);
+    --shadow-glow-gold: 0 0 0 1px rgba(217,147,66,0.4), 0 12px 40px -8px rgba(217,147,66,0.5);
+    --shadow-glow-orb: 0 0 60px -10px rgba(90,216,255,0.55), 0 0 120px -20px rgba(31,90,232,0.5);
+    --on-ember: #ffffff;
+    --blob-sand-opacity: 0.55;
+    --blob-gold-opacity: 0.35;
+    --composer-aurora-opacity: 0.2;
+  }
+}
+
+/* Type styles (t-<name>), one per token style. */
+.t-display-xl { font-family: var(--font-serif); font-size: 96px; line-height: 0.95; font-weight: 400; letter-spacing: -0.02em; }
+.t-display-lg { font-family: var(--font-serif); font-size: 64px; line-height: 1; font-weight: 400; letter-spacing: -0.015em; }
+.t-display-md { font-family: var(--font-serif); font-size: 44px; line-height: 1.05; font-weight: 400; letter-spacing: -0.01em; }
+.t-display-sm { font-family: var(--font-serif); font-size: 32px; line-height: 1.1; font-weight: 400; letter-spacing: 0; }
+.t-h1 { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
+.t-h2 { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.015em; }
+.t-h3 { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.t-h4 { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: 0; }
+.t-body-lg { font-family: var(--font-sans); font-size: 17px; line-height: 26px; font-weight: 400; }
+.t-body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+.t-body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.t-label { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 500; letter-spacing: 0; }
+.t-caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
+.t-overline { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.t-stat-xl { font-family: var(--font-sans); font-size: 44px; line-height: 48px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.t-stat { font-family: var(--font-sans); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.t-stat-sm { font-family: var(--font-sans); font-size: 18px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.t-code { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 400; }
+.t-code-sm { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.02em; }

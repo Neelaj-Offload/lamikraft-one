@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Lamikraft One ERP monorepo (Next.js web + FastAPI backend)",
-  "workspaces": ["apps/web"],
+  "workspaces": ["apps/web", "apps/one"],
   "engines": { "node": ">=24 <25" },
   "scripts": {
     "setup": "node scripts/dev.mjs setup",
