@@ -16,8 +16,8 @@ checkout and lands on `main` by fast-forward per checkpoint (BUILD_STATE §16).
 | 1 | Leads (pipeline, activities, follow-ups, `lk import leads`) | done, verified |
 | 2 | Customers + samples (auto-promotion, past samples, customer facts) | done, verified |
 | 3 | Proforma invoices | done, verified |
-| 4 | Products (design × decor × size) + stock categories (sample / inventory / exhibition), NL/US warehouses, WIP | next |
-| 5 | E-commerce stock sync: Amazon first (Demo until developer approval), then Flipkart, website | to do |
+| 4 | Products (design × decor × size) + stock categories (sample / inventory / exhibition), NL/US warehouses, WIP | done, verified (BUILD_STATE §17) |
+| 5 | E-commerce stock sync: Amazon first (Demo until developer approval), then Flipkart, website | next |
 | 6 | Hosting: Vercel (web) + Railway Singapore (API, worker, Postgres), `*.vercel.app` first | to do (owner chose "finish everything, then host") |
 
 New `apps/one` screens register their routes in `apps/one/src/lib/routes.ts`, never in `apps/web`. Run pytest as

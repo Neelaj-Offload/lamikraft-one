@@ -1,7 +1,7 @@
 # Build state
 
-**Checkpoint 7a — CRM programme modules 1–3 (leads, customers and samples, proforma invoices) on `main` via
-`lane/crm-leads`, 2026-11-25** (section 16). Checkpoint 6 (section 15) and earlier remain below.
+**Checkpoint 7b — CRM programme modules 1–4 (leads, customers and samples, proforma invoices, products and stock)
+on `main` via `lane/crm-leads`, 2026-11-25** (sections 16–17). Checkpoint 6 (section 15) and earlier remain below.
 
 Resume rule: a new session reads `AGENTS.md` and `CODEX_HANDOFF.md`, then `docs/PLAN.md`, this file and
 `docs/architecture/*`, and continues from
@@ -544,3 +544,31 @@ Company identity and bank details are not configured in the demo company; PDFs p
 - The Sales sub-navigation highlights "Customers" on a lead's record (path match without the query). [web]
 - Windows Smart App Control is on: tests run as `python -m pytest`; turning it off is the owner's decision. [owner]
 - e2e scenarios for the new screens are not written yet; acceptance (Slice 6) items from §15 remain open. [acceptance]
+
+
+## 17. Checkpoint 7b — CRM programme module 4 (products and stock) on `lane/crm-leads` (2026-11-25)
+
+Spec `docs/superpowers/specs/2026-11-25-products-stock-design.md`. Migration `0031_products_stock` (one head). Gates:
+catalogue, inventory, procurement, production, contract and unit suites **925 passed, 0 failed**
+(`D:\lk-wt\crm-m4-subset.log`); new tests (variant builder 3, stock categories 5, factory orders 1) pass; `apps/one`
+typecheck, lint and vitest (4 files / 11 tests) clean. Browser check as Priya on the slot-0 API: stock by category
+(1,100 finished pieces, walnut board excluded), move 5 to exhibition (1,095 / 5), design builder created
+CB07-892-S/M/L, factory orders view.
+
+### Implemented (verified) — new at this checkpoint
+
+- Products carry `design_no` and `item_class` (finished / raw_material / packaging). The design builder
+  (`POST /catalogue/products/variants`, "Add a design") makes one product per decor × size keyed `DESIGN-DECOR-SIZE`,
+  previewable and re-runnable; catalogue filters by design and class.
+- One stock pool split by category: every warehouse has SAMPLE and EXHIB locations (internal, stock-bearing, never
+  available to sell) beside the inventory tree; warehouses have a market and country (NL/US drop-ship warehouses are
+  created with them; `PATCH /inventory/warehouses/{id}` edits them). Stock-by-category view with totals and an
+  on-order column fed by purchasing's open PO lines (factory WIP), a factory-orders list, Move stock (relocation)
+  and Add opening stock (opening batch created and submitted for a second person's approval, with step-up).
+
+### Open items carried
+
+- Module 5 (e-commerce stock sync: Amazon first, Demo until the developer profile is approved) and module 6 (hosting).
+- Opening stock is entered one line per batch from the web; a multi-line batch form and adjustments/transfers
+  create forms remain. Anirudh's stock list and the NL/US warehouses are owner data to enter.
+- A full `npm run test:api` was not re-run after module 4; the affected suites were (above). [integrator]
