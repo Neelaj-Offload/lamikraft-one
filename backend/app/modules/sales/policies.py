@@ -28,6 +28,7 @@ from app.modules.sales.models import (
     QuoteStatusHistory,
     Sample,
 )
+from app.modules.sales.proforma_models import ProformaInvoice
 from app.modules.sales.schemas import QuoteStatus
 from app.platform.authz.context import ActorContext
 from app.platform.authz.policy import Decision, ParentRef, ResourcePolicy
@@ -212,7 +213,20 @@ SAMPLE_POLICY = ResourcePolicy(
     archived_column=None,
 )
 
+PROFORMA_POLICY = ResourcePolicy(
+    resource_type="sales.proforma",
+    model=ProformaInvoice,
+    permission_prefix="sales.proforma",
+    owner_columns=("owner_user_id",),
+    branch_column="branch_id",
+    business_key_column="pi_number",
+    label=lambda p: p.pi_number or f"PI-DRAFT-{str(p.id)[-6:].upper()}",
+    canonical_path=lambda p: f"/sales/proforma-invoices/{p.id}",
+    archived_column=None,
+)
+
 POLICIES = [
+    PROFORMA_POLICY,
     QUOTE_POLICY,
     QUOTE_LINE_POLICY,
     QUOTE_HISTORY_POLICY,

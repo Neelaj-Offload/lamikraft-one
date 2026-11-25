@@ -4,7 +4,7 @@ enquiries and customer messages. Routers never import models; services enforce s
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import quote as urlquote
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -12,7 +12,8 @@ from fastapi import APIRouter, Depends, Query, Response
 from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor, IdempotencyKeyHeader
 from app.core.http.pagination import MAX_LIMIT, Page
-from app.modules.sales import service
+from app.modules.sales import proforma as pf
+from app.modules.sales import proforma_documents, service
 from app.modules.sales.configurator import ConfiguratorRequest, ConfiguratorResult
 from app.modules.sales.customer_facts import CustomerFacts, customer_facts
 from app.modules.sales.schemas import (
@@ -719,3 +720,65 @@ def transition_sample(
         detail, replayed = service.sample_transition_command(uow, sample_id, body)
     _replayed(response, replayed)
     return detail
+
+
+# ---- proforma invoices (module 3, spec 2026-11-25-proforma-invoices-design.md) --------------------------------------
+@router.post("/quotes/{quote_id}/proforma-invoices", status_code=201, openapi_extra=requires("sales.proforma.create"))
+def create_proforma(actor: Actor, quote_id: uuid.UUID, body: pf.ProformaCreate) -> pf.ProformaDetail:
+    """A draft PI from the quotation's issued revision; with ``pi_number`` + ``pi_date``, a PI entered from history."""
+    with UnitOfWork(actor) as uow:
+        return pf.read_detail(uow, pf.create_proforma(uow, quote_id, body))
+
+
+@router.get("/proforma-invoices", openapi_extra=requires("sales.proforma.read"))
+def list_proformas(
+    actor: Actor,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+    status: Literal["draft", "issued", "cancelled"] | None = None,
+    party_id: uuid.UUID | None = None,
+    quote_id: uuid.UUID | None = None,
+    limit: Limit = 25,
+    offset: Offset = 0,
+) -> Page[pf.ProformaSummary]:
+    filters = pf.ProformaFilters(q=q, status=status, party_id=party_id, quote_id=quote_id)
+    return pf.list_proformas(actor, filters, limit=limit, offset=offset)
+
+
+@router.get("/proforma-invoices/{proforma_id}", openapi_extra=requires("sales.proforma.read"))
+def get_proforma(actor: Actor, proforma_id: uuid.UUID) -> pf.ProformaDetail:
+    return pf.get_proforma(actor, proforma_id)
+
+
+@router.patch("/proforma-invoices/{proforma_id}", openapi_extra=requires("sales.proforma.update"))
+def update_proforma(actor: Actor, proforma_id: uuid.UUID, body: pf.ProformaUpdate) -> pf.ProformaDetail:
+    with UnitOfWork(actor) as uow:
+        return pf.read_detail(uow, pf.update_proforma(uow, proforma_id, body))
+
+
+@router.post("/proforma-invoices/{proforma_id}/issue", openapi_extra=requires("sales.proforma.issue"))
+def issue_proforma(actor: Actor, proforma_id: uuid.UUID, body: pf.ProformaIssue) -> pf.ProformaDetail:
+    with UnitOfWork(actor) as uow:
+        return pf.read_detail(uow, pf.issue_proforma(uow, proforma_id, body))
+
+
+@router.post("/proforma-invoices/{proforma_id}/cancel", openapi_extra=requires("sales.proforma.reverse"))
+def cancel_proforma(actor: Actor, proforma_id: uuid.UUID, body: pf.ProformaCancel) -> pf.ProformaDetail:
+    with UnitOfWork(actor) as uow:
+        return pf.read_detail(uow, pf.cancel_proforma(uow, proforma_id, body))
+
+
+@router.get(
+    "/proforma-invoices/{proforma_id}/document",
+    openapi_extra=requires("sales.proforma.read"),
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+def proforma_document(actor: Actor, proforma_id: uuid.UUID) -> Response:
+    """The PDF, rendered from the PI (a draft carries the watermark)."""
+    from app.modules.sales.proforma_models import ProformaInvoice
+
+    with UnitOfWork(actor) as uow:
+        pi = uow.repo(ProformaInvoice).get(proforma_id)
+        pdf = proforma_documents.render(uow, pi)
+        name = proforma_documents.filename(pi)
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"'})

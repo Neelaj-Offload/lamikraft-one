@@ -52,7 +52,7 @@ Several PIs per quotation are allowed (partial shipments), as in Infinique.
   terms, ports, payment terms, bank block (restricted-number rule), declaration, signature box. Unconfigured identity
   prints labelled placeholders, never invented values.
 - Permissions (`permissions.md`, slice 7): `sales.proforma.read` (R, D; sal O, mgt C, fin C), `.create` (sal, mgt),
-  `.issue` (sal, mgt), `.cancel` (mgt), `.backfill` (mgt). Events (`events.md`): `sales.proforma.created`, `.issued`,
+  `.issue` (sal, mgt), `.reverse` (cancel; mgt), `.import` (enter from history; mgt). Events (`events.md`): `sales.proforma.created`, `.issued`,
   `.cancelled` (proforma_id, pi_number, quote_id, party_id).
 - Every read carries `capabilities` (`update`, `issue`, `cancel`, `download`).
 

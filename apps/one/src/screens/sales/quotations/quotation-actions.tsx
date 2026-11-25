@@ -12,6 +12,8 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { CURRENCIES } from "@/lib/format/money";
 import { humanise, useDuplicateQuotation } from "~/data/sales-deals";
 import { ErrorBlock } from "~/shell/states";
+import { useSession } from "@/lib/session/context";
+import { ProformaCreateDialog } from "../proforma/create-dialog";
 import { Badge, Banner, Button, DatePicker, Modal, Select, SkeletonText, Textarea, toast, type IconName, type MenuItem } from "~/ui";
 import { ReasonModal, UnitPrice } from "./parts";
 
@@ -106,6 +108,8 @@ export function useQuotationActions(quote: QuoteDetail, commands: QuoteCommands)
   const [asking, setAsking] = useState<CommandButton | null>(null);
   const [extending, setExtending] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [proforma, setProforma] = useState<{ mode: "new" | "past"; round: number } | null>(null);
+  const { permissionKeys } = useSession();
   const copy = useDuplicateQuotation(quote);
   const buttons = commandButtons(quote).map((button) => ({ ...button, label: transitionLabel(button.action) }));
   const offline = Boolean(commands.offline);
@@ -175,6 +179,28 @@ export function useQuotationActions(quote: QuoteDetail, commands: QuoteCommands)
       onAction: () => void copy.duplicate("refresh"),
     });
   }
+  // proforma invoices (module 3): from a sent, revised or won quotation
+  const piReady = ["sent", "revised", "won"].includes(quote.status);
+  if (piReady && permissionKeys.has("sales.proforma.create")) {
+    menu.push({
+      id: "proforma",
+      label: "Create proforma invoice",
+      icon: "receipt",
+      description: "A PI with these items, for the client to pay against",
+      isDisabled: offline,
+      onAction: () => setProforma((p) => ({ mode: "new", round: (p?.round ?? 0) + 1 })),
+    });
+    if (permissionKeys.has("sales.proforma.import")) {
+      menu.push({
+        id: "proforma-past",
+        label: "Enter an issued PI",
+        icon: "history",
+        description: "A PI sent before Lamikraft One, with its original number",
+        isDisabled: offline,
+        onAction: () => setProforma((p) => ({ mode: "past", round: (p?.round ?? 0) + 1 })),
+      });
+    }
+  }
   if (caps.change_currency?.allowed) {
     menu.push({ id: "currency", label: "Change currency", icon: "banknote", isDisabled: offline, onAction: () => setCurrencyOpen(true) });
   }
@@ -204,6 +230,15 @@ export function useQuotationActions(quote: QuoteDetail, commands: QuoteCommands)
         }}
       />
       <ExtendValidityDialog quote={quote} commands={commands} isOpen={extending} onOpenChange={setExtending} />
+      {proforma ? (
+        <ProformaCreateDialog
+          key={`proforma-${proforma.round}`}
+          quote={{ id: quote.id, number: quote.quote_number, customer: quote.party.display_name }}
+          mode={proforma.mode}
+          isOpen
+          onOpenChange={(open) => (open ? undefined : setProforma(null))}
+        />
+      ) : null}
       {caps.change_currency?.allowed ? <CurrencyDialog quote={quote} commands={commands} isOpen={currencyOpen} onOpenChange={setCurrencyOpen} /> : null}
     </>
   );

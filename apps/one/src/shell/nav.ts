@@ -57,6 +57,7 @@ export const NAV_AREAS: readonly NavArea[] = [
       { label: "Quotations", icon: "fileText", href: "/sales/quotes" },
       { label: "Orders", icon: "cart", href: "/sales/orders" },
       { label: "Samples", icon: "packageOpen", href: "/sales/samples" },
+      { label: "Proforma invoices", icon: "receipt", href: "/sales/proforma-invoices" as Route },
       { label: "Custom products", icon: "shapes", href: "/sales/custom-products" },
       { label: "Messages", icon: "message", href: "/sales/customer-messages" },
     ],

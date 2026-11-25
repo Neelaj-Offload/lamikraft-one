@@ -238,6 +238,12 @@ Scope letters after a template: O own, T team, B branch, C company.
 | `sales.sample.create` | C | | | 2 | sal, mgt |
 | `sales.sample.update` | R | D | | 2 | sal O, mgt C, ops C |
 | `sales.sample.transition` | R | | | 2 | sal O, mgt C, ops C |
+| `sales.proforma.read` | R | D | | 7 | sal O, mgt C, fin C |
+| `sales.proforma.create` | C | | | 7 | sal, mgt |
+| `sales.proforma.update` | R | | | 7 | sal O, mgt C |
+| `sales.proforma.issue` | C | | | 7 | sal, mgt |
+| `sales.proforma.reverse` | C | | | 7 | mgt (cancel an issued or draft PI) |
+| `sales.proforma.import` | C | | | 7 | mgt (enter a PI issued before Lamikraft One) |
 
 Every key that appears in the legacy alias table (§8) is declared in Slice 1 even when its feature ships in Slice 2,
 so the legacy parity test holds from Slice 1. Modules without tables in Slice 1 (`imports`) ship a manifest containing

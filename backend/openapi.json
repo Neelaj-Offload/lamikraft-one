@@ -31853,6 +31853,37 @@
         "title": "Page[ProductSummary]",
         "type": "object"
       },
+      "Page_ProformaSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProformaSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ProformaSummary]",
+        "type": "object"
+      },
       "Page_QuoteSummary_": {
         "properties": {
           "items": {
@@ -41529,6 +41560,706 @@
           "time_zone"
         ],
         "title": "ProfileView",
+        "type": "object"
+      },
+      "ProformaCancel": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason"
+        ],
+        "title": "ProformaCancel",
+        "type": "object"
+      },
+      "ProformaCreate": {
+        "additionalProperties": false,
+        "description": "Header fields for a new draft. ``pi_number`` + ``pi_date`` enter an already issued PI from history.",
+        "properties": {
+          "bank_account_label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account Label"
+          },
+          "declaration": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declaration"
+          },
+          "delivery_terms": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Terms"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "pi_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Date"
+          },
+          "pi_number": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9/_.-]{3,40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Number"
+          },
+          "port_of_discharge": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Discharge"
+          },
+          "port_of_loading": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Loading"
+          }
+        },
+        "title": "ProformaCreate",
+        "type": "object"
+      },
+      "ProformaDetail": {
+        "properties": {
+          "backfilled": {
+            "title": "Backfilled",
+            "type": "boolean"
+          },
+          "bank_account_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account Label"
+          },
+          "bank_accounts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Bank Accounts",
+            "type": "array"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer"
+          },
+          "customer_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Reference"
+          },
+          "declaration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declaration"
+          },
+          "delivery_terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Terms"
+          },
+          "draft_ref": {
+            "title": "Draft Ref",
+            "type": "string"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grand Total"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lines": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "pi_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Date"
+          },
+          "pi_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Number"
+          },
+          "port_of_discharge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Discharge"
+          },
+          "port_of_loading": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Loading"
+          },
+          "quote_id": {
+            "format": "uuid",
+            "title": "Quote Id",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "issued",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "totals": {
+            "additionalProperties": true,
+            "title": "Totals",
+            "type": "object"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "pi_number",
+          "draft_ref",
+          "status",
+          "pi_date",
+          "party",
+          "owner",
+          "quote_id",
+          "quote_number",
+          "revision_no",
+          "currency",
+          "grand_total",
+          "backfilled",
+          "updated_at",
+          "path",
+          "port_of_loading",
+          "port_of_discharge",
+          "payment_terms",
+          "delivery_terms",
+          "bank_account_label",
+          "declaration",
+          "notes",
+          "lines",
+          "totals",
+          "customer",
+          "customer_reference",
+          "issued_at",
+          "issued_by",
+          "cancelled_at",
+          "cancel_reason",
+          "bank_accounts",
+          "version",
+          "created_at",
+          "capabilities"
+        ],
+        "title": "ProformaDetail",
+        "type": "object"
+      },
+      "ProformaIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "pi_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Date"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ProformaIssue",
+        "type": "object"
+      },
+      "ProformaSummary": {
+        "properties": {
+          "backfilled": {
+            "title": "Backfilled",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "draft_ref": {
+            "title": "Draft Ref",
+            "type": "string"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grand Total"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/app__modules__sales__schemas__UserRef"
+          },
+          "party": {
+            "$ref": "#/components/schemas/PartyRef"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "pi_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Date"
+          },
+          "pi_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Number"
+          },
+          "quote_id": {
+            "format": "uuid",
+            "title": "Quote Id",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "revision_no": {
+            "title": "Revision No",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "issued",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pi_number",
+          "draft_ref",
+          "status",
+          "pi_date",
+          "party",
+          "owner",
+          "quote_id",
+          "quote_number",
+          "revision_no",
+          "currency",
+          "grand_total",
+          "backfilled",
+          "updated_at",
+          "path"
+        ],
+        "title": "ProformaSummary",
+        "type": "object"
+      },
+      "ProformaUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "bank_account_label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account Label"
+          },
+          "declaration": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declaration"
+          },
+          "delivery_terms": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Terms"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms"
+          },
+          "port_of_discharge": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Discharge"
+          },
+          "port_of_loading": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port Of Loading"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ProformaUpdate",
         "type": "object"
       },
       "PromotionRead": {
@@ -91864,6 +92595,410 @@
         }
       }
     },
+    "/api/v1/sales/proforma-invoices": {
+      "get": {
+        "operationId": "sales_list_proformas",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "issued",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "quote_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quote Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ProformaSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Proformas",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/proforma-invoices/{proforma_id}": {
+      "get": {
+        "operationId": "sales_get_proforma",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proforma_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proforma Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProformaDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Proforma",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "sales_update_proforma",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proforma_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proforma Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProformaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProformaDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Proforma",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/proforma-invoices/{proforma_id}/cancel": {
+      "post": {
+        "operationId": "sales_cancel_proforma",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proforma_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proforma Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProformaCancel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProformaDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Proforma",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.reverse"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/proforma-invoices/{proforma_id}/document": {
+      "get": {
+        "description": "The PDF, rendered from the PI (a draft carries the watermark).",
+        "operationId": "sales_proforma_document",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proforma_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proforma Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Proforma Document",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/proforma-invoices/{proforma_id}/issue": {
+      "post": {
+        "operationId": "sales_issue_proforma",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proforma_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proforma Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProformaIssue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProformaDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue Proforma",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.issue"
+          ]
+        }
+      }
+    },
     "/api/v1/sales/quote-settings": {
       "get": {
         "description": "Quote defaults plus previews of the next quote, custom-product and sample numbers (never allocated).",
@@ -93463,6 +94598,66 @@
           "kind": "permission",
           "permissions": [
             "sales.quote.assign"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/quotes/{quote_id}/proforma-invoices": {
+      "post": {
+        "description": "A draft PI from the quotation's issued revision; with ``pi_number`` + ``pi_date``, a PI entered from history.",
+        "operationId": "sales_create_proforma",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProformaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProformaDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Proforma",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "sales.proforma.create"
           ]
         }
       }

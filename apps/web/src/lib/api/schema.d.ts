@@ -7435,6 +7435,95 @@ export interface paths {
         patch: operations["sales_update_enquiry"];
         trace?: never;
     };
+    "/api/v1/sales/proforma-invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Proformas */
+        get: operations["sales_list_proformas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/proforma-invoices/{proforma_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Proforma */
+        get: operations["sales_get_proforma"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Proforma */
+        patch: operations["sales_update_proforma"];
+        trace?: never;
+    };
+    "/api/v1/sales/proforma-invoices/{proforma_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Proforma */
+        post: operations["sales_cancel_proforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/proforma-invoices/{proforma_id}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proforma Document
+         * @description The PDF, rendered from the PI (a draft carries the watermark).
+         */
+        get: operations["sales_proforma_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/proforma-invoices/{proforma_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Proforma */
+        post: operations["sales_issue_proforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/quote-settings": {
         parameters: {
             query?: never;
@@ -7736,6 +7825,26 @@ export interface paths {
         /** Change Quote Owner */
         put: operations["sales_change_quote_owner"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/quotes/{quote_id}/proforma-invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Proforma
+         * @description A draft PI from the quotation's issued revision; with ``pi_number`` + ``pi_date``, a PI entered from history.
+         */
+        post: operations["sales_create_proforma"];
         delete?: never;
         options?: never;
         head?: never;
@@ -18910,6 +19019,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[ProformaSummary] */
+        Page_ProformaSummary_: {
+            /** Items */
+            items: components["schemas"]["ProformaSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[QuoteSummary] */
         Page_QuoteSummary_: {
             /** Items */
@@ -21715,6 +21835,197 @@ export interface components {
             locale: string;
             /** Time Zone */
             time_zone: string | null;
+        };
+        /** ProformaCancel */
+        ProformaCancel: {
+            /** Expected Version */
+            expected_version: number;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * ProformaCreate
+         * @description Header fields for a new draft. ``pi_number`` + ``pi_date`` enter an already issued PI from history.
+         */
+        ProformaCreate: {
+            /** Bank Account Label */
+            bank_account_label?: string | null;
+            /** Declaration */
+            declaration?: string | null;
+            /** Delivery Terms */
+            delivery_terms?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms?: string | null;
+            /** Pi Date */
+            pi_date?: string | null;
+            /** Pi Number */
+            pi_number?: string | null;
+            /** Port Of Discharge */
+            port_of_discharge?: string | null;
+            /** Port Of Loading */
+            port_of_loading?: string | null;
+        };
+        /** ProformaDetail */
+        ProformaDetail: {
+            /** Backfilled */
+            backfilled: boolean;
+            /** Bank Account Label */
+            bank_account_label: string | null;
+            /** Bank Accounts */
+            bank_accounts: string[];
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Customer */
+            customer: {
+                [key: string]: unknown;
+            } | null;
+            /** Customer Reference */
+            customer_reference: string | null;
+            /** Declaration */
+            declaration: string | null;
+            /** Delivery Terms */
+            delivery_terms: string | null;
+            /** Draft Ref */
+            draft_ref: string;
+            /** Grand Total */
+            grand_total: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issued At */
+            issued_at: string | null;
+            issued_by: components["schemas"]["app__modules__sales__schemas__UserRef"] | null;
+            /** Lines */
+            lines: {
+                [key: string]: unknown;
+            }[];
+            /** Notes */
+            notes: string | null;
+            owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
+            party: components["schemas"]["PartyRef"];
+            /** Path */
+            path: string;
+            /** Payment Terms */
+            payment_terms: string | null;
+            /** Pi Date */
+            pi_date: string | null;
+            /** Pi Number */
+            pi_number: string | null;
+            /** Port Of Discharge */
+            port_of_discharge: string | null;
+            /** Port Of Loading */
+            port_of_loading: string | null;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision No */
+            revision_no: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "issued" | "cancelled";
+            /** Totals */
+            totals: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ProformaIssue */
+        ProformaIssue: {
+            /** Expected Version */
+            expected_version: number;
+            /** Pi Date */
+            pi_date?: string | null;
+        };
+        /** ProformaSummary */
+        ProformaSummary: {
+            /** Backfilled */
+            backfilled: boolean;
+            /** Currency */
+            currency: string;
+            /** Draft Ref */
+            draft_ref: string;
+            /** Grand Total */
+            grand_total: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            owner: components["schemas"]["app__modules__sales__schemas__UserRef"];
+            party: components["schemas"]["PartyRef"];
+            /** Path */
+            path: string;
+            /** Pi Date */
+            pi_date: string | null;
+            /** Pi Number */
+            pi_number: string | null;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision No */
+            revision_no: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "issued" | "cancelled";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProformaUpdate */
+        ProformaUpdate: {
+            /** Bank Account Label */
+            bank_account_label?: string | null;
+            /** Declaration */
+            declaration?: string | null;
+            /** Delivery Terms */
+            delivery_terms?: string | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms?: string | null;
+            /** Port Of Discharge */
+            port_of_discharge?: string | null;
+            /** Port Of Loading */
+            port_of_loading?: string | null;
         };
         /** PromotionRead */
         PromotionRead: {
@@ -43357,6 +43668,209 @@ export interface operations {
             };
         };
     };
+    sales_list_proformas: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                status?: ("draft" | "issued" | "cancelled") | null;
+                party_id?: string | null;
+                quote_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ProformaSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_proforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proforma_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProformaDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_update_proforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proforma_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProformaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProformaDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_cancel_proforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proforma_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProformaCancel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProformaDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_proforma_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proforma_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_issue_proforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proforma_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProformaIssue"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProformaDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sales_get_quote_settings: {
         parameters: {
             query?: never;
@@ -44067,6 +44581,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_create_proforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProformaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProformaDetail"];
                 };
             };
             /** @description Validation Error */

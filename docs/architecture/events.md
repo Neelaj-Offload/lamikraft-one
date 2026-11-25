@@ -189,6 +189,7 @@ slice in which the consumer arrives when later than the emitter).
 | `sales.custom_product.duplicated` / `.archived` | 1 | 2 | custom_product_id, source_custom_product_id | collab.activity_projector |
 | `sales.sample.created` | 1 | 2 | sample_id, sample_number, party_id, owner_user_id | tasks.rules |
 | `sales.sample.dispatched` | 1 | 2 | sample_id, challan_id | tasks.rules (sales.samples) |
+| `sales.proforma.created` / `.issued` / `.cancelled` | 1 | 7 | proforma_id, pi_number, quote_id, party_id | — (activity feed) |
 | `sales.sample.delivered` | 1 | 2 | sample_id, evidence_kind | tasks.rules (sales.samples: PREPARE_FOLLOWUP recommendation) |
 | `sales.sample.feedback_recorded` / `.closed` | 1 | 2 | sample_id | tasks.rules |
 

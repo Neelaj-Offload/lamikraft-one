@@ -115,6 +115,12 @@ def _on_quote_won(uow: Any, event: Any) -> None:
     _promote(uow, Quote, (event.payload or {}).get("quote_id") or event.aggregate_id, "quote_won")
 
 
+def _proforma_sequence() -> Any:
+    from app.modules.sales.proforma import PROFORMA_SEQUENCE
+
+    return PROFORMA_SEQUENCE
+
+
 def _search_providers() -> list[Any]:
     from app.modules.sales.search import SEARCH_PROVIDERS
 
@@ -136,9 +142,9 @@ def _on_load() -> None:
 
 MANIFEST = ModuleManifest(
     name="sales",
-    models=("app.modules.sales.models",),
+    models=("app.modules.sales.models", "app.modules.sales.proforma_models"),
     policies=list(POLICIES),
-    sequences=[QUOTE_SEQUENCE, ENQUIRY_SEQUENCE, CUSTOM_PRODUCT_SEQUENCE, SAMPLE_SEQUENCE],
+    sequences=[QUOTE_SEQUENCE, ENQUIRY_SEQUENCE, CUSTOM_PRODUCT_SEQUENCE, SAMPLE_SEQUENCE, _proforma_sequence()],
     routers=[_router],
     tools=list(TOOLS),
     jobs=[JobDef(kind=DOCUMENT_RENDER_JOB, handler=_render_job, queue="documents", max_attempts=5)],

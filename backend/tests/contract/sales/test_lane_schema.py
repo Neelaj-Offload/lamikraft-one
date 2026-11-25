@@ -140,7 +140,8 @@ def test_sales_tables_force_rls_and_append_only_matches_model_flags(db: None) ->
     assert set(tables) == {"sales_enquiry", "sales_customer_message", "sales_quote", "sales_quote_line",
                            "sales_quote_status_history", "sales_quote_revision", "sales_quote_dispatch",
                            "sales_custom_product", "sales_custom_product_costing", "sales_custom_product_spec_revision",
-                           "sales_custom_product_status_history", "sales_custom_product_promotion", "sales_sample"}
+                           "sales_custom_product_status_history", "sales_custom_product_promotion", "sales_sample",
+                           "sales_proforma_invoice"}
     tables["pricing_fx_rate"] = FxRate
     with UnitOfWork(ActorContext.system(None)) as uow:
         policies = set(uow.session.execute(text("SELECT tablename FROM pg_policies WHERE policyname = 'tenant_isolation'")).scalars())
