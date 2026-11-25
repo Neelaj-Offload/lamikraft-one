@@ -4919,6 +4919,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/marketplaces/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Channels
+         * @description Amazon, Flipkart, Pepperfry and the website, each in Demo or Live mode.
+         */
+        get: operations["marketplaces_list_channels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplaces/channels/{channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Channel */
+        get: operations["marketplaces_get_channel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Channel */
+        patch: operations["marketplaces_update_channel"];
+        trace?: never;
+    };
+    "/api/v1/marketplaces/channels/{channel_id}/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Listing
+         * @description Map a channel SKU (and ASIN or listing id) to a catalogue product.
+         */
+        post: operations["marketplaces_create_listing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplaces/channels/{channel_id}/simulate-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Simulate Order
+         * @description Demo: an order arrives for one listing and takes its stock out.
+         */
+        post: operations["marketplaces_simulate_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplaces/channels/{channel_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Channel
+         * @description Fetch new orders (Live), post their stock out, then push the free quantity of every push-enabled listing.
+         */
+        post: operations["marketplaces_sync_channel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplaces/listings/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Listing */
+        patch: operations["marketplaces_update_listing"];
+        trace?: never;
+    };
     "/api/v1/migration/opening-balance-batches": {
         parameters: {
             query?: never;
@@ -11828,6 +11943,113 @@ export interface components {
          * @enum {string}
          */
         Channel: "email" | "phone" | "whatsapp" | "web" | "other";
+        /** ChannelDetail */
+        ChannelDetail: {
+            /** Attention Count */
+            attention_count: number;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Kind */
+            kind: string;
+            /** Last Sync Summary */
+            last_sync_summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Synced At */
+            last_synced_at: string | null;
+            /** Listing Count */
+            listing_count: number;
+            /** Listings */
+            listings: components["schemas"]["ListingRead"][];
+            /** Live Available */
+            live_available: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "demo" | "live";
+            /** Name */
+            name: string;
+            /** Orders */
+            orders: components["schemas"]["OrderRead"][];
+            /** Version */
+            version: number;
+            /** Warehouse Code */
+            warehouse_code: string;
+            /**
+             * Warehouse Id
+             * Format: uuid
+             */
+            warehouse_id: string;
+        };
+        /** ChannelRead */
+        ChannelRead: {
+            /** Attention Count */
+            attention_count: number;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Kind */
+            kind: string;
+            /** Last Sync Summary */
+            last_sync_summary: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Synced At */
+            last_synced_at: string | null;
+            /** Listing Count */
+            listing_count: number;
+            /** Live Available */
+            live_available: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "demo" | "live";
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+            /** Warehouse Code */
+            warehouse_code: string;
+            /**
+             * Warehouse Id
+             * Format: uuid
+             */
+            warehouse_id: string;
+        };
+        /** ChannelUpdate */
+        ChannelUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Mode */
+            mode?: ("demo" | "live") | null;
+            /** Warehouse Id */
+            warehouse_id?: string | null;
+        };
         /** ChecklistItem */
         ChecklistItem: {
             /** Code */
@@ -16733,6 +16955,80 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** ListingCreate */
+        ListingCreate: {
+            /** Channel Sku */
+            channel_sku: string;
+            /** External Id */
+            external_id?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Type */
+            product_type?: string | null;
+            /**
+             * Push Stock
+             * @default true
+             */
+            push_stock: boolean;
+        };
+        /** ListingRead */
+        ListingRead: {
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Channel Sku */
+            channel_sku: string;
+            /** External Id */
+            external_id: string | null;
+            /** Free Quantity */
+            free_quantity: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Push Error */
+            last_push_error: string | null;
+            /** Last Pushed At */
+            last_pushed_at: string | null;
+            /** Last Pushed Qty */
+            last_pushed_qty: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Key */
+            product_key: string;
+            /** Product Name */
+            product_name: string;
+            /** Product Type */
+            product_type: string | null;
+            /** Push Stock */
+            push_stock: boolean;
+            /** Version */
+            version: number;
+        };
+        /** ListingUpdate */
+        ListingUpdate: {
+            /** Expected Version */
+            expected_version: number;
+            /** External Id */
+            external_id?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Product Type */
+            product_type?: string | null;
+            /** Push Stock */
+            push_stock?: boolean | null;
+        };
         /** LoadAllocation */
         LoadAllocation: {
             /** Cartons */
@@ -18357,6 +18653,41 @@ export interface components {
             quote_number: string;
             /** Revision No */
             revision_no: number;
+        };
+        /** OrderRead */
+        OrderRead: {
+            /** Attention Reason */
+            attention_reason: string | null;
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** External Order Id */
+            external_order_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Lines */
+            lines: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Ordered At
+             * Format: date-time
+             */
+            ordered_at: string;
+            /** Posting Id */
+            posting_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "posted" | "needs_attention" | "cancelled";
         };
         /** OrderReservationRead */
         OrderReservationRead: {
@@ -25812,6 +26143,13 @@ export interface components {
             version: number;
             warehouse: components["schemas"]["WarehouseRef"];
         };
+        /** SimulatedOrder */
+        SimulatedOrder: {
+            /** Channel Sku */
+            channel_sku: string;
+            /** Quantity */
+            quantity: number;
+        };
         /** SimulationRead */
         SimulationRead: {
             /** Baseline */
@@ -26450,6 +26788,28 @@ export interface components {
          * @enum {string}
          */
         SyncStatus: "pending" | "exported" | "acknowledged" | "rejected" | "mismatch";
+        /** SyncSummary */
+        SyncSummary: {
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Error */
+            error?: string | null;
+            /** Listings Pushed */
+            listings_pushed: number;
+            /** Mode */
+            mode: string;
+            /** Orders Fetched */
+            orders_fetched: number;
+            /** Orders Held */
+            orders_held: number;
+            /** Orders Posted */
+            orders_posted: number;
+            /** Push Errors */
+            push_errors: string[];
+        };
         /** TargetOut */
         TargetOut: {
             /**
@@ -38428,6 +38788,228 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShipmentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_list_channels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelRead"][];
+                };
+            };
+        };
+    };
+    marketplaces_get_channel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_update_channel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_create_listing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_simulate_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulatedOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_sync_channel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marketplaces_update_listing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelDetail"];
                 };
             };
             /** @description Validation Error */

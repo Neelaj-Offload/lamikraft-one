@@ -93,6 +93,15 @@ class Settings(BaseSettings):
     whatsapp_dev_allowlist: str = ""
     email_mode: Literal["demo", "smtp"] = "demo"
 
+    # --- marketplaces (module 5): Amazon Selling Partner API; empty = Demo only ------------------------------
+    amazon_lwa_client_id: str = ""
+    amazon_lwa_client_secret: SecretStr = SecretStr("")
+    amazon_refresh_token: SecretStr = SecretStr("")
+    amazon_seller_id: str = ""
+    #: India is served by the EU endpoint; the Amazon.in marketplace id
+    amazon_endpoint: str = "https://sellingpartnerapi-eu.amazon.com"
+    amazon_marketplace_id: str = "A21TJRUUN4KGV"
+
     # --- behaviour ---------------------------------------------------------------------------
     default_time_zone: str = "Asia/Kolkata"
     log_level: str = "INFO"

@@ -239,6 +239,9 @@ Scope letters after a template: O own, T team, B branch, C company.
 | `sales.sample.update` | R | D | | 2 | sal O, mgt C, ops C |
 | `sales.sample.transition` | R | | | 2 | sal O, mgt C, ops C |
 | `sales.proforma.read` | R | D | | 7 | sal O, mgt C, fin C |
+| `marketplaces.channel.read` | C | | | 7 | mgt, sal, ops |
+| `marketplaces.channel.manage` | C | | | 7 | mgt |
+| `marketplaces.channel.run` | C | | | 7 | mgt, ops |
 | `sales.proforma.create` | C | | | 7 | sal, mgt |
 | `sales.proforma.update` | R | | | 7 | sal O, mgt C |
 | `sales.proforma.issue` | C | | | 7 | sal, mgt |

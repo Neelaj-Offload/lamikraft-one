@@ -9251,6 +9251,291 @@
         "title": "Channel",
         "type": "string"
       },
+      "ChannelDetail": {
+        "properties": {
+          "attention_count": {
+            "title": "Attention Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_sync_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Summary"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "listing_count": {
+            "title": "Listing Count",
+            "type": "integer"
+          },
+          "listings": {
+            "items": {
+              "$ref": "#/components/schemas/ListingRead"
+            },
+            "title": "Listings",
+            "type": "array"
+          },
+          "live_available": {
+            "title": "Live Available",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/OrderRead"
+            },
+            "title": "Orders",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "warehouse_code": {
+            "title": "Warehouse Code",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "title": "Warehouse Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "mode",
+          "warehouse_id",
+          "warehouse_code",
+          "is_active",
+          "live_available",
+          "last_synced_at",
+          "last_sync_summary",
+          "listing_count",
+          "attention_count",
+          "version",
+          "capabilities",
+          "listings",
+          "orders"
+        ],
+        "title": "ChannelDetail",
+        "type": "object"
+      },
+      "ChannelRead": {
+        "properties": {
+          "attention_count": {
+            "title": "Attention Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_sync_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Summary"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "listing_count": {
+            "title": "Listing Count",
+            "type": "integer"
+          },
+          "live_available": {
+            "title": "Live Available",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "warehouse_code": {
+            "title": "Warehouse Code",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "title": "Warehouse Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "mode",
+          "warehouse_id",
+          "warehouse_code",
+          "is_active",
+          "live_available",
+          "last_synced_at",
+          "last_sync_summary",
+          "listing_count",
+          "attention_count",
+          "version",
+          "capabilities"
+        ],
+        "title": "ChannelRead",
+        "type": "object"
+      },
+      "ChannelUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "demo",
+                  "live"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ChannelUpdate",
+        "type": "object"
+      },
       "ChecklistItem": {
         "additionalProperties": false,
         "properties": {
@@ -24534,6 +24819,240 @@
         "title": "LineageNode",
         "type": "object"
       },
+      "ListingCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_sku": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Channel Sku",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "push_stock": {
+            "default": true,
+            "title": "Push Stock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "product_id",
+          "channel_sku"
+        ],
+        "title": "ListingCreate",
+        "type": "object"
+      },
+      "ListingRead": {
+        "properties": {
+          "channel_id": {
+            "format": "uuid",
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "channel_sku": {
+            "title": "Channel Sku",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "free_quantity": {
+            "title": "Free Quantity",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "last_push_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Push Error"
+          },
+          "last_pushed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Pushed At"
+          },
+          "last_pushed_qty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Pushed Qty"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "push_stock": {
+            "title": "Push Stock",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "product_id",
+          "product_key",
+          "product_name",
+          "channel_sku",
+          "external_id",
+          "product_type",
+          "push_stock",
+          "is_active",
+          "free_quantity",
+          "last_pushed_qty",
+          "last_pushed_at",
+          "last_push_error",
+          "version"
+        ],
+        "title": "ListingRead",
+        "type": "object"
+      },
+      "ListingUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "push_stock": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Stock"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ListingUpdate",
+        "type": "object"
+      },
       "LoadAllocation": {
         "properties": {
           "cartons": {
@@ -29287,6 +29806,86 @@
           "revision_no"
         ],
         "title": "OrderQuoteRef",
+        "type": "object"
+      },
+      "OrderRead": {
+        "properties": {
+          "attention_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention Reason"
+          },
+          "channel_id": {
+            "format": "uuid",
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "external_order_id": {
+            "title": "External Order Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "lines": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "ordered_at": {
+            "format": "date-time",
+            "title": "Ordered At",
+            "type": "string"
+          },
+          "posting_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Id"
+          },
+          "status": {
+            "enum": [
+              "posted",
+              "needs_attention",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "external_order_id",
+          "ordered_at",
+          "status",
+          "lines",
+          "attention_reason",
+          "posting_id",
+          "is_demo"
+        ],
+        "title": "OrderRead",
         "type": "object"
       },
       "OrderReservationRead": {
@@ -53939,6 +54538,29 @@
         "title": "ShortageRead",
         "type": "object"
       },
+      "SimulatedOrder": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_sku": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Channel Sku",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_sku",
+          "quantity"
+        ],
+        "title": "SimulatedOrder",
+        "type": "object"
+      },
       "SimulationRead": {
         "properties": {
           "baseline": {
@@ -56050,6 +56672,64 @@
         ],
         "title": "SyncStatus",
         "type": "string"
+      },
+      "SyncSummary": {
+        "properties": {
+          "channel_id": {
+            "format": "uuid",
+            "title": "Channel Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "listings_pushed": {
+            "title": "Listings Pushed",
+            "type": "integer"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "orders_fetched": {
+            "title": "Orders Fetched",
+            "type": "integer"
+          },
+          "orders_held": {
+            "title": "Orders Held",
+            "type": "integer"
+          },
+          "orders_posted": {
+            "title": "Orders Posted",
+            "type": "integer"
+          },
+          "push_errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Push Errors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_id",
+          "mode",
+          "orders_fetched",
+          "orders_posted",
+          "orders_held",
+          "listings_pushed",
+          "push_errors"
+        ],
+        "title": "SyncSummary",
+        "type": "object"
       },
       "TargetOut": {
         "properties": {
@@ -81773,6 +82453,373 @@
           "kind": "permission",
           "permissions": [
             "logistics.shipment.transition"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/channels": {
+      "get": {
+        "description": "Amazon, Flipkart, Pepperfry and the website, each in Demo or Live mode.",
+        "operationId": "marketplaces_list_channels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelRead"
+                  },
+                  "title": "Response Marketplaces List Channels",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Channels",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/channels/{channel_id}": {
+      "get": {
+        "operationId": "marketplaces_get_channel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Channel",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.read"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "marketplaces_update_channel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Channel",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/channels/{channel_id}/listings": {
+      "post": {
+        "description": "Map a channel SKU (and ASIN or listing id) to a catalogue product.",
+        "operationId": "marketplaces_create_listing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Listing",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/channels/{channel_id}/simulate-order": {
+      "post": {
+        "description": "Demo: an order arrives for one listing and takes its stock out.",
+        "operationId": "marketplaces_simulate_order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulatedOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate Order",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/channels/{channel_id}/sync": {
+      "post": {
+        "description": "Fetch new orders (Live), post their stock out, then push the free quantity of every push-enabled listing.",
+        "operationId": "marketplaces_sync_channel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Channel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sync Channel",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.run"
+          ]
+        }
+      }
+    },
+    "/api/v1/marketplaces/listings/{listing_id}": {
+      "patch": {
+        "operationId": "marketplaces_update_listing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Listing",
+        "tags": [
+          "marketplaces"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "marketplaces.channel.manage"
           ]
         }
       }

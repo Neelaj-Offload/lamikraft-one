@@ -84,6 +84,8 @@ class SourceType(StrEnum):
     GOODS_RECEIPT = "goods_receipt"
     WORK_ORDER = "work_order"
     QC_INSPECTION = "qc_inspection"
+    #: an order on Amazon, Flipkart, Pepperfry or the website (module 5)
+    MARKETPLACE_ORDER = "marketplace_order"
 
 
 class PostingPurpose(StrEnum):

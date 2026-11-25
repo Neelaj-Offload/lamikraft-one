@@ -126,6 +126,8 @@ EVENTS: tuple[dict, ...] = (
     {'name': 'sales.proforma.created', 'version': 1, 'slice': 7, 'fields': ['proforma_id', 'pi_number', 'quote_id', 'party_id']},
     {'name': 'sales.proforma.issued', 'version': 1, 'slice': 7, 'fields': ['proforma_id', 'pi_number', 'quote_id', 'party_id']},
     {'name': 'sales.proforma.cancelled', 'version': 1, 'slice': 7, 'fields': ['proforma_id', 'pi_number', 'quote_id', 'party_id']},
+    {'name': 'marketplaces.order.imported', 'version': 1, 'slice': 7, 'fields': ['channel_id', 'order_id', 'status']},
+    {'name': 'marketplaces.sync.completed', 'version': 1, 'slice': 7, 'fields': ['channel_id', 'orders_posted', 'orders_held']},
     {'name': 'sales.sample.delivered', 'version': 1, 'slice': 2, 'fields': ['sample_id', 'evidence_kind']},
     {'name': 'sales.sample.feedback_recorded', 'version': 1, 'slice': 2, 'fields': ['sample_id']},
     {'name': 'sales.sample.closed', 'version': 1, 'slice': 2, 'fields': ['sample_id']},
