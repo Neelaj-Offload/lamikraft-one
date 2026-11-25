@@ -13667,6 +13667,54 @@
         "title": "CustomType",
         "type": "string"
       },
+      "CustomerFacts": {
+        "properties": {
+          "customer_since": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Since"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "won": {
+            "items": {
+              "$ref": "#/components/schemas/WonValue"
+            },
+            "title": "Won",
+            "type": "array"
+          }
+        },
+        "required": [
+          "party_id",
+          "customer_since",
+          "last_activity_at",
+          "won"
+        ],
+        "title": "CustomerFacts",
+        "type": "object"
+      },
       "CustomerMessageCreate": {
         "additionalProperties": false,
         "properties": {
@@ -49843,6 +49891,18 @@
             ],
             "title": "Description"
           },
+          "dispatch_reference": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Reference"
+          },
           "notes": {
             "anyOf": [
               {
@@ -49903,6 +49963,18 @@
               }
             ],
             "title": "Quote Id"
+          },
+          "sent_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent On"
           },
           "spec_revision_id": {
             "anyOf": [
@@ -50456,6 +50528,18 @@
                 "type": "null"
               }
             ]
+          },
+          "occurred_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred On"
           },
           "reason": {
             "anyOf": [
@@ -58740,6 +58824,33 @@
           "lines"
         ],
         "title": "WipRequest",
+        "type": "object"
+      },
+      "WonValue": {
+        "properties": {
+          "amount": {
+            "examples": [
+              "5760.00"
+            ],
+            "pattern": "^-?\\d{1,14}(\\.\\d{1,6})?$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "quotations": {
+            "title": "Quotations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "amount",
+          "quotations"
+        ],
+        "title": "WonValue",
         "type": "object"
       },
       "WorkCenterCreate": {
@@ -91378,6 +91489,56 @@
           "kind": "permission",
           "permissions": [
             "sales.customer_message.update"
+          ]
+        }
+      }
+    },
+    "/api/v1/sales/customers/{party_id}/facts": {
+      "get": {
+        "description": "Customer since, last contact and won business per currency for one customer.",
+        "operationId": "sales_get_customer_facts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerFacts"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Customer Facts",
+        "tags": [
+          "sales"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.party.read"
           ]
         }
       }

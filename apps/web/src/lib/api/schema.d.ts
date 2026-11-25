@@ -7373,6 +7373,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/customers/{party_id}/facts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Customer Facts
+         * @description Customer since, last contact and won business per currency for one customer.
+         */
+        get: operations["sales_get_customer_facts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/enquiries": {
         parameters: {
             query?: never;
@@ -12833,6 +12853,20 @@ export interface components {
          * @enum {string}
          */
         CustomType: "modified_catalog" | "fully_new" | "quote_only";
+        /** CustomerFacts */
+        CustomerFacts: {
+            /** Customer Since */
+            customer_since: string | null;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Won */
+            won: components["schemas"]["WonValue"][];
+        };
         /** CustomerMessageCreate */
         CustomerMessageCreate: {
             /** Assignee User Id */
@@ -24352,6 +24386,8 @@ export interface components {
             custom_product_id?: string | null;
             /** Description */
             description?: string | null;
+            /** Dispatch Reference */
+            dispatch_reference?: string | null;
             /** Notes */
             notes?: string | null;
             /** Owner User Id */
@@ -24370,6 +24406,8 @@ export interface components {
             quantity: string;
             /** Quote Id */
             quote_id?: string | null;
+            /** Sent On */
+            sent_on?: string | null;
             /** Spec Revision Id */
             spec_revision_id?: string | null;
             /**
@@ -24512,6 +24550,8 @@ export interface components {
             /** Feedback */
             feedback?: string | null;
             feedback_outcome?: components["schemas"]["FeedbackOutcome"] | null;
+            /** Occurred On */
+            occurred_on?: string | null;
             /** Reason */
             reason?: string | null;
         };
@@ -27154,6 +27194,18 @@ export interface components {
             lines: components["schemas"]["WipLine"][];
             /** Reason */
             reason?: string | null;
+        };
+        /** WonValue */
+        WonValue: {
+            /**
+             * Amount
+             * @example 5760.00
+             */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Quotations */
+            quotations: number;
         };
         /** WorkCenterCreate */
         WorkCenterCreate: {
@@ -43122,6 +43174,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerMessageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_get_customer_facts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerFacts"];
                 };
             };
             /** @description Validation Error */

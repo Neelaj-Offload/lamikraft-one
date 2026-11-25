@@ -133,3 +133,26 @@ def test_won_quote_and_confirmed_order_promote(sales_world: SalesWorld) -> None:
     with world.uow(SAHIL) as uow:
         _on_order_confirmed(_Uow(uow), SimpleNamespace(payload={"order_id": str(stand_in.id)}, aggregate_id=stand_in.id))
     assert (_party(world, lead).status, _party(world, lead).lead_stage) == ("active", "won")
+
+
+def test_customer_facts(sales_world: SalesWorld) -> None:
+    from app.modules.parties import activities
+    from app.modules.parties.schemas import ActivityCreate
+    from app.modules.sales.customer_facts import customer_facts
+
+    world = sales_world
+    quote_id = world.ref(keys.QUOTE_REFS.BERG_WON)
+    with world.uow(PRIYA) as uow:
+        quote = uow.session.get(Quote, quote_id)
+        assert quote is not None
+        party_id, currency, total = quote.party_id, quote.currency, quote.grand_total_amount
+    with world.uow(SAHIL) as uow:
+        activities.log_activity(uow, party_id, ActivityCreate(kind="call", outcome="Reorder next month"))  # type: ignore[arg-type]
+    facts = customer_facts(world.actor(SAHIL), party_id)
+    won = {w.currency: w for w in facts.won}
+    assert currency in won and Decimal(won[currency].amount) >= Decimal(total or 0)
+    assert facts.last_activity_at is not None
+    assert facts.customer_since is not None
+    lead = _lead(world, "Facts Lead GmbH")
+    fresh = customer_facts(world.actor(MEERA), lead)
+    assert fresh.won == [] and fresh.customer_since is None and fresh.last_activity_at is None

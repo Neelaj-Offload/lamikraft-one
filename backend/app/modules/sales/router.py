@@ -14,6 +14,7 @@ from app.core.http.deps import Actor, IdempotencyKeyHeader
 from app.core.http.pagination import MAX_LIMIT, Page
 from app.modules.sales import service
 from app.modules.sales.configurator import ConfiguratorRequest, ConfiguratorResult
+from app.modules.sales.customer_facts import CustomerFacts, customer_facts
 from app.modules.sales.schemas import (
     ChangeOwner,
     CostingCreate,
@@ -650,6 +651,12 @@ def _sample_filters(
     custom_product_id: uuid.UUID | None = None,
 ) -> SampleFilters:
     return SampleFilters(q=q, status=status, party_id=party_id, quote_id=quote_id, custom_product_id=custom_product_id)
+
+
+@router.get("/customers/{party_id}/facts", openapi_extra=requires("parties.party.read"))
+def get_customer_facts(actor: Actor, party_id: uuid.UUID) -> CustomerFacts:
+    """Customer since, last contact and won business per currency for one customer."""
+    return customer_facts(actor, party_id)
 
 
 @router.get("/samples", openapi_extra=requires("sales.sample.read"))
