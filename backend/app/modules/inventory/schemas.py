@@ -46,6 +46,7 @@ class LocationRef(BaseModel):
     name: str
     location_type: LocationType
     warehouse_id: uuid.UUID | None
+    stock_category: Literal["inventory", "sample", "exhibition"] | None = None
 
 
 class ProductRef(BaseModel):
@@ -75,6 +76,19 @@ class WarehouseCreate(BaseModel):
     name: Name
     branch_id: uuid.UUID | None = None
     address: Note | None = None
+    #: domestic or export stock; the country (ISO-2) tells NL and US drop-ship warehouses apart
+    market: Literal["domestic", "export"] | None = None
+    country_code: Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")] | None = None
+
+
+class WarehouseUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name | None = None
+    address: Note | None = None
+    market: Literal["domestic", "export"] | None = None
+    country_code: Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")] | None = None
+    is_active: bool | None = None
 
 
 class BinCreate(BaseModel):
@@ -88,6 +102,8 @@ class WarehouseRead(WarehouseRef):
     branch_id: uuid.UUID | None
     address: str | None
     is_active: bool
+    market: Literal["domestic", "export"] | None = None
+    country_code: str | None = None
     locations: list[LocationRef]
     capabilities: dict[str, Capability]
 

@@ -8,7 +8,15 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictInt, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StringConstraints,
+)
 
 from app.core.http.capabilities import Capability, TransitionRead
 from app.core.money import CurrencyCode, DecimalStr, Money, Quantity
@@ -200,6 +208,14 @@ class ProductMasterFields(BaseModel):
     subcategory_source: Text | None = None
     product_type: Text | None = None
     variant_group: Text | None = None
+    #: the design a variant belongs to (CB07); uppercase
+    design_no: Annotated[
+        str,
+        BeforeValidator(lambda v: v.strip().upper() if isinstance(v, str) else v),
+        StringConstraints(pattern=r"^[A-Z0-9][A-Z0-9-]{0,19}$"),
+    ] | None = None
+    #: finished goods (stocked by category), raw materials (PRM, BRW, IP) or packaging
+    item_class: Literal["finished", "raw_material", "packaging"] | None = None
     unit_of_sale: UomCode | None = None
     size_mm: Text | None = None
     decor_no: Annotated[str, StringConstraints(max_length=40)] | None = None
@@ -325,6 +341,8 @@ class ProductSummary(BaseModel):
     shape: str | None
     status: ProductStatus
     thickness_mm: Measure | None
+    design_no: str | None = None
+    item_class: Literal["finished", "raw_material", "packaging"] = "finished"
     size: ProductSize
     carton_qty: int | None
     primary_image: MediaThumb | None = None
@@ -465,6 +483,8 @@ class ProductDetail(BaseModel):
     subcategory: TaxonomyRef | None
     product_type: str | None
     variant_group: str | None
+    design_no: str | None = None
+    item_class: Literal["finished", "raw_material", "packaging"] = "finished"
     unit_of_sale: str | None
     finish: str | None
     shape: str | None
@@ -596,6 +616,8 @@ class ProductFilters(BaseModel):
     category_id: uuid.UUID | None = None
     subcategory_id: uuid.UUID | None = None
     family: Text | None = None
+    design: Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)] | None = None
+    item_class: Literal["finished", "raw_material", "packaging"] | None = None
     size: Text | None = None
     thickness: Text | None = None
     decor: Text | None = None

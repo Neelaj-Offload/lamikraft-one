@@ -383,6 +383,11 @@ export function Catalogue({ state, layout }: { state: ProductListState; layout: 
                 </ButtonLink>
               ) : null}
               {canCreate ? (
+                <ButtonLink href={"/products/new-design" as Route} variant="secondary" iconLeft="layers">
+                  Add a design
+                </ButtonLink>
+              ) : null}
+              {canCreate ? (
                 <ButtonLink href="/products/new" iconLeft="plus">
                   Add product
                 </ButtonLink>

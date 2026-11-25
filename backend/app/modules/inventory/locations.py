@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.errors import NotFound, ValidationFailed
 from app.modules.inventory.enums import (
+    CATEGORY_LOCATIONS,
     COMPANY_LOCATIONS,
     COUNTS_AVAILABLE,
     STOCK_BEARING,
@@ -144,6 +145,8 @@ def create_warehouse_rows(
     branch_id: uuid.UUID | None,
     address: str | None,
     origin_ref: str | None,
+    market: str | None = None,
+    country_code: str | None = None,
 ) -> Warehouse:
     wh = Warehouse(
         id=uuid.uuid7(),
@@ -154,6 +157,8 @@ def create_warehouse_rows(
         address=address,
         origin_ref=origin_ref,
         is_active=True,
+        market=market,
+        country_code=country_code,
     )
     uow.add(wh)
     uow.flush()
@@ -170,6 +175,22 @@ def create_warehouse_rows(
                 is_stock_bearing=bearing,
                 counts_available=available,
                 is_default=loc_code == "STOCK",
+                stock_category="inventory" if loc_type == LocationType.INTERNAL else None,
+            )
+        )
+    for loc_code, loc_name, category in CATEGORY_LOCATIONS:
+        uow.add(
+            Location(
+                id=uuid.uuid7(),
+                company_id=uow.actor.company_id,
+                warehouse_id=wh.id,
+                code=loc_code,
+                name=loc_name,
+                location_type=LocationType.INTERNAL.value,
+                is_stock_bearing=True,
+                counts_available=False,
+                is_default=False,
+                stock_category=category,
             )
         )
     uow.flush()
@@ -208,6 +229,7 @@ def add_bin(uow: UnitOfWork, warehouse: Warehouse, *, code: str, name: str | Non
         is_stock_bearing=True,
         counts_available=True,
         is_default=False,
+        stock_category="inventory",
     )
     uow.add(loc)
     uow.flush()

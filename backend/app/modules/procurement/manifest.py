@@ -48,6 +48,10 @@ def _on_load() -> None:
     register_checks()
     inventory.register_cause_provider("procurement.late_supply", service.late_supply_causes)
     inventory.register_pair_resolver("procurement.", service.pairs_for_event)
+    from app.modules.inventory.categories import register_on_order_provider
+    from app.modules.procurement.factory import on_order
+
+    register_on_order_provider(on_order)  # factory work in progress on the stock-by-category view (module 4)
     production.register_supply_provider(service.PO_LINE, service.po_line_supply)
     quality.register_subject_handler(receiving.SUBJECT, receiving.on_inspection_decided)
 

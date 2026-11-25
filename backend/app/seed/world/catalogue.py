@@ -143,6 +143,8 @@ def _product(ctx: SeedContext, spec: FixtureProduct, minute: int) -> uuid.UUID:
                 stock_uom_code=spec.unit,  # type: ignore[arg-type]
                 track_lots=spec.lots_and_qc,
                 qc_required=spec.lots_and_qc,
+                # boards bought by the sheet are raw material; everything else is a finished product (module 4)
+                item_class="raw_material" if spec.unit == "sheets" else "finished",
                 specification=SpecificationIn(**spec.specification),
                 packaging=PackagingIn(**spec.packaging),
                 origin="seed",  # type: ignore[arg-type]

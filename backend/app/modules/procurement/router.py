@@ -15,7 +15,15 @@ from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor, IdempotencyKeyHeader
 from app.core.http.pagination import MAX_LIMIT, Page
 from app.modules.inventory.commands import idempotent
-from app.modules.procurement import matching, purchase_orders, receiving, requisitions, service, vendor_items
+from app.modules.procurement import (
+    factory,
+    matching,
+    purchase_orders,
+    receiving,
+    requisitions,
+    service,
+    vendor_items,
+)
 from app.modules.procurement.enums import GoodsReceiptStatus, PurchaseOrderStatus, RequisitionStatus
 from app.modules.procurement.schemas import (
     BillCreate,
@@ -488,3 +496,15 @@ def hand_off_vendor_bill(
 
 
 __all__ = ["router", "service"]
+
+
+# ---- factory orders as stock work in progress (module 4) ------------------------------------------------------------
+@router.get("/factory-orders", openapi_extra=requires("procurement.purchase_order.read"))
+def list_factory_orders(
+    actor: Actor,
+    product_id: uuid.UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> Page[factory.FactoryOrderLine]:
+    """Open purchase-order lines for finished products: what the factories still have to deliver."""
+    return factory.factory_orders(actor, product_id=product_id, limit=limit, offset=offset)

@@ -8,14 +8,17 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Path, Query, Response
 from pydantic import BaseModel
+from sqlalchemy import select
 
+from app.core.errors import NotFound
 from app.core.http.authz_decl import requires
 from app.core.http.deps import Actor, IdempotencyKeyHeader
-from app.core.http.pagination import MAX_LIMIT
+from app.core.http.pagination import MAX_LIMIT, Page
+from app.modules.inventory import categories
 from app.modules.inventory import commands as cmd
 from app.modules.inventory.schemas import (
     AdjustmentCreate,
@@ -51,6 +54,7 @@ from app.modules.inventory.schemas import (
     Versioned,
     WarehouseCreate,
     WarehouseRead,
+    WarehouseUpdate,
 )
 from app.platform.uow import UnitOfWork
 
@@ -689,3 +693,59 @@ def act_on_pick_list(
         lambda uow: cmd.pick_list_action(uow, pick_list_id, action, body),
         PickListRead,
     )
+
+
+# ---- stock by category (module 4, spec 2026-11-25-products-stock-design.md) ----------------------------------------
+@router.get("/stock-by-category", openapi_extra=requires(READ))
+def list_stock_by_category(
+    actor: Actor,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+    warehouse_id: uuid.UUID | None = None,
+    market: Literal["domestic", "export"] | None = None,
+    category: Literal["inventory", "sample", "exhibition"] | None = None,
+    design: Annotated[str | None, Query(max_length=20)] = None,
+    include_all_classes: bool = False,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> Page[categories.CategoryRow]:
+    """Finished goods per product and warehouse: inventory, sample and exhibition stock, and what is on order."""
+    filters = categories.CategoryFilters(q=q, warehouse_id=warehouse_id, market=market, category=category, design=design,
+                                         include_all_classes=include_all_classes)
+    return categories.stock_by_category(actor, filters, limit=limit, offset=offset)
+
+
+@router.get("/stock-by-category/totals", openapi_extra=requires(READ))
+def stock_category_totals(
+    actor: Actor,
+    warehouse_id: uuid.UUID | None = None,
+    market: Literal["domestic", "export"] | None = None,
+    design: Annotated[str | None, Query(max_length=20)] = None,
+) -> dict[str, str]:
+    filters = categories.CategoryFilters(warehouse_id=warehouse_id, market=market, design=design)
+    return categories.category_totals(actor, filters)
+
+
+@router.patch("/warehouses/{warehouse_id}", openapi_extra=requires("inventory.warehouse.manage"))
+def update_warehouse(actor: Actor, warehouse_id: uuid.UUID, body: WarehouseUpdate) -> WarehouseRead:
+    """Rename a warehouse or set its market (domestic, export) and country."""
+    from app.modules.inventory.documents import warehouse_read
+    from app.modules.inventory.models import Warehouse
+
+    with UnitOfWork(actor) as uow:
+        uow.actor.require("inventory.warehouse.manage")
+        wh = uow.session.scalars(
+            select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.company_id == uow.actor.company_id)
+            .with_for_update()
+        ).first()
+        if wh is None:
+            raise NotFound(code="not_found", resource_type="inventory.warehouse")
+        changes = body.model_dump(exclude_unset=True)
+        for name, value in changes.items():
+            if name in ("name", "is_active") and value is None:
+                continue
+            setattr(wh, name, value)
+        wh.updated_at = uow.now()
+        uow.flush()
+        uow.audit("inventory.warehouse.update", resource_type="inventory.warehouse", resource_id=wh.id,
+                  resource_label=wh.code, details={"changed_fields": sorted(changes)})
+        return warehouse_read(uow, wh)

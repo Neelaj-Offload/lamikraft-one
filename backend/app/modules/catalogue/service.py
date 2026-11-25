@@ -329,6 +329,7 @@ _MASTER_TEXT_FIELDS = (
     "display_sku", "product_name", "brand", "category_source", "subcategory_source", "product_type", "variant_group",
     "unit_of_sale", "decor_name", "decor_options_text", "finish", "shape", "description", "internal_remarks",
     "source_design_no", "source_shape_no", "source_sheet", "source_row", "source_catalog_page", "source_notes",
+    "design_no",
 )
 _STOCK_FIELDS = ("hsn_sac", "stock_uom_code", "is_stock_tracked", "track_lots", "qc_required")
 _SPEC_TEXT_FIELDS = (
@@ -685,6 +686,7 @@ def create_product(uow: UnitOfWork, data: ProductCreate) -> ProductWriteResult:
         setattr(product, name, _blank_to_none(fields[name]))
     for name in _STOCK_FIELDS:
         setattr(product, name, fields[name])
+    product.item_class = fields.get("item_class") or "finished"
     _set_decor(product, fields, warnings, set())
     errors.raise_if_any()
     # derived columns are set before the single INSERT, so a new product starts at version 1
@@ -771,6 +773,10 @@ def update_product(uow: UnitOfWork, product_id: uuid.UUID, data: ProductUpdate) 
             setattr(product, name, value)
             changed.add(name)
             groups.add(ev.GROUP_TAXONOMY if name.endswith("_source") and "category" in name else ev.GROUP_MASTER)
+    if fields.get("item_class") and product.item_class != fields["item_class"]:
+        product.item_class = fields["item_class"]
+        changed.add("item_class")
+        groups.add(ev.GROUP_MASTER)
     if "status" in fields and fields["status"] is not None and product.status != fields["status"].value:
         product.status = fields["status"].value
         changed.add("status")
@@ -932,6 +938,10 @@ def _conditions(uow: UnitOfWork, f: ProductFilters) -> _Conditions:
         by["subcategory"] = P.subcategory_id == f.subcategory_id
     if f.family:
         by["family"] = func.lower(P.variant_group) == f.family.strip().lower()
+    if f.design:
+        by["design"] = P.design_no == f.design.strip().upper()
+    if f.item_class:
+        by["item_class"] = P.item_class == f.item_class
     if f.size:
         length, width, height = _parse_size_filter(f.size)
         orient = or_(
@@ -1024,6 +1034,8 @@ def _summary_row(
         subcategory=_taxonomy_ref(product.subcategory_id, row.subcategory_name, row.subcategory_active),
         product_type=product.product_type,
         variant_group=product.variant_group,
+        design_no=product.design_no,
+        item_class=product.item_class,
         unit_of_sale=product.unit_of_sale,
         decor_no=product.decor_no,
         decor_name=product.decor_name,
@@ -1452,6 +1464,8 @@ def _detail(uow: UnitOfWork, product: Product) -> ProductDetail:
         subcategory=TaxonomyRef(id=sub.id, name=sub.name, is_active=sub.is_active) if sub else None,
         product_type=product.product_type,
         variant_group=product.variant_group,
+        design_no=product.design_no,
+        item_class=product.item_class,
         unit_of_sale=product.unit_of_sale,
         finish=product.finish,
         shape=product.shape,

@@ -99,6 +99,10 @@ class Product(TenantEntity, VersionMixin, ArchivableMixin, Base):
     subcategory_source: Mapped[str | None] = mapped_column(String(200), nullable=True)
     product_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     variant_group: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    #: the design a variant belongs to (CB07); a sellable unit is design x decor x size (module 4)
+    design_no: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    #: finished goods are what the stock categories hold; raw materials (PRM, BRW, IP) and packaging are not
+    item_class: Mapped[str] = mapped_column(String(20), nullable=False, default="finished", server_default="finished")
     unit_of_sale: Mapped[str | None] = mapped_column(String(20), nullable=True)
     decor_no: Mapped[str | None] = mapped_column(String(40), nullable=True)
     decor_no_source: Mapped[str | None] = mapped_column(String(80), nullable=True)
@@ -137,6 +141,9 @@ class Product(TenantEntity, VersionMixin, ArchivableMixin, Base):
 
     __table_args__ = (
         UniqueConstraint("company_id", "product_key", name="uq_catalogue_product_key"),
+        CheckConstraint("item_class IN ('finished', 'raw_material', 'packaging')", name="item_class_values"),
+        CheckConstraint("design_no IS NULL OR design_no ~ '^[A-Z0-9][A-Z0-9-]{0,19}$'", name="design_no_format"),
+        Index("ix_catalogue_product_design", "company_id", "design_no"),
         ForeignKeyConstraint(
             ["subcategory_id", "category_id"],
             ["catalogue_subcategory.id", "catalogue_subcategory.category_id"],

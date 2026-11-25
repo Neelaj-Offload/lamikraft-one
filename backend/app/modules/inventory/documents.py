@@ -159,6 +159,8 @@ def warehouse_read(uow: UnitOfWork, wh: Warehouse) -> WarehouseRead:
         branch_id=wh.branch_id,
         address=wh.address,
         is_active=wh.is_active,
+        market=wh.market,
+        country_code=wh.country_code,
         locations=[location_ref(loc) for loc in locs],
         capabilities={
             "manage": Capability(allowed=manage, reason_code=None if manage else "permission_denied")
@@ -182,6 +184,8 @@ def create_warehouse(uow: UnitOfWork, data: WarehouseCreate, *, origin_ref: str 
         branch_id=data.branch_id,
         address=data.address,
         origin_ref=origin_ref,
+        market=data.market,
+        country_code=data.country_code,
     )
     uow.audit(
         "inventory.warehouse.create",

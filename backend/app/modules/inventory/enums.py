@@ -48,6 +48,11 @@ COMPANY_LOCATIONS = (
     LocationType.IN_TRANSIT,
 )
 #: created with every warehouse (code, type, name); STOCK is the default pick/put-away location
+#: the stock categories of one pool (module 4): only ``inventory`` is available to sell
+STOCK_CATEGORIES = ("inventory", "sample", "exhibition")
+#: the category locations every warehouse gets besides STOCK (internal, stock-bearing, never available to sell)
+CATEGORY_LOCATIONS = (("SAMPLE", "Sample stock", "sample"), ("EXHIB", "Exhibition stock", "exhibition"))
+
 WAREHOUSE_LOCATIONS = (
     ("STOCK", LocationType.INTERNAL, "Stock"),
     ("QC", LocationType.QC_HOLD, "QC hold"),

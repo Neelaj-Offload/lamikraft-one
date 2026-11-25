@@ -38,6 +38,36 @@ export const extraRoutes: readonly RouteDefinition[] = [
     requiredPermission: "sales.",
     access: "session",
   },
+  {
+    id: "operations-stock-categories",
+    path: "/operations/inventory/categories",
+    label: "Stock by category",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "inventory.",
+    access: "session",
+  },
+  {
+    id: "operations-factory-orders",
+    path: "/operations/inventory/factory-orders",
+    label: "Factory orders",
+    area: "operations",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "procurement.",
+    access: "session",
+  },
+  {
+    id: "products-new-design",
+    path: "/products/new-design",
+    label: "Add a design",
+    area: "products",
+    navGroup: null,
+    mobileTab: "work",
+    requiredPermission: "catalogue.",
+    access: "session",
+  },
 ];
 
 const compiledExtra = extraRoutes.map((route) => ({ route, pattern: compileRoutePattern(route.path) }));

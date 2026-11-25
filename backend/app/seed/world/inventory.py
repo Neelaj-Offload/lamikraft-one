@@ -74,7 +74,8 @@ def seed_inventory(ctx: SeedContext) -> None:
             )
             wh = documents.create_warehouse(
                 uow,
-                WarehouseCreate(code=keys.WAREHOUSES.MAIN, name="Main Warehouse", branch_id=ho),
+                WarehouseCreate(code=keys.WAREHOUSES.MAIN, name="Main Warehouse", branch_id=ho, market="domestic",
+                                country_code="IN"),
                 origin_ref=WH_REF,
             )
             documents.create_bin(uow, wh.id, BinCreate(code=keys.BINS.A12, name="Bin A-12"))

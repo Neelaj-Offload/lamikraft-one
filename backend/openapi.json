@@ -6424,6 +6424,135 @@
         "title": "CategoryRead",
         "type": "object"
       },
+      "CategoryRow": {
+        "properties": {
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "decor_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decor No"
+          },
+          "design_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Design No"
+          },
+          "exhibition": {
+            "title": "Exhibition",
+            "type": "string"
+          },
+          "inventory": {
+            "title": "Inventory",
+            "type": "string"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "enum": [
+                  "domestic",
+                  "export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market"
+          },
+          "on_order": {
+            "title": "On Order",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "sample": {
+            "title": "Sample",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "string"
+          },
+          "uom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uom"
+          },
+          "warehouse_code": {
+            "title": "Warehouse Code",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "title": "Warehouse Id",
+            "type": "string"
+          },
+          "warehouse_name": {
+            "title": "Warehouse Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_key",
+          "product_name",
+          "design_no",
+          "decor_no",
+          "warehouse_id",
+          "warehouse_code",
+          "warehouse_name",
+          "market",
+          "country_code",
+          "uom",
+          "inventory",
+          "sample",
+          "exhibition",
+          "total",
+          "on_order"
+        ],
+        "title": "CategoryRow",
+        "type": "object"
+      },
       "CauseRef": {
         "properties": {
           "id": {
@@ -17493,6 +17622,95 @@
         "title": "FacetValue",
         "type": "object"
       },
+      "FactoryOrderLine": {
+        "properties": {
+          "expected_date": {
+            "format": "date",
+            "title": "Expected Date",
+            "type": "string"
+          },
+          "order_date": {
+            "format": "date",
+            "title": "Order Date",
+            "type": "string"
+          },
+          "outstanding": {
+            "title": "Outstanding",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "po_number": {
+            "title": "Po Number",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "format": "uuid",
+            "title": "Purchase Order Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "uom_code": {
+            "title": "Uom Code",
+            "type": "string"
+          },
+          "vendor_name": {
+            "title": "Vendor Name",
+            "type": "string"
+          },
+          "vendor_party_id": {
+            "format": "uuid",
+            "title": "Vendor Party Id",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "title": "Warehouse Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purchase_order_id",
+          "po_number",
+          "status",
+          "vendor_party_id",
+          "vendor_name",
+          "warehouse_id",
+          "product_id",
+          "product_key",
+          "product_name",
+          "quantity",
+          "outstanding",
+          "uom_code",
+          "order_date",
+          "expected_date",
+          "path"
+        ],
+        "title": "FactoryOrderLine",
+        "type": "object"
+      },
       "FallbackView": {
         "properties": {
           "error_code": {
@@ -24499,6 +24717,22 @@
             "title": "Name",
             "type": "string"
           },
+          "stock_category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "inventory",
+                  "sample",
+                  "exhibition"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock Category"
+          },
           "warehouse_id": {
             "anyOf": [
               {
@@ -31016,6 +31250,37 @@
         "title": "Page[CandidateRead]",
         "type": "object"
       },
+      "Page_CategoryRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CategoryRow]",
+        "type": "object"
+      },
       "Page_ChallanSummaryRow_": {
         "properties": {
           "items": {
@@ -31231,6 +31496,37 @@
           "offset"
         ],
         "title": "Page[ExportRead]",
+        "type": "object"
+      },
+      "Page_FactoryOrderLine_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FactoryOrderLine"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[FactoryOrderLine]",
         "type": "object"
       },
       "Page_FxRateRead_": {
@@ -39032,6 +39328,17 @@
             ],
             "title": "Description"
           },
+          "design_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Design No"
+          },
           "display_sku": {
             "anyOf": [
               {
@@ -39090,6 +39397,22 @@
               }
             ],
             "title": "Is Stock Tracked"
+          },
+          "item_class": {
+            "anyOf": [
+              {
+                "enum": [
+                  "finished",
+                  "raw_material",
+                  "packaging"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Class"
           },
           "origin": {
             "$ref": "#/components/schemas/ProductOrigin",
@@ -39461,6 +39784,17 @@
             ],
             "title": "Description"
           },
+          "design_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Design No"
+          },
           "dimensions": {
             "items": {
               "$ref": "#/components/schemas/DimensionRead"
@@ -39498,6 +39832,16 @@
               }
             ],
             "title": "Internal Remarks"
+          },
+          "item_class": {
+            "default": "finished",
+            "enum": [
+              "finished",
+              "raw_material",
+              "packaging"
+            ],
+            "title": "Item Class",
+            "type": "string"
           },
           "media_count": {
             "default": 0,
@@ -40749,6 +41093,17 @@
             ],
             "title": "Decor No"
           },
+          "design_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Design No"
+          },
           "display_sku": {
             "title": "Display Sku",
             "type": "string"
@@ -40767,6 +41122,16 @@
           "id": {
             "format": "uuid",
             "title": "Id",
+            "type": "string"
+          },
+          "item_class": {
+            "default": "finished",
+            "enum": [
+              "finished",
+              "raw_material",
+              "packaging"
+            ],
+            "title": "Item Class",
             "type": "string"
           },
           "path": {
@@ -41034,6 +41399,17 @@
             ],
             "title": "Description"
           },
+          "design_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Design No"
+          },
           "display_sku": {
             "anyOf": [
               {
@@ -41096,6 +41472,22 @@
               }
             ],
             "title": "Is Stock Tracked"
+          },
+          "item_class": {
+            "anyOf": [
+              {
+                "enum": [
+                  "finished",
+                  "raw_material",
+                  "packaging"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Class"
           },
           "packaging": {
             "anyOf": [
@@ -58593,6 +58985,261 @@
         "title": "ValidationItem",
         "type": "object"
       },
+      "VariantBuild": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "category_id": {
+            "format": "uuid",
+            "title": "Category Id",
+            "type": "string"
+          },
+          "decors": {
+            "items": {
+              "$ref": "#/components/schemas/VariantDecor"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Decors",
+            "type": "array"
+          },
+          "design_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Design Name",
+            "type": "string"
+          },
+          "design_no": {
+            "title": "Design No",
+            "type": "string"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "item_class": {
+            "default": "finished",
+            "enum": [
+              "finished",
+              "raw_material",
+              "packaging"
+            ],
+            "title": "Item Class",
+            "type": "string"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "sizes": {
+            "items": {
+              "$ref": "#/components/schemas/VariantSize"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Sizes",
+            "type": "array"
+          },
+          "subcategory_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory Id"
+          }
+        },
+        "required": [
+          "design_no",
+          "design_name",
+          "category_id",
+          "decors",
+          "sizes"
+        ],
+        "title": "VariantBuild",
+        "type": "object"
+      },
+      "VariantBuildResult": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "design_no": {
+            "title": "Design No",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/VariantRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "design_no",
+          "created",
+          "skipped",
+          "rows"
+        ],
+        "title": "VariantBuildResult",
+        "type": "object"
+      },
+      "VariantDecor": {
+        "additionalProperties": false,
+        "properties": {
+          "decor_name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decor Name"
+          },
+          "decor_no": {
+            "title": "Decor No",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decor_no"
+        ],
+        "title": "VariantDecor",
+        "type": "object"
+      },
+      "VariantRow": {
+        "properties": {
+          "decor_no": {
+            "title": "Decor No",
+            "type": "string"
+          },
+          "exists": {
+            "title": "Exists",
+            "type": "boolean"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_key": {
+            "title": "Product Key",
+            "type": "string"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "size_code": {
+            "title": "Size Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_key",
+          "product_name",
+          "decor_no",
+          "size_code",
+          "product_id",
+          "exists"
+        ],
+        "title": "VariantRow",
+        "type": "object"
+      },
+      "VariantSize": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 10000.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Mm"
+          },
+          "width_mm": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 10000.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Mm"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "VariantSize",
+        "type": "object"
+      },
       "VendorBillStatus": {
         "enum": [
           "draft",
@@ -59378,6 +60025,33 @@
             "title": "Code",
             "type": "string"
           },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "enum": [
+                  "domestic",
+                  "export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market"
+          },
           "name": {
             "maxLength": 200,
             "minLength": 1,
@@ -59428,6 +60102,17 @@
             "title": "Code",
             "type": "string"
           },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -59443,6 +60128,21 @@
             },
             "title": "Locations",
             "type": "array"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "enum": [
+                  "domestic",
+                  "export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market"
           },
           "name": {
             "title": "Name",
@@ -59484,6 +60184,76 @@
           "name"
         ],
         "title": "WarehouseRef",
+        "type": "object"
+      },
+      "WarehouseUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "market": {
+            "anyOf": [
+              {
+                "enum": [
+                  "domestic",
+                  "export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "WarehouseUpdate",
         "type": "object"
       },
       "WipLine": {
@@ -63571,6 +64341,46 @@
             }
           },
           {
+            "description": "design number, e.g. CB07",
+            "in": "query",
+            "name": "design",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "design number, e.g. CB07",
+              "title": "Design"
+            }
+          },
+          {
+            "in": "query",
+            "name": "item_class",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "finished",
+                    "raw_material",
+                    "packaging"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item Class"
+            }
+          },
+          {
             "description": "length x width, e.g. 450x300 (mm)",
             "in": "query",
             "name": "size",
@@ -63945,6 +64755,46 @@
             }
           },
           {
+            "description": "design number, e.g. CB07",
+            "in": "query",
+            "name": "design",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "design number, e.g. CB07",
+              "title": "Design"
+            }
+          },
+          {
+            "in": "query",
+            "name": "item_class",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "finished",
+                    "raw_material",
+                    "packaging"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item Class"
+            }
+          },
+          {
             "description": "length x width, e.g. 450x300 (mm)",
             "in": "query",
             "name": "size",
@@ -64224,6 +65074,46 @@
               ],
               "description": "variant group",
               "title": "Family"
+            }
+          },
+          {
+            "description": "design number, e.g. CB07",
+            "in": "query",
+            "name": "design",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "design number, e.g. CB07",
+              "title": "Design"
+            }
+          },
+          {
+            "in": "query",
+            "name": "item_class",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "finished",
+                    "raw_material",
+                    "packaging"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item Class"
             }
           },
           {
@@ -64581,6 +65471,54 @@
           "kind": "permission",
           "permissions": [
             "catalogue.product.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/catalogue/products/variants": {
+      "post": {
+        "description": "One design, its decors and sizes: one product per decor x size (``dry_run`` previews; existing keys skip).",
+        "operationId": "catalogue_build_product_variants",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VariantBuild"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariantBuildResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Build Product Variants",
+        "tags": [
+          "catalogue"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "catalogue.product.create"
           ]
         }
       }
@@ -78535,6 +79473,268 @@
         }
       }
     },
+    "/api/v1/inventory/stock-by-category": {
+      "get": {
+        "description": "Finished goods per product and warehouse: inventory, sample and exhibition stock, and what is on order.",
+        "operationId": "inventory_list_stock_by_category",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "warehouse_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Warehouse Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "market",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "domestic",
+                    "export"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Market"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "inventory",
+                    "sample",
+                    "exhibition"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "design",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Design"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_all_classes",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include All Classes",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CategoryRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Stock By Category",
+        "tags": [
+          "inventory"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "inventory.stock.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/inventory/stock-by-category/totals": {
+      "get": {
+        "operationId": "inventory_stock_category_totals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "warehouse_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Warehouse Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "market",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "domestic",
+                    "export"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Market"
+            }
+          },
+          {
+            "in": "query",
+            "name": "design",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Design"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Inventory Stock Category Totals",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stock Category Totals",
+        "tags": [
+          "inventory"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "inventory.stock.read"
+          ]
+        }
+      }
+    },
     "/api/v1/inventory/stock-counts": {
       "post": {
         "operationId": "inventory_create_stock_count",
@@ -79303,6 +80503,66 @@
           }
         },
         "summary": "Create Warehouse",
+        "tags": [
+          "inventory"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "inventory.warehouse.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/inventory/warehouses/{warehouse_id}": {
+      "patch": {
+        "description": "Rename a warehouse or set its market (domestic, export) and country.",
+        "operationId": "inventory_update_warehouse",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "warehouse_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Warehouse Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Warehouse",
         "tags": [
           "inventory"
         ],
@@ -85281,6 +86541,86 @@
           "kind": "permission",
           "permissions": [
             "pricing.price.read"
+          ]
+        }
+      }
+    },
+    "/api/v1/procurement/factory-orders": {
+      "get": {
+        "description": "Open purchase-order lines for finished products: what the factories still have to deliver.",
+        "operationId": "procurement_list_factory_orders",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_FactoryOrderLine_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Factory Orders",
+        "tags": [
+          "procurement"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "procurement.purchase_order.read"
           ]
         }
       }

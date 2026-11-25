@@ -90,12 +90,17 @@ class Warehouse(TenantEntity, VersionMixin, BranchMixin, Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    #: domestic or export stock (module 4); NULL for warehouses not yet classified
+    market: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
     #: provenance key for idempotent seeds (``seed:WH-MAIN``)
     origin_ref: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("company_id", "code", name="uq_inventory_warehouse_code"),
         CheckConstraint("code ~ '^[A-Z0-9][A-Z0-9-]{0,19}$'", name="code_format"),
+        CheckConstraint("market IS NULL OR market IN ('domestic', 'export')", name="market_values"),
+        CheckConstraint("country_code IS NULL OR country_code ~ '^[A-Z]{2}$'", name="country_code_format"),
         CheckConstraint("btrim(name) <> ''", name="name_not_blank"),
     )
 
@@ -125,6 +130,8 @@ class Location(TenantEntity, Base):
     #: the warehouse's default internal location (picking and put-away when no bin is named)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    #: inventory / sample / exhibition (module 4): one stock pool split by category; NULL for non-stock locations
+    stock_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -160,6 +167,13 @@ class Location(TenantEntity, Base):
         ),
         CheckConstraint("NOT is_default OR location_type = 'internal'", name="default_is_internal"),
         CheckConstraint("NOT counts_available OR is_stock_bearing", name="available_is_stock_bearing"),
+        CheckConstraint(
+            "stock_category IS NULL OR stock_category IN ('inventory', 'sample', 'exhibition')", name="stock_category_values"
+        ),
+        CheckConstraint(
+            "stock_category IS NULL OR (location_type = 'internal' AND warehouse_id IS NOT NULL)",
+            name="stock_category_internal",
+        ),
         CheckConstraint("parent_id IS NULL OR parent_id <> id", name="parent_not_self"),
     )
 

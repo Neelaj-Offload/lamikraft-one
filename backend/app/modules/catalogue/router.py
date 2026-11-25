@@ -29,6 +29,7 @@ from app.modules.catalogue.schemas import (
     ProductUpdate,
     ProductWriteResult,
 )
+from app.modules.catalogue.variants import VariantBuild, VariantBuildResult, build_variants
 from app.platform.uow import UnitOfWork
 
 PriceTypeFilter = Literal["domestic", "export", "sample", "distributor"]
@@ -55,6 +56,8 @@ def _filters(
     category_id: uuid.UUID | None = None,
     subcategory_id: uuid.UUID | None = None,
     family: Annotated[str | None, Query(max_length=200, description="variant group")] = None,
+    design: Annotated[str | None, Query(max_length=20, description="design number, e.g. CB07")] = None,
+    item_class: Literal["finished", "raw_material", "packaging"] | None = None,
     size: Annotated[str | None, Query(max_length=60, description="length x width, e.g. 450x300 (mm)")] = None,
     thickness: Annotated[str | None, Query(max_length=20, description="millimetres; 0.8 equals 0.80")] = None,
     decor: Annotated[str | None, Query(max_length=40, description="decor number as text; 0120 differs from 120")] = None,
@@ -71,6 +74,8 @@ def _filters(
         category_id=category_id,
         subcategory_id=subcategory_id,
         family=family,
+        design=design,
+        item_class=item_class,
         size=size,
         thickness=thickness,
         decor=decor,
@@ -157,6 +162,13 @@ def create_product(
     if replayed:
         response.headers[REPLAYED] = "true"
     return result
+
+
+@router.post("/products/variants", openapi_extra=requires("catalogue.product.create"))
+def build_product_variants(actor: Actor, body: VariantBuild) -> VariantBuildResult:
+    """One design, its decors and sizes: one product per decor x size (``dry_run`` previews; existing keys skip)."""
+    with UnitOfWork(actor) as uow:
+        return build_variants(uow, body)
 
 
 @router.get("/products/lookup", openapi_extra=READ)

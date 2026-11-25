@@ -91,6 +91,7 @@ def location_ref(loc: Location) -> LocationRef:
         name=loc.name,
         location_type=LocationType(loc.location_type),
         warehouse_id=loc.warehouse_id,
+        stock_category=loc.stock_category,  # type: ignore[arg-type]
     )
 
 

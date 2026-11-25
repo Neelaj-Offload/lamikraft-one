@@ -817,6 +817,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalogue/products/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Build Product Variants
+         * @description One design, its decors and sizes: one product per decor x size (``dry_run`` previews; existing keys skip).
+         */
+        post: operations["catalogue_build_product_variants"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalogue/products/{product_id}": {
         parameters: {
             query?: never;
@@ -4386,6 +4406,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/stock-by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Stock By Category
+         * @description Finished goods per product and warehouse: inventory, sample and exhibition stock, and what is on order.
+         */
+        get: operations["inventory_list_stock_by_category"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-by-category/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock Category Totals */
+        get: operations["inventory_stock_category_totals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory/stock-counts": {
         parameters: {
             query?: never;
@@ -4587,6 +4644,26 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/warehouses/{warehouse_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Warehouse
+         * @description Rename a warehouse or set its market (domestic, export) and country.
+         */
+        patch: operations["inventory_update_warehouse"];
         trace?: never;
     };
     "/api/v1/inventory/warehouses/{warehouse_id}/bins": {
@@ -5927,6 +6004,26 @@ export interface paths {
         };
         /** List Product Prices */
         get: operations["pricing_list_product_prices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procurement/factory-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Factory Orders
+         * @description Open purchase-order lines for finished products: what the factories still have to deliver.
+         */
+        get: operations["procurement_list_factory_orders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10943,6 +11040,47 @@ export interface components {
              */
             version: number;
         };
+        /** CategoryRow */
+        CategoryRow: {
+            /** Country Code */
+            country_code: string | null;
+            /** Decor No */
+            decor_no: string | null;
+            /** Design No */
+            design_no: string | null;
+            /** Exhibition */
+            exhibition: string;
+            /** Inventory */
+            inventory: string;
+            /** Market */
+            market: ("domestic" | "export") | null;
+            /** On Order */
+            on_order: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Key */
+            product_key: string;
+            /** Product Name */
+            product_name: string;
+            /** Sample */
+            sample: string;
+            /** Total */
+            total: string;
+            /** Uom */
+            uom: string | null;
+            /** Warehouse Code */
+            warehouse_code: string;
+            /**
+             * Warehouse Id
+             * Format: uuid
+             */
+            warehouse_id: string;
+            /** Warehouse Name */
+            warehouse_name: string;
+        };
         /** CauseRef */
         CauseRef: {
             /**
@@ -14210,6 +14348,57 @@ export interface components {
             /** Value */
             value: string;
         };
+        /** FactoryOrderLine */
+        FactoryOrderLine: {
+            /**
+             * Expected Date
+             * Format: date
+             */
+            expected_date: string;
+            /**
+             * Order Date
+             * Format: date
+             */
+            order_date: string;
+            /** Outstanding */
+            outstanding: string;
+            /** Path */
+            path: string;
+            /** Po Number */
+            po_number: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Key */
+            product_key: string;
+            /** Product Name */
+            product_name: string;
+            /**
+             * Purchase Order Id
+             * Format: uuid
+             */
+            purchase_order_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Status */
+            status: string;
+            /** Uom Code */
+            uom_code: string;
+            /** Vendor Name */
+            vendor_name: string;
+            /**
+             * Vendor Party Id
+             * Format: uuid
+             */
+            vendor_party_id: string;
+            /**
+             * Warehouse Id
+             * Format: uuid
+             */
+            warehouse_id: string;
+        };
         /** FallbackView */
         FallbackView: {
             /** Error Code */
@@ -16608,6 +16797,8 @@ export interface components {
             location_type: components["schemas"]["LocationType"];
             /** Name */
             name: string;
+            /** Stock Category */
+            stock_category?: ("inventory" | "sample" | "exhibition") | null;
             /** Warehouse Id */
             warehouse_id: string | null;
         };
@@ -18722,6 +18913,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[CategoryRow] */
+        Page_CategoryRow_: {
+            /** Items */
+            items: components["schemas"]["CategoryRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** Page[ChallanSummaryRow] */
         Page_ChallanSummaryRow_: {
             /** Items */
@@ -18792,6 +18994,17 @@ export interface components {
         Page_ExportRead_: {
             /** Items */
             items: components["schemas"]["ExportRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[FactoryOrderLine] */
+        Page_FactoryOrderLine_: {
+            /** Items */
+            items: components["schemas"]["FactoryOrderLine"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -21232,6 +21445,8 @@ export interface components {
             decor_primary?: string | null;
             /** Description */
             description?: string | null;
+            /** Design No */
+            design_no?: string | null;
             /** Display Sku */
             display_sku?: string | null;
             /** Finish */
@@ -21242,6 +21457,8 @@ export interface components {
             internal_remarks?: string | null;
             /** Is Stock Tracked */
             is_stock_tracked?: boolean | null;
+            /** Item Class */
+            item_class?: ("finished" | "raw_material" | "packaging") | null;
             /** @default ui */
             origin: components["schemas"]["ProductOrigin"];
             /** Origin Ref */
@@ -21312,6 +21529,8 @@ export interface components {
             decor: components["schemas"]["DecorRead"];
             /** Description */
             description: string | null;
+            /** Design No */
+            design_no?: string | null;
             /** Dimensions */
             dimensions: components["schemas"]["DimensionRead"][];
             /** Display Sku */
@@ -21325,6 +21544,12 @@ export interface components {
             id: string;
             /** Internal Remarks */
             internal_remarks: string | null;
+            /**
+             * Item Class
+             * @default finished
+             * @enum {string}
+             */
+            item_class: "finished" | "raw_material" | "packaging";
             /**
              * Media Count
              * @default 0
@@ -21654,6 +21879,8 @@ export interface components {
             decor_name: string | null;
             /** Decor No */
             decor_no: string | null;
+            /** Design No */
+            design_no?: string | null;
             /** Display Sku */
             display_sku: string;
             /** Finish */
@@ -21663,6 +21890,12 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Item Class
+             * @default finished
+             * @enum {string}
+             */
+            item_class: "finished" | "raw_material" | "packaging";
             /** Path */
             path: string;
             /** Prices */
@@ -21717,6 +21950,8 @@ export interface components {
             decor_primary?: string | null;
             /** Description */
             description?: string | null;
+            /** Design No */
+            design_no?: string | null;
             /** Display Sku */
             display_sku?: string | null;
             /** Expected Version */
@@ -21729,6 +21964,8 @@ export interface components {
             internal_remarks?: string | null;
             /** Is Stock Tracked */
             is_stock_tracked?: boolean | null;
+            /** Item Class */
+            item_class?: ("finished" | "raw_material" | "packaging") | null;
             packaging?: components["schemas"]["PackagingIn"] | null;
             /** Product Name */
             product_name?: string | null;
@@ -27187,6 +27424,83 @@ export interface components {
             /** Value */
             value?: string | null;
         };
+        /** VariantBuild */
+        VariantBuild: {
+            /** Brand */
+            brand?: string | null;
+            /**
+             * Category Id
+             * Format: uuid
+             */
+            category_id: string;
+            /** Decors */
+            decors: components["schemas"]["VariantDecor"][];
+            /** Design Name */
+            design_name: string;
+            /** Design No */
+            design_no: string;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Item Class
+             * @default finished
+             * @enum {string}
+             */
+            item_class: "finished" | "raw_material" | "packaging";
+            /** Product Type */
+            product_type?: string | null;
+            /** Sizes */
+            sizes: components["schemas"]["VariantSize"][];
+            /** Subcategory Id */
+            subcategory_id?: string | null;
+        };
+        /** VariantBuildResult */
+        VariantBuildResult: {
+            /** Created */
+            created: number;
+            /** Design No */
+            design_no: string;
+            /** Rows */
+            rows: components["schemas"]["VariantRow"][];
+            /** Skipped */
+            skipped: number;
+        };
+        /** VariantDecor */
+        VariantDecor: {
+            /** Decor Name */
+            decor_name?: string | null;
+            /** Decor No */
+            decor_no: string;
+        };
+        /** VariantRow */
+        VariantRow: {
+            /** Decor No */
+            decor_no: string;
+            /** Exists */
+            exists: boolean;
+            /** Product Id */
+            product_id: string | null;
+            /** Product Key */
+            product_key: string;
+            /** Product Name */
+            product_name: string;
+            /** Size Code */
+            size_code: string;
+        };
+        /** VariantSize */
+        VariantSize: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Length Mm */
+            length_mm?: number | string | null;
+            /** Width Mm */
+            width_mm?: number | string | null;
+        };
         /**
          * VendorBillStatus
          * @enum {string}
@@ -27443,6 +27757,10 @@ export interface components {
             branch_id?: string | null;
             /** Code */
             code: string;
+            /** Country Code */
+            country_code?: string | null;
+            /** Market */
+            market?: ("domestic" | "export") | null;
             /** Name */
             name: string;
         };
@@ -27458,6 +27776,8 @@ export interface components {
             };
             /** Code */
             code: string;
+            /** Country Code */
+            country_code?: string | null;
             /**
              * Id
              * Format: uuid
@@ -27467,6 +27787,8 @@ export interface components {
             is_active: boolean;
             /** Locations */
             locations: components["schemas"]["LocationRef"][];
+            /** Market */
+            market?: ("domestic" | "export") | null;
             /** Name */
             name: string;
         };
@@ -27481,6 +27803,19 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** WarehouseUpdate */
+        WarehouseUpdate: {
+            /** Address */
+            address?: string | null;
+            /** Country Code */
+            country_code?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Market */
+            market?: ("domestic" | "export") | null;
+            /** Name */
+            name?: string | null;
         };
         /** WipLine */
         WipLine: {
@@ -29255,6 +29590,9 @@ export interface operations {
                 subcategory_id?: string | null;
                 /** @description variant group */
                 family?: string | null;
+                /** @description design number, e.g. CB07 */
+                design?: string | null;
+                item_class?: ("finished" | "raw_material" | "packaging") | null;
                 /** @description length x width, e.g. 450x300 (mm) */
                 size?: string | null;
                 /** @description millimetres; 0.8 equals 0.80 */
@@ -29360,6 +29698,9 @@ export interface operations {
                 subcategory_id?: string | null;
                 /** @description variant group */
                 family?: string | null;
+                /** @description design number, e.g. CB07 */
+                design?: string | null;
+                item_class?: ("finished" | "raw_material" | "packaging") | null;
                 /** @description length x width, e.g. 450x300 (mm) */
                 size?: string | null;
                 /** @description millimetres; 0.8 equals 0.80 */
@@ -29410,6 +29751,9 @@ export interface operations {
                 subcategory_id?: string | null;
                 /** @description variant group */
                 family?: string | null;
+                /** @description design number, e.g. CB07 */
+                design?: string | null;
+                item_class?: ("finished" | "raw_material" | "packaging") | null;
                 /** @description length x width, e.g. 450x300 (mm) */
                 size?: string | null;
                 /** @description millimetres; 0.8 equals 0.80 */
@@ -29532,6 +29876,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductStats"];
+                };
+            };
+        };
+    };
+    catalogue_build_product_variants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VariantBuild"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VariantBuildResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -36965,6 +37342,79 @@ export interface operations {
             };
         };
     };
+    inventory_list_stock_by_category: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                warehouse_id?: string | null;
+                market?: ("domestic" | "export") | null;
+                category?: ("inventory" | "sample" | "exhibition") | null;
+                design?: string | null;
+                include_all_classes?: boolean;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CategoryRow_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inventory_stock_category_totals: {
+        parameters: {
+            query?: {
+                warehouse_id?: string | null;
+                market?: ("domestic" | "export") | null;
+                design?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     inventory_create_stock_count: {
         parameters: {
             query?: never;
@@ -37352,6 +37802,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarehouseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inventory_update_warehouse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                warehouse_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -40206,6 +40691,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductPrices"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    procurement_list_factory_orders: {
+        parameters: {
+            query?: {
+                product_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_FactoryOrderLine_"];
                 };
             };
             /** @description Validation Error */

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import type { ReactNode } from "react";
 import type { Schemas } from "./types";
 import { asRoute } from "~/data/stock";
@@ -14,7 +15,7 @@ import { locationType } from "./labels";
  * The three ledgers of stock sit side by side: what is on hand, what moved, and the counts that
  * check both. Only "Stock" is in the left menu, so this row is how the other two are reached.
  */
-export function StockViews({ current }: { current: "stock" | "movements" | "stock-takes" }) {
+export function StockViews({ current }: { current: "stock" | "categories" | "factory-orders" | "movements" | "stock-takes" }) {
   return (
     <SegmentedLinks
       label="Stock views"
@@ -23,6 +24,8 @@ export function StockViews({ current }: { current: "stock" | "movements" | "stoc
       className="self-start"
       options={[
         { value: "stock", label: "On hand", href: "/operations/inventory" },
+        { value: "categories", label: "By category", href: "/operations/inventory/categories" as Route },
+        { value: "factory-orders", label: "Factory orders", href: "/operations/inventory/factory-orders" as Route },
         { value: "movements", label: "Movements", href: "/operations/inventory/movements" },
         { value: "stock-takes", label: "Stock takes", href: "/operations/inventory/stock-takes" },
       ]}
