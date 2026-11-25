@@ -35,7 +35,9 @@ For `test:e2e` and any `next build` on this machine set `LK_NEXT_BUILD_CPUS=2` a
 
 ## Hard rules
 
-1. **Never push** (there is no remote), never rewrite history, never force-reset a branch that has commits you did not make.
+1. **Push only `main` to `origin`** (the owner's private GitHub repo `Neelaj-Offload/lamikraft-one`, approved 2026-11-25 for
+   hosting), and only verified checkpoints. Never force-push, never push lane branches, never rewrite history, never
+   force-reset a branch that has commits you did not make.
 2. **Never run two test suites at once** on this machine (same DB server, limited RAM). Only one `test:e2e` at a time
    (guarded by `~/.lamikraft-dev/e2e.lock`). Never leave dev servers or test runs running when you finish.
 3. **Use `127.0.0.1`, never `localhost`.** CSRF/Origin checks compare against `LK_PUBLIC_ORIGIN`. The main checkout
