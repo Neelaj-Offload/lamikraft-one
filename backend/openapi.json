@@ -1018,6 +1018,69 @@
         "title": "ActionView",
         "type": "object"
       },
+      "ActivityCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ActivityKind"
+          },
+          "next_follow_up_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up On"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ActivityCreate",
+        "type": "object"
+      },
       "ActivityItem": {
         "properties": {
           "actor_name": {
@@ -1120,16 +1183,49 @@
         "title": "ActivityItem",
         "type": "object"
       },
-      "ActivityPage": {
+      "ActivityKind": {
+        "enum": [
+          "call",
+          "email",
+          "whatsapp",
+          "meeting",
+          "visit",
+          "note"
+        ],
+        "title": "ActivityKind",
+        "type": "string"
+      },
+      "ActivityRead": {
         "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ActivityItem"
-            },
-            "title": "Items",
-            "type": "array"
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
           },
-          "next_cursor": {
+          "created_by": {
+            "$ref": "#/components/schemas/app__modules__parties__schemas__UserRef"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ActivityKind"
+          },
+          "next_follow_up_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up On"
+          },
+          "notes": {
             "anyOf": [
               {
                 "type": "string"
@@ -1138,14 +1234,42 @@
                 "type": "null"
               }
             ],
-            "title": "Next Cursor"
+            "title": "Notes"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
           }
         },
         "required": [
-          "items",
-          "next_cursor"
+          "id",
+          "party_id",
+          "kind",
+          "occurred_at",
+          "outcome",
+          "notes",
+          "next_follow_up_on",
+          "created_by",
+          "created_at"
         ],
-        "title": "ActivityPage",
+        "title": "ActivityRead",
         "type": "object"
       },
       "AdapterInfo": {
@@ -11098,6 +11222,29 @@
         "title": "CountRead",
         "type": "object"
       },
+      "CountRow": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count"
+        ],
+        "title": "CountRow",
+        "type": "object"
+      },
       "CountStatus": {
         "enum": [
           "draft",
@@ -20535,6 +20682,16 @@
         "title": "IntegrationRead",
         "type": "object"
       },
+      "Interest": {
+        "enum": [
+          "lamikraft",
+          "table_top",
+          "standard_decorative",
+          "standard_compact"
+        ],
+        "title": "Interest",
+        "type": "string"
+      },
       "InventoryEffect": {
         "enum": [
           "none",
@@ -23306,6 +23463,315 @@
           "items"
         ],
         "title": "LastSuccessfulView",
+        "type": "object"
+      },
+      "LeadSourceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "default": 0,
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "LeadSourceCreate",
+        "type": "object"
+      },
+      "LeadSourceRead": {
+        "properties": {
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_system": {
+            "title": "Is System",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lead_count": {
+            "title": "Lead Count",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "label",
+          "description",
+          "display_order",
+          "is_active",
+          "is_system",
+          "lead_count",
+          "version",
+          "capabilities"
+        ],
+        "title": "LeadSourceRead",
+        "type": "object"
+      },
+      "LeadSourceRef": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "LeadSourceRef",
+        "type": "object"
+      },
+      "LeadSourceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "LeadSourceUpdate",
+        "type": "object"
+      },
+      "LeadStage": {
+        "enum": [
+          "new",
+          "contacted",
+          "qualified",
+          "negotiating",
+          "won",
+          "lost"
+        ],
+        "title": "LeadStage",
+        "type": "string"
+      },
+      "LeadStageChange": {
+        "additionalProperties": false,
+        "description": "Move a lead through the pipeline. ``lost`` needs a reason; ``won`` makes the lead a customer and is final.",
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "lost_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LeadStage"
+          }
+        },
+        "required": [
+          "expected_version",
+          "stage"
+        ],
+        "title": "LeadStageChange",
+        "type": "object"
+      },
+      "LeadSummary": {
+        "description": "Lead numbers in the caller's read scope; ``conversion_rate`` is won / all leads as a percentage string.",
+        "properties": {
+          "by_owner": {
+            "items": {
+              "$ref": "#/components/schemas/CountRow"
+            },
+            "title": "By Owner",
+            "type": "array"
+          },
+          "by_source": {
+            "items": {
+              "$ref": "#/components/schemas/CountRow"
+            },
+            "title": "By Source",
+            "type": "array"
+          },
+          "by_stage": {
+            "items": {
+              "$ref": "#/components/schemas/CountRow"
+            },
+            "title": "By Stage",
+            "type": "array"
+          },
+          "conversion_rate": {
+            "title": "Conversion Rate",
+            "type": "string"
+          },
+          "follow_ups_overdue": {
+            "title": "Follow Ups Overdue",
+            "type": "integer"
+          },
+          "follow_ups_today": {
+            "title": "Follow Ups Today",
+            "type": "integer"
+          },
+          "lost": {
+            "title": "Lost",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "won": {
+            "title": "Won",
+            "type": "integer"
+          },
+          "won_this_month": {
+            "title": "Won This Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "open",
+          "won",
+          "lost",
+          "won_this_month",
+          "conversion_rate",
+          "follow_ups_overdue",
+          "follow_ups_today",
+          "by_stage",
+          "by_source",
+          "by_owner"
+        ],
+        "title": "LeadSummary",
         "type": "object"
       },
       "LineDiff": {
@@ -31716,6 +32182,37 @@
             ],
             "title": "Display Name"
           },
+          "first_contact_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Contact On"
+          },
+          "interests": {
+            "items": {
+              "$ref": "#/components/schemas/Interest"
+            },
+            "maxItems": 4,
+            "title": "Interests",
+            "type": "array"
+          },
+          "lead_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Source"
+          },
           "legal_name": {
             "maxLength": 200,
             "minLength": 1,
@@ -31733,6 +32230,28 @@
               }
             ],
             "title": "Owner User Id"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
           },
           "roles": {
             "items": {
@@ -31753,6 +32272,29 @@
             "maxItems": 20,
             "title": "Tax Identifiers",
             "type": "array"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Temperature"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "website": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
           }
         },
         "required": [
@@ -31849,14 +32391,76 @@
             "title": "Display Name",
             "type": "string"
           },
+          "first_contact_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Contact On"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
+          "interests": {
+            "items": {
+              "$ref": "#/components/schemas/Interest"
+            },
+            "title": "Interests",
+            "type": "array"
+          },
+          "lead_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadSourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lead_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "legal_name": {
             "title": "Legal Name",
             "type": "string"
+          },
+          "lost_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Reason"
+          },
+          "next_follow_up_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up On"
           },
           "owner": {
             "$ref": "#/components/schemas/app__modules__parties__schemas__UserRef"
@@ -31880,6 +32484,27 @@
             ],
             "title": "Primary Contact"
           },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
+          },
           "roles": {
             "items": {
               "$ref": "#/components/schemas/PartyRole"
@@ -31897,6 +32522,16 @@
             "title": "Tax Identifiers",
             "type": "array"
           },
+          "temperature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Temperature"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -31905,6 +32540,17 @@
           "version": {
             "title": "Version",
             "type": "integer"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
           }
         },
         "required": [
@@ -32178,9 +32824,48 @@
             "title": "Id",
             "type": "string"
           },
+          "interests": {
+            "items": {
+              "$ref": "#/components/schemas/Interest"
+            },
+            "title": "Interests",
+            "type": "array"
+          },
+          "lead_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadSourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lead_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "legal_name": {
             "title": "Legal Name",
             "type": "string"
+          },
+          "next_follow_up_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Follow Up On"
           },
           "owner": {
             "$ref": "#/components/schemas/app__modules__parties__schemas__UserRef"
@@ -32204,6 +32889,16 @@
             ],
             "title": "Primary Contact"
           },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "roles": {
             "items": {
               "$ref": "#/components/schemas/PartyRole"
@@ -32213,6 +32908,16 @@
           },
           "status": {
             "$ref": "#/components/schemas/PartyStatus"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Temperature"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "updated_at": {
             "format": "date-time",
@@ -32344,6 +33049,44 @@
             "title": "Expected Version",
             "type": "integer"
           },
+          "first_contact_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Contact On"
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Interest"
+                },
+                "maxItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interests"
+          },
+          "lead_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Source"
+          },
           "legal_name": {
             "anyOf": [
               {
@@ -32356,6 +33099,28 @@
               }
             ],
             "title": "Legal Name"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
           },
           "roles": {
             "anyOf": [
@@ -32396,6 +33161,29 @@
               }
             ],
             "title": "Tax Identifiers"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Temperature"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "website": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
           }
         },
         "required": [
@@ -37774,6 +38562,15 @@
           "distributor"
         ],
         "title": "PriceType",
+        "type": "string"
+      },
+      "Priority": {
+        "enum": [
+          "A",
+          "B",
+          "C"
+        ],
+        "title": "Priority",
         "type": "string"
       },
       "ProductBrief": {
@@ -54956,6 +55753,15 @@
         "title": "TeamRef",
         "type": "object"
       },
+      "Temperature": {
+        "enum": [
+          "hot",
+          "warm",
+          "cold"
+        ],
+        "title": "Temperature",
+        "type": "string"
+      },
       "TemplateRead": {
         "properties": {
           "category": {
@@ -59249,6 +60055,34 @@
         "title": "ArchiveRequest",
         "type": "object"
       },
+      "app__modules__parties__schemas__ActivityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ActivityPage",
+        "type": "object"
+      },
       "app__modules__parties__schemas__UserRef": {
         "properties": {
           "display_name": {
@@ -59385,6 +60219,34 @@
           "display_name"
         ],
         "title": "UserRef",
+        "type": "object"
+      },
+      "app__platform__collab__schemas__ActivityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ActivityPage",
         "type": "object"
       },
       "app__platform__identity__schemas__UserRef": {
@@ -65955,7 +66817,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActivityPage"
+                  "$ref": "#/components/schemas/app__platform__collab__schemas__ActivityPage"
                 }
               }
             },
@@ -80819,6 +81681,164 @@
         }
       }
     },
+    "/api/v1/parties/lead-sources": {
+      "get": {
+        "description": "Where leads come from (website, trade shows, visiting cards), with live lead counts.",
+        "operationId": "parties_list_lead_sources",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LeadSourceRead"
+                  },
+                  "title": "Response Parties List Lead Sources",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Lead Sources",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.party.read"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "parties_create_lead_source",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadSourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadSourceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Lead Source",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.lead_source.manage"
+          ]
+        }
+      }
+    },
+    "/api/v1/parties/lead-sources/{lead_source_id}": {
+      "patch": {
+        "operationId": "parties_update_lead_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lead Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadSourceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadSourceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Lead Source",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.lead_source.manage"
+          ]
+        }
+      }
+    },
     "/api/v1/parties/parties": {
       "get": {
         "description": "Parties within the actor's scope (own, team, branch or company); filters apply before pagination.",
@@ -80963,6 +81983,126 @@
               "title": "Include Archived",
               "type": "boolean"
             }
+          },
+          {
+            "in": "query",
+            "name": "lead_stage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/LeadStage"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lead Stage"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lead_source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_]{1,19}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lead Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interest",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Interest"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Interest"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Priority"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "in": "query",
+            "name": "temperature",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Temperature"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Temperature"
+            }
+          },
+          {
+            "in": "query",
+            "name": "follow_up",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "overdue",
+                    "today",
+                    "week"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Follow Up"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "name",
+              "enum": [
+                "name",
+                "follow_up",
+                "recent"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -81060,6 +82200,34 @@
           "kind": "permission",
           "permissions": [
             "parties.party.create"
+          ]
+        }
+      }
+    },
+    "/api/v1/parties/parties/lead-summary": {
+      "get": {
+        "description": "Pipeline numbers (by stage, source, owner; follow-ups due) over the leads the caller may read.",
+        "operationId": "parties_get_lead_summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Lead Summary",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.party.read"
           ]
         }
       }
@@ -81237,6 +82405,143 @@
         }
       }
     },
+    "/api/v1/parties/parties/{party_id}/activities": {
+      "get": {
+        "description": "The activity log, newest first.",
+        "operationId": "parties_list_activities",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__modules__parties__schemas__ActivityPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Activities",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.party.read"
+          ]
+        }
+      },
+      "post": {
+        "description": "Log a call, email, WhatsApp, meeting, visit or note; ``next_follow_up_on`` sets the owner's next task.",
+        "operationId": "parties_log_activity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Log Activity",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.activity.create"
+          ]
+        }
+      }
+    },
     "/api/v1/parties/parties/{party_id}/archive": {
       "post": {
         "description": "Archive a party (hidden from pickers and lists by default; quotes keep their snapshot).",
@@ -81293,6 +82598,66 @@
           "kind": "permission",
           "permissions": [
             "parties.party.archive"
+          ]
+        }
+      }
+    },
+    "/api/v1/parties/parties/{party_id}/lead-stage": {
+      "post": {
+        "description": "Move a lead through the pipeline; ``lost`` needs ``lost_reason``; ``won`` makes it a customer (final).",
+        "operationId": "parties_change_lead_stage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadStageChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Lead Stage",
+        "tags": [
+          "parties"
+        ],
+        "x-authz": {
+          "kind": "permission",
+          "permissions": [
+            "parties.party.update"
           ]
         }
       }

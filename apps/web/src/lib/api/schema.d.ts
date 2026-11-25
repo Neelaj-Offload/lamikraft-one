@@ -5360,6 +5360,44 @@ export interface paths {
         patch: operations["parties_update_customer_type"];
         trace?: never;
     };
+    "/api/v1/parties/lead-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Lead Sources
+         * @description Where leads come from (website, trade shows, visiting cards), with live lead counts.
+         */
+        get: operations["parties_list_lead_sources"];
+        put?: never;
+        /** Create Lead Source */
+        post: operations["parties_create_lead_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parties/lead-sources/{lead_source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Lead Source */
+        patch: operations["parties_update_lead_source"];
+        trace?: never;
+    };
     "/api/v1/parties/parties": {
         parameters: {
             query?: never;
@@ -5378,6 +5416,26 @@ export interface paths {
          * @description Create a party; the number ``P-NNNNN`` is allocated atomically and never reused.
          */
         post: operations["parties_create_party"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parties/parties/lead-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Lead Summary
+         * @description Pipeline numbers (by stage, source, owner; follow-ups due) over the leads the caller may read.
+         */
+        get: operations["parties_get_lead_summary"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5422,6 +5480,30 @@ export interface paths {
         patch: operations["parties_update_party"];
         trace?: never;
     };
+    "/api/v1/parties/parties/{party_id}/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Activities
+         * @description The activity log, newest first.
+         */
+        get: operations["parties_list_activities"];
+        put?: never;
+        /**
+         * Log Activity
+         * @description Log a call, email, WhatsApp, meeting, visit or note; ``next_follow_up_on`` sets the owner's next task.
+         */
+        post: operations["parties_log_activity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parties/parties/{party_id}/archive": {
         parameters: {
             query?: never;
@@ -5436,6 +5518,26 @@ export interface paths {
          * @description Archive a party (hidden from pickers and lists by default; quotes keep their snapshot).
          */
         post: operations["parties_archive_party"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parties/parties/{party_id}/lead-stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Lead Stage
+         * @description Move a lead through the pipeline; ``lost`` needs ``lost_reason``; ``won`` makes it a customer (final).
+         */
+        post: operations["parties_change_lead_stage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8823,6 +8925,18 @@ export interface components {
              */
             via: string;
         };
+        /** ActivityCreate */
+        ActivityCreate: {
+            kind: components["schemas"]["ActivityKind"];
+            /** Next Follow Up On */
+            next_follow_up_on?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Outcome */
+            outcome?: string | null;
+        };
         /** ActivityItem */
         ActivityItem: {
             /** Actor Name */
@@ -8856,12 +8970,41 @@ export interface components {
             /** Verb */
             verb: string;
         };
-        /** ActivityPage */
-        ActivityPage: {
-            /** Items */
-            items: components["schemas"]["ActivityItem"][];
-            /** Next Cursor */
-            next_cursor: string | null;
+        /**
+         * ActivityKind
+         * @enum {string}
+         */
+        ActivityKind: "call" | "email" | "whatsapp" | "meeting" | "visit" | "note";
+        /** ActivityRead */
+        ActivityRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["app__modules__parties__schemas__UserRef"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ActivityKind"];
+            /** Next Follow Up On */
+            next_follow_up_on: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Outcome */
+            outcome: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
         };
         /** AdapterInfo */
         AdapterInfo: {
@@ -12123,6 +12266,15 @@ export interface components {
             version: number;
             warehouse: components["schemas"]["WarehouseRef"];
         };
+        /** CountRow */
+        CountRow: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
         /**
          * CountStatus
          * @enum {string}
@@ -15134,6 +15286,11 @@ export interface components {
             verified_at: string | null;
         };
         /**
+         * Interest
+         * @enum {string}
+         */
+        Interest: "lamikraft" | "table_top" | "standard_decorative" | "standard_compact";
+        /**
          * InventoryEffect
          * @enum {string}
          */
@@ -15982,6 +16139,115 @@ export interface components {
              * Format: date
              */
             work_date: string;
+        };
+        /** LeadSourceCreate */
+        LeadSourceCreate: {
+            /** Code */
+            code: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Label */
+            label: string;
+        };
+        /** LeadSourceRead */
+        LeadSourceRead: {
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["Capability"];
+            };
+            /** Code */
+            code: string;
+            /** Description */
+            description: string | null;
+            /** Display Order */
+            display_order: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is System */
+            is_system: boolean;
+            /** Label */
+            label: string;
+            /** Lead Count */
+            lead_count: number;
+            /** Version */
+            version: number;
+        };
+        /** LeadSourceRef */
+        LeadSourceRef: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+        };
+        /** LeadSourceUpdate */
+        LeadSourceUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Display Order */
+            display_order?: number | null;
+            /** Expected Version */
+            expected_version: number;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Label */
+            label?: string | null;
+        };
+        /**
+         * LeadStage
+         * @enum {string}
+         */
+        LeadStage: "new" | "contacted" | "qualified" | "negotiating" | "won" | "lost";
+        /**
+         * LeadStageChange
+         * @description Move a lead through the pipeline. ``lost`` needs a reason; ``won`` makes the lead a customer and is final.
+         */
+        LeadStageChange: {
+            /** Expected Version */
+            expected_version: number;
+            /** Lost Reason */
+            lost_reason?: string | null;
+            stage: components["schemas"]["LeadStage"];
+        };
+        /**
+         * LeadSummary
+         * @description Lead numbers in the caller's read scope; ``conversion_rate`` is won / all leads as a percentage string.
+         */
+        LeadSummary: {
+            /** By Owner */
+            by_owner: components["schemas"]["CountRow"][];
+            /** By Source */
+            by_source: components["schemas"]["CountRow"][];
+            /** By Stage */
+            by_stage: components["schemas"]["CountRow"][];
+            /** Conversion Rate */
+            conversion_rate: string;
+            /** Follow Ups Overdue */
+            follow_ups_overdue: number;
+            /** Follow Ups Today */
+            follow_ups_today: number;
+            /** Lost */
+            lost: number;
+            /** Open */
+            open: number;
+            /** Won */
+            won: number;
+            /** Won This Month */
+            won_this_month: number;
         };
         /** LineDiff */
         LineDiff: {
@@ -18745,16 +19011,28 @@ export interface components {
             default_currency: "INR" | "EUR" | "USD" | "GBP";
             /** Display Name */
             display_name?: string | null;
+            /** First Contact On */
+            first_contact_on?: string | null;
+            /** Interests */
+            interests?: components["schemas"]["Interest"][];
+            /** Lead Source */
+            lead_source?: string | null;
             /** Legal Name */
             legal_name: string;
             /** Owner User Id */
             owner_user_id?: string | null;
+            priority?: components["schemas"]["Priority"] | null;
+            /** Requirement */
+            requirement?: string | null;
             /** Roles */
             roles: components["schemas"]["PartyRole"][];
             /** @default active */
             status: components["schemas"]["PartyStatus"];
             /** Tax Identifiers */
             tax_identifiers?: components["schemas"]["TaxIdentifierIn"][];
+            temperature?: components["schemas"]["Temperature"] | null;
+            /** Website */
+            website?: string | null;
         };
         /** PartyDetail */
         PartyDetail: {
@@ -18785,13 +19063,23 @@ export interface components {
             default_currency: string;
             /** Display Name */
             display_name: string;
+            /** First Contact On */
+            first_contact_on?: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Interests */
+            interests?: components["schemas"]["Interest"][];
+            lead_source?: components["schemas"]["LeadSourceRef"] | null;
+            lead_stage?: components["schemas"]["LeadStage"] | null;
             /** Legal Name */
             legal_name: string;
+            /** Lost Reason */
+            lost_reason?: string | null;
+            /** Next Follow Up On */
+            next_follow_up_on?: string | null;
             owner: components["schemas"]["app__modules__parties__schemas__UserRef"];
             /** Party Number */
             party_number: string;
@@ -18799,11 +19087,15 @@ export interface components {
             path: string;
             /** Primary Contact */
             primary_contact: string | null;
+            priority?: components["schemas"]["Priority"] | null;
+            /** Requirement */
+            requirement?: string | null;
             /** Roles */
             roles: components["schemas"]["PartyRole"][];
             status: components["schemas"]["PartyStatus"];
             /** Tax Identifiers */
             tax_identifiers: components["schemas"]["TaxIdentifierRead"][];
+            temperature?: components["schemas"]["Temperature"] | null;
             /**
              * Updated At
              * Format: date-time
@@ -18811,6 +19103,8 @@ export interface components {
             updated_at: string;
             /** Version */
             version: number;
+            /** Website */
+            website?: string | null;
         };
         /** PartyLink */
         PartyLink: {
@@ -18908,8 +19202,14 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Interests */
+            interests?: components["schemas"]["Interest"][];
+            lead_source?: components["schemas"]["LeadSourceRef"] | null;
+            lead_stage?: components["schemas"]["LeadStage"] | null;
             /** Legal Name */
             legal_name: string;
+            /** Next Follow Up On */
+            next_follow_up_on?: string | null;
             owner: components["schemas"]["app__modules__parties__schemas__UserRef"];
             /** Party Number */
             party_number: string;
@@ -18917,9 +19217,11 @@ export interface components {
             path: string;
             /** Primary Contact */
             primary_contact: string | null;
+            priority?: components["schemas"]["Priority"] | null;
             /** Roles */
             roles: components["schemas"]["PartyRole"][];
             status: components["schemas"]["PartyStatus"];
+            temperature?: components["schemas"]["Temperature"] | null;
             /**
              * Updated At
              * Format: date-time
@@ -18948,13 +19250,25 @@ export interface components {
             display_name?: string | null;
             /** Expected Version */
             expected_version: number;
+            /** First Contact On */
+            first_contact_on?: string | null;
+            /** Interests */
+            interests?: components["schemas"]["Interest"][] | null;
+            /** Lead Source */
+            lead_source?: string | null;
             /** Legal Name */
             legal_name?: string | null;
+            priority?: components["schemas"]["Priority"] | null;
+            /** Requirement */
+            requirement?: string | null;
             /** Roles */
             roles?: components["schemas"]["PartyRole"][] | null;
             status?: components["schemas"]["PartyStatus"] | null;
             /** Tax Identifiers */
             tax_identifiers?: components["schemas"]["TaxIdentifierIn"][] | null;
+            temperature?: components["schemas"]["Temperature"] | null;
+            /** Website */
+            website?: string | null;
         };
         /** PasswordChangeRequest */
         PasswordChangeRequest: {
@@ -20638,6 +20952,11 @@ export interface components {
          * @enum {string}
          */
         PriceType: "domestic" | "export" | "sample" | "distributor";
+        /**
+         * Priority
+         * @enum {string}
+         */
+        Priority: "A" | "B" | "C";
         /** ProductBrief */
         ProductBrief: {
             /**
@@ -25857,6 +26176,11 @@ export interface components {
             /** Team Role */
             team_role: string;
         };
+        /**
+         * Temperature
+         * @enum {string}
+         */
+        Temperature: "hot" | "warm" | "cold";
         /** TemplateRead */
         TemplateRead: {
             /** Category */
@@ -27225,6 +27549,13 @@ export interface components {
             /** Expected Version */
             expected_version: number;
         };
+        /** ActivityPage */
+        app__modules__parties__schemas__ActivityPage: {
+            /** Items */
+            items: components["schemas"]["ActivityRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** UserRef */
         app__modules__parties__schemas__UserRef: {
             /** Display Name */
@@ -27280,6 +27611,13 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** ActivityPage */
+        app__platform__collab__schemas__ActivityPage: {
+            /** Items */
+            items: components["schemas"]["ActivityItem"][];
+            /** Next Cursor */
+            next_cursor: string | null;
         };
         /** UserRef */
         app__platform__identity__schemas__UserRef: {
@@ -30256,7 +30594,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ActivityPage"];
+                    "application/json": components["schemas"]["app__platform__collab__schemas__ActivityPage"];
                 };
             };
             /** @description Validation Error */
@@ -38234,6 +38572,105 @@ export interface operations {
             };
         };
     };
+    parties_list_lead_sources: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parties_create_lead_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadSourceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parties_update_lead_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadSourceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     parties_list_parties: {
         parameters: {
             query?: {
@@ -38247,6 +38684,13 @@ export interface operations {
                 status?: components["schemas"]["PartyStatus"][] | null;
                 owner_user_id?: string | null;
                 include_archived?: boolean;
+                lead_stage?: components["schemas"]["LeadStage"][] | null;
+                lead_source?: string | null;
+                interest?: components["schemas"]["Interest"] | null;
+                priority?: components["schemas"]["Priority"] | null;
+                temperature?: components["schemas"]["Temperature"] | null;
+                follow_up?: ("overdue" | "today" | "week") | null;
+                sort?: "name" | "follow_up" | "recent";
             };
             header?: never;
             path?: never;
@@ -38305,6 +38749,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parties_get_lead_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSummary"];
                 };
             };
         };
@@ -38408,6 +38872,75 @@ export interface operations {
             };
         };
     };
+    parties_list_activities: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__modules__parties__schemas__ActivityPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parties_log_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     parties_archive_party: {
         parameters: {
             query?: never;
@@ -38420,6 +38953,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["app__modules__parties__router__ArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parties_change_lead_stage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadStageChange"];
             };
         };
         responses: {
