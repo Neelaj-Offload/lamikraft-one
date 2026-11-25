@@ -1297,6 +1297,10 @@ class SampleCreate(BaseModel):
     owner_user_id: uuid.UUID | None = None
     branch_id: uuid.UUID | None = None
     notes: LongText | None = None
+    #: record a sample already sent before (today or earlier): it is created dispatched on that date
+    sent_on: date | None = None
+    #: courier or challan reference of a sample recorded as already sent
+    dispatch_reference: Text120 | None = None
 
 
 class SampleUpdate(BaseModel):
@@ -1322,6 +1326,8 @@ class SampleTransition(BaseModel):
     feedback: LongText | None = None
     feedback_outcome: FeedbackOutcome | None = None
     reason: Reason | None = None
+    #: when ``dispatch``, ``deliver`` or ``record_feedback`` really happened (entering history); default now
+    occurred_on: date | None = None
 
 
 class SampleRead(BaseModel):

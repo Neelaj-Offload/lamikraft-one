@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from datetime import date, datetime, time
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import ColumnElement, func, or_, select
 
@@ -27,6 +29,7 @@ from app.modules.sales.common import (
     Errors,
     business_date,
     check_member,
+    company_zone,
     idempotent,
     party_ref,
     party_refs,
@@ -61,6 +64,26 @@ SAMPLE_TRANSITIONS: dict[str, tuple[frozenset[str], str]] = {
 }
 
 
+BACKFILL_REFERENCE = "Sent before Lamikraft One"
+
+
+def _noon(uow: UnitOfWork, day: date) -> datetime:
+    """A business date entered for history becomes noon that day in the company zone (no time-of-day guess)."""
+    return datetime.combine(day, time(12), ZoneInfo(company_zone(uow)))
+
+
+def _step_floor(sample: Sample, action: str) -> date | None:
+    """The earliest date a step may carry: never before the step it follows."""
+    if action == "dispatch":
+        return sample.requested_on
+    if action == "deliver":
+        return sample.dispatched_at.date() if sample.dispatched_at else sample.requested_on
+    if action == "record_feedback":
+        last = sample.delivered_at or sample.dispatched_at
+        return last.date() if last else sample.requested_on
+    return None
+
+
 def sample_path(sample_id: uuid.UUID) -> str:
     return f"/sales/samples/{sample_id}"
 
@@ -90,14 +113,23 @@ def create_sample(uow: UnitOfWork, data: SampleCreate, *, origin: str | None = N
     qty = quantize_quantity(data.quantity)
     if (problem := quantity_entry_problem(qty, data.unit_code)) is not None:
         errors.add(["quantity"], problem[0], problem[1])
+    today = business_date(uow)
+    if data.sent_on is not None and data.sent_on > today:
+        errors.add(["sent_on"], "sent_on_in_future", "A sample already sent needs today's date or an earlier one")
+    if data.sent_on is None and data.dispatch_reference:
+        errors.add(["dispatch_reference"], "reference_without_sent_on", "Give the date it was sent, or dispatch it later")
     errors.raise_if_any()
     sample = Sample(
         id=new_id(), company_id=actor.company_id, party_id=party.id, owner_user_id=owner,
         branch_id=data.branch_id or party.branch_id or (sorted(actor.branch_ids)[0] if actor.branch_ids else None),
         quote_id=quote.id if quote else None, custom_product_id=custom.id if custom else None,
         spec_revision_id=data.spec_revision_id, product_id=product.id if product else None, description=description,
-        quantity=qty, unit_code=data.unit_code, status=SS.REQUESTED.value, requested_on=business_date(uow), notes=data.notes,
+        quantity=qty, unit_code=data.unit_code, status=SS.REQUESTED.value, requested_on=data.sent_on or today, notes=data.notes,
     )
+    if data.sent_on is not None:  # history: recorded as already dispatched on that date
+        sample.status = SS.DISPATCHED.value
+        sample.dispatched_at = _noon(uow, data.sent_on)
+        sample.dispatch_reference = data.dispatch_reference or BACKFILL_REFERENCE
     sample.sample_number = uow.allocate_number(ev.SAMPLE_SEQUENCE.key, document_date=business_date(uow),
                                                resource_type="sales.sample", resource_id=sample.id)
     uow.add(sample)
@@ -105,7 +137,11 @@ def create_sample(uow: UnitOfWork, data: SampleCreate, *, origin: str | None = N
     uow.emit(ev.SAMPLE_CREATED, aggregate_id=sample.id, aggregate_version=sample.version,
              payload=ev.payload(ev.SampleCreatedPayload(sample_id=sample.id, sample_number=sample.sample_number, party_id=party.id,
                                                         owner_user_id=owner, origin=origin)))
-    uow.audit("sales.sample.created", resource_type="sales.sample", resource_id=sample.id, resource_label=sample.sample_number)
+    if data.sent_on is not None:
+        uow.emit(ev.SAMPLE_DISPATCHED, aggregate_id=sample.id, aggregate_version=sample.version,
+                 payload=ev.payload(ev.SampleDispatchedPayload(sample_id=sample.id, challan_id=None, origin="backfill")))
+    uow.audit("sales.sample.created", resource_type="sales.sample", resource_id=sample.id, resource_label=sample.sample_number,
+              details={"sent_on": data.sent_on.isoformat()} if data.sent_on else None)
     return sample
 
 
@@ -163,6 +199,15 @@ def transition_sample(uow: UnitOfWork, sample_id: uuid.UUID, data: SampleTransit
         errors.add(["feedback"], "feedback_required", "Record the customer's feedback and its outcome")
     if data.action == "cancel" and not data.reason:
         errors.add(["reason"], "reason_required", "Cancelling a sample needs a reason")
+    if data.occurred_on is not None:
+        floor = _step_floor(sample, data.action)
+        if data.action not in ("dispatch", "deliver", "record_feedback"):
+            errors.add(["occurred_on"], "occurred_on_not_allowed", "Only dispatch, delivery and feedback take a date")
+        elif data.occurred_on > business_date(uow):
+            errors.add(["occurred_on"], "occurred_on_in_future", "Pick today or an earlier date")
+        elif floor is not None and data.occurred_on < floor:
+            errors.add(["occurred_on"], "occurred_on_before_previous_step",
+                       f"Pick {floor.isoformat()} or later: the step before happened then")
     errors.raise_if_any()
     if data.action == "dispatch" and data.challan_id is not None:
         from app.modules.sales.sample_lineage import checked_challan
@@ -170,20 +215,21 @@ def transition_sample(uow: UnitOfWork, sample_id: uuid.UUID, data: SampleTransit
         uow.actor.require("challans.challan.read")
         checked_challan(uow, sample, data.challan_id)  # visible, same customer, outbound, not cancelled
     now = uow.now()
+    at = _noon(uow, data.occurred_on) if data.occurred_on is not None else now
     event: tuple[str, Any] | None = None
     if data.action == "dispatch":
-        sample.dispatched_at = now
+        sample.dispatched_at = at
         sample.dispatch_reference = data.dispatch_reference
         sample.challan_id = data.challan_id
         event = (ev.SAMPLE_DISPATCHED, ev.SampleDispatchedPayload(sample_id=sample.id, challan_id=data.challan_id, origin=origin))
     elif data.action == "deliver":
-        sample.delivered_at = now
+        sample.delivered_at = at
         sample.delivery_evidence_kind = data.evidence_kind.value  # type: ignore[union-attr]
         event = (ev.SAMPLE_DELIVERED, ev.SampleDeliveredPayload(sample_id=sample.id, evidence_kind=sample.delivery_evidence_kind, origin=origin))
     elif data.action == "record_feedback":
         sample.feedback = data.feedback
         sample.feedback_outcome = data.feedback_outcome.value  # type: ignore[union-attr]
-        sample.feedback_at = now
+        sample.feedback_at = at
         if sample.spec_revision_id is not None:
             rev = uow.session.get(CustomProductSpecRevision, sample.spec_revision_id)
             if rev is not None and rev.outcome == "pending":
