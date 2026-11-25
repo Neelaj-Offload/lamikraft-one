@@ -100,7 +100,8 @@ New table `parties_activity` (works for any party, not only leads): `party_id`, 
 | State, City, Pincode, Address Line, Address Line (2) | one billing address; skipped when there is no address line |
 | Lead Action ≠ "NA" | note line, and stage `negotiating` for "Order Form Issued" |
 
-Default currency by country (EUR for euro countries, GBP, AUD, CAD, INR, otherwise USD). New leads start `new`, `B`,
+Default currency by country (EUR for euro countries, GBP for the UK, INR for India, otherwise USD: the company enables
+only INR, EUR, USD and GBP, `parties_party.default_currency_enabled`). New leads start `new`, `B`,
 `cold`. Re-running matches on `name_key` + country: it fills empty fields and adds missing contacts (matched by email,
 then name) but never overwrites stage, priority, temperature, owner or activities changed in the app. Invalid emails
 are dropped from the contact and listed in the report. Report: created, updated, unchanged, rejected (with row number
