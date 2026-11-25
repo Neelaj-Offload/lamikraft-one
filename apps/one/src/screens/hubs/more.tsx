@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useId, type CSSProperties, type ReactNode } from "react";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import { riseIndex } from "~/lib/motion";
 import { Page } from "~/shell/page";

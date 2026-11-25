@@ -10,7 +10,7 @@ import { fetchSamples } from "@/features/samples/api";
 import { sampleListHref } from "@/features/samples/list-state";
 import { queryKeys } from "@/lib/api/query-keys";
 import { messageHref } from "@/lib/app-links";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import { useLeads, useLeadSummary } from "~/data/leads";
 import { useOrderCount } from "~/data/sales-crm";

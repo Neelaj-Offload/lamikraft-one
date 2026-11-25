@@ -11,7 +11,7 @@
  */
 
 import type { Route } from "next";
-import { canAccessRoute, matchRoute, type AreaId } from "@/lib/routes";
+import { canAccessRoute, matchRoute, type AreaId } from "~/lib/routes";
 import type { NavEntry } from "@/lib/session/types";
 import type { IconName } from "~/ui/icon";
 

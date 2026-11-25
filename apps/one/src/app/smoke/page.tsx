@@ -1,4 +1,4 @@
-import { routes } from "@/lib/routes";
+import { routes } from "~/lib/routes";
 import { Icon } from "~/ui/icon";
 import { SmokeClient } from "./smoke-client";
 

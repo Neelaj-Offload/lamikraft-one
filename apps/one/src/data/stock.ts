@@ -26,7 +26,7 @@ import {
 } from "@/features/inventory/api";
 import type { StockState } from "@/features/inventory/list-state";
 import { queryKeys } from "@/lib/api/query-keys";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 
 /** `router.push` and `Link` want typed routes; API paths and built URLs are plain strings. */

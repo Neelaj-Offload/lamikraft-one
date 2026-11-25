@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { MasterSummary } from "@/features/production/api";
 import { trimDecimalStr } from "@/lib/format/decimal";
 import { formatDecimal } from "@/lib/format/money";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession, useZone } from "@/lib/session/context";
 import { riseIndex } from "~/lib/motion";
 import { asRoute, type StatusLook } from "~/data/production";

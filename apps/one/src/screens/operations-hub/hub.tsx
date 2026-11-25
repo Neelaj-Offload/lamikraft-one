@@ -24,7 +24,7 @@ import { workOrdersHref, type WorkOrderListState } from "@/features/production/l
 import { fetchInspections } from "@/features/quality/api";
 import { inspectionListHref } from "@/features/quality/list-state";
 import { queryKeys } from "@/lib/api/query-keys";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import { riseIndex } from "~/lib/motion";
 import { Page, PageHeader, PageSection } from "~/shell/page";

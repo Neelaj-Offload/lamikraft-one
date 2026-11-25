@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useOnline } from "@/lib/hooks";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import { saveUiPreferences } from "@/lib/session/preferences";
 import { useUiPoll } from "@/lib/session/use-ui-poll";

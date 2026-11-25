@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useScreenContribution } from "@/features/assistant/screen-context-store";
 import type { InboxItem, InboxPage } from "@/features/inbox/types";
 import { formatDayTime } from "@/lib/format/time";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useNow, useSession } from "@/lib/session/context";
 import { useInboxCounts, useInboxList } from "~/data/inbox";
 import { Page, PageHeader, PageSection } from "~/shell/page";

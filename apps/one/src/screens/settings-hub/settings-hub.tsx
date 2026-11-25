@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useId, type CSSProperties } from "react";
-import { canAccessRoute, contextRoutesFor, type RouteDefinition } from "@/lib/routes";
+import { canAccessRoute, contextRoutesFor, type RouteDefinition } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import type { IntegrationMode, SessionBootstrap } from "@/lib/session/types";
 import { riseIndex } from "~/lib/motion";

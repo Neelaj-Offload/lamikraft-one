@@ -24,7 +24,7 @@ import { createIdempotencyKey } from "@/lib/api/client";
 import { commandSignature, createCommandKeys } from "@/lib/api/command-keys";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useOnline } from "@/lib/hooks";
-import { canAccessRoute, matchRoute } from "@/lib/routes";
+import { canAccessRoute, matchRoute } from "~/lib/routes";
 import { useSession } from "@/lib/session/context";
 import { toast, type Tone } from "~/ui";
 
