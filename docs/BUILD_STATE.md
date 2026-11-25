@@ -1,7 +1,7 @@
 # Build state
 
-**Checkpoint 7b — CRM programme modules 1–4 (leads, customers and samples, proforma invoices, products and stock)
-on `main` via `lane/crm-leads`, 2026-11-25** (sections 16–17). Checkpoint 6 (section 15) and earlier remain below.
+**Checkpoint 7c — CRM programme modules 1–5 (leads, customers and samples, proforma invoices, products and stock,
+marketplace stock sync) and hosting preparation on `main` via `lane/crm-leads`, 2026-11-25** (sections 16–18). Checkpoint 6 (section 15) and earlier remain below.
 
 Resume rule: a new session reads `AGENTS.md` and `CODEX_HANDOFF.md`, then `docs/PLAN.md`, this file and
 `docs/architecture/*`, and continues from
@@ -572,3 +572,32 @@ CB07-892-S/M/L, factory orders view.
 - Opening stock is entered one line per batch from the web; a multi-line batch form and adjustments/transfers
   create forms remain. Anirudh's stock list and the NL/US warehouses are owner data to enter.
 - A full `npm run test:api` was not re-run after module 4; the affected suites were (above). [integrator]
+
+
+## 18. Checkpoint 7c — CRM programme module 5 (marketplace stock sync) and hosting preparation (2026-11-25)
+
+Spec `docs/superpowers/specs/2026-11-25-marketplace-sync-design.md`. Migration `0032_marketplaces` (one head). Gates:
+full API after modules 3–5 **1828 passed, 7 skipped, 0 failed** (59 min 07 s, `D:\lk-wt\crm-m5-testapi.log`);
+marketplace tests 4/4 including a live Amazon sync against a mocked Selling Partner API; `apps/one` typecheck and lint
+clean. Browser check as Priya: map LK-OT-0450 to an Amazon SKU, simulate an order (595 → 594), sync recorded 594 sent.
+
+### Implemented (verified)
+
+- Marketplace channels (Amazon India, Flipkart, Pepperfry, Website; Demo or Live, Live only with credentials in the
+  environment), listings, imported orders posting stock out once (`marketplace_order` posting source) or held with a
+  reason, free-stock push excluding sample/exhibition stock, a production-only 15-minute sync of live channels.
+  Amazon adapter: LWA token, Orders v0, Listings Items `fulfillment_availability`.
+- Hosting preparation: `backend/Dockerfile` + `start.sh` (api migrates then serves; worker), `apps/one/vercel.json`,
+  `docs/runbooks/hosting.md` (Railway Singapore + Vercel, secrets, one-time setup, first admin, invites, leads import).
+
+- Deploy checks: the backend image builds (`docker build`, 1.1 GB) and loads 464 routes / 37 modules in a container;
+  `apps/one` production build passes (`D:\lk-wt\one-build.log`). Next.js upgraded 16.4.4 → 16.4.6 in both web apps
+  (8 moderate advisories, e.g. GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385); both typechecks, `apps/one` vitest and lint
+  (0 errors) pass. Remaining `npm audit`: 7 moderate in dev-only lint tooling (minimatch).
+
+### Simulated (Demo) / owner inputs
+
+All four channels run in Demo until the owner places Amazon SP-API credentials (developer profile approval pending);
+Flipkart, Pepperfry and website adapters are Demo-only for now. Hosting itself needs the owner's go-ahead to create a
+private GitHub repository and push, a Railway account (or the Railway connector authorised), the first administrator's
+email and the company's legal name.
