@@ -21,9 +21,9 @@ from app.modules.parties.models import Party, PartyActivity
 from app.modules.parties.schemas import (
     ActivityCreate,
     ActivityKind,
-    PartyActivityPage,
     ActivityRead,
     LeadStage,
+    PartyActivityPage,
     UserRef,
 )
 from app.modules.parties.service import _owner_names

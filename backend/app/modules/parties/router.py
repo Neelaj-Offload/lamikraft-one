@@ -14,7 +14,6 @@ from app.core.http.pagination import MAX_LIMIT, Page
 from app.modules.parties import activities, customer_types, lead_sources, leads, service
 from app.modules.parties.schemas import (
     ActivityCreate,
-    PartyActivityPage,
     ActivityRead,
     CustomerType,
     CustomerTypeCreate,
@@ -27,6 +26,7 @@ from app.modules.parties.schemas import (
     LeadStage,
     LeadStageChange,
     LeadSummary,
+    PartyActivityPage,
     PartyCreate,
     PartyDetail,
     PartyFilters,
